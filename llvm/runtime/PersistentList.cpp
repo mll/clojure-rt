@@ -30,15 +30,13 @@ PersistentList::PersistentList(Object *object) : first(object), Object(persisten
 
 PersistentList::~PersistentList() {
   if (shouldDeallocateChildren) {
-    Object *children[count];
+    auto children = vector<Object *>();
     auto os = chrono::high_resolution_clock::now();
-    int i = 0;
-    for(auto child = rest; child != nullptr; child = child->rest, i++) children[i] = child;        
+    for(auto child = rest; child != nullptr; child = child->rest) children.push_back(child);        
     auto op = chrono::high_resolution_clock::now();
     cout << "Children Time: " <<  chrono::duration_cast<chrono::milliseconds>(op-os).count() << endl;
 
-
-    for(int i = 0; i < count; i++) {
+    for(int i = 0; i < count - 1; i++) {
       if(!children[i]->release(false)) break;
     }
   }

@@ -1,0 +1,13 @@
+Undefined symbols for architecture arm64:
+  "_sdscat", referenced from:
+      _PersistentList_toString in PersistentList-df2df6.o
+  "_sdscmp", referenced from:
+      _String_equals in String-3456b6.o
+  "_sdsfree", referenced from:
+      _String_destroy in String-3456b6.o
+  "_sdsfromlonglong", referenced from:
+      _Integer_toString in Integer-e57272.o
+  "_sdsnew", referenced from:
+      _PersistentList_toString in PersistentList-df2df6.o
+ld: symbol(s) not found for architecture arm64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)

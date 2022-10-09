@@ -3,10 +3,10 @@
 
 
 PersistentVector* PersistentVector_create() {
-  PersistentVector *self = malloc(sizeof(PersistentVector));
+  Object *super = allocate(sizeof(PersistentVector)+ sizeof(Object)); 
+  PersistentVector *self = (PersistentVector *)(super + 1);
   self->count = 0;
-  
-  self->super = Object_create(persistentVectorType, self);
+  Object_create(super, persistentVectorType);
   return self;
 }
 

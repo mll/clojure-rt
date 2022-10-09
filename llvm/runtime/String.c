@@ -2,10 +2,11 @@
 #include "Object.h"
 
 String* String_create(sds string) {
-  String *self = malloc(sizeof(String));
+  Object *super = allocate(sizeof(String)+ sizeof(Object)); 
+  String *self = (String *)(super + 1);
   self->value = string;
   self->count = sdslen(string);
-  self->super = Object_create(stringType, self);
+  Object_create(super, stringType);
   return self;
 }
 
@@ -25,7 +26,7 @@ uint64_t String_hash(String *self) {
 }
 
 String *String_toString(String *self) {
-  retain(self->super);
+  retain(self);
   return self;
 }
 

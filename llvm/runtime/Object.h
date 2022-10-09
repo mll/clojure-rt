@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "defines.h"
+#include <stdatomic.h>
 
 typedef struct String String; 
 
@@ -21,17 +22,26 @@ typedef enum objectType objectType;
 
 struct Object {
   small_enum type;
-  pthread_mutex_t refCountLock;
-  uint64_t refCount;
-  void *data;
+  atomic_uint_fast64_t refCount;
 };
 
 typedef struct Object Object; 
 
-Object* Object_create(objectType type, void* data);
-void retain(Object *self);
-bool release(Object *self);
-bool release_internal(Object *self, bool deallocatesChildren);
+void *allocate(size_t size);
+void initialise_memory();
+
+
+void *data(Object *self);
+Object *super(void *self);
+
+void Object_create(Object *self, objectType type);
+void retain(void *self);
+bool release(void *self);
+bool release_internal(void *self, bool deallocatesChildren);
+
+void Object_retain(Object *self);
+bool Object_release(Object *self);
+bool Object_release_internal(Object *self, bool deallocatesChildren);
 
 
 bool equals(Object *self, Object *other);

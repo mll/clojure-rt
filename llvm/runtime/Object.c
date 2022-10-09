@@ -3,31 +3,54 @@
 #include "Integer.h"
 #include "PersistentList.h"
 #include "PersistentVector.h"
+#include "wof_alloc/wof_allocator.h"
 
-Object* Object_create(objectType type, void *data) {
-  Object *self = malloc(sizeof(Object));
-  pthread_mutex_init(&(self->refCountLock), NULL);
-  self->refCount = 1;
+wof_allocator_t *alloc = NULL;
+
+void initialise_memory() {
+  alloc = wof_allocator_new();
+}
+
+
+void *allocate(size_t size) {
+  return malloc(size);  //wof_alloc(alloc, size);
+}
+
+void deallocate(void *ptr) {
+  free(ptr); // wof_free(alloc, ptr);
+}
+
+void *data(Object *self) {
+  return self + 1;
+}
+
+Object *super(void *self) {
+  return (Object *)(((Object *)self) - 1);
+}
+
+
+void Object_create(Object *self, objectType type) {
+  atomic_init(&(self->refCount), 1);
   self->type = type;
-  self->data = data;
-  return self;
 }
 
 bool equals(Object *self, Object *other) {
-  if (self == other || self->data == other->data) return true;
+  void *selfData = data(self);
+  void *otherData = data(other);
+  if (self == other || selfData == otherData) return true;
   if (self->type != other->type) return false;
   switch((objectType)self->type) {
       case integerType:
-        return Integer_equals(self->data, other->data);
+        return Integer_equals(selfData, otherData);
         break;          
       case stringType:
-        return String_equals(self->data, other->data);
+        return String_equals(selfData, otherData);
         break;          
       case persistentListType:
-        return PersistentList_equals(self->data, other->data);
+        return PersistentList_equals(selfData, otherData);
         break;          
       case persistentVectorType:
-        return PersistentVector_equals(self->data, other->data);
+        return PersistentVector_equals(selfData, otherData);
         break;
       }
 }
@@ -35,16 +58,16 @@ bool equals(Object *self, Object *other) {
 uint64_t hash(Object *self) {
       switch((objectType)self->type) {
       case integerType:
-        return Integer_hash(self->data);
+        return Integer_hash(data(self));
         break;          
       case stringType:
-        return String_hash(self->data);
+        return String_hash(data(self));
         break;          
       case persistentListType:
-        return PersistentList_hash(self->data);
+        return PersistentList_hash(data(self));
         break;          
       case persistentVectorType:
-        return PersistentVector_hash(self->data);
+        return PersistentVector_hash(data(self));
         break;
       }
 }
@@ -52,54 +75,56 @@ uint64_t hash(Object *self) {
 String *toString(Object *self) {
     switch((objectType)self->type) {
       case integerType:
-        return Integer_toString(self->data);
+        return Integer_toString(data(self));
         break;          
       case stringType:
-        return String_toString(self->data);
+        return String_toString(data(self));
         break;          
       case persistentListType:
-        return PersistentList_toString(self->data);
+        return PersistentList_toString(data(self));
         break;          
       case persistentVectorType:
-        return PersistentVector_toString(self->data);
+        return PersistentVector_toString(data(self));
         break;
       }
 }
 
-void retain(Object *self) {
-  pthread_mutex_lock(&(self->refCountLock));
-  self->refCount++;
-  pthread_mutex_unlock(&(self->refCountLock));
+void retain(void *self) {
+  Object_retain(super(self));
 }
 
-bool release_internal(Object *self, bool deallocateChildren) {
-    pthread_mutex_lock(&(self->refCountLock));
-    if (--(self->refCount) == 0) {
+bool release(void *self) {
+  return Object_release(super(self));
+}
+
+void Object_retain(Object *self) {
+  atomic_fetch_add(&(self->refCount), 1);
+}
+
+bool Object_release_internal(Object *self, bool deallocateChildren) {
+    
+    if (atomic_fetch_sub(&(self->refCount), 1) == 1) {
       switch((objectType)self->type) {
       case integerType:
-        Integer_destroy(self->data);
+        Integer_destroy(data(self));
         break;          
       case stringType:
-        String_destroy(self->data);
+        String_destroy(data(self));
         break;          
       case persistentListType:
-        PersistentList_destroy(self->data, deallocateChildren);
+        PersistentList_destroy(data(self), deallocateChildren);
         break;          
       case persistentVectorType:
-        PersistentVector_destroy(self->data, deallocateChildren);
+        PersistentVector_destroy(data(self), deallocateChildren);
         break;
       }
-      free(self->data);
-      pthread_mutex_unlock(&(self->refCountLock));
-      pthread_mutex_destroy(&(self->refCountLock));
-      free(self);
+      deallocate(self);
       return true;
     }
-    pthread_mutex_unlock(&(self->refCountLock));
     return false;
 }
 
-bool release(Object *self) {
-  return release_internal(self, true);
+bool Object_release(Object *self) {
+  return Object_release_internal(self, true);
 }
 

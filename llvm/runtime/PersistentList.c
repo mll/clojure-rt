@@ -2,12 +2,14 @@
 #include "Object.h"
 
 PersistentList* PersistentList_create(Object *first, PersistentList *rest) {
-  PersistentList *self = malloc(sizeof(PersistentList));
+  Object *super = allocate(sizeof(PersistentList) + sizeof(Object)); 
+  PersistentList *self = data(super);
+
   self->first = first;
   self->rest = rest;
   self->count = (rest ? rest->count : 0) + (first ? 1 : 0);
   
-  self->super = Object_create(persistentListType, self);
+  Object_create(super, persistentListType);
   return self;
 }
 
@@ -31,7 +33,7 @@ uint64_t PersistentList_hash(PersistentList *self) {
 
   PersistentList *current = self->rest;
   while (current) {
-    h = ((h << 5) + h) + hash(current->super);
+    h = ((h << 5) + h) + hash(super(current));
   }
   return h;
 }
@@ -46,7 +48,7 @@ String *PersistentList_toString(PersistentList *self) {
     if(current->first) {
       String *s = toString(current->first);
       sdscat(retVal, s->value);
-      release(s->super);
+      release(s);
     }
     current = current->rest;
   }
@@ -59,16 +61,16 @@ void PersistentList_destroy(PersistentList *self, bool deallocateChildren) {
     PersistentList *child = self->rest;
     while(child) {
       PersistentList *next = child->rest;
-      if (!release_internal(child->super, false)) break;
+      if (!Object_release_internal(super(child), false)) break;
       child = next;
     }
   }
-  if(self->first) release(self->first);  
+  if(self->first) Object_release(self->first);  
 }
 
 
 PersistentList* PersistentList_conj(PersistentList *self, Object *other) {
-  retain(self->super);
-  retain(other);
+  retain(self);
+  Object_retain(other);
   return PersistentList_create(other, self);
 }

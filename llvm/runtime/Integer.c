@@ -3,9 +3,10 @@
 #include "String.h"
 
 Integer* Integer_create(int64_t integer) {
-  Integer *self = malloc(sizeof(Integer));
+  Object *super = allocate(sizeof(Integer) + sizeof(Object)); 
+  Integer *self = (Integer *)(super + 1);
   self->value = integer;
-  self->super = Object_create(integerType, self);;
+  Object_create(super, integerType);
   return self;
 }
 

@@ -14,7 +14,7 @@
 using namespace std;
 
 void testList () {
-  auto l = new PersistentList();
+  auto l = new PersistentList<Object>();
   // l = l->conj(new Number(3));
   // l = l->conj(new Number(7));
   // l = l->conj(new PersistentList(new Number(2)));
@@ -40,8 +40,14 @@ void testList () {
   getline(cin, str); 
   auto os = chrono::high_resolution_clock::now();
 
+  auto tmp = l;
+  int64_t sum = 0;
+  while(tmp != nullptr) {
+    if(tmp->first) sum += dynamic_cast<Number *>(tmp->first)->value;
+    tmp = tmp->rest;
+  }
 
-
+  cout << sum << endl;
   auto op = chrono::high_resolution_clock::now();
   cout << "Time: " <<  chrono::duration_cast<chrono::milliseconds>(op-os).count() << endl;
   getline(cin, str); 

@@ -14,6 +14,7 @@ struct PersistentList {
   uint64_t count;
 };
 
+PersistentList* PersistentList_empty();
 PersistentList* PersistentList_create(Object *first, PersistentList *rest);
 bool PersistentList_equals(PersistentList *self, PersistentList *other);
 uint64_t PersistentList_hash(PersistentList *self);

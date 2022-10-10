@@ -1,6 +1,13 @@
 #include "PersistentList.h"
 #include "Object.h"
 
+static PersistentList *EMPTY = NULL;
+
+PersistentList* PersistentList_empty() {
+  if (EMPTY == NULL) EMPTY = PersistentList_create(NULL, NULL);
+  return EMPTY;
+} 
+
 PersistentList* PersistentList_create(Object *first, PersistentList *rest) {
   Object *super = allocate(sizeof(PersistentList) + sizeof(Object)); 
   PersistentList *self = data(super);

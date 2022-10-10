@@ -1,10 +1,16 @@
 #include "Object.h"
 #include "PersistentList.h"
+#include "PersistentVector.h"
 #include "Integer.h"
 #include <time.h>
 
+extern int allocationCount[5];
+
+void pd() {
+    printf("Ref counters: %d %d %d %d %d\n", allocationCount[0], allocationCount[1], allocationCount[2], allocationCount[3], allocationCount[4]);
+}
+
 void testList (bool pauses) {
-  initialise_memory();
   printf("Total size: %lu %lu\n", sizeof(Object), sizeof(Integer)); 
   PersistentList *l = PersistentList_create(NULL, NULL);
   // l = l->conj(new Number(3));
@@ -12,6 +18,7 @@ void testList (bool pauses) {
   // l = l->conj(new PersistentList(new Number(2)));
   // l = l->conj(new PersistentList());
   printf("Press a key to start\n");
+  pd();
   if(pauses) getchar();
   clock_t as = clock();
 
@@ -22,6 +29,7 @@ void testList (bool pauses) {
     release(l);
     l = k;
   }
+  pd();
   clock_t ap = clock();
   printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, super(l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
    
@@ -40,13 +48,64 @@ void testList (bool pauses) {
   clock_t ds = clock();
   printf("%llu\n", super(l)->refCount);
   release(l);
+  pd();
   clock_t dp = clock();
   printf("Released\nTime: %f\n", (double)(dp - ds) / CLOCKS_PER_SEC);
 }
 
 
+void testVector (bool pauses) {
+  printf("Total size: %lu %lu\n", sizeof(Object), sizeof(Integer)); 
+  PersistentVector *l = PersistentVector_create();
+  // l = l->conj(new Number(3));
+  // l = l->conj(new Number(7));
+  // l = l->conj(new PersistentList(new Number(2)));
+  // l = l->conj(new PersistentList());
+  printf("Press a key to start\n");
+  pd();
+  if(pauses) getchar();
+  clock_t as = clock();
+
+  for (int i=0;i<100000000; i++) {
+    Integer *n = Integer_create(i);
+    PersistentVector *k = PersistentVector_conj(l, super(n));
+   // release(n);
+   // release(l);
+    l = k;
+    printf("%d\r",i);
+  }
+  pd();
+  clock_t ap = clock();
+  printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, super(l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
+   
+  if (pauses) getchar();
+ // clock_t os = clock();
+
+ // PersistentList *tmp = l;
+//  int64_t sum = 0;
+// NOT YET
+  /* while(tmp != NULL) { */
+  /*   if(tmp->first) sum += ((Integer *)(data(tmp->first)))->value; */
+  /*   tmp = tmp->rest; */
+  /* } */
+//  clock_t op = clock();
+//  printf("Sum: %llu\nTime: %f\n", sum, (double)(op - os) / CLOCKS_PER_SEC);
+  //if(pauses) getchar();
+  clock_t ds = clock();
+  printf("%llu\n", super(l)->refCount);
+  release(l);
+  pd();
+  clock_t dp = clock();
+  printf("Released\nTime: %f\n", (double)(dp - ds) / CLOCKS_PER_SEC);
+}
+
+
+
 int main() {
-  for(int i=0; i<30; i++) testList(false);
-  getchar();
+    initialise_memory();
+//  for(int i=0; i<30; i++) testList(false);
+    testVector(true);
+    getchar();
+    pd();
 }
 

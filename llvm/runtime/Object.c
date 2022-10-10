@@ -5,12 +5,14 @@
 #include "PersistentVector.h"
 #include "wof_alloc/wof_allocator.h"
 
-wof_allocator_t *alloc = NULL;
+static wof_allocator_t *alloc = NULL;
+int allocationCount[5];
+
 
 void initialise_memory() {
   alloc = wof_allocator_new();
+  memset(allocationCount, 0, sizeof(int)*5);
 }
-
 
 void *allocate(size_t size) {
   return malloc(size);  //wof_alloc(alloc, size);
@@ -32,6 +34,8 @@ Object *super(void *self) {
 void Object_create(Object *self, objectType type) {
   atomic_init(&(self->refCount), 1);
   self->type = type;
+  /* Just for single thread debug, nonatomic */
+  allocationCount[self->type]++;
 }
 
 bool equals(Object *self, Object *other) {
@@ -40,19 +44,22 @@ bool equals(Object *self, Object *other) {
   if (self == other || selfData == otherData) return true;
   if (self->type != other->type) return false;
   switch((objectType)self->type) {
-      case integerType:
-        return Integer_equals(selfData, otherData);
-        break;          
-      case stringType:
-        return String_equals(selfData, otherData);
-        break;          
-      case persistentListType:
-        return PersistentList_equals(selfData, otherData);
-        break;          
-      case persistentVectorType:
-        return PersistentVector_equals(selfData, otherData);
-        break;
-      }
+  case integerType:
+    return Integer_equals(selfData, otherData);
+    break;          
+  case stringType:
+    return String_equals(selfData, otherData);
+    break;          
+  case persistentListType:
+    return PersistentList_equals(selfData, otherData);
+    break;          
+  case persistentVectorType:
+    return PersistentVector_equals(selfData, otherData);
+    break;
+  case persistentVectorNodeType:
+    return PersistentVectorNode_equals(selfData, otherData);
+    break;
+  }
 }
 
 uint64_t hash(Object *self) {
@@ -67,6 +74,9 @@ uint64_t hash(Object *self) {
         return PersistentList_hash(data(self));
         break;          
       case persistentVectorType:
+        return PersistentVector_hash(data(self));
+        break;
+      case persistentVectorNodeType:
         return PersistentVector_hash(data(self));
         break;
       }
@@ -86,6 +96,9 @@ String *toString(Object *self) {
       case persistentVectorType:
         return PersistentVector_toString(data(self));
         break;
+      case persistentVectorNodeType:
+        return PersistentVectorNode_toString(data(self));
+        break;
       }
 }
 
@@ -98,30 +111,37 @@ bool release(void *self) {
 }
 
 void Object_retain(Object *self) {
+  /* Just for single thread debug, nonatomic */
+  allocationCount[self->type]++;
   atomic_fetch_add(&(self->refCount), 1);
 }
 
 bool Object_release_internal(Object *self, bool deallocateChildren) {
-    
-    if (atomic_fetch_sub(&(self->refCount), 1) == 1) {
-      switch((objectType)self->type) {
-      case integerType:
-        Integer_destroy(data(self));
-        break;          
-      case stringType:
-        String_destroy(data(self));
-        break;          
-      case persistentListType:
-        PersistentList_destroy(data(self), deallocateChildren);
-        break;          
-      case persistentVectorType:
-        PersistentVector_destroy(data(self), deallocateChildren);
-        break;
-      }
-      deallocate(self);
-      return true;
+  /* Just for single thread debug, nonatomic */
+  allocationCount[self->type]--;
+  
+  if (atomic_fetch_sub(&(self->refCount), 1) == 1) {
+    switch((objectType)self->type) {
+    case integerType:
+      Integer_destroy(data(self));
+      break;          
+    case stringType:
+      String_destroy(data(self));
+      break;          
+    case persistentListType:
+      PersistentList_destroy(data(self), deallocateChildren);
+      break;          
+    case persistentVectorType:
+      PersistentVector_destroy(data(self), deallocateChildren);
+      break;
+    case persistentVectorNodeType:
+      PersistentVectorNode_destroy(data(self), deallocateChildren);
+      break;
     }
-    return false;
+    deallocate(self);
+    return true;
+  }
+  return false;
 }
 
 bool Object_release(Object *self) {

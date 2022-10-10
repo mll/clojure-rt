@@ -15,7 +15,8 @@ enum objectType {
    integerType,
    stringType,
    persistentListType,
-   persistentVectorType
+   persistentVectorType,
+   persistentVectorNodeType
 };
 
 typedef enum objectType objectType;
@@ -28,6 +29,7 @@ struct Object {
 typedef struct Object Object; 
 
 void *allocate(size_t size);
+void deallocate(void *ptr);
 void initialise_memory();
 
 

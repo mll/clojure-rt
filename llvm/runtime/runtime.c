@@ -1,8 +1,10 @@
 #include "Object.h"
 #include "PersistentList.h"
 #include "PersistentVector.h"
+#include "PersistentVectorNode.h"
 #include "Integer.h"
 #include <time.h>
+#include <stdio.h>
 
 extern int allocationCount[5];
 
@@ -56,6 +58,7 @@ void testList (bool pauses) {
 
 void testVector (bool pauses) {
   printf("Total size: %lu %lu\n", sizeof(Object), sizeof(Integer)); 
+  printf("Total size: %lu %lu\n", sizeof(PersistentVector), sizeof(PersistentVectorNode)); 
   PersistentVector *l = PersistentVector_create();
   // l = l->conj(new Number(3));
   // l = l->conj(new Number(7));
@@ -67,30 +70,30 @@ void testVector (bool pauses) {
   clock_t as = clock();
 
   for (int i=0;i<100000000; i++) {
+   // PersistentVector_print(l);
+   // printf("=======*****************===========");
+   // fflush(stdout);
     Integer *n = Integer_create(i);
     PersistentVector *k = PersistentVector_conj(l, super(n));
-   // release(n);
-   // release(l);
+    release(n);
+    release(l);
     l = k;
-    printf("%d\r",i);
+//    printf("%d\r",i);
   }
   pd();
   clock_t ap = clock();
   printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, super(l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
    
   if (pauses) getchar();
- // clock_t os = clock();
-
- // PersistentList *tmp = l;
-//  int64_t sum = 0;
-// NOT YET
-  /* while(tmp != NULL) { */
-  /*   if(tmp->first) sum += ((Integer *)(data(tmp->first)))->value; */
-  /*   tmp = tmp->rest; */
-  /* } */
-//  clock_t op = clock();
-//  printf("Sum: %llu\nTime: %f\n", sum, (double)(op - os) / CLOCKS_PER_SEC);
-  //if(pauses) getchar();
+  clock_t os = clock();
+  
+  int64_t sum = 0;
+  for(int i=0; i< l->count; i++) {
+    sum += ((Integer *) data(PersistentVector_nth(l, i)))->value;
+  }
+  clock_t op = clock();
+  printf("Sum: %llu\nTime: %f\n", sum, (double)(op - os) / CLOCKS_PER_SEC);
+  if(pauses) getchar();
   clock_t ds = clock();
   printf("%llu\n", super(l)->refCount);
   release(l);
@@ -104,7 +107,8 @@ void testVector (bool pauses) {
 int main() {
     initialise_memory();
 //  for(int i=0; i<30; i++) testList(false);
-    testVector(true);
+    testList(false);
+    testVector(false);
     getchar();
     pd();
 }

@@ -3,6 +3,7 @@
 #include "Integer.h"
 #include "PersistentList.h"
 #include "PersistentVector.h"
+#include "PersistentVectorNode.h"
 #include "wof_alloc/wof_allocator.h"
 
 static wof_allocator_t *alloc = NULL;

@@ -2,16 +2,21 @@
 #define RT_PERSISTENT_VECTOR
 
 #include "Object.h"
+#include "String.h"
+
+#define RRB_BITS 5
+#define RRB_MAX_HEIGHT 7
+
+#define RRB_BRANCHING (1 << RRB_BITS)
+#define RRB_MASK (RRB_BRANCHING - 1)
 
 typedef struct PersistentVector PersistentVector;
 typedef struct PersistentVectorNode PersistentVectorNode;
-typedef struct PersistentVectorLeafNode PersistentVectorLeafNode;
 
 struct PersistentVector {
-  uint32_t count;
-  uint32_t shift;
-  uint32_t tail_len;
-  PersistentVectorLeafNode *tail;
+  uint64_t count;
+  uint64_t shift;
+  PersistentVectorNode *tail;
   PersistentVectorNode *root;
 };
 
@@ -23,10 +28,7 @@ String *PersistentVector_toString(PersistentVector *self);
 void PersistentVector_destroy(PersistentVector *self, bool deallocateChildren);
 
 PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other);
-
-bool PersistentVectorNode_equals(PersistentVectorNode *self, PersistentVectorNode *other);
-uint64_t PersistentVectorNode_hash(PersistentVectorNode *self);
-String *PersistentVectorNode_toString(PersistentVectorNode *self);
-void PersistentVectorNode_destroy(PersistentVectorNode *self, bool deallocateChildren);
+Object* PersistentVector_nth(PersistentVector *self, uint64_t index);
+void PersistentVector_print(PersistentVector *self);
 
 #endif

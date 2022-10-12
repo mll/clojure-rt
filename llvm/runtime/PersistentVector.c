@@ -2,15 +2,27 @@
 #include "PersistentVectorNode.h"
 #include "Object.h"
 
+PersistentVector *EMPTY = NULL;
+
 PersistentVector* PersistentVector_create() {  
+  retain(EMPTY);
+  return EMPTY;
+}
+
+PersistentVector* PersistentVector_allocate() {  
   Object *super = allocate(sizeof(PersistentVector)+ sizeof(Object)); 
   PersistentVector *self = (PersistentVector *)(super + 1);
   self->count = 0;
   self->shift = 0;
   self->root = NULL;
-  self->tail = PersistentVectorNode_create(0, leafNode);
+  self->tail = NULL;
   Object_create(super, persistentVectorType);
   return self;
+}
+
+void PersistentVector_initialise() {  
+  EMPTY = PersistentVector_allocate();
+  EMPTY->tail = PersistentVectorNode_allocate(0, leafNode);
 }
 
 bool PersistentVector_equals(PersistentVector *self, PersistentVector *other) {
@@ -54,20 +66,21 @@ PersistentVector* PersistentVector_assoc(PersistentVector *self, uint64_t index,
   if (index > self->count) return NULL;
   if (index == self->count) return PersistentVector_conj(self, other);
   uint64_t tailOffset = self->count - self->tail->count;
-  PersistentVector *new = PersistentVector_create();
+  PersistentVector *new = PersistentVector_allocate();
   memcpy(new, self, sizeof(PersistentVector));
-
+  
   if (index >= tailOffset) {
     if(self->root) retain(self->root); 
-    new->tail = PersistentVectorNode_create(self->tail->count, leafNode);
+    new->tail = PersistentVectorNode_allocate(self->tail->count, leafNode);
     memcpy(new->tail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
     new->tail->array[index - tailOffset] = other;  
-    for(int i=0; i<new->tail->count; i++) Object_retain(self->tail->array[i]);
+    for(int i=0; i < new->tail->count; i++) Object_retain(self->tail->array[i]);
     return new;
   }
 
   /* We are within tree bounds if we reached this place. Node will hold the parent node of our element */
-
+  retain(self->tail);
+  new->tail = self->tail;
   new->root = PersistentVectorNode_replacePath(self->root, self->shift, index, other);  
   return new;
 }
@@ -92,15 +105,14 @@ void PersistentVector_print(PersistentVector *self) {
 
 
 PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other) {
-  PersistentVector *new = PersistentVector_create();
+  PersistentVector *new = PersistentVector_allocate();
   /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
-  release(new->tail);
   memcpy(new, self, sizeof(PersistentVector));
   new->count++;
 
   if (self->tail->count < RRB_BRANCHING) {
     if(self->root) retain(self->root); 
-    new->tail = PersistentVectorNode_create(self->tail->count + 1, leafNode);
+    new->tail = PersistentVectorNode_allocate(self->tail->count + 1, leafNode);
     memcpy(new->tail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
     new->tail->count++;
     new->tail->array[self->tail->count] = other;
@@ -109,7 +121,7 @@ PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other) {
   }
   /* The tail was full if we reached this place */
   
-  new->tail = PersistentVectorNode_create(1, leafNode);
+  new->tail = PersistentVectorNode_allocate(1, leafNode);
   new->tail->array[0] = other;
   Object_retain(other);
   

@@ -1,10 +1,70 @@
-#include "Object.h"
-#include "PersistentList.h"
-#include "PersistentVector.h"
-#include "PersistentVectorNode.h"
-#include "Integer.h"
+
+//#include "Object.h"
+//#include "PersistentList.h"
+//#include "PersistentVector.h"
+//#include "PersistentVectorNode.h"
+//#include "Integer.h"
 #include <time.h>
 #include <stdio.h>
+#include <cstdint>
+#include <stdatomic.h>
+
+
+extern "C" {
+  typedef struct PersistentVectorNode PersistentVectorNode;
+  enum objectType {
+    integerType,
+    stringType,
+    persistentListType,
+    persistentVectorType,
+    persistentVectorNodeType
+  };
+  
+  typedef enum objectType objectType;
+  
+  typedef struct Object {
+    char type;
+    atomic_uint_fast64_t refCount;
+  } Object;
+  
+  typedef struct PersistentList {
+    Object *super;
+    Object *first;
+    PersistentList *rest;
+    uint64_t count;
+  } PersistentList;
+  
+  typedef struct PersistentVector {
+    uint64_t count;
+    uint64_t shift;
+    PersistentVectorNode *tail;
+    PersistentVectorNode *root;
+  } PersistentVector;
+
+
+
+  typedef struct Integer {
+    Object *super;
+    int64_t value;
+  } Integer;
+  
+  char release(void *);
+  void retain(void *);
+  PersistentList *PersistentList_create(Object *, PersistentList *);
+  PersistentList *PersistentList_conj(PersistentList *, Object *);
+  
+  Integer *Integer_create(int64_t);
+  
+  Object *super(void *);
+  void *data(Object *);		
+  
+  Object *PersistentVector_nth(PersistentVector *, uint64_t);
+  PersistentVector *PersistentVector_conj(PersistentVector *, Object *);
+  PersistentVector *PersistentVector_create();
+  void initialise_memory();
+}
+
+#include <gperftools/profiler.h>
 
 extern int allocationCount[5];
 
@@ -13,7 +73,6 @@ void pd() {
 }
 
 void testList (bool pauses) {
-  printf("Total size: %lu %lu\n", sizeof(Object), sizeof(Integer)); 
   PersistentList *l = PersistentList_create(NULL, NULL);
   // l = l->conj(new Number(3));
   // l = l->conj(new Number(7));
@@ -57,8 +116,8 @@ void testList (bool pauses) {
 
 
 void testVector (bool pauses) {
-  printf("Total size: %lu %lu\n", sizeof(Object), sizeof(Integer)); 
-  printf("Total size: %lu %lu\n", sizeof(PersistentVector), sizeof(PersistentVectorNode)); 
+  // printf("Total size: %lu %lu\n", sizeof(Object), sizeof(Integer)); 
+  // printf("Total size: %lu %lu\n", sizeof(PersistentVector), sizeof(PersistentVectorNode)); 
   PersistentVector *l = PersistentVector_create();
   // l = l->conj(new Number(3));
   // l = l->conj(new Number(7));
@@ -75,8 +134,8 @@ void testVector (bool pauses) {
    // fflush(stdout);
     Integer *n = Integer_create(i);
     PersistentVector *k = PersistentVector_conj(l, super(n));
-    release(n);
     release(l);
+    release(n);
     l = k;
 //    printf("%d\r",i);
   }
@@ -107,9 +166,10 @@ void testVector (bool pauses) {
 int main() {
     initialise_memory();
 //  for(int i=0; i<30; i++) testList(false);
-    testList(false);
+   // testList(false);
+//    ProfilerStart("xx.prof");
     testVector(false);
-    getchar();
-    pd();
+ //   ProfilerStop();
+//    getchar();
 }
 

@@ -4,23 +4,60 @@
 #include "PersistentList.h"
 #include "PersistentVector.h"
 #include "PersistentVectorNode.h"
-#include "wof_alloc/wof_allocator.h"
+#include "pool/pool.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <stdatomic.h>
 
-static wof_allocator_t *alloc = NULL;
 int allocationCount[5];
+pool globalPool1;
+pool globalPool2;
+pool globalPool3;
 
+
+
+/* Must be a multiple of processor word, 8 on 64 bit, 4 on 32 bit */
+
+#define BLOCK_SIZE 8 * 40
+
+void PersistentVector_initialise();
 
 void initialise_memory() {
-  alloc = wof_allocator_new();
   memset(allocationCount, 0, sizeof(int)*5);
+  poolInitialize(&globalPool1, BLOCK_SIZE, 100000);
+  poolInitialize(&globalPool2, 128, 100000);
+  poolInitialize(&globalPool3, 64, 100000);
+  PersistentVector_initialise();
+}
+
+bool poolFreeCheck(void *ptr, pool *mempool) {
+  uint8_t *rptr = ptr;
+  for(int i=0; i< mempool->blocksUsed; i++) {
+    uint8_t *bptr = mempool->blocks[i];
+    uint8_t *fptr = bptr + mempool->blockSize * mempool->elementSize;
+    if(bptr == NULL) continue;
+    if(rptr >= bptr && rptr < fptr) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void *allocate(size_t size) {
-  return malloc(size);  //wof_alloc(alloc, size);
+  /* if (size <= 32) return malloc(size);    */
+  /* if (size <= 64) return poolMalloc(&globalPool3);    */
+  /* if (size <= 128) return poolMalloc(&globalPool2);  */
+  /* if (size > 64 && size <= BLOCK_SIZE) return poolMalloc(&globalPool1);    */
+
+  return malloc(size);  
 }
 
 void deallocate(void *ptr) {
-  free(ptr); // wof_free(alloc, ptr);
+ /* if (poolFreeCheck(ptr, &globalPool3)) { poolFree(&globalPool3, ptr); return; } */
+ /* if (poolFreeCheck(ptr, &globalPool2)) { poolFree(&globalPool2, ptr); return; } */
+ /* if (poolFreeCheck(ptr, &globalPool1)) { poolFree(&globalPool1, ptr); return; }  */
+  free(ptr);  
 }
 
 void *data(Object *self) {
@@ -28,12 +65,12 @@ void *data(Object *self) {
 }
 
 Object *super(void *self) {
-  return (Object *)(((Object *)self) - 1);
+  return (Object *)(self - sizeof(Object));
 }
 
 
 void Object_create(Object *self, objectType type) {
-  atomic_init(&(self->refCount), 1);
+  atomic_store_explicit (&(self->refCount), 1, memory_order_relaxed);
   self->type = type;
   /* Just for single thread debug, nonatomic */
   allocationCount[self->type]++;
@@ -113,14 +150,15 @@ bool release(void *self) {
 
 void Object_retain(Object *self) {
   /* Just for single thread debug, nonatomic */
-  allocationCount[self->type]++;
+//  allocationCount[self->type]++;
   atomic_fetch_add(&(self->refCount), 1);
 }
 
 bool Object_release_internal(Object *self, bool deallocateChildren) {
   /* Just for single thread debug, nonatomic */
-  allocationCount[self->type]--;
-  
+  //return false;
+  //allocationCount[self->type]--;
+  //assert(atomic_load(&(self->refCount)) > 0);
   if (atomic_fetch_sub(&(self->refCount), 1) == 1) {
     switch((objectType)self->type) {
     case integerType:

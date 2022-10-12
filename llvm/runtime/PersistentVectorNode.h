@@ -13,7 +13,7 @@ struct PersistentVectorNode {
   Object *array[];
 };
 
-PersistentVectorNode* PersistentVectorNode_create(uint64_t count, NodeType type);
+PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type);
 bool PersistentVectorNode_equals(PersistentVectorNode *self, PersistentVectorNode *other);
 uint64_t PersistentVectorNode_hash(PersistentVectorNode *self);
 String *PersistentVectorNode_toString(PersistentVectorNode *self);

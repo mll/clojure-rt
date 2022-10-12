@@ -22,8 +22,8 @@ enum objectType {
 typedef enum objectType objectType;
 
 struct Object {
-  small_enum type;
-  atomic_uint_fast64_t refCount;
+  objectType type;
+  volatile atomic_uint_fast64_t refCount;
 };
 
 typedef struct Object Object; 

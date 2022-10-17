@@ -1,22 +1,92 @@
+
 (ns clojure-rt-bootstrap.protobuf
   (:require [clojure.tools.reader.edn :as edn]
             [camel-snake-kebab.core :as csk]
-            [clojure.string :refer [join trim] :as s]
-            [protobuf.core :as pb])
-  (:import [clojureRT.protobuf Protobuf$ConstNode]))
+            [clojure.string :refer [join trim lower-case] :as s]
+            [protobuf.core :as pb]))
+
+(defn- capitalize [in] (str (apply str (concat [(first (s/capitalize in))] (rest in)))))
+(defn- cl->pt [s] (let [n (name s)] (csk/->camelCase 
+                                    (case (last n) 
+                                      \? (str "is-" (apply str (drop-last n))) 
+                                      \! (str "mutate-" (apply str (drop-last n)))
+                                      n))))
+
+(def all-keys-types {:op :op
+                     :form :string
+                     :env :string
+                     :raw-forms [:string] 
+                     :top-level :bool 
+                     :tag :string
+                     :o-tag :string
+                     :ignore-tag :bool 
+                     :loops [:string]
+                     :subnode :subnode})
 
 
+(defn- import-by-name [n]
+  (.importClass (the-ns *ns*)
+                (clojure.lang.RT/classForName n)))
 
+(defn- class-name-for-op [op]
+  (str (str "clojureRT.protobuf.Protobuf$" (-> op cl->pt capitalize) "Node") ))
+
+(defn- class-for-op [op] (resolve (symbol (class-name-for-op op))))
+(def class-for-subnode clojureRT.protobuf.Protobuf$Subnode)
+
+
+(defn- import-all [] (doseq [n (->> "resources/ast-ref.edn" 
+                                  (slurp)
+                                  (edn/read-string)
+                                  :node-keys
+                                  (map :op))]
+                     (let [nvec (class-name-for-op n)]  
+                       (import-by-name nvec))))
+
+(import-all)
+
+
+(defn- encode-node [node-key-types n]
+  (let [node (assoc n :subnode n)
+        op (:op node)
+        node-type (op node-key-types)
+        node-class (class-for-op op)
+        node-superclass (class-for-op "")
+        proto-symbol (comp keyword lower-case csk/->camelCase name)
+
+        converters {:string str
+                    :int identity
+                    :bool identity
+                    :node (partial encode-node node-key-types)}
+
+        map-node (fn [keymap converters] 
+                   (into {} 
+                         (filter identity 
+                                 (map (fn [[k t]]
+                                        (let [val (k node)
+                                              repeated? (sequential? t)
+                                              type (if repeated? (first t) t)
+                                              ;; no converter means enum
+                                              converter (or (type converters) 
+                                                            #(keyword (str (name (proto-symbol type)) (name (proto-symbol %)))))]
+                                          (if val
+                                            [(proto-symbol k) 
+                                             (if repeated? (map converter val) (converter val))]))) keymap))))
+        create-subnode (fn [_] 
+                         (protobuf/create 
+                          class-for-subnode 
+                          {op 
+                           (protobuf/create node-class (map-node node-type converters))}))]
+    (protobuf/create node-superclass 
+                     (map-node all-keys-types 
+                               (assoc converters 
+                                      :subnode create-subnode)))))
+(defn encode-ast [ast]
+  (encode-node (-> "resources/ast-types.edn" (slurp) (edn/read-string)) ast))
 
 
 (defn generate-protobuf-defs [outfile]
-  (let [capitalize #(str (apply str (concat [(first (s/capitalize %))] (rest %))))
-        cl->pt (fn [s] (let [n (name s)] (csk/->camelCase 
-                                          (case (last n) 
-                                            \? (str "is-" (apply str (drop-last n))) 
-                                            \! (str "mutate-" (apply str (drop-last n)))
-                                            n))))
-        data (-> "resources/ast-ref.edn" 
+  (let [data (-> "resources/ast-ref.edn" 
                  (slurp)
                  (edn/read-string))
         local-type [:arg :catch :fn :let :letfn :loop :field :this]
@@ -47,16 +117,6 @@
                           (map gen-subnode)
                           (map-indexed #(str "  " %2 " = " (inc %1) ";"))))
                     "\n  }\n}\n\n")
-        all-keys-types {:op :op
-                        :form :string
-                        :env :string
-                        :raw-forms [:string] 
-                        :top-level :bool 
-                        :tag :string
-                        :o-tag :string
-                        :ignore-tag :bool 
-                        :loops [:string]
-                        :subnode :subnode} 
         
         types {:string "string"
                :int "uint32"

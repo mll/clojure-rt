@@ -5,8 +5,7 @@
 #include "defines.h"
 
 struct Integer {
-  Object *super;
-  int64_t value;
+  int value;
 };
 
 typedef struct Integer Integer;

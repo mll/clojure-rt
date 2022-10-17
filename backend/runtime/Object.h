@@ -16,7 +16,8 @@ enum objectType {
    stringType,
    persistentListType,
    persistentVectorType,
-   persistentVectorNodeType
+   persistentVectorNodeType,
+   doubleType
 };
 
 typedef enum objectType objectType;

@@ -1,0 +1,697 @@
+syntax = "proto3";
+
+package clojureRT.protobuf;
+option java_outer_classname = "Protobuf";
+
+enum Op {
+  opBinding = 0;
+  opCase = 1;
+  opCaseTest = 2;
+  opCaseThen = 3;
+  opCatch = 4;
+  opConst = 5;
+  opDef = 6;
+  opDeftype = 7;
+  opDo = 8;
+  opFn = 9;
+  opFnMethod = 10;
+  opHostInterop = 11;
+  opIf = 12;
+  opImport = 13;
+  opInstanceCall = 14;
+  opInstanceField = 15;
+  opIsInstance = 16;
+  opInvoke = 17;
+  opKeywordInvoke = 18;
+  opLet = 19;
+  opLetfn = 20;
+  opLocal = 21;
+  opLoop = 22;
+  opMap = 23;
+  opMethod = 24;
+  opMonitorEnter = 25;
+  opMonitorExit = 26;
+  opNew = 27;
+  opPrimInvoke = 28;
+  opProtocolInvoke = 29;
+  opQuote = 30;
+  opRecur = 31;
+  opReify = 32;
+  opSet = 33;
+  opMutateSet = 34;
+  opStaticCall = 35;
+  opStaticField = 36;
+  opTheVar = 37;
+  opThrow = 38;
+  opTry = 39;
+  opVar = 40;
+  opVector = 41;
+  opWithMeta = 42;
+}
+
+enum LocalType {
+  localTypeArg = 0;
+  localTypeCatch = 1;
+  localTypeFn = 2;
+  localTypeLet = 3;
+  localTypeLetfn = 4;
+  localTypeLoop = 5;
+  localTypeField = 6;
+  localTypeThis = 7;
+}
+
+message Subnode {
+  oneof types {
+    BindingNode binding = 1;
+    CaseNode case = 2;
+    CaseTestNode caseTest = 3;
+    CaseThenNode caseThen = 4;
+    CatchNode catch = 5;
+    ConstNode const = 6;
+    DefNode def = 7;
+    DeftypeNode deftype = 8;
+    DoNode do = 9;
+    FnNode fn = 10;
+    FnMethodNode fnMethod = 11;
+    HostInteropNode hostInterop = 12;
+    IfNode if = 13;
+    ImportNode import = 14;
+    InstanceCallNode instanceCall = 15;
+    InstanceFieldNode instanceField = 16;
+    IsInstanceNode isInstance = 17;
+    InvokeNode invoke = 18;
+    KeywordInvokeNode keywordInvoke = 19;
+    LetNode let = 20;
+    LetfnNode letfn = 21;
+    LocalNode local = 22;
+    LoopNode loop = 23;
+    MapNode map = 24;
+    MethodNode method = 25;
+    MonitorEnterNode monitorEnter = 26;
+    MonitorExitNode monitorExit = 27;
+    NewNode new = 28;
+    PrimInvokeNode primInvoke = 29;
+    ProtocolInvokeNode protocolInvoke = 30;
+    QuoteNode quote = 31;
+    RecurNode recur = 32;
+    ReifyNode reify = 33;
+    SetNode set = 34;
+    MutateSetNode mutateSet = 35;
+    StaticCallNode staticCall = 36;
+    StaticFieldNode staticField = 37;
+    TheVarNode theVar = 38;
+    ThrowNode throw = 39;
+    TryNode try = 40;
+    VarNode var = 41;
+    VectorNode vector = 42;
+    WithMetaNode withMeta = 43;
+  }
+}
+
+/* Node for a binding symbol */
+message BindingNode {
+  /* When :local is :arg, the parameter index */
+  optional uint32 argId = 1;
+
+  /* When :local is :let, :letfn or :loop, an AST node representing the bound value */
+  optional Node init = 2;
+
+  /* One of :arg, :catch, :fn, :let, :letfn, :loop, :field or :this */
+  LocalType local = 3;
+
+  /* The uniquified binding symbol */
+  string name = 4;
+
+  /* When :local is :arg, a boolean indicating whether this parameter binds to a variable number of arguments */
+  optional bool isVariadic = 5;
+}
+
+/* Node for a case* special-form expression */
+message CaseNode {
+  enum SwitchType {
+    switchTypeSparse = 0;
+    switchTypeCompact = 1;
+  }
+
+  enum TestType {
+    testTypeInt = 0;
+    testTypeHashEquiv = 1;
+    testTypeHashIdentity = 2;
+  }
+
+  /* An AST node representing the default value of the case expression */
+  Node default = 1;
+
+  string high = 2;
+
+  string low = 3;
+
+  uint32 mask = 4;
+
+  uint32 shift = 5;
+
+  /* A set of case ints for which equivalence checking should not be done */
+  string isSkipCheck = 6;
+
+  /* One of :sparse or :compact */
+  SwitchType switchType = 7;
+
+  /* The AST node for the expression to test against */
+  Node test = 8;
+
+  /* One of :int, :hash-equiv or :hash-identity */
+  TestType testType = 9;
+
+  /* A vector of :case-test AST nodes, each node has a corresponding :case-then node in the :thens field */
+  repeated Node tests = 10;
+
+  /* A vector of :case-then AST nodes, each node has a corresponding :case-test node in the :tests field */
+  repeated Node thens = 11;
+}
+
+/* Node for a test value in a case* expression */
+message CaseTestNode {
+  uint32 hash = 1;
+
+  /* A :const AST node representing the test value */
+  Node test = 2;
+}
+
+/* Node for a then expression in a case* expression */
+message CaseThenNode {
+  uint32 hash = 1;
+
+  /* An AST node representing the expression the case will evaluate to when the :test expression matches this node's corresponding :case-test value */
+  Node then = 2;
+}
+
+/* Node for a catch expression */
+message CatchNode {
+  /* Synthetic :do AST node (with :body? `true`)  representing the body of the catch clause */
+  Node body = 1;
+
+  /* A :const AST node with :type :class representing the type of exception to catch */
+  Node class = 2;
+
+  /* The :binding AST node for the caught exception */
+  Node local = 3;
+}
+
+/* Node for a constant literal or a quoted collection literal */
+message ConstNode {
+  enum ConstType {
+    constTypeNil = 0;
+    constTypeBool = 1;
+    constTypeKeyword = 2;
+    constTypeSymbol = 3;
+    constTypeString = 4;
+    constTypeNumber = 5;
+    constTypeType = 6;
+    constTypeRecord = 7;
+    constTypeMap = 8;
+    constTypeVector = 9;
+    constTypeSet = 10;
+    constTypeSeq = 11;
+    constTypeChar = 12;
+    constTypeRegex = 13;
+    constTypeClass = 14;
+    constTypeVar = 15;
+    constTypeUnknown = 16;
+  }
+
+  /* `true` */
+  bool isLiteral = 1;
+
+  /* An AST node representing the metadata of the constant value, if present. The node will be either a :map node or a :const node with :type :map */
+  optional Node meta = 2;
+
+  /* one of :nil, :bool, :keyword, :symbol, :string, :number, :type, :record, :map, :vector, :set, :seq, :char, :regex, :class, :var, or :unknown */
+  ConstType type = 3;
+
+  /* The value of the constant node */
+  string val = 4;
+}
+
+/* Node for a def special-form expression */
+message DefNode {
+  /* The docstring for this var */
+  optional string doc = 1;
+
+  /* An AST node representing the initial value of the var */
+  optional Node init = 2;
+
+  /* An AST node representing the metadata attached to :name, if present. The node will be either a :map node or a :const node with :type :map */
+  optional Node meta = 3;
+
+  /* The var symbol to define in the current namespace */
+  string name = 4;
+
+  /* The Var object created (or found, if it already existed) named by the symbol :name in the current namespace */
+  string var = 5;
+}
+
+/* Node for a deftype* special-form expression */
+message DeftypeNode {
+  /* A class for the deftype, should *never* be instantiated or used on instance? checks as this will not be the same class the deftype will evaluate to after compilation */
+  string className = 1;
+
+  /* A vector of :binding AST nodes with :local :field representing the deftype fields */
+  repeated Node fields = 2;
+
+  /* A set of the interfaces implemented by the type */
+  repeated string interfaces = 3;
+
+  /* A vector :method AST nodes representing the deftype methods */
+  repeated Node methods = 4;
+
+  /* The symbol name of the deftype */
+  string name = 5;
+}
+
+/* Node for a do special-form expression or for another special-form's body */
+message DoNode {
+  /* `true` if this node is a synthetic body */
+  optional bool isBody = 1;
+
+  /* An AST node representing the last expression in the do body (the block's return value) */
+  Node ret = 2;
+
+  /* A vector of AST nodes representing all but the last expression in the do body */
+  repeated Node statements = 3;
+}
+
+/* Node for a fn* special-form expression */
+message FnNode {
+  /* A :binding AST node with :local :fn representing the function's local name, if one is supplied */
+  optional Node local = 1;
+
+  /* The number of arguments taken by the fixed-arity method taking the most arguments */
+  uint32 maxFixedArity = 2;
+
+  /* A vector of :fn-method AST nodes representing the fn method arities */
+  repeated Node methods = 3;
+
+  /* `true` if the fn is marked as `^:once fn*`, meaning it will only be executed once and thus allowing for the clearing of closed-over locals */
+  bool once = 4;
+
+  /* `true` if this function contains a variadic arity method */
+  bool isVariadic = 5;
+}
+
+/* Node for an arity method in a fn* expression */
+message FnMethodNode {
+  /* Synthetic :do node (with :body? `true`) representing the body of this fn-method */
+  Node body = 1;
+
+  /* The number of non-variadic args this fn-method takes */
+  uint32 fixedArity = 2;
+
+  /* Unique symbol identifying this method as a target for recursion */
+  string loopId = 3;
+
+  /* A vector of :binding AST nodes with :local :arg representing this fn-method args */
+  repeated Node params = 4;
+
+  /* `true` if this fn-method takes a variable number of arguments */
+  bool isVariadic = 5;
+}
+
+/* Node for a no-arg instance-call or for an instance-field that couldn't be resolved at compile time */
+message HostInteropNode {
+  /* `true` */
+  bool isAssignable = 1;
+
+  /* Symbol naming the no-arg method or field to lookup in the target */
+  string mOrF = 2;
+
+  /* An AST node representing the target object */
+  Node target = 3;
+}
+
+/* Node for an if special-form expression */
+message IfNode {
+  /* An AST node representing the expression's return value if :test evaluated to a falsey value, if not supplied it will default to a :const node representing nil */
+  Node else = 1;
+
+  /* An AST node representing the test expression */
+  Node test = 2;
+
+  /* An AST node representing the expression's return value if :test evaluated to a truthy value */
+  Node then = 3;
+}
+
+/* Node for a clojure.core/import* special-form expression */
+message ImportNode {
+  /* String representing the qualified class to import */
+  string class = 1;
+}
+
+/* Node for an instance method call */
+message InstanceCallNode {
+  /* A vector of AST nodes representing the args passed to the method call */
+  repeated Node args = 1;
+
+  /* If :validated? the class or interface the method belongs to */
+  optional string class = 2;
+
+  /* An AST node representing the instance to call the method on */
+  Node instance = 3;
+
+  /* Symbol naming the invoked method */
+  string method = 4;
+
+  /* `true` if the method call could be resolved at compile time */
+  optional bool isValidated = 5;
+}
+
+/* Node for an instance field access */
+message InstanceFieldNode {
+  /* `true` if the field is set!able */
+  bool isAssignable = 1;
+
+  /* The class the field belongs to */
+  string class = 2;
+
+  /* Symbol naming the field to access */
+  string field = 3;
+
+  /* An AST node representing the instance to lookup the symbol on */
+  Node instance = 4;
+}
+
+/* Node for a clojure.core/instance? call where the Class is known at compile time */
+message IsInstanceNode {
+  /* The Class to test the :target for instanceability */
+  string class = 1;
+
+  /* An AST node representing the object to test for instanceability */
+  Node target = 2;
+}
+
+/* Node for an invoke expression */
+message InvokeNode {
+  /* A vector of AST nodes representing the args to the function */
+  repeated Node args = 1;
+
+  /* An AST node representing the function to invoke */
+  Node fn = 2;
+
+  /* Map of metadata attached to the invoke :form */
+  optional string meta = 3;
+}
+
+/* Node for an invoke expression where the fn is a not-namespaced keyword and thus a keyword callsite can be emitted */
+message KeywordInvokeNode {
+  /* An AST node representing the keyword to lookup in the instance */
+  Node keyword = 1;
+
+  /* An AST node representing the instance to lookup the keyword in */
+  Node target = 2;
+}
+
+/* Node for a let* special-form expression */
+message LetNode {
+  /* A vector of :binding AST nodes with :local :let */
+  repeated Node bindings = 1;
+
+  /* Synthetic :do node (with :body? `true`) representing the body of the let expression */
+  Node body = 2;
+}
+
+/* Node for a letfn* special-form expression */
+message LetfnNode {
+  /* A vector of :binding AST nodes with :local :letfn */
+  repeated Node bindings = 1;
+
+  /* Synthetic :do node (with :body? `true`) representing the body of the letfn expression */
+  Node body = 2;
+}
+
+/* Node for a local symbol */
+message LocalNode {
+  /* When :local is :arg, the parameter index */
+  optional uint32 argId = 1;
+
+  /* `true` if the corresponding :binding AST node is :local :field and is declared either ^:volatile-mutable or ^:unsynchronized-mutable */
+  bool isAssignable = 2;
+
+  /* One of :arg, :catch, :fn, :let, :letfn, :loop, :field or :this */
+  LocalType local = 3;
+
+  /* The uniquified local symbol */
+  string name = 4;
+
+  /* When :local is :arg, a boolean indicating whether this parameter binds to a variable number of arguments */
+  optional bool isVariadic = 5;
+}
+
+/* Node a loop* special-form expression */
+message LoopNode {
+  /* A vector of :binding AST nodes with :local :loop */
+  repeated Node bindings = 1;
+
+  /* Synthetic :do node (with :body? `true`) representing the body of the loop expression */
+  Node body = 2;
+
+  /* Unique symbol identifying this loop as a target for recursion */
+  string loopId = 3;
+}
+
+/* Node for a map literal with attached metadata and/or non literal elements */
+message MapNode {
+  /* A vector of AST nodes representing the keys of the map */
+  repeated Node keys = 1;
+
+  /* A vector of AST nodes representing the vals of the map */
+  repeated Node vals = 2;
+}
+
+/* Node for a method in a deftype* or reify* special-form expression */
+message MethodNode {
+  /* Synthetic :do node (with :body? `true`) representing the body of this method */
+  Node body = 1;
+
+  /* A list of signature for bridge methods to emit */
+  repeated string bridges = 2;
+
+  /* The number of args this method takes */
+  uint32 fixedArity = 3;
+
+  /* The interface (or Object) this method belongs to */
+  string interface = 4;
+
+  /* Unique symbol identifying this method as a target for recursion */
+  string loopId = 5;
+
+  /* The symbol name of this method */
+  string name = 6;
+
+  /* A vector of AST :binding nodes with :local :arg representing the arguments of the method */
+  repeated Node params = 7;
+
+  /* A :binding AST node with :local :this representing the "this" local */
+  Node this = 8;
+}
+
+/* Node for a monitor-enter special-form statement */
+message MonitorEnterNode {
+  /* An AST node representing the monitor-enter sentinel */
+  Node target = 1;
+}
+
+/* Node for a monitor-exit special-form statement */
+message MonitorExitNode {
+  /* An AST node representing the monitor-exit sentinel */
+  Node target = 1;
+}
+
+/* Node for a new special-form expression */
+message NewNode {
+  /* A vector of AST nodes representing the arguments passed to the Class constructor */
+  repeated Node args = 1;
+
+  /* A :const AST node with :type :class representing the Class to instantiate */
+  Node class = 2;
+
+  /* `true` if the constructor call could be resolved at compile time */
+  optional bool isValidated = 3;
+}
+
+/* Node for an invoke expression that can be optimized using one of the primitive interfaces in IFn */
+message PrimInvokeNode {
+  /* A vector of AST nodes representing the args to the function */
+  repeated Node args = 1;
+
+  /* An AST node representing the function to invoke */
+  Node fn = 2;
+
+  /* Map of metadata attached to the invoke :form */
+  optional string meta = 3;
+
+  /* The primitive interface in IFn that will be used */
+  string primInterface = 4;
+}
+
+/* Node for an invoke expression where the function is a protocol function var */
+message ProtocolInvokeNode {
+  /* A vector of AST nodes representing the args to the protocol function */
+  repeated Node args = 1;
+
+  /* An AST node representing the protocol function var to invoke */
+  Node protocolFn = 2;
+
+  /* An AST node representing the target of the protocol function call */
+  Node target = 3;
+}
+
+/* Node for a quote special-form expression */
+message QuoteNode {
+  /* A :const AST node representing the quoted value */
+  Node expr = 1;
+
+  /* `true` */
+  bool isLiteral = 2;
+}
+
+/* Node for a recur special-form expression */
+message RecurNode {
+  /* A vector of AST nodes representing the new bound values for the loop binding on the next loop iteration */
+  repeated Node exprs = 1;
+
+  /* Unique symbol identifying the enclosing loop target */
+  string loopId = 2;
+}
+
+/* Node for a reify* special-form expression */
+message ReifyNode {
+  /* The generated class for the reify, should *never* be instantiated or used on instance? checks */
+  string className = 1;
+
+  /* A set of the interfaces implemented by the generated type */
+  repeated string interfaces = 2;
+
+  /* A vector :method AST nodes representing the reify methods */
+  repeated Node methods = 3;
+}
+
+/* Node for a set literal with attached metadata and/or non literal elements */
+message SetNode {
+  /* A vector of AST nodes representing the items of the set */
+  repeated Node items = 1;
+}
+
+/* Node for a set! special-form expression */
+message MutateSetNode {
+  /* An AST node representing the target of the set! expression, must be :assignable? */
+  Node target = 1;
+
+  /* An AST node representing the new value for the target */
+  Node val = 2;
+}
+
+/* Node for a static method call */
+message StaticCallNode {
+  /* A vector of AST nodes representing the args to the method call */
+  repeated Node args = 1;
+
+  /* The Class the static method belongs to */
+  string class = 2;
+
+  /* The symbol name of the static method */
+  string method = 3;
+
+  /* `true` if the static method could be resolved at compile time */
+  optional bool isValidated = 4;
+}
+
+/* Node for a static field access */
+message StaticFieldNode {
+  /* `true` if the static field is set!able */
+  optional bool isAssignable = 1;
+
+  /* The Class the static field belongs to */
+  string class = 2;
+
+  /* The symbol name of the static field */
+  string field = 3;
+}
+
+/* Node for a var special-form expression */
+message TheVarNode {
+  /* The Var object this expression refers to */
+  string var = 1;
+}
+
+/* Node for a throw special-form statement */
+message ThrowNode {
+  /* An AST node representing the exception to throw */
+  Node exception = 1;
+}
+
+/* Node for a try special-form expression */
+message TryNode {
+  /* Synthetic :do AST node (with :body? `true`) representing the body of this try expression */
+  Node body = 1;
+
+  /* A vector of :catch AST nodes representing the catch clauses of this try expression */
+  repeated Node catches = 2;
+
+  /* Synthetic :do AST node (with :body? `true`) representing the final clause of this try expression */
+  optional Node finally = 3;
+}
+
+/* Node for a var symbol */
+message VarNode {
+  /* `true` if the Var is :dynamic */
+  optional bool isAssignable = 1;
+
+  /* The Var object this symbol refers to */
+  string var = 2;
+}
+
+/* Node for a vector literal with attached metadata and/or non literal elements */
+message VectorNode {
+  /* A vector of AST nodes representing the items of the vector */
+  repeated Node items = 1;
+}
+
+/* Node for a non quoted collection literal or fn/reify expression with attached metadata */
+message WithMetaNode {
+  /* The expression this metadata is attached to, :op is one of :vector, :map, :set, :fn or :reify */
+  Node expr = 1;
+
+  /* An AST node representing the metadata of expression. The node will be either a :map node or a :const node with :type :map */
+  Node meta = 2;
+}
+
+/* Universal node containing common fields */
+message Node {
+  /* The environment map */
+  string env = 1;
+
+  /* The clojure form from which the node originated */
+  string form = 2;
+
+  /* `true` if this node returns a statement rather than an expression */
+  optional bool ignoreTag = 3;
+
+  /* A set of the loop-ids that might cause this node to recur */
+  repeated string loops = 4;
+
+  /* The tag of this expression, based on the node's children */
+  string oTag = 5;
+
+  /* The node op */
+  Op op = 6;
+
+  /* If this node's :form has been macroexpanded, a sequence of all the intermediate forms from the original form to the macroexpanded form */
+  repeated string rawForms = 7;
+
+  Subnode subnode = 8;
+
+  /* The tag this expression is required to have */
+  string tag = 9;
+
+  /* `true` if this is the root node */
+  optional bool topLevel = 10;
+}

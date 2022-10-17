@@ -1,0 +1,4 @@
+#!/bin/sh
+
+protoc --cpp_out="../backend/protobuf" bytecode.proto
+protoc -I=/usr/include -I=/usr/local/include -I. --java_out="../bootstrap/protobuf" bytecode.proto

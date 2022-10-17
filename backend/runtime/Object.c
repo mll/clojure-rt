@@ -1,6 +1,7 @@
 #include "Object.h"
 #include "String.h"
 #include "Integer.h"
+#include "Double.h"
 #include "PersistentList.h"
 #include "PersistentVector.h"
 #include "PersistentVectorNode.h"
@@ -14,8 +15,6 @@ int allocationCount[5];
 pool globalPool1;
 pool globalPool2;
 pool globalPool3;
-
-
 
 /* Must be a multiple of processor word, 8 on 64 bit, 4 on 32 bit */
 
@@ -73,7 +72,7 @@ void Object_create(Object *self, objectType type) {
   atomic_store_explicit (&(self->refCount), 1, memory_order_relaxed);
   self->type = type;
   /* Just for single thread debug, nonatomic */
-  allocationCount[self->type]++;
+//  allocationCount[self->type]++;
 }
 
 bool equals(Object *self, Object *other) {
@@ -97,6 +96,9 @@ bool equals(Object *self, Object *other) {
   case persistentVectorNodeType:
     return PersistentVectorNode_equals(selfData, otherData);
     break;
+  case doubleType:
+    return Double_equals(selfData, otherData);
+    break;
   }
 }
 
@@ -117,6 +119,9 @@ uint64_t hash(Object *self) {
       case persistentVectorNodeType:
         return PersistentVector_hash(data(self));
         break;
+      case doubleType:
+        return Double_hash(data(self));
+        break;          
       }
 }
 
@@ -137,6 +142,10 @@ String *toString(Object *self) {
       case persistentVectorNodeType:
         return PersistentVectorNode_toString(data(self));
         break;
+      case doubleType:
+        return Double_toString(data(self));
+        break;          
+
       }
 }
 
@@ -176,6 +185,10 @@ bool Object_release_internal(Object *self, bool deallocateChildren) {
     case persistentVectorNodeType:
       PersistentVectorNode_destroy(data(self), deallocateChildren);
       break;
+    case doubleType:
+      Double_destroy(data(self));
+      break;          
+
     }
     deallocate(self);
     return true;

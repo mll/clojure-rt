@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <cstdint>
 #include <stdatomic.h>
+#include <cstring>
+#include <stdlib.h>
 
 
 extern "C" {
@@ -23,12 +25,11 @@ extern "C" {
   typedef enum objectType objectType;
   
   typedef struct Object {
-    char type;
+    objectType type;
     atomic_uint_fast64_t refCount;
   } Object;
   
   typedef struct PersistentList {
-    Object *super;
     Object *first;
     PersistentList *rest;
     uint64_t count;
@@ -44,7 +45,6 @@ extern "C" {
 
 
   typedef struct Integer {
-    Object *super;
     int64_t value;
   } Integer;
   
@@ -66,7 +66,7 @@ extern "C" {
 
 #include <gperftools/profiler.h>
 
-extern int allocationCount[5];
+int allocationCount[5];
 
 void pd() {
     printf("Ref counters: %d %d %d %d %d\n", allocationCount[0], allocationCount[1], allocationCount[2], allocationCount[3], allocationCount[4]);
@@ -147,12 +147,27 @@ void testVector (bool pauses) {
   clock_t os = clock();
   
   int64_t sum = 0;
+  
   for(int i=0; i< l->count; i++) {
     sum += ((Integer *) data(PersistentVector_nth(l, i)))->value;
   }
   clock_t op = clock();
   printf("Sum: %llu\nTime: %f\n", sum, (double)(op - os) / CLOCKS_PER_SEC);
   if(pauses) getchar();
+  int64_t sum2 = 0;
+  int64_t *array = (int64_t *)malloc(100000000*sizeof(int64_t));
+  memset(array, 0, 100000000);
+  for(int i=0; i< 100000000; i++) {
+    array[i] = i;
+  }
+
+  clock_t oss = clock();
+  for(int i=0; i< l->count; i++) {
+    sum2 += array[i];
+  }
+  clock_t opp = clock();
+  free(array);
+  printf("Sum2: %llu\nTime: %f\n", sum2, (double)(opp - oss) / CLOCKS_PER_SEC);
   clock_t ds = clock();
   printf("%llu\n", super(l)->refCount);
   release(l);
@@ -166,7 +181,7 @@ void testVector (bool pauses) {
 int main() {
     initialise_memory();
 //  for(int i=0; i<30; i++) testList(false);
-   // testList(false);
+    testList(false);
 //    ProfilerStart("xx.prof");
     testVector(false);
  //   ProfilerStop();

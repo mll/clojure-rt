@@ -1,5 +1,6 @@
-#include "PersistentList.h"
 #include "Object.h"
+#include "PersistentList.h"
+#include "sds/sds.h"
 
 static PersistentList *EMPTY = NULL;
 
@@ -20,18 +21,18 @@ PersistentList* PersistentList_create(Object *first, PersistentList *rest) {
   return self;
 }
 
-bool PersistentList_equals(PersistentList *self, PersistentList *other) {
-  if (self->count != other->count) return false;
+BOOL PersistentList_equals(PersistentList *self, PersistentList *other) {
+  if (self->count != other->count) return FALSE;
 
   PersistentList* selfPtr = self;
   PersistentList* otherPtr = other;
 
   while(selfPtr) {
-    if (!(selfPtr->first == otherPtr->first || (selfPtr->first && otherPtr->first && equals(selfPtr->first, otherPtr->first)))) return false;
+    if (!(selfPtr->first == otherPtr->first || (selfPtr->first && otherPtr->first && equals(selfPtr->first, otherPtr->first)))) return FALSE;
     selfPtr = selfPtr->rest;
     otherPtr = otherPtr->rest;
   }
-  return true;
+  return TRUE;
 }
 
 uint64_t PersistentList_hash(PersistentList *self) {
@@ -63,12 +64,12 @@ String *PersistentList_toString(PersistentList *self) {
   return String_create(retVal);
 }
 
-void PersistentList_destroy(PersistentList *self, bool deallocateChildren) {
+void PersistentList_destroy(PersistentList *self, BOOL deallocateChildren) {
   if (deallocateChildren) {
     PersistentList *child = self->rest;
     while(child) {
       PersistentList *next = child->rest;
-      if (!Object_release_internal(super(child), false)) break;
+      if (!Object_release_internal(super(child), FALSE)) break;
       child = next;
     }
   }

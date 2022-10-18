@@ -1,8 +1,10 @@
-#include "String.h"
 #include "Object.h"
+#include "String.h"
+#include "sds/sds.h"
+
 
 String* String_create(sds string) {
-  Object *super = allocate(sizeof(String)+ sizeof(Object)); 
+  Object *super = allocate(sizeof(String) + sizeof(Object)); 
   String *self = (String *)(super + 1);
   self->value = string;
   self->count = sdslen(string);
@@ -10,7 +12,7 @@ String* String_create(sds string) {
   return self;
 }
 
-bool String_equals(String *self, String *other) {
+BOOL String_equals(String *self, String *other) {
   return sdscmp(self->value, other->value) == 0;
 }
 

@@ -1,6 +1,7 @@
 #include "Integer.h"
-#include "Object.h"
 #include "String.h"
+#include "Object.h"
+#include "sds/sds.h"
 
 Integer* Integer_create(int64_t integer) {
   Object *super = allocate(sizeof(Integer) + sizeof(Object)); 
@@ -10,7 +11,7 @@ Integer* Integer_create(int64_t integer) {
   return self;
 }
 
-bool Integer_equals(Integer *self, Integer *other) {
+BOOL Integer_equals(Integer *self, Integer *other) {
   return self->value == other->value;
 }
 

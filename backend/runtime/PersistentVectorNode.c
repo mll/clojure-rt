@@ -1,5 +1,7 @@
+#include "Object.h"
 #include "PersistentVectorNode.h"
 #include "PersistentVector.h"
+#include "sds/sds.h"
 
 PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type) { 
   Object *super = allocate(sizeof(PersistentVectorNode)+ sizeof(Object) + count * sizeof(PersistentVectorNode *)); 
@@ -10,10 +12,10 @@ PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType typ
   return self;
 }
 
-bool PersistentVectorNode_equals(PersistentVectorNode *self, PersistentVectorNode *other) {
-  if (self->count != other->count) return false;
-  for(int i=0; i < self->count; i++) if (!equals(self->array[i], other->array[i])) return false;
-  return true;
+BOOL PersistentVectorNode_equals(PersistentVectorNode *self, PersistentVectorNode *other) {
+  if (self->count != other->count) return FALSE;
+  for(int i=0; i < self->count; i++) if (!equals(self->array[i], other->array[i])) return FALSE;
+  return TRUE;
 }
 
 uint64_t PersistentVectorNode_hash(PersistentVectorNode *self) {
@@ -33,7 +35,7 @@ String *PersistentVectorNode_toString(PersistentVectorNode *self) {
   return String_create(retVal);
 }
 
-void PersistentVectorNode_destroy(PersistentVectorNode *self, bool deallocateChildren) {
+void PersistentVectorNode_destroy(PersistentVectorNode *self, BOOL deallocateChildren) {
   for(int i=0; i<self->count; i++) Object_release(self->array[i]);
 }
 
@@ -57,11 +59,11 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode *sel
   return new;
 }
 
-PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode *parent, PersistentVectorNode *self, PersistentVectorNode *tailToPush, int32_t level, bool *copied) {
+PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode *parent, PersistentVectorNode *self, PersistentVectorNode *tailToPush, int32_t level, BOOL *copied) {
   if (self == NULL) { 
     /* Special case, we have no root in the vector */
     retain(tailToPush);
-    *copied = false;
+    *copied = FALSE;
     return tailToPush;
   }
 
@@ -72,13 +74,13 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode *parent
     retain(tailToPush);
     new->array[0] = super(self);
     new->array[1] = super(tailToPush);
-    *copied = false;
+    *copied = FALSE;
     return new;
   }
 
   PersistentVectorNode *entry = level <= RRB_BITS ? NULL : data(self->array[self->count - 1]);
 
-  bool copiedInSubtree;
+  BOOL copiedInSubtree;
   PersistentVectorNode *subtree = PersistentVectorNode_pushTail(self, entry, tailToPush, level -= RRB_BITS, &copiedInSubtree);
   
   if(copiedInSubtree) {
@@ -86,7 +88,7 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode *parent
     memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(PersistentVectorNode *));    
     new->array[new->count - 1] = super(subtree);
     for (int i=0; i< new->count - 1; i++) Object_retain(new->array[i]);
-    *copied = true;
+    *copied = TRUE;
     return new;
   }
   
@@ -98,7 +100,7 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode *parent
     new->array[self->count] = super(subtree);
     new->count++;
     for(int i=0; i < new->count - 1; i++) Object_retain(new->array[i]); 
-    *copied = true;
+    *copied = TRUE;
     return new;
   }
 
@@ -112,13 +114,13 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode *parent
     PersistentVectorNode *newDown = PersistentVectorNode_allocate(1, internalNode);
     new->array[1] = super(newDown);
     newDown->array[0] = super(subtree);
-    *copied = false;
+    *copied = FALSE;
     return new;
   }
 
   PersistentVectorNode *new = PersistentVectorNode_allocate(1, internalNode);
   new->array[0] = super(subtree);
-  *copied = false;
+  *copied = FALSE;
   return new;
 } 
 

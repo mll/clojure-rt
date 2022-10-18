@@ -1,7 +1,6 @@
 #ifndef RT_PERSISTENT_VECTOR
 #define RT_PERSISTENT_VECTOR
 
-#include "Object.h"
 #include "String.h"
 
 #define RRB_BITS 5
@@ -22,10 +21,10 @@ struct PersistentVector {
 
 PersistentVector* PersistentVector_create();
 
-bool PersistentVector_equals(PersistentVector *self, PersistentVector *other);
+BOOL PersistentVector_equals(PersistentVector *self, PersistentVector *other);
 uint64_t PersistentVector_hash(PersistentVector *self);
 String *PersistentVector_toString(PersistentVector *self);
-void PersistentVector_destroy(PersistentVector *self, bool deallocateChildren);
+void PersistentVector_destroy(PersistentVector *self, BOOL deallocateChildren);
 
 PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other);
 Object* PersistentVector_nth(PersistentVector *self, uint64_t index);

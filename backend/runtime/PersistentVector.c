@@ -1,6 +1,8 @@
+#include "Object.h"
 #include "PersistentVector.h"
 #include "PersistentVectorNode.h"
 #include "Object.h"
+#include "sds/sds.h"
 
 PersistentVector *EMPTY = NULL;
 
@@ -25,9 +27,9 @@ void PersistentVector_initialise() {
   EMPTY->tail = PersistentVectorNode_allocate(0, leafNode);
 }
 
-bool PersistentVector_equals(PersistentVector *self, PersistentVector *other) {
-  if (self->count != other->count) return false;
-  bool retVal = equals(super(self->tail), super(other->tail));
+BOOL PersistentVector_equals(PersistentVector *self, PersistentVector *other) {
+  if (self->count != other->count) return FALSE;
+  BOOL retVal = equals(super(self->tail), super(other->tail));
   if (self->count > RRB_BRANCHING) retVal = retVal && equals(super(self->root), super(other->root));
   return retVal;
 }
@@ -57,7 +59,7 @@ String *PersistentVector_toString(PersistentVector *self) {
   retVal = sdscat(retVal, "]");
   return String_create(retVal);
 }
-void PersistentVector_destroy(PersistentVector *self, bool deallocateChildren) {
+void PersistentVector_destroy(PersistentVector *self, BOOL deallocateChildren) {
   release(self->tail);
   if (self->root) release(self->root);
 }
@@ -114,8 +116,8 @@ PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other) {
     if(self->root) retain(self->root); 
     new->tail = PersistentVectorNode_allocate(self->tail->count + 1, leafNode);
     memcpy(new->tail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
-    new->tail->count++;
     new->tail->array[self->tail->count] = other;
+    new->tail->count++;
     for(int i=0; i<new->tail->count; i++) Object_retain(new->tail->array[i]);
     return new;
   }
@@ -125,7 +127,7 @@ PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other) {
   new->tail->array[0] = other;
   Object_retain(other);
   
-  bool copied;
+  BOOL copied;
   new->root = PersistentVectorNode_pushTail(NULL, self->root,  self->tail, self->shift, &copied); 
   if(!copied && self->root) { 
     new->shift += RRB_BITS;

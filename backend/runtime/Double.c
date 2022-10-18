@@ -1,7 +1,8 @@
 #include "Double.h"
-#include "Object.h"
 #include "String.h"
 #include <stdio.h>
+#include "Object.h"
+#include "sds/sds.h"
 
 Double* Double_create(double d) {
   Object *super = allocate(sizeof(Double) + sizeof(Object)); 
@@ -11,7 +12,7 @@ Double* Double_create(double d) {
   return self;
 }
 
-bool Double_equals(Double *self, Double *other) {
+BOOL Double_equals(Double *self, Double *other) {
   return self->value == other->value;
 }
 

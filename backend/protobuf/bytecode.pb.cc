@@ -20,8 +20,30 @@ PROTOBUF_PRAGMA_INIT_SEG
 namespace _pb = ::PROTOBUF_NAMESPACE_ID;
 namespace _pbi = _pb::internal;
 
-namespace clojureRT {
+namespace clojure {
+namespace rt {
 namespace protobuf {
+namespace bytecode {
+PROTOBUF_CONSTEXPR Environment::Environment(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.locals_)*/{}
+  , /*decltype(_impl_.context_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.ns_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.file_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.column_)*/0u
+  , /*decltype(_impl_.line_)*/0u
+  , /*decltype(_impl_.endcolumn_)*/0u
+  , /*decltype(_impl_.endline_)*/0u
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct EnvironmentDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR EnvironmentDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~EnvironmentDefaultTypeInternal() {}
+  union {
+    Environment _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 EnvironmentDefaultTypeInternal _Environment_default_instance_;
 PROTOBUF_CONSTEXPR Subnode::Subnode(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.types_)*/{}
@@ -38,13 +60,12 @@ struct SubnodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SubnodeDefaultTypeInternal _Subnode_default_instance_;
 PROTOBUF_CONSTEXPR BindingNode::BindingNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+    /*decltype(_impl_.name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.init_)*/nullptr
   , /*decltype(_impl_.argid_)*/0u
   , /*decltype(_impl_.local_)*/0
-  , /*decltype(_impl_.isvariadic_)*/false} {}
+  , /*decltype(_impl_.isvariadic_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct BindingNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR BindingNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -122,12 +143,11 @@ struct CatchNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CatchNodeDefaultTypeInternal _CatchNode_default_instance_;
 PROTOBUF_CONSTEXPR ConstNode::ConstNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.val_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+    /*decltype(_impl_.val_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.meta_)*/nullptr
   , /*decltype(_impl_.isliteral_)*/false
-  , /*decltype(_impl_.type_)*/0} {}
+  , /*decltype(_impl_.type_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct ConstNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR ConstNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -139,13 +159,12 @@ struct ConstNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ConstNodeDefaultTypeInternal _ConstNode_default_instance_;
 PROTOBUF_CONSTEXPR DefNode::DefNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.doc_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+    /*decltype(_impl_.doc_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.var_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.init_)*/nullptr
-  , /*decltype(_impl_.meta_)*/nullptr} {}
+  , /*decltype(_impl_.meta_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct DefNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR DefNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -174,11 +193,10 @@ struct DeftypeNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DeftypeNodeDefaultTypeInternal _DeftypeNode_default_instance_;
 PROTOBUF_CONSTEXPR DoNode::DoNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.statements_)*/{}
+    /*decltype(_impl_.statements_)*/{}
   , /*decltype(_impl_.ret_)*/nullptr
-  , /*decltype(_impl_.isbody_)*/false} {}
+  , /*decltype(_impl_.isbody_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct DoNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR DoNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -190,13 +208,12 @@ struct DoNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DoNodeDefaultTypeInternal _DoNode_default_instance_;
 PROTOBUF_CONSTEXPR FnNode::FnNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.methods_)*/{}
+    /*decltype(_impl_.methods_)*/{}
   , /*decltype(_impl_.local_)*/nullptr
   , /*decltype(_impl_.maxfixedarity_)*/0u
   , /*decltype(_impl_.once_)*/false
-  , /*decltype(_impl_.isvariadic_)*/false} {}
+  , /*decltype(_impl_.isvariadic_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct FnNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR FnNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -268,13 +285,12 @@ struct ImportNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ImportNodeDefaultTypeInternal _ImportNode_default_instance_;
 PROTOBUF_CONSTEXPR InstanceCallNode::InstanceCallNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.args_)*/{}
+    /*decltype(_impl_.args_)*/{}
   , /*decltype(_impl_.class__)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.method_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.instance_)*/nullptr
-  , /*decltype(_impl_.isvalidated_)*/false} {}
+  , /*decltype(_impl_.isvalidated_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct InstanceCallNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR InstanceCallNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -316,11 +332,10 @@ struct IsInstanceNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 IsInstanceNodeDefaultTypeInternal _IsInstanceNode_default_instance_;
 PROTOBUF_CONSTEXPR InvokeNode::InvokeNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.args_)*/{}
+    /*decltype(_impl_.args_)*/{}
   , /*decltype(_impl_.meta_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
-  , /*decltype(_impl_.fn_)*/nullptr} {}
+  , /*decltype(_impl_.fn_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct InvokeNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR InvokeNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -374,13 +389,12 @@ struct LetfnNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LetfnNodeDefaultTypeInternal _LetfnNode_default_instance_;
 PROTOBUF_CONSTEXPR LocalNode::LocalNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+    /*decltype(_impl_.name_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.argid_)*/0u
   , /*decltype(_impl_.local_)*/0
   , /*decltype(_impl_.isassignable_)*/false
-  , /*decltype(_impl_.isvariadic_)*/false} {}
+  , /*decltype(_impl_.isvariadic_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct LocalNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR LocalNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -467,11 +481,10 @@ struct MonitorExitNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MonitorExitNodeDefaultTypeInternal _MonitorExitNode_default_instance_;
 PROTOBUF_CONSTEXPR NewNode::NewNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.args_)*/{}
+    /*decltype(_impl_.args_)*/{}
   , /*decltype(_impl_.class__)*/nullptr
-  , /*decltype(_impl_.isvalidated_)*/false} {}
+  , /*decltype(_impl_.isvalidated_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct NewNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR NewNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -483,12 +496,11 @@ struct NewNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NewNodeDefaultTypeInternal _NewNode_default_instance_;
 PROTOBUF_CONSTEXPR PrimInvokeNode::PrimInvokeNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.args_)*/{}
+    /*decltype(_impl_.args_)*/{}
   , /*decltype(_impl_.meta_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.priminterface_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
-  , /*decltype(_impl_.fn_)*/nullptr} {}
+  , /*decltype(_impl_.fn_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct PrimInvokeNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR PrimInvokeNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -585,12 +597,11 @@ struct MutateSetNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MutateSetNodeDefaultTypeInternal _MutateSetNode_default_instance_;
 PROTOBUF_CONSTEXPR StaticCallNode::StaticCallNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.args_)*/{}
+    /*decltype(_impl_.args_)*/{}
   , /*decltype(_impl_.class__)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.method_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
-  , /*decltype(_impl_.isvalidated_)*/false} {}
+  , /*decltype(_impl_.isvalidated_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct StaticCallNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR StaticCallNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -602,11 +613,10 @@ struct StaticCallNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StaticCallNodeDefaultTypeInternal _StaticCallNode_default_instance_;
 PROTOBUF_CONSTEXPR StaticFieldNode::StaticFieldNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.class__)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+    /*decltype(_impl_.class__)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.field_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
-  , /*decltype(_impl_.isassignable_)*/false} {}
+  , /*decltype(_impl_.isassignable_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct StaticFieldNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR StaticFieldNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -644,11 +654,10 @@ struct ThrowNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ThrowNodeDefaultTypeInternal _ThrowNode_default_instance_;
 PROTOBUF_CONSTEXPR TryNode::TryNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.catches_)*/{}
+    /*decltype(_impl_.catches_)*/{}
   , /*decltype(_impl_.body_)*/nullptr
-  , /*decltype(_impl_.finally_)*/nullptr} {}
+  , /*decltype(_impl_.finally_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct TryNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR TryNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -660,10 +669,9 @@ struct TryNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TryNodeDefaultTypeInternal _TryNode_default_instance_;
 PROTOBUF_CONSTEXPR VarNode::VarNode(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.var_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
-  , /*decltype(_impl_.isassignable_)*/false} {}
+    /*decltype(_impl_.var_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.isassignable_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct VarNodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR VarNodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -702,18 +710,17 @@ struct WithMetaNodeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WithMetaNodeDefaultTypeInternal _WithMetaNode_default_instance_;
 PROTOBUF_CONSTEXPR Node::Node(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_._has_bits_)*/{}
-  , /*decltype(_impl_._cached_size_)*/{}
-  , /*decltype(_impl_.loops_)*/{}
+    /*decltype(_impl_.loops_)*/{}
   , /*decltype(_impl_.rawforms_)*/{}
-  , /*decltype(_impl_.env_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.form_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.otag_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.tag_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.env_)*/nullptr
   , /*decltype(_impl_.subnode_)*/nullptr
   , /*decltype(_impl_.op_)*/0
   , /*decltype(_impl_.ignoretag_)*/false
-  , /*decltype(_impl_.toplevel_)*/false} {}
+  , /*decltype(_impl_.toplevel_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
 struct NodeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR NodeDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -723,862 +730,864 @@ struct NodeDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NodeDefaultTypeInternal _Node_default_instance_;
+PROTOBUF_CONSTEXPR Programme::Programme(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.nodes_)*/{}
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct ProgrammeDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ProgrammeDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ProgrammeDefaultTypeInternal() {}
+  union {
+    Programme _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProgrammeDefaultTypeInternal _Programme_default_instance_;
+}  // namespace bytecode
 }  // namespace protobuf
-}  // namespace clojureRT
-static ::_pb::Metadata file_level_metadata_bytecode_2eproto[45];
+}  // namespace rt
+}  // namespace clojure
+static ::_pb::Metadata file_level_metadata_bytecode_2eproto[47];
 static const ::_pb::EnumDescriptor* file_level_enum_descriptors_bytecode_2eproto[5];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_bytecode_2eproto = nullptr;
 
 const uint32_t TableStruct_bytecode_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Subnode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Subnode, _impl_._oneof_case_[0]),
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  ::_pbi::kInvalidFieldOffsetTag,
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Subnode, _impl_.types_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::BindingNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::BindingNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Environment, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::BindingNode, _impl_.argid_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::BindingNode, _impl_.init_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::BindingNode, _impl_.local_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::BindingNode, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::BindingNode, _impl_.isvariadic_),
-  1,
-  0,
-  ~0u,
-  ~0u,
-  2,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Environment, _impl_.context_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Environment, _impl_.locals_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Environment, _impl_.ns_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Environment, _impl_.column_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Environment, _impl_.line_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Environment, _impl_.endcolumn_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Environment, _impl_.endline_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Environment, _impl_.file_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Subnode, _internal_metadata_),
   ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Subnode, _impl_._oneof_case_[0]),
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.default__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.high_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.low_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.mask_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.shift_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.isskipcheck_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.switchtype_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.test_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.testtype_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.tests_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseNode, _impl_.thens_),
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Subnode, _impl_.types_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseTestNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::BindingNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseTestNode, _impl_.hash_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseTestNode, _impl_.test_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::BindingNode, _impl_.argid_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::BindingNode, _impl_.init_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::BindingNode, _impl_.local_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::BindingNode, _impl_.name_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::BindingNode, _impl_.isvariadic_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseThenNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseThenNode, _impl_.hash_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CaseThenNode, _impl_.then_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.default__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.high_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.low_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.mask_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.shift_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.isskipcheck_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.switchtype_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.test_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.testtype_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.tests_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseNode, _impl_.thens_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CatchNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseTestNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CatchNode, _impl_.body_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CatchNode, _impl_.class__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::CatchNode, _impl_.local_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ConstNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ConstNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ConstNode, _impl_.isliteral_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ConstNode, _impl_.meta_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ConstNode, _impl_.type_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ConstNode, _impl_.val_),
-  ~0u,
-  0,
-  ~0u,
-  ~0u,
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DefNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DefNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DefNode, _impl_.doc_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DefNode, _impl_.init_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DefNode, _impl_.meta_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DefNode, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DefNode, _impl_.var_),
-  0,
-  1,
-  2,
-  ~0u,
-  ~0u,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseTestNode, _impl_.hash_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseTestNode, _impl_.test_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DeftypeNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseThenNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DeftypeNode, _impl_.classname_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DeftypeNode, _impl_.fields_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DeftypeNode, _impl_.interfaces_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DeftypeNode, _impl_.methods_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DeftypeNode, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DoNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DoNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DoNode, _impl_.isbody_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DoNode, _impl_.ret_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::DoNode, _impl_.statements_),
-  0,
-  ~0u,
-  ~0u,
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnNode, _impl_.local_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnNode, _impl_.maxfixedarity_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnNode, _impl_.methods_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnNode, _impl_.once_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnNode, _impl_.isvariadic_),
-  0,
-  ~0u,
-  ~0u,
-  ~0u,
-  ~0u,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseThenNode, _impl_.hash_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CaseThenNode, _impl_.then_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnMethodNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CatchNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnMethodNode, _impl_.body_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnMethodNode, _impl_.fixedarity_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnMethodNode, _impl_.loopid_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnMethodNode, _impl_.params_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::FnMethodNode, _impl_.isvariadic_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CatchNode, _impl_.body_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CatchNode, _impl_.class__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::CatchNode, _impl_.local_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::HostInteropNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ConstNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::HostInteropNode, _impl_.isassignable_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::HostInteropNode, _impl_.morf_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::HostInteropNode, _impl_.target_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ConstNode, _impl_.isliteral_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ConstNode, _impl_.meta_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ConstNode, _impl_.type_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ConstNode, _impl_.val_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::IfNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DefNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::IfNode, _impl_.else__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::IfNode, _impl_.test_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::IfNode, _impl_.then_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DefNode, _impl_.doc_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DefNode, _impl_.init_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DefNode, _impl_.meta_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DefNode, _impl_.name_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DefNode, _impl_.var_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ImportNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DeftypeNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ImportNode, _impl_.class__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceCallNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceCallNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceCallNode, _impl_.args_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceCallNode, _impl_.class__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceCallNode, _impl_.instance_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceCallNode, _impl_.method_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceCallNode, _impl_.isvalidated_),
-  ~0u,
-  0,
-  ~0u,
-  ~0u,
-  1,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DeftypeNode, _impl_.classname_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DeftypeNode, _impl_.fields_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DeftypeNode, _impl_.interfaces_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DeftypeNode, _impl_.methods_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DeftypeNode, _impl_.name_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceFieldNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DoNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceFieldNode, _impl_.isassignable_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceFieldNode, _impl_.class__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceFieldNode, _impl_.field_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InstanceFieldNode, _impl_.instance_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DoNode, _impl_.isbody_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DoNode, _impl_.ret_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::DoNode, _impl_.statements_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::IsInstanceNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::IsInstanceNode, _impl_.class__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::IsInstanceNode, _impl_.target_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InvokeNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InvokeNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InvokeNode, _impl_.args_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InvokeNode, _impl_.fn_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::InvokeNode, _impl_.meta_),
-  ~0u,
-  ~0u,
-  0,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnNode, _impl_.local_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnNode, _impl_.maxfixedarity_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnNode, _impl_.methods_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnNode, _impl_.once_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnNode, _impl_.isvariadic_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::KeywordInvokeNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnMethodNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::KeywordInvokeNode, _impl_.keyword_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::KeywordInvokeNode, _impl_.target_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnMethodNode, _impl_.body_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnMethodNode, _impl_.fixedarity_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnMethodNode, _impl_.loopid_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnMethodNode, _impl_.params_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::FnMethodNode, _impl_.isvariadic_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LetNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::HostInteropNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LetNode, _impl_.bindings_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LetNode, _impl_.body_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::HostInteropNode, _impl_.isassignable_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::HostInteropNode, _impl_.morf_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::HostInteropNode, _impl_.target_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LetfnNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::IfNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LetfnNode, _impl_.bindings_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LetfnNode, _impl_.body_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LocalNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LocalNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LocalNode, _impl_.argid_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LocalNode, _impl_.isassignable_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LocalNode, _impl_.local_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LocalNode, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LocalNode, _impl_.isvariadic_),
-  0,
-  ~0u,
-  ~0u,
-  ~0u,
-  1,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::IfNode, _impl_.else__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::IfNode, _impl_.test_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::IfNode, _impl_.then_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LoopNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ImportNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LoopNode, _impl_.bindings_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LoopNode, _impl_.body_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::LoopNode, _impl_.loopid_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ImportNode, _impl_.class__),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MapNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceCallNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MapNode, _impl_.keys_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MapNode, _impl_.vals_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceCallNode, _impl_.args_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceCallNode, _impl_.class__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceCallNode, _impl_.instance_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceCallNode, _impl_.method_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceCallNode, _impl_.isvalidated_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MethodNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceFieldNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MethodNode, _impl_.body_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MethodNode, _impl_.bridges_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MethodNode, _impl_.fixedarity_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MethodNode, _impl_.interface_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MethodNode, _impl_.loopid_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MethodNode, _impl_.name_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MethodNode, _impl_.params_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MethodNode, _impl_.this__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceFieldNode, _impl_.isassignable_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceFieldNode, _impl_.class__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceFieldNode, _impl_.field_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InstanceFieldNode, _impl_.instance_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MonitorEnterNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::IsInstanceNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MonitorEnterNode, _impl_.target_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::IsInstanceNode, _impl_.class__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::IsInstanceNode, _impl_.target_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MonitorExitNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InvokeNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MonitorExitNode, _impl_.target_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::NewNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::NewNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::NewNode, _impl_.args_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::NewNode, _impl_.class__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::NewNode, _impl_.isvalidated_),
-  ~0u,
-  ~0u,
-  0,
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::PrimInvokeNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::PrimInvokeNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::PrimInvokeNode, _impl_.args_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::PrimInvokeNode, _impl_.fn_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::PrimInvokeNode, _impl_.meta_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::PrimInvokeNode, _impl_.priminterface_),
-  ~0u,
-  ~0u,
-  0,
-  ~0u,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InvokeNode, _impl_.args_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InvokeNode, _impl_.fn_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::InvokeNode, _impl_.meta_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ProtocolInvokeNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::KeywordInvokeNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ProtocolInvokeNode, _impl_.args_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ProtocolInvokeNode, _impl_.protocolfn_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ProtocolInvokeNode, _impl_.target_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::KeywordInvokeNode, _impl_.keyword_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::KeywordInvokeNode, _impl_.target_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::QuoteNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LetNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::QuoteNode, _impl_.expr_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::QuoteNode, _impl_.isliteral_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LetNode, _impl_.bindings_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LetNode, _impl_.body_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::RecurNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LetfnNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::RecurNode, _impl_.exprs_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::RecurNode, _impl_.loopid_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LetfnNode, _impl_.bindings_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LetfnNode, _impl_.body_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ReifyNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LocalNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ReifyNode, _impl_.classname_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ReifyNode, _impl_.interfaces_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ReifyNode, _impl_.methods_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LocalNode, _impl_.argid_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LocalNode, _impl_.isassignable_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LocalNode, _impl_.local_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LocalNode, _impl_.name_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LocalNode, _impl_.isvariadic_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::SetNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LoopNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::SetNode, _impl_.items_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LoopNode, _impl_.bindings_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LoopNode, _impl_.body_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::LoopNode, _impl_.loopid_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MutateSetNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MapNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MutateSetNode, _impl_.target_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::MutateSetNode, _impl_.val_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticCallNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticCallNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticCallNode, _impl_.args_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticCallNode, _impl_.class__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticCallNode, _impl_.method_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticCallNode, _impl_.isvalidated_),
-  ~0u,
-  ~0u,
-  ~0u,
-  0,
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticFieldNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticFieldNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticFieldNode, _impl_.isassignable_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticFieldNode, _impl_.class__),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::StaticFieldNode, _impl_.field_),
-  0,
-  ~0u,
-  ~0u,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MapNode, _impl_.keys_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MapNode, _impl_.vals_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::TheVarNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MethodNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::TheVarNode, _impl_.var_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MethodNode, _impl_.body_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MethodNode, _impl_.bridges_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MethodNode, _impl_.fixedarity_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MethodNode, _impl_.interface_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MethodNode, _impl_.loopid_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MethodNode, _impl_.name_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MethodNode, _impl_.params_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MethodNode, _impl_.this__),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ThrowNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MonitorEnterNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::ThrowNode, _impl_.exception_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::TryNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::TryNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::TryNode, _impl_.body_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::TryNode, _impl_.catches_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::TryNode, _impl_.finally_),
-  ~0u,
-  ~0u,
-  0,
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::VarNode, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::VarNode, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::VarNode, _impl_.isassignable_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::VarNode, _impl_.var_),
-  0,
-  ~0u,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MonitorEnterNode, _impl_.target_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::VectorNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MonitorExitNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::VectorNode, _impl_.items_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MonitorExitNode, _impl_.target_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::WithMetaNode, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::NewNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::WithMetaNode, _impl_.expr_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::WithMetaNode, _impl_.meta_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_._has_bits_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::NewNode, _impl_.args_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::NewNode, _impl_.class__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::NewNode, _impl_.isvalidated_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::PrimInvokeNode, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.env_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.form_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.ignoretag_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.loops_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.otag_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.op_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.rawforms_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.subnode_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.tag_),
-  PROTOBUF_FIELD_OFFSET(::clojureRT::protobuf::Node, _impl_.toplevel_),
-  ~0u,
-  ~0u,
-  0,
-  ~0u,
-  ~0u,
-  ~0u,
-  ~0u,
-  ~0u,
-  ~0u,
-  1,
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::PrimInvokeNode, _impl_.args_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::PrimInvokeNode, _impl_.fn_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::PrimInvokeNode, _impl_.meta_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::PrimInvokeNode, _impl_.priminterface_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ProtocolInvokeNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ProtocolInvokeNode, _impl_.args_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ProtocolInvokeNode, _impl_.protocolfn_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ProtocolInvokeNode, _impl_.target_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::QuoteNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::QuoteNode, _impl_.expr_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::QuoteNode, _impl_.isliteral_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::RecurNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::RecurNode, _impl_.exprs_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::RecurNode, _impl_.loopid_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ReifyNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ReifyNode, _impl_.classname_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ReifyNode, _impl_.interfaces_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ReifyNode, _impl_.methods_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::SetNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::SetNode, _impl_.items_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MutateSetNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MutateSetNode, _impl_.target_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::MutateSetNode, _impl_.val_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::StaticCallNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::StaticCallNode, _impl_.args_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::StaticCallNode, _impl_.class__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::StaticCallNode, _impl_.method_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::StaticCallNode, _impl_.isvalidated_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::StaticFieldNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::StaticFieldNode, _impl_.isassignable_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::StaticFieldNode, _impl_.class__),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::StaticFieldNode, _impl_.field_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::TheVarNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::TheVarNode, _impl_.var_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ThrowNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::ThrowNode, _impl_.exception_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::TryNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::TryNode, _impl_.body_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::TryNode, _impl_.catches_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::TryNode, _impl_.finally_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::VarNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::VarNode, _impl_.isassignable_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::VarNode, _impl_.var_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::VectorNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::VectorNode, _impl_.items_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::WithMetaNode, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::WithMetaNode, _impl_.expr_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::WithMetaNode, _impl_.meta_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.env_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.form_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.ignoretag_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.loops_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.otag_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.op_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.rawforms_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.subnode_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.tag_),
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Node, _impl_.toplevel_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Programme, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::clojure::rt::protobuf::bytecode::Programme, _impl_.nodes_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, -1, sizeof(::clojureRT::protobuf::Subnode)},
-  { 50, 61, -1, sizeof(::clojureRT::protobuf::BindingNode)},
-  { 66, -1, -1, sizeof(::clojureRT::protobuf::CaseNode)},
-  { 83, -1, -1, sizeof(::clojureRT::protobuf::CaseTestNode)},
-  { 91, -1, -1, sizeof(::clojureRT::protobuf::CaseThenNode)},
-  { 99, -1, -1, sizeof(::clojureRT::protobuf::CatchNode)},
-  { 108, 118, -1, sizeof(::clojureRT::protobuf::ConstNode)},
-  { 122, 133, -1, sizeof(::clojureRT::protobuf::DefNode)},
-  { 138, -1, -1, sizeof(::clojureRT::protobuf::DeftypeNode)},
-  { 149, 158, -1, sizeof(::clojureRT::protobuf::DoNode)},
-  { 161, 172, -1, sizeof(::clojureRT::protobuf::FnNode)},
-  { 177, -1, -1, sizeof(::clojureRT::protobuf::FnMethodNode)},
-  { 188, -1, -1, sizeof(::clojureRT::protobuf::HostInteropNode)},
-  { 197, -1, -1, sizeof(::clojureRT::protobuf::IfNode)},
-  { 206, -1, -1, sizeof(::clojureRT::protobuf::ImportNode)},
-  { 213, 224, -1, sizeof(::clojureRT::protobuf::InstanceCallNode)},
-  { 229, -1, -1, sizeof(::clojureRT::protobuf::InstanceFieldNode)},
-  { 239, -1, -1, sizeof(::clojureRT::protobuf::IsInstanceNode)},
-  { 247, 256, -1, sizeof(::clojureRT::protobuf::InvokeNode)},
-  { 259, -1, -1, sizeof(::clojureRT::protobuf::KeywordInvokeNode)},
-  { 267, -1, -1, sizeof(::clojureRT::protobuf::LetNode)},
-  { 275, -1, -1, sizeof(::clojureRT::protobuf::LetfnNode)},
-  { 283, 294, -1, sizeof(::clojureRT::protobuf::LocalNode)},
-  { 299, -1, -1, sizeof(::clojureRT::protobuf::LoopNode)},
-  { 308, -1, -1, sizeof(::clojureRT::protobuf::MapNode)},
-  { 316, -1, -1, sizeof(::clojureRT::protobuf::MethodNode)},
-  { 330, -1, -1, sizeof(::clojureRT::protobuf::MonitorEnterNode)},
-  { 337, -1, -1, sizeof(::clojureRT::protobuf::MonitorExitNode)},
-  { 344, 353, -1, sizeof(::clojureRT::protobuf::NewNode)},
-  { 356, 366, -1, sizeof(::clojureRT::protobuf::PrimInvokeNode)},
-  { 370, -1, -1, sizeof(::clojureRT::protobuf::ProtocolInvokeNode)},
-  { 379, -1, -1, sizeof(::clojureRT::protobuf::QuoteNode)},
-  { 387, -1, -1, sizeof(::clojureRT::protobuf::RecurNode)},
-  { 395, -1, -1, sizeof(::clojureRT::protobuf::ReifyNode)},
-  { 404, -1, -1, sizeof(::clojureRT::protobuf::SetNode)},
-  { 411, -1, -1, sizeof(::clojureRT::protobuf::MutateSetNode)},
-  { 419, 429, -1, sizeof(::clojureRT::protobuf::StaticCallNode)},
-  { 433, 442, -1, sizeof(::clojureRT::protobuf::StaticFieldNode)},
-  { 445, -1, -1, sizeof(::clojureRT::protobuf::TheVarNode)},
-  { 452, -1, -1, sizeof(::clojureRT::protobuf::ThrowNode)},
-  { 459, 468, -1, sizeof(::clojureRT::protobuf::TryNode)},
-  { 471, 479, -1, sizeof(::clojureRT::protobuf::VarNode)},
-  { 481, -1, -1, sizeof(::clojureRT::protobuf::VectorNode)},
-  { 488, -1, -1, sizeof(::clojureRT::protobuf::WithMetaNode)},
-  { 496, 512, -1, sizeof(::clojureRT::protobuf::Node)},
+  { 0, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::Environment)},
+  { 14, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::Subnode)},
+  { 64, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::BindingNode)},
+  { 75, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::CaseNode)},
+  { 92, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::CaseTestNode)},
+  { 100, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::CaseThenNode)},
+  { 108, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::CatchNode)},
+  { 117, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::ConstNode)},
+  { 127, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::DefNode)},
+  { 138, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::DeftypeNode)},
+  { 149, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::DoNode)},
+  { 158, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::FnNode)},
+  { 169, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::FnMethodNode)},
+  { 180, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::HostInteropNode)},
+  { 189, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::IfNode)},
+  { 198, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::ImportNode)},
+  { 205, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::InstanceCallNode)},
+  { 216, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::InstanceFieldNode)},
+  { 226, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::IsInstanceNode)},
+  { 234, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::InvokeNode)},
+  { 243, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::KeywordInvokeNode)},
+  { 251, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::LetNode)},
+  { 259, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::LetfnNode)},
+  { 267, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::LocalNode)},
+  { 278, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::LoopNode)},
+  { 287, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::MapNode)},
+  { 295, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::MethodNode)},
+  { 309, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::MonitorEnterNode)},
+  { 316, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::MonitorExitNode)},
+  { 323, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::NewNode)},
+  { 332, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::PrimInvokeNode)},
+  { 342, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::ProtocolInvokeNode)},
+  { 351, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::QuoteNode)},
+  { 359, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::RecurNode)},
+  { 367, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::ReifyNode)},
+  { 376, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::SetNode)},
+  { 383, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::MutateSetNode)},
+  { 391, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::StaticCallNode)},
+  { 401, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::StaticFieldNode)},
+  { 410, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::TheVarNode)},
+  { 417, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::ThrowNode)},
+  { 424, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::TryNode)},
+  { 433, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::VarNode)},
+  { 441, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::VectorNode)},
+  { 448, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::WithMetaNode)},
+  { 456, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::Node)},
+  { 472, -1, -1, sizeof(::clojure::rt::protobuf::bytecode::Programme)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
-  &::clojureRT::protobuf::_Subnode_default_instance_._instance,
-  &::clojureRT::protobuf::_BindingNode_default_instance_._instance,
-  &::clojureRT::protobuf::_CaseNode_default_instance_._instance,
-  &::clojureRT::protobuf::_CaseTestNode_default_instance_._instance,
-  &::clojureRT::protobuf::_CaseThenNode_default_instance_._instance,
-  &::clojureRT::protobuf::_CatchNode_default_instance_._instance,
-  &::clojureRT::protobuf::_ConstNode_default_instance_._instance,
-  &::clojureRT::protobuf::_DefNode_default_instance_._instance,
-  &::clojureRT::protobuf::_DeftypeNode_default_instance_._instance,
-  &::clojureRT::protobuf::_DoNode_default_instance_._instance,
-  &::clojureRT::protobuf::_FnNode_default_instance_._instance,
-  &::clojureRT::protobuf::_FnMethodNode_default_instance_._instance,
-  &::clojureRT::protobuf::_HostInteropNode_default_instance_._instance,
-  &::clojureRT::protobuf::_IfNode_default_instance_._instance,
-  &::clojureRT::protobuf::_ImportNode_default_instance_._instance,
-  &::clojureRT::protobuf::_InstanceCallNode_default_instance_._instance,
-  &::clojureRT::protobuf::_InstanceFieldNode_default_instance_._instance,
-  &::clojureRT::protobuf::_IsInstanceNode_default_instance_._instance,
-  &::clojureRT::protobuf::_InvokeNode_default_instance_._instance,
-  &::clojureRT::protobuf::_KeywordInvokeNode_default_instance_._instance,
-  &::clojureRT::protobuf::_LetNode_default_instance_._instance,
-  &::clojureRT::protobuf::_LetfnNode_default_instance_._instance,
-  &::clojureRT::protobuf::_LocalNode_default_instance_._instance,
-  &::clojureRT::protobuf::_LoopNode_default_instance_._instance,
-  &::clojureRT::protobuf::_MapNode_default_instance_._instance,
-  &::clojureRT::protobuf::_MethodNode_default_instance_._instance,
-  &::clojureRT::protobuf::_MonitorEnterNode_default_instance_._instance,
-  &::clojureRT::protobuf::_MonitorExitNode_default_instance_._instance,
-  &::clojureRT::protobuf::_NewNode_default_instance_._instance,
-  &::clojureRT::protobuf::_PrimInvokeNode_default_instance_._instance,
-  &::clojureRT::protobuf::_ProtocolInvokeNode_default_instance_._instance,
-  &::clojureRT::protobuf::_QuoteNode_default_instance_._instance,
-  &::clojureRT::protobuf::_RecurNode_default_instance_._instance,
-  &::clojureRT::protobuf::_ReifyNode_default_instance_._instance,
-  &::clojureRT::protobuf::_SetNode_default_instance_._instance,
-  &::clojureRT::protobuf::_MutateSetNode_default_instance_._instance,
-  &::clojureRT::protobuf::_StaticCallNode_default_instance_._instance,
-  &::clojureRT::protobuf::_StaticFieldNode_default_instance_._instance,
-  &::clojureRT::protobuf::_TheVarNode_default_instance_._instance,
-  &::clojureRT::protobuf::_ThrowNode_default_instance_._instance,
-  &::clojureRT::protobuf::_TryNode_default_instance_._instance,
-  &::clojureRT::protobuf::_VarNode_default_instance_._instance,
-  &::clojureRT::protobuf::_VectorNode_default_instance_._instance,
-  &::clojureRT::protobuf::_WithMetaNode_default_instance_._instance,
-  &::clojureRT::protobuf::_Node_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_Environment_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_Subnode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_BindingNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_CaseNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_CaseTestNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_CaseThenNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_CatchNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_ConstNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_DefNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_DeftypeNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_DoNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_FnNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_FnMethodNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_HostInteropNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_IfNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_ImportNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_InstanceCallNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_InstanceFieldNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_IsInstanceNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_InvokeNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_KeywordInvokeNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_LetNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_LetfnNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_LocalNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_LoopNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_MapNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_MethodNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_MonitorEnterNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_MonitorExitNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_NewNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_PrimInvokeNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_ProtocolInvokeNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_QuoteNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_RecurNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_ReifyNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_SetNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_MutateSetNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_StaticCallNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_StaticFieldNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_TheVarNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_ThrowNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_TryNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_VarNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_VectorNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_WithMetaNode_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_Node_default_instance_._instance,
+  &::clojure::rt::protobuf::bytecode::_Programme_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_bytecode_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\016bytecode.proto\022\022clojureRT.protobuf\"\262\021\n"
-  "\007Subnode\0222\n\007binding\030\001 \001(\0132\037.clojureRT.pr"
-  "otobuf.BindingNodeH\000\022,\n\004case\030\002 \001(\0132\034.clo"
-  "jureRT.protobuf.CaseNodeH\000\0224\n\010caseTest\030\003"
-  " \001(\0132 .clojureRT.protobuf.CaseTestNodeH\000"
-  "\0224\n\010caseThen\030\004 \001(\0132 .clojureRT.protobuf."
-  "CaseThenNodeH\000\022.\n\005catch\030\005 \001(\0132\035.clojureR"
-  "T.protobuf.CatchNodeH\000\022.\n\005const\030\006 \001(\0132\035."
-  "clojureRT.protobuf.ConstNodeH\000\022*\n\003def\030\007 "
-  "\001(\0132\033.clojureRT.protobuf.DefNodeH\000\0222\n\007de"
-  "ftype\030\010 \001(\0132\037.clojureRT.protobuf.Deftype"
-  "NodeH\000\022(\n\002do\030\t \001(\0132\032.clojureRT.protobuf."
-  "DoNodeH\000\022(\n\002fn\030\n \001(\0132\032.clojureRT.protobu"
-  "f.FnNodeH\000\0224\n\010fnMethod\030\013 \001(\0132 .clojureRT"
-  ".protobuf.FnMethodNodeH\000\022:\n\013hostInterop\030"
-  "\014 \001(\0132#.clojureRT.protobuf.HostInteropNo"
-  "deH\000\022(\n\002if\030\r \001(\0132\032.clojureRT.protobuf.If"
-  "NodeH\000\0220\n\006import\030\016 \001(\0132\036.clojureRT.proto"
-  "buf.ImportNodeH\000\022<\n\014instanceCall\030\017 \001(\0132$"
-  ".clojureRT.protobuf.InstanceCallNodeH\000\022>"
-  "\n\rinstanceField\030\020 \001(\0132%.clojureRT.protob"
-  "uf.InstanceFieldNodeH\000\0228\n\nisInstance\030\021 \001"
-  "(\0132\".clojureRT.protobuf.IsInstanceNodeH\000"
-  "\0220\n\006invoke\030\022 \001(\0132\036.clojureRT.protobuf.In"
-  "vokeNodeH\000\022>\n\rkeywordInvoke\030\023 \001(\0132%.cloj"
-  "ureRT.protobuf.KeywordInvokeNodeH\000\022*\n\003le"
-  "t\030\024 \001(\0132\033.clojureRT.protobuf.LetNodeH\000\022."
-  "\n\005letfn\030\025 \001(\0132\035.clojureRT.protobuf.Letfn"
-  "NodeH\000\022.\n\005local\030\026 \001(\0132\035.clojureRT.protob"
-  "uf.LocalNodeH\000\022,\n\004loop\030\027 \001(\0132\034.clojureRT"
-  ".protobuf.LoopNodeH\000\022*\n\003map\030\030 \001(\0132\033.cloj"
-  "ureRT.protobuf.MapNodeH\000\0220\n\006method\030\031 \001(\013"
-  "2\036.clojureRT.protobuf.MethodNodeH\000\022<\n\014mo"
-  "nitorEnter\030\032 \001(\0132$.clojureRT.protobuf.Mo"
-  "nitorEnterNodeH\000\022:\n\013monitorExit\030\033 \001(\0132#."
-  "clojureRT.protobuf.MonitorExitNodeH\000\022*\n\003"
-  "new\030\034 \001(\0132\033.clojureRT.protobuf.NewNodeH\000"
-  "\0228\n\nprimInvoke\030\035 \001(\0132\".clojureRT.protobu"
-  "f.PrimInvokeNodeH\000\022@\n\016protocolInvoke\030\036 \001"
-  "(\0132&.clojureRT.protobuf.ProtocolInvokeNo"
-  "deH\000\022.\n\005quote\030\037 \001(\0132\035.clojureRT.protobuf"
-  ".QuoteNodeH\000\022.\n\005recur\030  \001(\0132\035.clojureRT."
-  "protobuf.RecurNodeH\000\022.\n\005reify\030! \001(\0132\035.cl"
-  "ojureRT.protobuf.ReifyNodeH\000\022*\n\003set\030\" \001("
-  "\0132\033.clojureRT.protobuf.SetNodeH\000\0226\n\tmuta"
-  "teSet\030# \001(\0132!.clojureRT.protobuf.MutateS"
-  "etNodeH\000\0228\n\nstaticCall\030$ \001(\0132\".clojureRT"
-  ".protobuf.StaticCallNodeH\000\022:\n\013staticFiel"
-  "d\030% \001(\0132#.clojureRT.protobuf.StaticField"
-  "NodeH\000\0220\n\006theVar\030& \001(\0132\036.clojureRT.proto"
-  "buf.TheVarNodeH\000\022.\n\005throw\030\' \001(\0132\035.clojur"
-  "eRT.protobuf.ThrowNodeH\000\022*\n\003try\030( \001(\0132\033."
-  "clojureRT.protobuf.TryNodeH\000\022*\n\003var\030) \001("
-  "\0132\033.clojureRT.protobuf.VarNodeH\000\0220\n\006vect"
-  "or\030* \001(\0132\036.clojureRT.protobuf.VectorNode"
-  "H\000\0224\n\010withMeta\030+ \001(\0132 .clojureRT.protobu"
-  "f.WithMetaNodeH\000B\007\n\005types\"\305\001\n\013BindingNod"
-  "e\022\022\n\005argId\030\001 \001(\rH\000\210\001\001\022+\n\004init\030\002 \001(\0132\030.cl"
-  "ojureRT.protobuf.NodeH\001\210\001\001\022,\n\005local\030\003 \001("
-  "\0162\035.clojureRT.protobuf.LocalType\022\014\n\004name"
-  "\030\004 \001(\t\022\027\n\nisVariadic\030\005 \001(\010H\002\210\001\001B\010\n\006_argI"
-  "dB\007\n\005_initB\r\n\013_isVariadic\"\373\003\n\010CaseNode\022)"
-  "\n\007default\030\001 \001(\0132\030.clojureRT.protobuf.Nod"
-  "e\022\014\n\004high\030\002 \001(\t\022\013\n\003low\030\003 \001(\t\022\014\n\004mask\030\004 \001"
-  "(\r\022\r\n\005shift\030\005 \001(\r\022\023\n\013isSkipCheck\030\006 \001(\t\022;"
-  "\n\nswitchType\030\007 \001(\0162\'.clojureRT.protobuf."
-  "CaseNode.SwitchType\022&\n\004test\030\010 \001(\0132\030.cloj"
-  "ureRT.protobuf.Node\0227\n\010testType\030\t \001(\0162%."
-  "clojureRT.protobuf.CaseNode.TestType\022\'\n\005"
-  "tests\030\n \003(\0132\030.clojureRT.protobuf.Node\022\'\n"
-  "\005thens\030\013 \003(\0132\030.clojureRT.protobuf.Node\"9"
-  "\n\nSwitchType\022\024\n\020switchTypeSparse\020\000\022\025\n\021sw"
-  "itchTypeCompact\020\001\"L\n\010TestType\022\017\n\013testTyp"
-  "eInt\020\000\022\025\n\021testTypeHashEquiv\020\001\022\030\n\024testTyp"
-  "eHashIdentity\020\002\"D\n\014CaseTestNode\022\014\n\004hash\030"
-  "\001 \001(\r\022&\n\004test\030\002 \001(\0132\030.clojureRT.protobuf"
-  ".Node\"D\n\014CaseThenNode\022\014\n\004hash\030\001 \001(\r\022&\n\004t"
-  "hen\030\002 \001(\0132\030.clojureRT.protobuf.Node\"\205\001\n\t"
-  "CatchNode\022&\n\004body\030\001 \001(\0132\030.clojureRT.prot"
-  "obuf.Node\022\'\n\005class\030\002 \001(\0132\030.clojureRT.pro"
-  "tobuf.Node\022\'\n\005local\030\003 \001(\0132\030.clojureRT.pr"
-  "otobuf.Node\"\366\003\n\tConstNode\022\021\n\tisLiteral\030\001"
-  " \001(\010\022+\n\004meta\030\002 \001(\0132\030.clojureRT.protobuf."
-  "NodeH\000\210\001\001\0225\n\004type\030\003 \001(\0162\'.clojureRT.prot"
-  "obuf.ConstNode.ConstType\022\013\n\003val\030\004 \001(\t\"\333\002"
-  "\n\tConstType\022\020\n\014constTypeNil\020\000\022\021\n\rconstTy"
-  "peBool\020\001\022\024\n\020constTypeKeyword\020\002\022\023\n\017constT"
-  "ypeSymbol\020\003\022\023\n\017constTypeString\020\004\022\023\n\017cons"
-  "tTypeNumber\020\005\022\021\n\rconstTypeType\020\006\022\023\n\017cons"
-  "tTypeRecord\020\007\022\020\n\014constTypeMap\020\010\022\023\n\017const"
-  "TypeVector\020\t\022\020\n\014constTypeSet\020\n\022\020\n\014constT"
-  "ypeSeq\020\013\022\021\n\rconstTypeChar\020\014\022\022\n\016constType"
-  "Regex\020\r\022\022\n\016constTypeClass\020\016\022\020\n\014constType"
-  "Var\020\017\022\024\n\020constTypeUnknown\020\020B\007\n\005_meta\"\252\001\n"
-  "\007DefNode\022\020\n\003doc\030\001 \001(\tH\000\210\001\001\022+\n\004init\030\002 \001(\013"
-  "2\030.clojureRT.protobuf.NodeH\001\210\001\001\022+\n\004meta\030"
-  "\003 \001(\0132\030.clojureRT.protobuf.NodeH\002\210\001\001\022\014\n\004"
-  "name\030\004 \001(\t\022\013\n\003var\030\005 \001(\tB\006\n\004_docB\007\n\005_init"
-  "B\007\n\005_meta\"\227\001\n\013DeftypeNode\022\021\n\tclassName\030\001"
-  " \001(\t\022(\n\006fields\030\002 \003(\0132\030.clojureRT.protobu"
-  "f.Node\022\022\n\ninterfaces\030\003 \003(\t\022)\n\007methods\030\004 "
-  "\003(\0132\030.clojureRT.protobuf.Node\022\014\n\004name\030\005 "
-  "\001(\t\"}\n\006DoNode\022\023\n\006isBody\030\001 \001(\010H\000\210\001\001\022%\n\003re"
-  "t\030\002 \001(\0132\030.clojureRT.protobuf.Node\022,\n\nsta"
-  "tements\030\003 \003(\0132\030.clojureRT.protobuf.NodeB"
-  "\t\n\007_isBody\"\244\001\n\006FnNode\022,\n\005local\030\001 \001(\0132\030.c"
-  "lojureRT.protobuf.NodeH\000\210\001\001\022\025\n\rmaxFixedA"
-  "rity\030\002 \001(\r\022)\n\007methods\030\003 \003(\0132\030.clojureRT."
-  "protobuf.Node\022\014\n\004once\030\004 \001(\010\022\022\n\nisVariadi"
-  "c\030\005 \001(\010B\010\n\006_local\"\230\001\n\014FnMethodNode\022&\n\004bo"
-  "dy\030\001 \001(\0132\030.clojureRT.protobuf.Node\022\022\n\nfi"
-  "xedArity\030\002 \001(\r\022\016\n\006loopId\030\003 \001(\t\022(\n\006params"
-  "\030\004 \003(\0132\030.clojureRT.protobuf.Node\022\022\n\nisVa"
-  "riadic\030\005 \001(\010\"_\n\017HostInteropNode\022\024\n\014isAss"
-  "ignable\030\001 \001(\010\022\014\n\004mOrF\030\002 \001(\t\022(\n\006target\030\003 "
-  "\001(\0132\030.clojureRT.protobuf.Node\"\200\001\n\006IfNode"
-  "\022&\n\004else\030\001 \001(\0132\030.clojureRT.protobuf.Node"
-  "\022&\n\004test\030\002 \001(\0132\030.clojureRT.protobuf.Node"
-  "\022&\n\004then\030\003 \001(\0132\030.clojureRT.protobuf.Node"
-  "\"\033\n\nImportNode\022\r\n\005class\030\001 \001(\t\"\276\001\n\020Instan"
-  "ceCallNode\022&\n\004args\030\001 \003(\0132\030.clojureRT.pro"
-  "tobuf.Node\022\022\n\005class\030\002 \001(\tH\000\210\001\001\022*\n\010instan"
-  "ce\030\003 \001(\0132\030.clojureRT.protobuf.Node\022\016\n\006me"
-  "thod\030\004 \001(\t\022\030\n\013isValidated\030\005 \001(\010H\001\210\001\001B\010\n\006"
-  "_classB\016\n\014_isValidated\"s\n\021InstanceFieldN"
-  "ode\022\024\n\014isAssignable\030\001 \001(\010\022\r\n\005class\030\002 \001(\t"
-  "\022\r\n\005field\030\003 \001(\t\022*\n\010instance\030\004 \001(\0132\030.cloj"
-  "ureRT.protobuf.Node\"I\n\016IsInstanceNode\022\r\n"
-  "\005class\030\001 \001(\t\022(\n\006target\030\002 \001(\0132\030.clojureRT"
-  ".protobuf.Node\"v\n\nInvokeNode\022&\n\004args\030\001 \003"
-  "(\0132\030.clojureRT.protobuf.Node\022$\n\002fn\030\002 \001(\013"
-  "2\030.clojureRT.protobuf.Node\022\021\n\004meta\030\003 \001(\t"
-  "H\000\210\001\001B\007\n\005_meta\"h\n\021KeywordInvokeNode\022)\n\007k"
-  "eyword\030\001 \001(\0132\030.clojureRT.protobuf.Node\022("
-  "\n\006target\030\002 \001(\0132\030.clojureRT.protobuf.Node"
-  "\"]\n\007LetNode\022*\n\010bindings\030\001 \003(\0132\030.clojureR"
-  "T.protobuf.Node\022&\n\004body\030\002 \001(\0132\030.clojureR"
-  "T.protobuf.Node\"_\n\tLetfnNode\022*\n\010bindings"
-  "\030\001 \003(\0132\030.clojureRT.protobuf.Node\022&\n\004body"
-  "\030\002 \001(\0132\030.clojureRT.protobuf.Node\"\243\001\n\tLoc"
-  "alNode\022\022\n\005argId\030\001 \001(\rH\000\210\001\001\022\024\n\014isAssignab"
-  "le\030\002 \001(\010\022,\n\005local\030\003 \001(\0162\035.clojureRT.prot"
-  "obuf.LocalType\022\014\n\004name\030\004 \001(\t\022\027\n\nisVariad"
-  "ic\030\005 \001(\010H\001\210\001\001B\010\n\006_argIdB\r\n\013_isVariadic\"n"
-  "\n\010LoopNode\022*\n\010bindings\030\001 \003(\0132\030.clojureRT"
-  ".protobuf.Node\022&\n\004body\030\002 \001(\0132\030.clojureRT"
-  ".protobuf.Node\022\016\n\006loopId\030\003 \001(\t\"Y\n\007MapNod"
-  "e\022&\n\004keys\030\001 \003(\0132\030.clojureRT.protobuf.Nod"
-  "e\022&\n\004vals\030\002 \003(\0132\030.clojureRT.protobuf.Nod"
-  "e\"\334\001\n\nMethodNode\022&\n\004body\030\001 \001(\0132\030.clojure"
-  "RT.protobuf.Node\022\017\n\007bridges\030\002 \003(\t\022\022\n\nfix"
-  "edArity\030\003 \001(\r\022\021\n\tinterface\030\004 \001(\t\022\016\n\006loop"
-  "Id\030\005 \001(\t\022\014\n\004name\030\006 \001(\t\022(\n\006params\030\007 \003(\0132\030"
-  ".clojureRT.protobuf.Node\022&\n\004this\030\010 \001(\0132\030"
-  ".clojureRT.protobuf.Node\"<\n\020MonitorEnter"
-  "Node\022(\n\006target\030\001 \001(\0132\030.clojureRT.protobu"
-  "f.Node\";\n\017MonitorExitNode\022(\n\006target\030\001 \001("
-  "\0132\030.clojureRT.protobuf.Node\"\204\001\n\007NewNode\022"
-  "&\n\004args\030\001 \003(\0132\030.clojureRT.protobuf.Node\022"
-  "\'\n\005class\030\002 \001(\0132\030.clojureRT.protobuf.Node"
-  "\022\030\n\013isValidated\030\003 \001(\010H\000\210\001\001B\016\n\014_isValidat"
-  "ed\"\221\001\n\016PrimInvokeNode\022&\n\004args\030\001 \003(\0132\030.cl"
-  "ojureRT.protobuf.Node\022$\n\002fn\030\002 \001(\0132\030.cloj"
-  "ureRT.protobuf.Node\022\021\n\004meta\030\003 \001(\tH\000\210\001\001\022\025"
-  "\n\rprimInterface\030\004 \001(\tB\007\n\005_meta\"\224\001\n\022Proto"
-  "colInvokeNode\022&\n\004args\030\001 \003(\0132\030.clojureRT."
-  "protobuf.Node\022,\n\nprotocolFn\030\002 \001(\0132\030.cloj"
-  "ureRT.protobuf.Node\022(\n\006target\030\003 \001(\0132\030.cl"
-  "ojureRT.protobuf.Node\"F\n\tQuoteNode\022&\n\004ex"
-  "pr\030\001 \001(\0132\030.clojureRT.protobuf.Node\022\021\n\tis"
-  "Literal\030\002 \001(\010\"D\n\tRecurNode\022\'\n\005exprs\030\001 \003("
-  "\0132\030.clojureRT.protobuf.Node\022\016\n\006loopId\030\002 "
-  "\001(\t\"]\n\tReifyNode\022\021\n\tclassName\030\001 \001(\t\022\022\n\ni"
-  "nterfaces\030\002 \003(\t\022)\n\007methods\030\003 \003(\0132\030.cloju"
-  "reRT.protobuf.Node\"2\n\007SetNode\022\'\n\005items\030\001"
-  " \003(\0132\030.clojureRT.protobuf.Node\"`\n\rMutate"
-  "SetNode\022(\n\006target\030\001 \001(\0132\030.clojureRT.prot"
-  "obuf.Node\022%\n\003val\030\002 \001(\0132\030.clojureRT.proto"
-  "buf.Node\"\201\001\n\016StaticCallNode\022&\n\004args\030\001 \003("
-  "\0132\030.clojureRT.protobuf.Node\022\r\n\005class\030\002 \001"
-  "(\t\022\016\n\006method\030\003 \001(\t\022\030\n\013isValidated\030\004 \001(\010H"
-  "\000\210\001\001B\016\n\014_isValidated\"[\n\017StaticFieldNode\022"
-  "\031\n\014isAssignable\030\001 \001(\010H\000\210\001\001\022\r\n\005class\030\002 \001("
-  "\t\022\r\n\005field\030\003 \001(\tB\017\n\r_isAssignable\"\031\n\nThe"
-  "VarNode\022\013\n\003var\030\001 \001(\t\"8\n\tThrowNode\022+\n\texc"
-  "eption\030\001 \001(\0132\030.clojureRT.protobuf.Node\"\230"
-  "\001\n\007TryNode\022&\n\004body\030\001 \001(\0132\030.clojureRT.pro"
-  "tobuf.Node\022)\n\007catches\030\002 \003(\0132\030.clojureRT."
-  "protobuf.Node\022.\n\007finally\030\003 \001(\0132\030.clojure"
-  "RT.protobuf.NodeH\000\210\001\001B\n\n\010_finally\"B\n\007Var"
-  "Node\022\031\n\014isAssignable\030\001 \001(\010H\000\210\001\001\022\013\n\003var\030\002"
-  " \001(\tB\017\n\r_isAssignable\"5\n\nVectorNode\022\'\n\005i"
-  "tems\030\001 \003(\0132\030.clojureRT.protobuf.Node\"^\n\014"
-  "WithMetaNode\022&\n\004expr\030\001 \001(\0132\030.clojureRT.p"
-  "rotobuf.Node\022&\n\004meta\030\002 \001(\0132\030.clojureRT.p"
-  "rotobuf.Node\"\371\001\n\004Node\022\013\n\003env\030\001 \001(\t\022\014\n\004fo"
-  "rm\030\002 \001(\t\022\026\n\tignoreTag\030\003 \001(\010H\000\210\001\001\022\r\n\005loop"
-  "s\030\004 \003(\t\022\014\n\004oTag\030\005 \001(\t\022\"\n\002op\030\006 \001(\0162\026.cloj"
-  "ureRT.protobuf.Op\022\020\n\010rawForms\030\007 \003(\t\022,\n\007s"
-  "ubnode\030\010 \001(\0132\033.clojureRT.protobuf.Subnod"
-  "e\022\013\n\003tag\030\t \001(\t\022\025\n\010topLevel\030\n \001(\010H\001\210\001\001B\014\n"
-  "\n_ignoreTagB\013\n\t_topLevel*\373\004\n\002Op\022\r\n\topBin"
-  "ding\020\000\022\n\n\006opCase\020\001\022\016\n\nopCaseTest\020\002\022\016\n\nop"
-  "CaseThen\020\003\022\013\n\007opCatch\020\004\022\013\n\007opConst\020\005\022\t\n\005"
-  "opDef\020\006\022\r\n\topDeftype\020\007\022\010\n\004opDo\020\010\022\010\n\004opFn"
-  "\020\t\022\016\n\nopFnMethod\020\n\022\021\n\ropHostInterop\020\013\022\010\n"
-  "\004opIf\020\014\022\014\n\010opImport\020\r\022\022\n\016opInstanceCall\020"
-  "\016\022\023\n\017opInstanceField\020\017\022\020\n\014opIsInstance\020\020"
-  "\022\014\n\010opInvoke\020\021\022\023\n\017opKeywordInvoke\020\022\022\t\n\005o"
-  "pLet\020\023\022\013\n\007opLetfn\020\024\022\013\n\007opLocal\020\025\022\n\n\006opLo"
-  "op\020\026\022\t\n\005opMap\020\027\022\014\n\010opMethod\020\030\022\022\n\016opMonit"
-  "orEnter\020\031\022\021\n\ropMonitorExit\020\032\022\t\n\005opNew\020\033\022"
-  "\020\n\014opPrimInvoke\020\034\022\024\n\020opProtocolInvoke\020\035\022"
-  "\013\n\007opQuote\020\036\022\013\n\007opRecur\020\037\022\013\n\007opReify\020 \022\t"
-  "\n\005opSet\020!\022\017\n\013opMutateSet\020\"\022\020\n\014opStaticCa"
-  "ll\020#\022\021\n\ropStaticField\020$\022\014\n\010opTheVar\020%\022\013\n"
-  "\007opThrow\020&\022\t\n\005opTry\020\'\022\t\n\005opVar\020(\022\014\n\010opVe"
-  "ctor\020)\022\016\n\nopWithMeta\020**\242\001\n\tLocalType\022\020\n\014"
-  "localTypeArg\020\000\022\022\n\016localTypeCatch\020\001\022\017\n\013lo"
-  "calTypeFn\020\002\022\020\n\014localTypeLet\020\003\022\022\n\016localTy"
-  "peLetfn\020\004\022\021\n\rlocalTypeLoop\020\005\022\022\n\016localTyp"
-  "eField\020\006\022\021\n\rlocalTypeThis\020\007B\nB\010Protobufb"
-  "\006proto3"
+  "\n\016bytecode.proto\022\034clojure.rt.protobuf.by"
+  "tecode\"\212\001\n\013Environment\022\017\n\007context\030\001 \001(\t\022"
+  "\016\n\006locals\030\002 \003(\t\022\n\n\002ns\030\003 \001(\t\022\016\n\006column\030\004 "
+  "\001(\r\022\014\n\004line\030\005 \001(\r\022\021\n\tendColumn\030\006 \001(\r\022\017\n\007"
+  "endLine\030\007 \001(\r\022\014\n\004file\030\010 \001(\t\"\340\024\n\007Subnode\022"
+  "<\n\007binding\030\001 \001(\0132).clojure.rt.protobuf.b"
+  "ytecode.BindingNodeH\000\0226\n\004case\030\002 \001(\0132&.cl"
+  "ojure.rt.protobuf.bytecode.CaseNodeH\000\022>\n"
+  "\010caseTest\030\003 \001(\0132*.clojure.rt.protobuf.by"
+  "tecode.CaseTestNodeH\000\022>\n\010caseThen\030\004 \001(\0132"
+  "*.clojure.rt.protobuf.bytecode.CaseThenN"
+  "odeH\000\0228\n\005catch\030\005 \001(\0132\'.clojure.rt.protob"
+  "uf.bytecode.CatchNodeH\000\0228\n\005const\030\006 \001(\0132\'"
+  ".clojure.rt.protobuf.bytecode.ConstNodeH"
+  "\000\0224\n\003def\030\007 \001(\0132%.clojure.rt.protobuf.byt"
+  "ecode.DefNodeH\000\022<\n\007deftype\030\010 \001(\0132).cloju"
+  "re.rt.protobuf.bytecode.DeftypeNodeH\000\0222\n"
+  "\002do\030\t \001(\0132$.clojure.rt.protobuf.bytecode"
+  ".DoNodeH\000\0222\n\002fn\030\n \001(\0132$.clojure.rt.proto"
+  "buf.bytecode.FnNodeH\000\022>\n\010fnMethod\030\013 \001(\0132"
+  "*.clojure.rt.protobuf.bytecode.FnMethodN"
+  "odeH\000\022D\n\013hostInterop\030\014 \001(\0132-.clojure.rt."
+  "protobuf.bytecode.HostInteropNodeH\000\0222\n\002i"
+  "f\030\r \001(\0132$.clojure.rt.protobuf.bytecode.I"
+  "fNodeH\000\022:\n\006import\030\016 \001(\0132(.clojure.rt.pro"
+  "tobuf.bytecode.ImportNodeH\000\022F\n\014instanceC"
+  "all\030\017 \001(\0132..clojure.rt.protobuf.bytecode"
+  ".InstanceCallNodeH\000\022H\n\rinstanceField\030\020 \001"
+  "(\0132/.clojure.rt.protobuf.bytecode.Instan"
+  "ceFieldNodeH\000\022B\n\nisInstance\030\021 \001(\0132,.cloj"
+  "ure.rt.protobuf.bytecode.IsInstanceNodeH"
+  "\000\022:\n\006invoke\030\022 \001(\0132(.clojure.rt.protobuf."
+  "bytecode.InvokeNodeH\000\022H\n\rkeywordInvoke\030\023"
+  " \001(\0132/.clojure.rt.protobuf.bytecode.Keyw"
+  "ordInvokeNodeH\000\0224\n\003let\030\024 \001(\0132%.clojure.r"
+  "t.protobuf.bytecode.LetNodeH\000\0228\n\005letfn\030\025"
+  " \001(\0132\'.clojure.rt.protobuf.bytecode.Letf"
+  "nNodeH\000\0228\n\005local\030\026 \001(\0132\'.clojure.rt.prot"
+  "obuf.bytecode.LocalNodeH\000\0226\n\004loop\030\027 \001(\0132"
+  "&.clojure.rt.protobuf.bytecode.LoopNodeH"
+  "\000\0224\n\003map\030\030 \001(\0132%.clojure.rt.protobuf.byt"
+  "ecode.MapNodeH\000\022:\n\006method\030\031 \001(\0132(.clojur"
+  "e.rt.protobuf.bytecode.MethodNodeH\000\022F\n\014m"
+  "onitorEnter\030\032 \001(\0132..clojure.rt.protobuf."
+  "bytecode.MonitorEnterNodeH\000\022D\n\013monitorEx"
+  "it\030\033 \001(\0132-.clojure.rt.protobuf.bytecode."
+  "MonitorExitNodeH\000\0224\n\003new\030\034 \001(\0132%.clojure"
+  ".rt.protobuf.bytecode.NewNodeH\000\022B\n\nprimI"
+  "nvoke\030\035 \001(\0132,.clojure.rt.protobuf.byteco"
+  "de.PrimInvokeNodeH\000\022J\n\016protocolInvoke\030\036 "
+  "\001(\01320.clojure.rt.protobuf.bytecode.Proto"
+  "colInvokeNodeH\000\0228\n\005quote\030\037 \001(\0132\'.clojure"
+  ".rt.protobuf.bytecode.QuoteNodeH\000\0228\n\005rec"
+  "ur\030  \001(\0132\'.clojure.rt.protobuf.bytecode."
+  "RecurNodeH\000\0228\n\005reify\030! \001(\0132\'.clojure.rt."
+  "protobuf.bytecode.ReifyNodeH\000\0224\n\003set\030\" \001"
+  "(\0132%.clojure.rt.protobuf.bytecode.SetNod"
+  "eH\000\022@\n\tmutateSet\030# \001(\0132+.clojure.rt.prot"
+  "obuf.bytecode.MutateSetNodeH\000\022B\n\nstaticC"
+  "all\030$ \001(\0132,.clojure.rt.protobuf.bytecode"
+  ".StaticCallNodeH\000\022D\n\013staticField\030% \001(\0132-"
+  ".clojure.rt.protobuf.bytecode.StaticFiel"
+  "dNodeH\000\022:\n\006theVar\030& \001(\0132(.clojure.rt.pro"
+  "tobuf.bytecode.TheVarNodeH\000\0228\n\005throw\030\' \001"
+  "(\0132\'.clojure.rt.protobuf.bytecode.ThrowN"
+  "odeH\000\0224\n\003try\030( \001(\0132%.clojure.rt.protobuf"
+  ".bytecode.TryNodeH\000\0224\n\003var\030) \001(\0132%.cloju"
+  "re.rt.protobuf.bytecode.VarNodeH\000\022:\n\006vec"
+  "tor\030* \001(\0132(.clojure.rt.protobuf.bytecode"
+  ".VectorNodeH\000\022>\n\010withMeta\030+ \001(\0132*.clojur"
+  "e.rt.protobuf.bytecode.WithMetaNodeH\000B\007\n"
+  "\005types\"\250\001\n\013BindingNode\022\r\n\005argId\030\001 \001(\r\0220\n"
+  "\004init\030\002 \001(\0132\".clojure.rt.protobuf.byteco"
+  "de.Node\0226\n\005local\030\003 \001(\0162\'.clojure.rt.prot"
+  "obuf.bytecode.LocalType\022\014\n\004name\030\004 \001(\t\022\022\n"
+  "\nisVariadic\030\005 \001(\010\"\267\004\n\010CaseNode\0223\n\007defaul"
+  "t\030\001 \001(\0132\".clojure.rt.protobuf.bytecode.N"
+  "ode\022\014\n\004high\030\002 \001(\t\022\013\n\003low\030\003 \001(\t\022\014\n\004mask\030\004"
+  " \001(\r\022\r\n\005shift\030\005 \001(\r\022\023\n\013isSkipCheck\030\006 \001(\t"
+  "\022E\n\nswitchType\030\007 \001(\01621.clojure.rt.protob"
+  "uf.bytecode.CaseNode.SwitchType\0220\n\004test\030"
+  "\010 \001(\0132\".clojure.rt.protobuf.bytecode.Nod"
+  "e\022A\n\010testType\030\t \001(\0162/.clojure.rt.protobu"
+  "f.bytecode.CaseNode.TestType\0221\n\005tests\030\n "
+  "\003(\0132\".clojure.rt.protobuf.bytecode.Node\022"
+  "1\n\005thens\030\013 \003(\0132\".clojure.rt.protobuf.byt"
+  "ecode.Node\"9\n\nSwitchType\022\024\n\020switchTypeSp"
+  "arse\020\000\022\025\n\021switchTypeCompact\020\001\"L\n\010TestTyp"
+  "e\022\017\n\013testTypeInt\020\000\022\025\n\021testTypeHashEquiv\020"
+  "\001\022\030\n\024testTypeHashIdentity\020\002\"N\n\014CaseTestN"
+  "ode\022\014\n\004hash\030\001 \001(\r\0220\n\004test\030\002 \001(\0132\".clojur"
+  "e.rt.protobuf.bytecode.Node\"N\n\014CaseThenN"
+  "ode\022\014\n\004hash\030\001 \001(\r\0220\n\004then\030\002 \001(\0132\".clojur"
+  "e.rt.protobuf.bytecode.Node\"\243\001\n\tCatchNod"
+  "e\0220\n\004body\030\001 \001(\0132\".clojure.rt.protobuf.by"
+  "tecode.Node\0221\n\005class\030\002 \001(\0132\".clojure.rt."
+  "protobuf.bytecode.Node\0221\n\005local\030\003 \001(\0132\"."
+  "clojure.rt.protobuf.bytecode.Node\"\374\003\n\tCo"
+  "nstNode\022\021\n\tisLiteral\030\001 \001(\010\0220\n\004meta\030\002 \001(\013"
+  "2\".clojure.rt.protobuf.bytecode.Node\022\?\n\004"
+  "type\030\003 \001(\01621.clojure.rt.protobuf.bytecod"
+  "e.ConstNode.ConstType\022\013\n\003val\030\004 \001(\t\"\333\002\n\tC"
+  "onstType\022\020\n\014constTypeNil\020\000\022\021\n\rconstTypeB"
+  "ool\020\001\022\024\n\020constTypeKeyword\020\002\022\023\n\017constType"
+  "Symbol\020\003\022\023\n\017constTypeString\020\004\022\023\n\017constTy"
+  "peNumber\020\005\022\021\n\rconstTypeType\020\006\022\023\n\017constTy"
+  "peRecord\020\007\022\020\n\014constTypeMap\020\010\022\023\n\017constTyp"
+  "eVector\020\t\022\020\n\014constTypeSet\020\n\022\020\n\014constType"
+  "Seq\020\013\022\021\n\rconstTypeChar\020\014\022\022\n\016constTypeReg"
+  "ex\020\r\022\022\n\016constTypeClass\020\016\022\020\n\014constTypeVar"
+  "\020\017\022\024\n\020constTypeUnknown\020\020\"\225\001\n\007DefNode\022\013\n\003"
+  "doc\030\001 \001(\t\0220\n\004init\030\002 \001(\0132\".clojure.rt.pro"
+  "tobuf.bytecode.Node\0220\n\004meta\030\003 \001(\0132\".cloj"
+  "ure.rt.protobuf.bytecode.Node\022\014\n\004name\030\004 "
+  "\001(\t\022\013\n\003var\030\005 \001(\t\"\253\001\n\013DeftypeNode\022\021\n\tclas"
+  "sName\030\001 \001(\t\0222\n\006fields\030\002 \003(\0132\".clojure.rt"
+  ".protobuf.bytecode.Node\022\022\n\ninterfaces\030\003 "
+  "\003(\t\0223\n\007methods\030\004 \003(\0132\".clojure.rt.protob"
+  "uf.bytecode.Node\022\014\n\004name\030\005 \001(\t\"\201\001\n\006DoNod"
+  "e\022\016\n\006isBody\030\001 \001(\010\022/\n\003ret\030\002 \001(\0132\".clojure"
+  ".rt.protobuf.bytecode.Node\0226\n\nstatements"
+  "\030\003 \003(\0132\".clojure.rt.protobuf.bytecode.No"
+  "de\"\251\001\n\006FnNode\0221\n\005local\030\001 \001(\0132\".clojure.r"
+  "t.protobuf.bytecode.Node\022\025\n\rmaxFixedArit"
+  "y\030\002 \001(\r\0223\n\007methods\030\003 \003(\0132\".clojure.rt.pr"
+  "otobuf.bytecode.Node\022\014\n\004once\030\004 \001(\010\022\022\n\nis"
+  "Variadic\030\005 \001(\010\"\254\001\n\014FnMethodNode\0220\n\004body\030"
+  "\001 \001(\0132\".clojure.rt.protobuf.bytecode.Nod"
+  "e\022\022\n\nfixedArity\030\002 \001(\r\022\016\n\006loopId\030\003 \001(\t\0222\n"
+  "\006params\030\004 \003(\0132\".clojure.rt.protobuf.byte"
+  "code.Node\022\022\n\nisVariadic\030\005 \001(\010\"i\n\017HostInt"
+  "eropNode\022\024\n\014isAssignable\030\001 \001(\010\022\014\n\004mOrF\030\002"
+  " \001(\t\0222\n\006target\030\003 \001(\0132\".clojure.rt.protob"
+  "uf.bytecode.Node\"\236\001\n\006IfNode\0220\n\004else\030\001 \001("
+  "\0132\".clojure.rt.protobuf.bytecode.Node\0220\n"
+  "\004test\030\002 \001(\0132\".clojure.rt.protobuf.byteco"
+  "de.Node\0220\n\004then\030\003 \001(\0132\".clojure.rt.proto"
+  "buf.bytecode.Node\"\033\n\nImportNode\022\r\n\005class"
+  "\030\001 \001(\t\"\256\001\n\020InstanceCallNode\0220\n\004args\030\001 \003("
+  "\0132\".clojure.rt.protobuf.bytecode.Node\022\r\n"
+  "\005class\030\002 \001(\t\0224\n\010instance\030\003 \001(\0132\".clojure"
+  ".rt.protobuf.bytecode.Node\022\016\n\006method\030\004 \001"
+  "(\t\022\023\n\013isValidated\030\005 \001(\010\"}\n\021InstanceField"
+  "Node\022\024\n\014isAssignable\030\001 \001(\010\022\r\n\005class\030\002 \001("
+  "\t\022\r\n\005field\030\003 \001(\t\0224\n\010instance\030\004 \001(\0132\".clo"
+  "jure.rt.protobuf.bytecode.Node\"S\n\016IsInst"
+  "anceNode\022\r\n\005class\030\001 \001(\t\0222\n\006target\030\002 \001(\0132"
+  "\".clojure.rt.protobuf.bytecode.Node\"|\n\nI"
+  "nvokeNode\0220\n\004args\030\001 \003(\0132\".clojure.rt.pro"
+  "tobuf.bytecode.Node\022.\n\002fn\030\002 \001(\0132\".clojur"
+  "e.rt.protobuf.bytecode.Node\022\014\n\004meta\030\003 \001("
+  "\t\"|\n\021KeywordInvokeNode\0223\n\007keyword\030\001 \001(\0132"
+  "\".clojure.rt.protobuf.bytecode.Node\0222\n\006t"
+  "arget\030\002 \001(\0132\".clojure.rt.protobuf.byteco"
+  "de.Node\"q\n\007LetNode\0224\n\010bindings\030\001 \003(\0132\".c"
+  "lojure.rt.protobuf.bytecode.Node\0220\n\004body"
+  "\030\002 \001(\0132\".clojure.rt.protobuf.bytecode.No"
+  "de\"s\n\tLetfnNode\0224\n\010bindings\030\001 \003(\0132\".cloj"
+  "ure.rt.protobuf.bytecode.Node\0220\n\004body\030\002 "
+  "\001(\0132\".clojure.rt.protobuf.bytecode.Node\""
+  "\212\001\n\tLocalNode\022\r\n\005argId\030\001 \001(\r\022\024\n\014isAssign"
+  "able\030\002 \001(\010\0226\n\005local\030\003 \001(\0162\'.clojure.rt.p"
+  "rotobuf.bytecode.LocalType\022\014\n\004name\030\004 \001(\t"
+  "\022\022\n\nisVariadic\030\005 \001(\010\"\202\001\n\010LoopNode\0224\n\010bin"
+  "dings\030\001 \003(\0132\".clojure.rt.protobuf.byteco"
+  "de.Node\0220\n\004body\030\002 \001(\0132\".clojure.rt.proto"
+  "buf.bytecode.Node\022\016\n\006loopId\030\003 \001(\t\"m\n\007Map"
+  "Node\0220\n\004keys\030\001 \003(\0132\".clojure.rt.protobuf"
+  ".bytecode.Node\0220\n\004vals\030\002 \003(\0132\".clojure.r"
+  "t.protobuf.bytecode.Node\"\372\001\n\nMethodNode\022"
+  "0\n\004body\030\001 \001(\0132\".clojure.rt.protobuf.byte"
+  "code.Node\022\017\n\007bridges\030\002 \003(\t\022\022\n\nfixedArity"
+  "\030\003 \001(\r\022\021\n\tinterface\030\004 \001(\t\022\016\n\006loopId\030\005 \001("
+  "\t\022\014\n\004name\030\006 \001(\t\0222\n\006params\030\007 \003(\0132\".clojur"
+  "e.rt.protobuf.bytecode.Node\0220\n\004this\030\010 \001("
+  "\0132\".clojure.rt.protobuf.bytecode.Node\"F\n"
+  "\020MonitorEnterNode\0222\n\006target\030\001 \001(\0132\".cloj"
+  "ure.rt.protobuf.bytecode.Node\"E\n\017Monitor"
+  "ExitNode\0222\n\006target\030\001 \001(\0132\".clojure.rt.pr"
+  "otobuf.bytecode.Node\"\203\001\n\007NewNode\0220\n\004args"
+  "\030\001 \003(\0132\".clojure.rt.protobuf.bytecode.No"
+  "de\0221\n\005class\030\002 \001(\0132\".clojure.rt.protobuf."
+  "bytecode.Node\022\023\n\013isValidated\030\003 \001(\010\"\227\001\n\016P"
+  "rimInvokeNode\0220\n\004args\030\001 \003(\0132\".clojure.rt"
+  ".protobuf.bytecode.Node\022.\n\002fn\030\002 \001(\0132\".cl"
+  "ojure.rt.protobuf.bytecode.Node\022\014\n\004meta\030"
+  "\003 \001(\t\022\025\n\rprimInterface\030\004 \001(\t\"\262\001\n\022Protoco"
+  "lInvokeNode\0220\n\004args\030\001 \003(\0132\".clojure.rt.p"
+  "rotobuf.bytecode.Node\0226\n\nprotocolFn\030\002 \001("
+  "\0132\".clojure.rt.protobuf.bytecode.Node\0222\n"
+  "\006target\030\003 \001(\0132\".clojure.rt.protobuf.byte"
+  "code.Node\"P\n\tQuoteNode\0220\n\004expr\030\001 \001(\0132\".c"
+  "lojure.rt.protobuf.bytecode.Node\022\021\n\tisLi"
+  "teral\030\002 \001(\010\"N\n\tRecurNode\0221\n\005exprs\030\001 \003(\0132"
+  "\".clojure.rt.protobuf.bytecode.Node\022\016\n\006l"
+  "oopId\030\002 \001(\t\"g\n\tReifyNode\022\021\n\tclassName\030\001 "
+  "\001(\t\022\022\n\ninterfaces\030\002 \003(\t\0223\n\007methods\030\003 \003(\013"
+  "2\".clojure.rt.protobuf.bytecode.Node\"<\n\007"
+  "SetNode\0221\n\005items\030\001 \003(\0132\".clojure.rt.prot"
+  "obuf.bytecode.Node\"t\n\rMutateSetNode\0222\n\006t"
+  "arget\030\001 \001(\0132\".clojure.rt.protobuf.byteco"
+  "de.Node\022/\n\003val\030\002 \001(\0132\".clojure.rt.protob"
+  "uf.bytecode.Node\"v\n\016StaticCallNode\0220\n\004ar"
+  "gs\030\001 \003(\0132\".clojure.rt.protobuf.bytecode."
+  "Node\022\r\n\005class\030\002 \001(\t\022\016\n\006method\030\003 \001(\t\022\023\n\013i"
+  "sValidated\030\004 \001(\010\"E\n\017StaticFieldNode\022\024\n\014i"
+  "sAssignable\030\001 \001(\010\022\r\n\005class\030\002 \001(\t\022\r\n\005fiel"
+  "d\030\003 \001(\t\"\031\n\nTheVarNode\022\013\n\003var\030\001 \001(\t\"B\n\tTh"
+  "rowNode\0225\n\texception\030\001 \001(\0132\".clojure.rt."
+  "protobuf.bytecode.Node\"\245\001\n\007TryNode\0220\n\004bo"
+  "dy\030\001 \001(\0132\".clojure.rt.protobuf.bytecode."
+  "Node\0223\n\007catches\030\002 \003(\0132\".clojure.rt.proto"
+  "buf.bytecode.Node\0223\n\007finally\030\003 \001(\0132\".clo"
+  "jure.rt.protobuf.bytecode.Node\",\n\007VarNod"
+  "e\022\024\n\014isAssignable\030\001 \001(\010\022\013\n\003var\030\002 \001(\t\"\?\n\n"
+  "VectorNode\0221\n\005items\030\001 \003(\0132\".clojure.rt.p"
+  "rotobuf.bytecode.Node\"r\n\014WithMetaNode\0220\n"
+  "\004expr\030\001 \001(\0132\".clojure.rt.protobuf.byteco"
+  "de.Node\0220\n\004meta\030\002 \001(\0132\".clojure.rt.proto"
+  "buf.bytecode.Node\"\223\002\n\004Node\0226\n\003env\030\001 \001(\0132"
+  ").clojure.rt.protobuf.bytecode.Environme"
+  "nt\022\014\n\004form\030\002 \001(\t\022\021\n\tignoreTag\030\003 \001(\010\022\r\n\005l"
+  "oops\030\004 \003(\t\022\014\n\004oTag\030\005 \001(\t\022,\n\002op\030\006 \001(\0162 .c"
+  "lojure.rt.protobuf.bytecode.Op\022\020\n\010rawFor"
+  "ms\030\007 \003(\t\0226\n\007subnode\030\010 \001(\0132%.clojure.rt.p"
+  "rotobuf.bytecode.Subnode\022\013\n\003tag\030\t \001(\t\022\020\n"
+  "\010topLevel\030\n \001(\010\">\n\tProgramme\0221\n\005nodes\030\001 "
+  "\003(\0132\".clojure.rt.protobuf.bytecode.Node*"
+  "\373\004\n\002Op\022\r\n\topBinding\020\000\022\n\n\006opCase\020\001\022\016\n\nopC"
+  "aseTest\020\002\022\016\n\nopCaseThen\020\003\022\013\n\007opCatch\020\004\022\013"
+  "\n\007opConst\020\005\022\t\n\005opDef\020\006\022\r\n\topDeftype\020\007\022\010\n"
+  "\004opDo\020\010\022\010\n\004opFn\020\t\022\016\n\nopFnMethod\020\n\022\021\n\ropH"
+  "ostInterop\020\013\022\010\n\004opIf\020\014\022\014\n\010opImport\020\r\022\022\n\016"
+  "opInstanceCall\020\016\022\023\n\017opInstanceField\020\017\022\020\n"
+  "\014opIsInstance\020\020\022\014\n\010opInvoke\020\021\022\023\n\017opKeywo"
+  "rdInvoke\020\022\022\t\n\005opLet\020\023\022\013\n\007opLetfn\020\024\022\013\n\007op"
+  "Local\020\025\022\n\n\006opLoop\020\026\022\t\n\005opMap\020\027\022\014\n\010opMeth"
+  "od\020\030\022\022\n\016opMonitorEnter\020\031\022\021\n\ropMonitorExi"
+  "t\020\032\022\t\n\005opNew\020\033\022\020\n\014opPrimInvoke\020\034\022\024\n\020opPr"
+  "otocolInvoke\020\035\022\013\n\007opQuote\020\036\022\013\n\007opRecur\020\037"
+  "\022\013\n\007opReify\020 \022\t\n\005opSet\020!\022\017\n\013opMutateSet\020"
+  "\"\022\020\n\014opStaticCall\020#\022\021\n\ropStaticField\020$\022\014"
+  "\n\010opTheVar\020%\022\013\n\007opThrow\020&\022\t\n\005opTry\020\'\022\t\n\005"
+  "opVar\020(\022\014\n\010opVector\020)\022\016\n\nopWithMeta\020**\242\001"
+  "\n\tLocalType\022\020\n\014localTypeArg\020\000\022\022\n\016localTy"
+  "peCatch\020\001\022\017\n\013localTypeFn\020\002\022\020\n\014localTypeL"
+  "et\020\003\022\022\n\016localTypeLetfn\020\004\022\021\n\rlocalTypeLoo"
+  "p\020\005\022\022\n\016localTypeField\020\006\022\021\n\rlocalTypeThis"
+  "\020\007b\006proto3"
   ;
 static ::_pbi::once_flag descriptor_table_bytecode_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_bytecode_2eproto = {
-    false, false, 8887, descriptor_table_protodef_bytecode_2eproto,
+    false, false, 9930, descriptor_table_protodef_bytecode_2eproto,
     "bytecode.proto",
-    &descriptor_table_bytecode_2eproto_once, nullptr, 0, 45,
+    &descriptor_table_bytecode_2eproto_once, nullptr, 0, 47,
     schemas, file_default_instances, TableStruct_bytecode_2eproto::offsets,
     file_level_metadata_bytecode_2eproto, file_level_enum_descriptors_bytecode_2eproto,
     file_level_service_descriptors_bytecode_2eproto,
@@ -1589,8 +1598,10 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_bytecode
 
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_bytecode_2eproto(&descriptor_table_bytecode_2eproto);
-namespace clojureRT {
+namespace clojure {
+namespace rt {
 namespace protobuf {
+namespace bytecode {
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* CaseNode_SwitchType_descriptor() {
   ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_bytecode_2eproto);
   return file_level_enum_descriptors_bytecode_2eproto[0];
@@ -1764,226 +1775,676 @@ bool LocalType_IsValid(int value) {
 
 // ===================================================================
 
-class Subnode::_Internal {
+class Environment::_Internal {
  public:
-  static const ::clojureRT::protobuf::BindingNode& binding(const Subnode* msg);
-  static const ::clojureRT::protobuf::CaseNode& case_(const Subnode* msg);
-  static const ::clojureRT::protobuf::CaseTestNode& casetest(const Subnode* msg);
-  static const ::clojureRT::protobuf::CaseThenNode& casethen(const Subnode* msg);
-  static const ::clojureRT::protobuf::CatchNode& catch_(const Subnode* msg);
-  static const ::clojureRT::protobuf::ConstNode& const_(const Subnode* msg);
-  static const ::clojureRT::protobuf::DefNode& def(const Subnode* msg);
-  static const ::clojureRT::protobuf::DeftypeNode& deftype(const Subnode* msg);
-  static const ::clojureRT::protobuf::DoNode& do_(const Subnode* msg);
-  static const ::clojureRT::protobuf::FnNode& fn(const Subnode* msg);
-  static const ::clojureRT::protobuf::FnMethodNode& fnmethod(const Subnode* msg);
-  static const ::clojureRT::protobuf::HostInteropNode& hostinterop(const Subnode* msg);
-  static const ::clojureRT::protobuf::IfNode& if_(const Subnode* msg);
-  static const ::clojureRT::protobuf::ImportNode& import(const Subnode* msg);
-  static const ::clojureRT::protobuf::InstanceCallNode& instancecall(const Subnode* msg);
-  static const ::clojureRT::protobuf::InstanceFieldNode& instancefield(const Subnode* msg);
-  static const ::clojureRT::protobuf::IsInstanceNode& isinstance(const Subnode* msg);
-  static const ::clojureRT::protobuf::InvokeNode& invoke(const Subnode* msg);
-  static const ::clojureRT::protobuf::KeywordInvokeNode& keywordinvoke(const Subnode* msg);
-  static const ::clojureRT::protobuf::LetNode& let(const Subnode* msg);
-  static const ::clojureRT::protobuf::LetfnNode& letfn(const Subnode* msg);
-  static const ::clojureRT::protobuf::LocalNode& local(const Subnode* msg);
-  static const ::clojureRT::protobuf::LoopNode& loop(const Subnode* msg);
-  static const ::clojureRT::protobuf::MapNode& map(const Subnode* msg);
-  static const ::clojureRT::protobuf::MethodNode& method(const Subnode* msg);
-  static const ::clojureRT::protobuf::MonitorEnterNode& monitorenter(const Subnode* msg);
-  static const ::clojureRT::protobuf::MonitorExitNode& monitorexit(const Subnode* msg);
-  static const ::clojureRT::protobuf::NewNode& new_(const Subnode* msg);
-  static const ::clojureRT::protobuf::PrimInvokeNode& priminvoke(const Subnode* msg);
-  static const ::clojureRT::protobuf::ProtocolInvokeNode& protocolinvoke(const Subnode* msg);
-  static const ::clojureRT::protobuf::QuoteNode& quote(const Subnode* msg);
-  static const ::clojureRT::protobuf::RecurNode& recur(const Subnode* msg);
-  static const ::clojureRT::protobuf::ReifyNode& reify(const Subnode* msg);
-  static const ::clojureRT::protobuf::SetNode& set(const Subnode* msg);
-  static const ::clojureRT::protobuf::MutateSetNode& mutateset(const Subnode* msg);
-  static const ::clojureRT::protobuf::StaticCallNode& staticcall(const Subnode* msg);
-  static const ::clojureRT::protobuf::StaticFieldNode& staticfield(const Subnode* msg);
-  static const ::clojureRT::protobuf::TheVarNode& thevar(const Subnode* msg);
-  static const ::clojureRT::protobuf::ThrowNode& throw_(const Subnode* msg);
-  static const ::clojureRT::protobuf::TryNode& try_(const Subnode* msg);
-  static const ::clojureRT::protobuf::VarNode& var(const Subnode* msg);
-  static const ::clojureRT::protobuf::VectorNode& vector(const Subnode* msg);
-  static const ::clojureRT::protobuf::WithMetaNode& withmeta(const Subnode* msg);
 };
 
-const ::clojureRT::protobuf::BindingNode&
+Environment::Environment(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.Environment)
+}
+Environment::Environment(const Environment& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  Environment* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.locals_){from._impl_.locals_}
+    , decltype(_impl_.context_){}
+    , decltype(_impl_.ns_){}
+    , decltype(_impl_.file_){}
+    , decltype(_impl_.column_){}
+    , decltype(_impl_.line_){}
+    , decltype(_impl_.endcolumn_){}
+    , decltype(_impl_.endline_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  _impl_.context_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.context_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (!from._internal_context().empty()) {
+    _this->_impl_.context_.Set(from._internal_context(), 
+      _this->GetArenaForAllocation());
+  }
+  _impl_.ns_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.ns_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (!from._internal_ns().empty()) {
+    _this->_impl_.ns_.Set(from._internal_ns(), 
+      _this->GetArenaForAllocation());
+  }
+  _impl_.file_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.file_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (!from._internal_file().empty()) {
+    _this->_impl_.file_.Set(from._internal_file(), 
+      _this->GetArenaForAllocation());
+  }
+  ::memcpy(&_impl_.column_, &from._impl_.column_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.endline_) -
+    reinterpret_cast<char*>(&_impl_.column_)) + sizeof(_impl_.endline_));
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.Environment)
+}
+
+inline void Environment::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.locals_){arena}
+    , decltype(_impl_.context_){}
+    , decltype(_impl_.ns_){}
+    , decltype(_impl_.file_){}
+    , decltype(_impl_.column_){0u}
+    , decltype(_impl_.line_){0u}
+    , decltype(_impl_.endcolumn_){0u}
+    , decltype(_impl_.endline_){0u}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+  _impl_.context_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.context_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.ns_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.ns_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.file_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.file_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+}
+
+Environment::~Environment() {
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.Environment)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void Environment::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.locals_.~RepeatedPtrField();
+  _impl_.context_.Destroy();
+  _impl_.ns_.Destroy();
+  _impl_.file_.Destroy();
+}
+
+void Environment::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void Environment::Clear() {
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.Environment)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.locals_.Clear();
+  _impl_.context_.ClearToEmpty();
+  _impl_.ns_.ClearToEmpty();
+  _impl_.file_.ClearToEmpty();
+  ::memset(&_impl_.column_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.endline_) -
+      reinterpret_cast<char*>(&_impl_.column_)) + sizeof(_impl_.endline_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* Environment::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // string context = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          auto str = _internal_mutable_context();
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.Environment.context"));
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated string locals = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            auto str = _internal_add_locals();
+            ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+            CHK_(ptr);
+            CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.Environment.locals"));
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      // string ns = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          auto str = _internal_mutable_ns();
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.Environment.ns"));
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 column = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
+          _impl_.column_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 line = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
+          _impl_.line_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 endColumn = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+          _impl_.endcolumn_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 endLine = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+          _impl_.endline_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // string file = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
+          auto str = _internal_mutable_file();
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.Environment.file"));
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* Environment::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.Environment)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // string context = 1;
+  if (!this->_internal_context().empty()) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_context().data(), static_cast<int>(this->_internal_context().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "clojure.rt.protobuf.bytecode.Environment.context");
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_context(), target);
+  }
+
+  // repeated string locals = 2;
+  for (int i = 0, n = this->_internal_locals_size(); i < n; i++) {
+    const auto& s = this->_internal_locals(i);
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      s.data(), static_cast<int>(s.length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "clojure.rt.protobuf.bytecode.Environment.locals");
+    target = stream->WriteString(2, s, target);
+  }
+
+  // string ns = 3;
+  if (!this->_internal_ns().empty()) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_ns().data(), static_cast<int>(this->_internal_ns().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "clojure.rt.protobuf.bytecode.Environment.ns");
+    target = stream->WriteStringMaybeAliased(
+        3, this->_internal_ns(), target);
+  }
+
+  // uint32 column = 4;
+  if (this->_internal_column() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(4, this->_internal_column(), target);
+  }
+
+  // uint32 line = 5;
+  if (this->_internal_line() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(5, this->_internal_line(), target);
+  }
+
+  // uint32 endColumn = 6;
+  if (this->_internal_endcolumn() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(6, this->_internal_endcolumn(), target);
+  }
+
+  // uint32 endLine = 7;
+  if (this->_internal_endline() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(7, this->_internal_endline(), target);
+  }
+
+  // string file = 8;
+  if (!this->_internal_file().empty()) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_file().data(), static_cast<int>(this->_internal_file().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "clojure.rt.protobuf.bytecode.Environment.file");
+    target = stream->WriteStringMaybeAliased(
+        8, this->_internal_file(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.Environment)
+  return target;
+}
+
+size_t Environment::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.Environment)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated string locals = 2;
+  total_size += 1 *
+      ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(_impl_.locals_.size());
+  for (int i = 0, n = _impl_.locals_.size(); i < n; i++) {
+    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+      _impl_.locals_.Get(i));
+  }
+
+  // string context = 1;
+  if (!this->_internal_context().empty()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_context());
+  }
+
+  // string ns = 3;
+  if (!this->_internal_ns().empty()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_ns());
+  }
+
+  // string file = 8;
+  if (!this->_internal_file().empty()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_file());
+  }
+
+  // uint32 column = 4;
+  if (this->_internal_column() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_column());
+  }
+
+  // uint32 line = 5;
+  if (this->_internal_line() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_line());
+  }
+
+  // uint32 endColumn = 6;
+  if (this->_internal_endcolumn() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_endcolumn());
+  }
+
+  // uint32 endLine = 7;
+  if (this->_internal_endline() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_endline());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData Environment::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    Environment::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Environment::GetClassData() const { return &_class_data_; }
+
+
+void Environment::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<Environment*>(&to_msg);
+  auto& from = static_cast<const Environment&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.Environment)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  _this->_impl_.locals_.MergeFrom(from._impl_.locals_);
+  if (!from._internal_context().empty()) {
+    _this->_internal_set_context(from._internal_context());
+  }
+  if (!from._internal_ns().empty()) {
+    _this->_internal_set_ns(from._internal_ns());
+  }
+  if (!from._internal_file().empty()) {
+    _this->_internal_set_file(from._internal_file());
+  }
+  if (from._internal_column() != 0) {
+    _this->_internal_set_column(from._internal_column());
+  }
+  if (from._internal_line() != 0) {
+    _this->_internal_set_line(from._internal_line());
+  }
+  if (from._internal_endcolumn() != 0) {
+    _this->_internal_set_endcolumn(from._internal_endcolumn());
+  }
+  if (from._internal_endline() != 0) {
+    _this->_internal_set_endline(from._internal_endline());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void Environment::CopyFrom(const Environment& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.Environment)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool Environment::IsInitialized() const {
+  return true;
+}
+
+void Environment::InternalSwap(Environment* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  _impl_.locals_.InternalSwap(&other->_impl_.locals_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.context_, lhs_arena,
+      &other->_impl_.context_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.ns_, lhs_arena,
+      &other->_impl_.ns_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.file_, lhs_arena,
+      &other->_impl_.file_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(Environment, _impl_.endline_)
+      + sizeof(Environment::_impl_.endline_)
+      - PROTOBUF_FIELD_OFFSET(Environment, _impl_.column_)>(
+          reinterpret_cast<char*>(&_impl_.column_),
+          reinterpret_cast<char*>(&other->_impl_.column_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata Environment::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
+      file_level_metadata_bytecode_2eproto[0]);
+}
+
+// ===================================================================
+
+class Subnode::_Internal {
+ public:
+  static const ::clojure::rt::protobuf::bytecode::BindingNode& binding(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::CaseNode& case_(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::CaseTestNode& casetest(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::CaseThenNode& casethen(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::CatchNode& catch_(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::ConstNode& const_(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::DefNode& def(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::DeftypeNode& deftype(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::DoNode& do_(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::FnNode& fn(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::FnMethodNode& fnmethod(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::HostInteropNode& hostinterop(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::IfNode& if_(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::ImportNode& import(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::InstanceCallNode& instancecall(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::InstanceFieldNode& instancefield(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::IsInstanceNode& isinstance(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::InvokeNode& invoke(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::KeywordInvokeNode& keywordinvoke(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::LetNode& let(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::LetfnNode& letfn(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::LocalNode& local(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::LoopNode& loop(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::MapNode& map(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::MethodNode& method(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::MonitorEnterNode& monitorenter(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::MonitorExitNode& monitorexit(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::NewNode& new_(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::PrimInvokeNode& priminvoke(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::ProtocolInvokeNode& protocolinvoke(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::QuoteNode& quote(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::RecurNode& recur(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::ReifyNode& reify(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::SetNode& set(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::MutateSetNode& mutateset(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::StaticCallNode& staticcall(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::StaticFieldNode& staticfield(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::TheVarNode& thevar(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::ThrowNode& throw_(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::TryNode& try_(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::VarNode& var(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::VectorNode& vector(const Subnode* msg);
+  static const ::clojure::rt::protobuf::bytecode::WithMetaNode& withmeta(const Subnode* msg);
+};
+
+const ::clojure::rt::protobuf::bytecode::BindingNode&
 Subnode::_Internal::binding(const Subnode* msg) {
   return *msg->_impl_.types_.binding_;
 }
-const ::clojureRT::protobuf::CaseNode&
+const ::clojure::rt::protobuf::bytecode::CaseNode&
 Subnode::_Internal::case_(const Subnode* msg) {
   return *msg->_impl_.types_.case__;
 }
-const ::clojureRT::protobuf::CaseTestNode&
+const ::clojure::rt::protobuf::bytecode::CaseTestNode&
 Subnode::_Internal::casetest(const Subnode* msg) {
   return *msg->_impl_.types_.casetest_;
 }
-const ::clojureRT::protobuf::CaseThenNode&
+const ::clojure::rt::protobuf::bytecode::CaseThenNode&
 Subnode::_Internal::casethen(const Subnode* msg) {
   return *msg->_impl_.types_.casethen_;
 }
-const ::clojureRT::protobuf::CatchNode&
+const ::clojure::rt::protobuf::bytecode::CatchNode&
 Subnode::_Internal::catch_(const Subnode* msg) {
   return *msg->_impl_.types_.catch__;
 }
-const ::clojureRT::protobuf::ConstNode&
+const ::clojure::rt::protobuf::bytecode::ConstNode&
 Subnode::_Internal::const_(const Subnode* msg) {
   return *msg->_impl_.types_.const__;
 }
-const ::clojureRT::protobuf::DefNode&
+const ::clojure::rt::protobuf::bytecode::DefNode&
 Subnode::_Internal::def(const Subnode* msg) {
   return *msg->_impl_.types_.def_;
 }
-const ::clojureRT::protobuf::DeftypeNode&
+const ::clojure::rt::protobuf::bytecode::DeftypeNode&
 Subnode::_Internal::deftype(const Subnode* msg) {
   return *msg->_impl_.types_.deftype_;
 }
-const ::clojureRT::protobuf::DoNode&
+const ::clojure::rt::protobuf::bytecode::DoNode&
 Subnode::_Internal::do_(const Subnode* msg) {
   return *msg->_impl_.types_.do__;
 }
-const ::clojureRT::protobuf::FnNode&
+const ::clojure::rt::protobuf::bytecode::FnNode&
 Subnode::_Internal::fn(const Subnode* msg) {
   return *msg->_impl_.types_.fn_;
 }
-const ::clojureRT::protobuf::FnMethodNode&
+const ::clojure::rt::protobuf::bytecode::FnMethodNode&
 Subnode::_Internal::fnmethod(const Subnode* msg) {
   return *msg->_impl_.types_.fnmethod_;
 }
-const ::clojureRT::protobuf::HostInteropNode&
+const ::clojure::rt::protobuf::bytecode::HostInteropNode&
 Subnode::_Internal::hostinterop(const Subnode* msg) {
   return *msg->_impl_.types_.hostinterop_;
 }
-const ::clojureRT::protobuf::IfNode&
+const ::clojure::rt::protobuf::bytecode::IfNode&
 Subnode::_Internal::if_(const Subnode* msg) {
   return *msg->_impl_.types_.if__;
 }
-const ::clojureRT::protobuf::ImportNode&
+const ::clojure::rt::protobuf::bytecode::ImportNode&
 Subnode::_Internal::import(const Subnode* msg) {
   return *msg->_impl_.types_.import_;
 }
-const ::clojureRT::protobuf::InstanceCallNode&
+const ::clojure::rt::protobuf::bytecode::InstanceCallNode&
 Subnode::_Internal::instancecall(const Subnode* msg) {
   return *msg->_impl_.types_.instancecall_;
 }
-const ::clojureRT::protobuf::InstanceFieldNode&
+const ::clojure::rt::protobuf::bytecode::InstanceFieldNode&
 Subnode::_Internal::instancefield(const Subnode* msg) {
   return *msg->_impl_.types_.instancefield_;
 }
-const ::clojureRT::protobuf::IsInstanceNode&
+const ::clojure::rt::protobuf::bytecode::IsInstanceNode&
 Subnode::_Internal::isinstance(const Subnode* msg) {
   return *msg->_impl_.types_.isinstance_;
 }
-const ::clojureRT::protobuf::InvokeNode&
+const ::clojure::rt::protobuf::bytecode::InvokeNode&
 Subnode::_Internal::invoke(const Subnode* msg) {
   return *msg->_impl_.types_.invoke_;
 }
-const ::clojureRT::protobuf::KeywordInvokeNode&
+const ::clojure::rt::protobuf::bytecode::KeywordInvokeNode&
 Subnode::_Internal::keywordinvoke(const Subnode* msg) {
   return *msg->_impl_.types_.keywordinvoke_;
 }
-const ::clojureRT::protobuf::LetNode&
+const ::clojure::rt::protobuf::bytecode::LetNode&
 Subnode::_Internal::let(const Subnode* msg) {
   return *msg->_impl_.types_.let_;
 }
-const ::clojureRT::protobuf::LetfnNode&
+const ::clojure::rt::protobuf::bytecode::LetfnNode&
 Subnode::_Internal::letfn(const Subnode* msg) {
   return *msg->_impl_.types_.letfn_;
 }
-const ::clojureRT::protobuf::LocalNode&
+const ::clojure::rt::protobuf::bytecode::LocalNode&
 Subnode::_Internal::local(const Subnode* msg) {
   return *msg->_impl_.types_.local_;
 }
-const ::clojureRT::protobuf::LoopNode&
+const ::clojure::rt::protobuf::bytecode::LoopNode&
 Subnode::_Internal::loop(const Subnode* msg) {
   return *msg->_impl_.types_.loop_;
 }
-const ::clojureRT::protobuf::MapNode&
+const ::clojure::rt::protobuf::bytecode::MapNode&
 Subnode::_Internal::map(const Subnode* msg) {
   return *msg->_impl_.types_.map_;
 }
-const ::clojureRT::protobuf::MethodNode&
+const ::clojure::rt::protobuf::bytecode::MethodNode&
 Subnode::_Internal::method(const Subnode* msg) {
   return *msg->_impl_.types_.method_;
 }
-const ::clojureRT::protobuf::MonitorEnterNode&
+const ::clojure::rt::protobuf::bytecode::MonitorEnterNode&
 Subnode::_Internal::monitorenter(const Subnode* msg) {
   return *msg->_impl_.types_.monitorenter_;
 }
-const ::clojureRT::protobuf::MonitorExitNode&
+const ::clojure::rt::protobuf::bytecode::MonitorExitNode&
 Subnode::_Internal::monitorexit(const Subnode* msg) {
   return *msg->_impl_.types_.monitorexit_;
 }
-const ::clojureRT::protobuf::NewNode&
+const ::clojure::rt::protobuf::bytecode::NewNode&
 Subnode::_Internal::new_(const Subnode* msg) {
   return *msg->_impl_.types_.new__;
 }
-const ::clojureRT::protobuf::PrimInvokeNode&
+const ::clojure::rt::protobuf::bytecode::PrimInvokeNode&
 Subnode::_Internal::priminvoke(const Subnode* msg) {
   return *msg->_impl_.types_.priminvoke_;
 }
-const ::clojureRT::protobuf::ProtocolInvokeNode&
+const ::clojure::rt::protobuf::bytecode::ProtocolInvokeNode&
 Subnode::_Internal::protocolinvoke(const Subnode* msg) {
   return *msg->_impl_.types_.protocolinvoke_;
 }
-const ::clojureRT::protobuf::QuoteNode&
+const ::clojure::rt::protobuf::bytecode::QuoteNode&
 Subnode::_Internal::quote(const Subnode* msg) {
   return *msg->_impl_.types_.quote_;
 }
-const ::clojureRT::protobuf::RecurNode&
+const ::clojure::rt::protobuf::bytecode::RecurNode&
 Subnode::_Internal::recur(const Subnode* msg) {
   return *msg->_impl_.types_.recur_;
 }
-const ::clojureRT::protobuf::ReifyNode&
+const ::clojure::rt::protobuf::bytecode::ReifyNode&
 Subnode::_Internal::reify(const Subnode* msg) {
   return *msg->_impl_.types_.reify_;
 }
-const ::clojureRT::protobuf::SetNode&
+const ::clojure::rt::protobuf::bytecode::SetNode&
 Subnode::_Internal::set(const Subnode* msg) {
   return *msg->_impl_.types_.set_;
 }
-const ::clojureRT::protobuf::MutateSetNode&
+const ::clojure::rt::protobuf::bytecode::MutateSetNode&
 Subnode::_Internal::mutateset(const Subnode* msg) {
   return *msg->_impl_.types_.mutateset_;
 }
-const ::clojureRT::protobuf::StaticCallNode&
+const ::clojure::rt::protobuf::bytecode::StaticCallNode&
 Subnode::_Internal::staticcall(const Subnode* msg) {
   return *msg->_impl_.types_.staticcall_;
 }
-const ::clojureRT::protobuf::StaticFieldNode&
+const ::clojure::rt::protobuf::bytecode::StaticFieldNode&
 Subnode::_Internal::staticfield(const Subnode* msg) {
   return *msg->_impl_.types_.staticfield_;
 }
-const ::clojureRT::protobuf::TheVarNode&
+const ::clojure::rt::protobuf::bytecode::TheVarNode&
 Subnode::_Internal::thevar(const Subnode* msg) {
   return *msg->_impl_.types_.thevar_;
 }
-const ::clojureRT::protobuf::ThrowNode&
+const ::clojure::rt::protobuf::bytecode::ThrowNode&
 Subnode::_Internal::throw_(const Subnode* msg) {
   return *msg->_impl_.types_.throw__;
 }
-const ::clojureRT::protobuf::TryNode&
+const ::clojure::rt::protobuf::bytecode::TryNode&
 Subnode::_Internal::try_(const Subnode* msg) {
   return *msg->_impl_.types_.try__;
 }
-const ::clojureRT::protobuf::VarNode&
+const ::clojure::rt::protobuf::bytecode::VarNode&
 Subnode::_Internal::var(const Subnode* msg) {
   return *msg->_impl_.types_.var_;
 }
-const ::clojureRT::protobuf::VectorNode&
+const ::clojure::rt::protobuf::bytecode::VectorNode&
 Subnode::_Internal::vector(const Subnode* msg) {
   return *msg->_impl_.types_.vector_;
 }
-const ::clojureRT::protobuf::WithMetaNode&
+const ::clojure::rt::protobuf::bytecode::WithMetaNode&
 Subnode::_Internal::withmeta(const Subnode* msg) {
   return *msg->_impl_.types_.withmeta_;
 }
-void Subnode::set_allocated_binding(::clojureRT::protobuf::BindingNode* binding) {
+void Subnode::set_allocated_binding(::clojure::rt::protobuf::bytecode::BindingNode* binding) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (binding) {
@@ -1996,9 +2457,9 @@ void Subnode::set_allocated_binding(::clojureRT::protobuf::BindingNode* binding)
     set_has_binding();
     _impl_.types_.binding_ = binding;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.binding)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.binding)
 }
-void Subnode::set_allocated_case_(::clojureRT::protobuf::CaseNode* case_) {
+void Subnode::set_allocated_case_(::clojure::rt::protobuf::bytecode::CaseNode* case_) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (case_) {
@@ -2011,9 +2472,9 @@ void Subnode::set_allocated_case_(::clojureRT::protobuf::CaseNode* case_) {
     set_has_case_();
     _impl_.types_.case__ = case_;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.case)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.case)
 }
-void Subnode::set_allocated_casetest(::clojureRT::protobuf::CaseTestNode* casetest) {
+void Subnode::set_allocated_casetest(::clojure::rt::protobuf::bytecode::CaseTestNode* casetest) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (casetest) {
@@ -2026,9 +2487,9 @@ void Subnode::set_allocated_casetest(::clojureRT::protobuf::CaseTestNode* casete
     set_has_casetest();
     _impl_.types_.casetest_ = casetest;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.caseTest)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.caseTest)
 }
-void Subnode::set_allocated_casethen(::clojureRT::protobuf::CaseThenNode* casethen) {
+void Subnode::set_allocated_casethen(::clojure::rt::protobuf::bytecode::CaseThenNode* casethen) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (casethen) {
@@ -2041,9 +2502,9 @@ void Subnode::set_allocated_casethen(::clojureRT::protobuf::CaseThenNode* caseth
     set_has_casethen();
     _impl_.types_.casethen_ = casethen;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.caseThen)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.caseThen)
 }
-void Subnode::set_allocated_catch_(::clojureRT::protobuf::CatchNode* catch_) {
+void Subnode::set_allocated_catch_(::clojure::rt::protobuf::bytecode::CatchNode* catch_) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (catch_) {
@@ -2056,9 +2517,9 @@ void Subnode::set_allocated_catch_(::clojureRT::protobuf::CatchNode* catch_) {
     set_has_catch_();
     _impl_.types_.catch__ = catch_;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.catch)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.catch)
 }
-void Subnode::set_allocated_const_(::clojureRT::protobuf::ConstNode* const_) {
+void Subnode::set_allocated_const_(::clojure::rt::protobuf::bytecode::ConstNode* const_) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (const_) {
@@ -2071,9 +2532,9 @@ void Subnode::set_allocated_const_(::clojureRT::protobuf::ConstNode* const_) {
     set_has_const_();
     _impl_.types_.const__ = const_;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.const)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.const)
 }
-void Subnode::set_allocated_def(::clojureRT::protobuf::DefNode* def) {
+void Subnode::set_allocated_def(::clojure::rt::protobuf::bytecode::DefNode* def) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (def) {
@@ -2086,9 +2547,9 @@ void Subnode::set_allocated_def(::clojureRT::protobuf::DefNode* def) {
     set_has_def();
     _impl_.types_.def_ = def;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.def)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.def)
 }
-void Subnode::set_allocated_deftype(::clojureRT::protobuf::DeftypeNode* deftype) {
+void Subnode::set_allocated_deftype(::clojure::rt::protobuf::bytecode::DeftypeNode* deftype) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (deftype) {
@@ -2101,9 +2562,9 @@ void Subnode::set_allocated_deftype(::clojureRT::protobuf::DeftypeNode* deftype)
     set_has_deftype();
     _impl_.types_.deftype_ = deftype;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.deftype)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.deftype)
 }
-void Subnode::set_allocated_do_(::clojureRT::protobuf::DoNode* do_) {
+void Subnode::set_allocated_do_(::clojure::rt::protobuf::bytecode::DoNode* do_) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (do_) {
@@ -2116,9 +2577,9 @@ void Subnode::set_allocated_do_(::clojureRT::protobuf::DoNode* do_) {
     set_has_do_();
     _impl_.types_.do__ = do_;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.do)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.do)
 }
-void Subnode::set_allocated_fn(::clojureRT::protobuf::FnNode* fn) {
+void Subnode::set_allocated_fn(::clojure::rt::protobuf::bytecode::FnNode* fn) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (fn) {
@@ -2131,9 +2592,9 @@ void Subnode::set_allocated_fn(::clojureRT::protobuf::FnNode* fn) {
     set_has_fn();
     _impl_.types_.fn_ = fn;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.fn)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.fn)
 }
-void Subnode::set_allocated_fnmethod(::clojureRT::protobuf::FnMethodNode* fnmethod) {
+void Subnode::set_allocated_fnmethod(::clojure::rt::protobuf::bytecode::FnMethodNode* fnmethod) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (fnmethod) {
@@ -2146,9 +2607,9 @@ void Subnode::set_allocated_fnmethod(::clojureRT::protobuf::FnMethodNode* fnmeth
     set_has_fnmethod();
     _impl_.types_.fnmethod_ = fnmethod;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.fnMethod)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.fnMethod)
 }
-void Subnode::set_allocated_hostinterop(::clojureRT::protobuf::HostInteropNode* hostinterop) {
+void Subnode::set_allocated_hostinterop(::clojure::rt::protobuf::bytecode::HostInteropNode* hostinterop) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (hostinterop) {
@@ -2161,9 +2622,9 @@ void Subnode::set_allocated_hostinterop(::clojureRT::protobuf::HostInteropNode* 
     set_has_hostinterop();
     _impl_.types_.hostinterop_ = hostinterop;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.hostInterop)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.hostInterop)
 }
-void Subnode::set_allocated_if_(::clojureRT::protobuf::IfNode* if_) {
+void Subnode::set_allocated_if_(::clojure::rt::protobuf::bytecode::IfNode* if_) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (if_) {
@@ -2176,9 +2637,9 @@ void Subnode::set_allocated_if_(::clojureRT::protobuf::IfNode* if_) {
     set_has_if_();
     _impl_.types_.if__ = if_;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.if)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.if)
 }
-void Subnode::set_allocated_import(::clojureRT::protobuf::ImportNode* import) {
+void Subnode::set_allocated_import(::clojure::rt::protobuf::bytecode::ImportNode* import) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (import) {
@@ -2191,9 +2652,9 @@ void Subnode::set_allocated_import(::clojureRT::protobuf::ImportNode* import) {
     set_has_import();
     _impl_.types_.import_ = import;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.import)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.import)
 }
-void Subnode::set_allocated_instancecall(::clojureRT::protobuf::InstanceCallNode* instancecall) {
+void Subnode::set_allocated_instancecall(::clojure::rt::protobuf::bytecode::InstanceCallNode* instancecall) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (instancecall) {
@@ -2206,9 +2667,9 @@ void Subnode::set_allocated_instancecall(::clojureRT::protobuf::InstanceCallNode
     set_has_instancecall();
     _impl_.types_.instancecall_ = instancecall;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.instanceCall)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.instanceCall)
 }
-void Subnode::set_allocated_instancefield(::clojureRT::protobuf::InstanceFieldNode* instancefield) {
+void Subnode::set_allocated_instancefield(::clojure::rt::protobuf::bytecode::InstanceFieldNode* instancefield) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (instancefield) {
@@ -2221,9 +2682,9 @@ void Subnode::set_allocated_instancefield(::clojureRT::protobuf::InstanceFieldNo
     set_has_instancefield();
     _impl_.types_.instancefield_ = instancefield;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.instanceField)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.instanceField)
 }
-void Subnode::set_allocated_isinstance(::clojureRT::protobuf::IsInstanceNode* isinstance) {
+void Subnode::set_allocated_isinstance(::clojure::rt::protobuf::bytecode::IsInstanceNode* isinstance) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (isinstance) {
@@ -2236,9 +2697,9 @@ void Subnode::set_allocated_isinstance(::clojureRT::protobuf::IsInstanceNode* is
     set_has_isinstance();
     _impl_.types_.isinstance_ = isinstance;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.isInstance)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.isInstance)
 }
-void Subnode::set_allocated_invoke(::clojureRT::protobuf::InvokeNode* invoke) {
+void Subnode::set_allocated_invoke(::clojure::rt::protobuf::bytecode::InvokeNode* invoke) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (invoke) {
@@ -2251,9 +2712,9 @@ void Subnode::set_allocated_invoke(::clojureRT::protobuf::InvokeNode* invoke) {
     set_has_invoke();
     _impl_.types_.invoke_ = invoke;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.invoke)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.invoke)
 }
-void Subnode::set_allocated_keywordinvoke(::clojureRT::protobuf::KeywordInvokeNode* keywordinvoke) {
+void Subnode::set_allocated_keywordinvoke(::clojure::rt::protobuf::bytecode::KeywordInvokeNode* keywordinvoke) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (keywordinvoke) {
@@ -2266,9 +2727,9 @@ void Subnode::set_allocated_keywordinvoke(::clojureRT::protobuf::KeywordInvokeNo
     set_has_keywordinvoke();
     _impl_.types_.keywordinvoke_ = keywordinvoke;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.keywordInvoke)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.keywordInvoke)
 }
-void Subnode::set_allocated_let(::clojureRT::protobuf::LetNode* let) {
+void Subnode::set_allocated_let(::clojure::rt::protobuf::bytecode::LetNode* let) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (let) {
@@ -2281,9 +2742,9 @@ void Subnode::set_allocated_let(::clojureRT::protobuf::LetNode* let) {
     set_has_let();
     _impl_.types_.let_ = let;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.let)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.let)
 }
-void Subnode::set_allocated_letfn(::clojureRT::protobuf::LetfnNode* letfn) {
+void Subnode::set_allocated_letfn(::clojure::rt::protobuf::bytecode::LetfnNode* letfn) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (letfn) {
@@ -2296,9 +2757,9 @@ void Subnode::set_allocated_letfn(::clojureRT::protobuf::LetfnNode* letfn) {
     set_has_letfn();
     _impl_.types_.letfn_ = letfn;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.letfn)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.letfn)
 }
-void Subnode::set_allocated_local(::clojureRT::protobuf::LocalNode* local) {
+void Subnode::set_allocated_local(::clojure::rt::protobuf::bytecode::LocalNode* local) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (local) {
@@ -2311,9 +2772,9 @@ void Subnode::set_allocated_local(::clojureRT::protobuf::LocalNode* local) {
     set_has_local();
     _impl_.types_.local_ = local;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.local)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.local)
 }
-void Subnode::set_allocated_loop(::clojureRT::protobuf::LoopNode* loop) {
+void Subnode::set_allocated_loop(::clojure::rt::protobuf::bytecode::LoopNode* loop) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (loop) {
@@ -2326,9 +2787,9 @@ void Subnode::set_allocated_loop(::clojureRT::protobuf::LoopNode* loop) {
     set_has_loop();
     _impl_.types_.loop_ = loop;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.loop)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.loop)
 }
-void Subnode::set_allocated_map(::clojureRT::protobuf::MapNode* map) {
+void Subnode::set_allocated_map(::clojure::rt::protobuf::bytecode::MapNode* map) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (map) {
@@ -2341,9 +2802,9 @@ void Subnode::set_allocated_map(::clojureRT::protobuf::MapNode* map) {
     set_has_map();
     _impl_.types_.map_ = map;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.map)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.map)
 }
-void Subnode::set_allocated_method(::clojureRT::protobuf::MethodNode* method) {
+void Subnode::set_allocated_method(::clojure::rt::protobuf::bytecode::MethodNode* method) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (method) {
@@ -2356,9 +2817,9 @@ void Subnode::set_allocated_method(::clojureRT::protobuf::MethodNode* method) {
     set_has_method();
     _impl_.types_.method_ = method;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.method)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.method)
 }
-void Subnode::set_allocated_monitorenter(::clojureRT::protobuf::MonitorEnterNode* monitorenter) {
+void Subnode::set_allocated_monitorenter(::clojure::rt::protobuf::bytecode::MonitorEnterNode* monitorenter) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (monitorenter) {
@@ -2371,9 +2832,9 @@ void Subnode::set_allocated_monitorenter(::clojureRT::protobuf::MonitorEnterNode
     set_has_monitorenter();
     _impl_.types_.monitorenter_ = monitorenter;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.monitorEnter)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.monitorEnter)
 }
-void Subnode::set_allocated_monitorexit(::clojureRT::protobuf::MonitorExitNode* monitorexit) {
+void Subnode::set_allocated_monitorexit(::clojure::rt::protobuf::bytecode::MonitorExitNode* monitorexit) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (monitorexit) {
@@ -2386,9 +2847,9 @@ void Subnode::set_allocated_monitorexit(::clojureRT::protobuf::MonitorExitNode* 
     set_has_monitorexit();
     _impl_.types_.monitorexit_ = monitorexit;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.monitorExit)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.monitorExit)
 }
-void Subnode::set_allocated_new_(::clojureRT::protobuf::NewNode* new_) {
+void Subnode::set_allocated_new_(::clojure::rt::protobuf::bytecode::NewNode* new_) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (new_) {
@@ -2401,9 +2862,9 @@ void Subnode::set_allocated_new_(::clojureRT::protobuf::NewNode* new_) {
     set_has_new_();
     _impl_.types_.new__ = new_;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.new)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.new)
 }
-void Subnode::set_allocated_priminvoke(::clojureRT::protobuf::PrimInvokeNode* priminvoke) {
+void Subnode::set_allocated_priminvoke(::clojure::rt::protobuf::bytecode::PrimInvokeNode* priminvoke) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (priminvoke) {
@@ -2416,9 +2877,9 @@ void Subnode::set_allocated_priminvoke(::clojureRT::protobuf::PrimInvokeNode* pr
     set_has_priminvoke();
     _impl_.types_.priminvoke_ = priminvoke;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.primInvoke)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.primInvoke)
 }
-void Subnode::set_allocated_protocolinvoke(::clojureRT::protobuf::ProtocolInvokeNode* protocolinvoke) {
+void Subnode::set_allocated_protocolinvoke(::clojure::rt::protobuf::bytecode::ProtocolInvokeNode* protocolinvoke) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (protocolinvoke) {
@@ -2431,9 +2892,9 @@ void Subnode::set_allocated_protocolinvoke(::clojureRT::protobuf::ProtocolInvoke
     set_has_protocolinvoke();
     _impl_.types_.protocolinvoke_ = protocolinvoke;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.protocolInvoke)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.protocolInvoke)
 }
-void Subnode::set_allocated_quote(::clojureRT::protobuf::QuoteNode* quote) {
+void Subnode::set_allocated_quote(::clojure::rt::protobuf::bytecode::QuoteNode* quote) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (quote) {
@@ -2446,9 +2907,9 @@ void Subnode::set_allocated_quote(::clojureRT::protobuf::QuoteNode* quote) {
     set_has_quote();
     _impl_.types_.quote_ = quote;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.quote)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.quote)
 }
-void Subnode::set_allocated_recur(::clojureRT::protobuf::RecurNode* recur) {
+void Subnode::set_allocated_recur(::clojure::rt::protobuf::bytecode::RecurNode* recur) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (recur) {
@@ -2461,9 +2922,9 @@ void Subnode::set_allocated_recur(::clojureRT::protobuf::RecurNode* recur) {
     set_has_recur();
     _impl_.types_.recur_ = recur;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.recur)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.recur)
 }
-void Subnode::set_allocated_reify(::clojureRT::protobuf::ReifyNode* reify) {
+void Subnode::set_allocated_reify(::clojure::rt::protobuf::bytecode::ReifyNode* reify) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (reify) {
@@ -2476,9 +2937,9 @@ void Subnode::set_allocated_reify(::clojureRT::protobuf::ReifyNode* reify) {
     set_has_reify();
     _impl_.types_.reify_ = reify;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.reify)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.reify)
 }
-void Subnode::set_allocated_set(::clojureRT::protobuf::SetNode* set) {
+void Subnode::set_allocated_set(::clojure::rt::protobuf::bytecode::SetNode* set) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (set) {
@@ -2491,9 +2952,9 @@ void Subnode::set_allocated_set(::clojureRT::protobuf::SetNode* set) {
     set_has_set();
     _impl_.types_.set_ = set;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.set)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.set)
 }
-void Subnode::set_allocated_mutateset(::clojureRT::protobuf::MutateSetNode* mutateset) {
+void Subnode::set_allocated_mutateset(::clojure::rt::protobuf::bytecode::MutateSetNode* mutateset) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (mutateset) {
@@ -2506,9 +2967,9 @@ void Subnode::set_allocated_mutateset(::clojureRT::protobuf::MutateSetNode* muta
     set_has_mutateset();
     _impl_.types_.mutateset_ = mutateset;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.mutateSet)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.mutateSet)
 }
-void Subnode::set_allocated_staticcall(::clojureRT::protobuf::StaticCallNode* staticcall) {
+void Subnode::set_allocated_staticcall(::clojure::rt::protobuf::bytecode::StaticCallNode* staticcall) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (staticcall) {
@@ -2521,9 +2982,9 @@ void Subnode::set_allocated_staticcall(::clojureRT::protobuf::StaticCallNode* st
     set_has_staticcall();
     _impl_.types_.staticcall_ = staticcall;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.staticCall)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.staticCall)
 }
-void Subnode::set_allocated_staticfield(::clojureRT::protobuf::StaticFieldNode* staticfield) {
+void Subnode::set_allocated_staticfield(::clojure::rt::protobuf::bytecode::StaticFieldNode* staticfield) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (staticfield) {
@@ -2536,9 +2997,9 @@ void Subnode::set_allocated_staticfield(::clojureRT::protobuf::StaticFieldNode* 
     set_has_staticfield();
     _impl_.types_.staticfield_ = staticfield;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.staticField)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.staticField)
 }
-void Subnode::set_allocated_thevar(::clojureRT::protobuf::TheVarNode* thevar) {
+void Subnode::set_allocated_thevar(::clojure::rt::protobuf::bytecode::TheVarNode* thevar) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (thevar) {
@@ -2551,9 +3012,9 @@ void Subnode::set_allocated_thevar(::clojureRT::protobuf::TheVarNode* thevar) {
     set_has_thevar();
     _impl_.types_.thevar_ = thevar;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.theVar)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.theVar)
 }
-void Subnode::set_allocated_throw_(::clojureRT::protobuf::ThrowNode* throw_) {
+void Subnode::set_allocated_throw_(::clojure::rt::protobuf::bytecode::ThrowNode* throw_) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (throw_) {
@@ -2566,9 +3027,9 @@ void Subnode::set_allocated_throw_(::clojureRT::protobuf::ThrowNode* throw_) {
     set_has_throw_();
     _impl_.types_.throw__ = throw_;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.throw)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.throw)
 }
-void Subnode::set_allocated_try_(::clojureRT::protobuf::TryNode* try_) {
+void Subnode::set_allocated_try_(::clojure::rt::protobuf::bytecode::TryNode* try_) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (try_) {
@@ -2581,9 +3042,9 @@ void Subnode::set_allocated_try_(::clojureRT::protobuf::TryNode* try_) {
     set_has_try_();
     _impl_.types_.try__ = try_;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.try)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.try)
 }
-void Subnode::set_allocated_var(::clojureRT::protobuf::VarNode* var) {
+void Subnode::set_allocated_var(::clojure::rt::protobuf::bytecode::VarNode* var) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (var) {
@@ -2596,9 +3057,9 @@ void Subnode::set_allocated_var(::clojureRT::protobuf::VarNode* var) {
     set_has_var();
     _impl_.types_.var_ = var;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.var)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.var)
 }
-void Subnode::set_allocated_vector(::clojureRT::protobuf::VectorNode* vector) {
+void Subnode::set_allocated_vector(::clojure::rt::protobuf::bytecode::VectorNode* vector) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (vector) {
@@ -2611,9 +3072,9 @@ void Subnode::set_allocated_vector(::clojureRT::protobuf::VectorNode* vector) {
     set_has_vector();
     _impl_.types_.vector_ = vector;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.vector)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.vector)
 }
-void Subnode::set_allocated_withmeta(::clojureRT::protobuf::WithMetaNode* withmeta) {
+void Subnode::set_allocated_withmeta(::clojure::rt::protobuf::bytecode::WithMetaNode* withmeta) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   clear_types();
   if (withmeta) {
@@ -2626,13 +3087,13 @@ void Subnode::set_allocated_withmeta(::clojureRT::protobuf::WithMetaNode* withme
     set_has_withmeta();
     _impl_.types_.withmeta_ = withmeta;
   }
-  // @@protoc_insertion_point(field_set_allocated:clojureRT.protobuf.Subnode.withMeta)
+  // @@protoc_insertion_point(field_set_allocated:clojure.rt.protobuf.bytecode.Subnode.withMeta)
 }
 Subnode::Subnode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.Subnode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.Subnode)
 }
 Subnode::Subnode(const Subnode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -2646,217 +3107,217 @@ Subnode::Subnode(const Subnode& from)
   clear_has_types();
   switch (from.types_case()) {
     case kBinding: {
-      _this->_internal_mutable_binding()->::clojureRT::protobuf::BindingNode::MergeFrom(
+      _this->_internal_mutable_binding()->::clojure::rt::protobuf::bytecode::BindingNode::MergeFrom(
           from._internal_binding());
       break;
     }
     case kCase: {
-      _this->_internal_mutable_case_()->::clojureRT::protobuf::CaseNode::MergeFrom(
+      _this->_internal_mutable_case_()->::clojure::rt::protobuf::bytecode::CaseNode::MergeFrom(
           from._internal_case_());
       break;
     }
     case kCaseTest: {
-      _this->_internal_mutable_casetest()->::clojureRT::protobuf::CaseTestNode::MergeFrom(
+      _this->_internal_mutable_casetest()->::clojure::rt::protobuf::bytecode::CaseTestNode::MergeFrom(
           from._internal_casetest());
       break;
     }
     case kCaseThen: {
-      _this->_internal_mutable_casethen()->::clojureRT::protobuf::CaseThenNode::MergeFrom(
+      _this->_internal_mutable_casethen()->::clojure::rt::protobuf::bytecode::CaseThenNode::MergeFrom(
           from._internal_casethen());
       break;
     }
     case kCatch: {
-      _this->_internal_mutable_catch_()->::clojureRT::protobuf::CatchNode::MergeFrom(
+      _this->_internal_mutable_catch_()->::clojure::rt::protobuf::bytecode::CatchNode::MergeFrom(
           from._internal_catch_());
       break;
     }
     case kConst: {
-      _this->_internal_mutable_const_()->::clojureRT::protobuf::ConstNode::MergeFrom(
+      _this->_internal_mutable_const_()->::clojure::rt::protobuf::bytecode::ConstNode::MergeFrom(
           from._internal_const_());
       break;
     }
     case kDef: {
-      _this->_internal_mutable_def()->::clojureRT::protobuf::DefNode::MergeFrom(
+      _this->_internal_mutable_def()->::clojure::rt::protobuf::bytecode::DefNode::MergeFrom(
           from._internal_def());
       break;
     }
     case kDeftype: {
-      _this->_internal_mutable_deftype()->::clojureRT::protobuf::DeftypeNode::MergeFrom(
+      _this->_internal_mutable_deftype()->::clojure::rt::protobuf::bytecode::DeftypeNode::MergeFrom(
           from._internal_deftype());
       break;
     }
     case kDo: {
-      _this->_internal_mutable_do_()->::clojureRT::protobuf::DoNode::MergeFrom(
+      _this->_internal_mutable_do_()->::clojure::rt::protobuf::bytecode::DoNode::MergeFrom(
           from._internal_do_());
       break;
     }
     case kFn: {
-      _this->_internal_mutable_fn()->::clojureRT::protobuf::FnNode::MergeFrom(
+      _this->_internal_mutable_fn()->::clojure::rt::protobuf::bytecode::FnNode::MergeFrom(
           from._internal_fn());
       break;
     }
     case kFnMethod: {
-      _this->_internal_mutable_fnmethod()->::clojureRT::protobuf::FnMethodNode::MergeFrom(
+      _this->_internal_mutable_fnmethod()->::clojure::rt::protobuf::bytecode::FnMethodNode::MergeFrom(
           from._internal_fnmethod());
       break;
     }
     case kHostInterop: {
-      _this->_internal_mutable_hostinterop()->::clojureRT::protobuf::HostInteropNode::MergeFrom(
+      _this->_internal_mutable_hostinterop()->::clojure::rt::protobuf::bytecode::HostInteropNode::MergeFrom(
           from._internal_hostinterop());
       break;
     }
     case kIf: {
-      _this->_internal_mutable_if_()->::clojureRT::protobuf::IfNode::MergeFrom(
+      _this->_internal_mutable_if_()->::clojure::rt::protobuf::bytecode::IfNode::MergeFrom(
           from._internal_if_());
       break;
     }
     case kImport: {
-      _this->_internal_mutable_import()->::clojureRT::protobuf::ImportNode::MergeFrom(
+      _this->_internal_mutable_import()->::clojure::rt::protobuf::bytecode::ImportNode::MergeFrom(
           from._internal_import());
       break;
     }
     case kInstanceCall: {
-      _this->_internal_mutable_instancecall()->::clojureRT::protobuf::InstanceCallNode::MergeFrom(
+      _this->_internal_mutable_instancecall()->::clojure::rt::protobuf::bytecode::InstanceCallNode::MergeFrom(
           from._internal_instancecall());
       break;
     }
     case kInstanceField: {
-      _this->_internal_mutable_instancefield()->::clojureRT::protobuf::InstanceFieldNode::MergeFrom(
+      _this->_internal_mutable_instancefield()->::clojure::rt::protobuf::bytecode::InstanceFieldNode::MergeFrom(
           from._internal_instancefield());
       break;
     }
     case kIsInstance: {
-      _this->_internal_mutable_isinstance()->::clojureRT::protobuf::IsInstanceNode::MergeFrom(
+      _this->_internal_mutable_isinstance()->::clojure::rt::protobuf::bytecode::IsInstanceNode::MergeFrom(
           from._internal_isinstance());
       break;
     }
     case kInvoke: {
-      _this->_internal_mutable_invoke()->::clojureRT::protobuf::InvokeNode::MergeFrom(
+      _this->_internal_mutable_invoke()->::clojure::rt::protobuf::bytecode::InvokeNode::MergeFrom(
           from._internal_invoke());
       break;
     }
     case kKeywordInvoke: {
-      _this->_internal_mutable_keywordinvoke()->::clojureRT::protobuf::KeywordInvokeNode::MergeFrom(
+      _this->_internal_mutable_keywordinvoke()->::clojure::rt::protobuf::bytecode::KeywordInvokeNode::MergeFrom(
           from._internal_keywordinvoke());
       break;
     }
     case kLet: {
-      _this->_internal_mutable_let()->::clojureRT::protobuf::LetNode::MergeFrom(
+      _this->_internal_mutable_let()->::clojure::rt::protobuf::bytecode::LetNode::MergeFrom(
           from._internal_let());
       break;
     }
     case kLetfn: {
-      _this->_internal_mutable_letfn()->::clojureRT::protobuf::LetfnNode::MergeFrom(
+      _this->_internal_mutable_letfn()->::clojure::rt::protobuf::bytecode::LetfnNode::MergeFrom(
           from._internal_letfn());
       break;
     }
     case kLocal: {
-      _this->_internal_mutable_local()->::clojureRT::protobuf::LocalNode::MergeFrom(
+      _this->_internal_mutable_local()->::clojure::rt::protobuf::bytecode::LocalNode::MergeFrom(
           from._internal_local());
       break;
     }
     case kLoop: {
-      _this->_internal_mutable_loop()->::clojureRT::protobuf::LoopNode::MergeFrom(
+      _this->_internal_mutable_loop()->::clojure::rt::protobuf::bytecode::LoopNode::MergeFrom(
           from._internal_loop());
       break;
     }
     case kMap: {
-      _this->_internal_mutable_map()->::clojureRT::protobuf::MapNode::MergeFrom(
+      _this->_internal_mutable_map()->::clojure::rt::protobuf::bytecode::MapNode::MergeFrom(
           from._internal_map());
       break;
     }
     case kMethod: {
-      _this->_internal_mutable_method()->::clojureRT::protobuf::MethodNode::MergeFrom(
+      _this->_internal_mutable_method()->::clojure::rt::protobuf::bytecode::MethodNode::MergeFrom(
           from._internal_method());
       break;
     }
     case kMonitorEnter: {
-      _this->_internal_mutable_monitorenter()->::clojureRT::protobuf::MonitorEnterNode::MergeFrom(
+      _this->_internal_mutable_monitorenter()->::clojure::rt::protobuf::bytecode::MonitorEnterNode::MergeFrom(
           from._internal_monitorenter());
       break;
     }
     case kMonitorExit: {
-      _this->_internal_mutable_monitorexit()->::clojureRT::protobuf::MonitorExitNode::MergeFrom(
+      _this->_internal_mutable_monitorexit()->::clojure::rt::protobuf::bytecode::MonitorExitNode::MergeFrom(
           from._internal_monitorexit());
       break;
     }
     case kNew: {
-      _this->_internal_mutable_new_()->::clojureRT::protobuf::NewNode::MergeFrom(
+      _this->_internal_mutable_new_()->::clojure::rt::protobuf::bytecode::NewNode::MergeFrom(
           from._internal_new_());
       break;
     }
     case kPrimInvoke: {
-      _this->_internal_mutable_priminvoke()->::clojureRT::protobuf::PrimInvokeNode::MergeFrom(
+      _this->_internal_mutable_priminvoke()->::clojure::rt::protobuf::bytecode::PrimInvokeNode::MergeFrom(
           from._internal_priminvoke());
       break;
     }
     case kProtocolInvoke: {
-      _this->_internal_mutable_protocolinvoke()->::clojureRT::protobuf::ProtocolInvokeNode::MergeFrom(
+      _this->_internal_mutable_protocolinvoke()->::clojure::rt::protobuf::bytecode::ProtocolInvokeNode::MergeFrom(
           from._internal_protocolinvoke());
       break;
     }
     case kQuote: {
-      _this->_internal_mutable_quote()->::clojureRT::protobuf::QuoteNode::MergeFrom(
+      _this->_internal_mutable_quote()->::clojure::rt::protobuf::bytecode::QuoteNode::MergeFrom(
           from._internal_quote());
       break;
     }
     case kRecur: {
-      _this->_internal_mutable_recur()->::clojureRT::protobuf::RecurNode::MergeFrom(
+      _this->_internal_mutable_recur()->::clojure::rt::protobuf::bytecode::RecurNode::MergeFrom(
           from._internal_recur());
       break;
     }
     case kReify: {
-      _this->_internal_mutable_reify()->::clojureRT::protobuf::ReifyNode::MergeFrom(
+      _this->_internal_mutable_reify()->::clojure::rt::protobuf::bytecode::ReifyNode::MergeFrom(
           from._internal_reify());
       break;
     }
     case kSet: {
-      _this->_internal_mutable_set()->::clojureRT::protobuf::SetNode::MergeFrom(
+      _this->_internal_mutable_set()->::clojure::rt::protobuf::bytecode::SetNode::MergeFrom(
           from._internal_set());
       break;
     }
     case kMutateSet: {
-      _this->_internal_mutable_mutateset()->::clojureRT::protobuf::MutateSetNode::MergeFrom(
+      _this->_internal_mutable_mutateset()->::clojure::rt::protobuf::bytecode::MutateSetNode::MergeFrom(
           from._internal_mutateset());
       break;
     }
     case kStaticCall: {
-      _this->_internal_mutable_staticcall()->::clojureRT::protobuf::StaticCallNode::MergeFrom(
+      _this->_internal_mutable_staticcall()->::clojure::rt::protobuf::bytecode::StaticCallNode::MergeFrom(
           from._internal_staticcall());
       break;
     }
     case kStaticField: {
-      _this->_internal_mutable_staticfield()->::clojureRT::protobuf::StaticFieldNode::MergeFrom(
+      _this->_internal_mutable_staticfield()->::clojure::rt::protobuf::bytecode::StaticFieldNode::MergeFrom(
           from._internal_staticfield());
       break;
     }
     case kTheVar: {
-      _this->_internal_mutable_thevar()->::clojureRT::protobuf::TheVarNode::MergeFrom(
+      _this->_internal_mutable_thevar()->::clojure::rt::protobuf::bytecode::TheVarNode::MergeFrom(
           from._internal_thevar());
       break;
     }
     case kThrow: {
-      _this->_internal_mutable_throw_()->::clojureRT::protobuf::ThrowNode::MergeFrom(
+      _this->_internal_mutable_throw_()->::clojure::rt::protobuf::bytecode::ThrowNode::MergeFrom(
           from._internal_throw_());
       break;
     }
     case kTry: {
-      _this->_internal_mutable_try_()->::clojureRT::protobuf::TryNode::MergeFrom(
+      _this->_internal_mutable_try_()->::clojure::rt::protobuf::bytecode::TryNode::MergeFrom(
           from._internal_try_());
       break;
     }
     case kVar: {
-      _this->_internal_mutable_var()->::clojureRT::protobuf::VarNode::MergeFrom(
+      _this->_internal_mutable_var()->::clojure::rt::protobuf::bytecode::VarNode::MergeFrom(
           from._internal_var());
       break;
     }
     case kVector: {
-      _this->_internal_mutable_vector()->::clojureRT::protobuf::VectorNode::MergeFrom(
+      _this->_internal_mutable_vector()->::clojure::rt::protobuf::bytecode::VectorNode::MergeFrom(
           from._internal_vector());
       break;
     }
     case kWithMeta: {
-      _this->_internal_mutable_withmeta()->::clojureRT::protobuf::WithMetaNode::MergeFrom(
+      _this->_internal_mutable_withmeta()->::clojure::rt::protobuf::bytecode::WithMetaNode::MergeFrom(
           from._internal_withmeta());
       break;
     }
@@ -2864,7 +3325,7 @@ Subnode::Subnode(const Subnode& from)
       break;
     }
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.Subnode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.Subnode)
 }
 
 inline void Subnode::SharedCtor(
@@ -2880,7 +3341,7 @@ inline void Subnode::SharedCtor(
 }
 
 Subnode::~Subnode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.Subnode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.Subnode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -2900,7 +3361,7 @@ void Subnode::SetCachedSize(int size) const {
 }
 
 void Subnode::clear_types() {
-// @@protoc_insertion_point(one_of_clear_start:clojureRT.protobuf.Subnode)
+// @@protoc_insertion_point(one_of_clear_start:clojure.rt.protobuf.bytecode.Subnode)
   switch (types_case()) {
     case kBinding: {
       if (GetArenaForAllocation() == nullptr) {
@@ -3169,7 +3630,7 @@ void Subnode::clear_types() {
 
 
 void Subnode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.Subnode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.Subnode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -3184,7 +3645,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.BindingNode binding = 1;
+      // .clojure.rt.protobuf.bytecode.BindingNode binding = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_binding(), ptr);
@@ -3192,7 +3653,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.CaseNode case = 2;
+      // .clojure.rt.protobuf.bytecode.CaseNode case = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_case_(), ptr);
@@ -3200,7 +3661,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.CaseTestNode caseTest = 3;
+      // .clojure.rt.protobuf.bytecode.CaseTestNode caseTest = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_casetest(), ptr);
@@ -3208,7 +3669,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.CaseThenNode caseThen = 4;
+      // .clojure.rt.protobuf.bytecode.CaseThenNode caseThen = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_casethen(), ptr);
@@ -3216,7 +3677,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.CatchNode catch = 5;
+      // .clojure.rt.protobuf.bytecode.CatchNode catch = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr = ctx->ParseMessage(_internal_mutable_catch_(), ptr);
@@ -3224,7 +3685,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.ConstNode const = 6;
+      // .clojure.rt.protobuf.bytecode.ConstNode const = 6;
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
           ptr = ctx->ParseMessage(_internal_mutable_const_(), ptr);
@@ -3232,7 +3693,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.DefNode def = 7;
+      // .clojure.rt.protobuf.bytecode.DefNode def = 7;
       case 7:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 58)) {
           ptr = ctx->ParseMessage(_internal_mutable_def(), ptr);
@@ -3240,7 +3701,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.DeftypeNode deftype = 8;
+      // .clojure.rt.protobuf.bytecode.DeftypeNode deftype = 8;
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
           ptr = ctx->ParseMessage(_internal_mutable_deftype(), ptr);
@@ -3248,7 +3709,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.DoNode do = 9;
+      // .clojure.rt.protobuf.bytecode.DoNode do = 9;
       case 9:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
           ptr = ctx->ParseMessage(_internal_mutable_do_(), ptr);
@@ -3256,7 +3717,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.FnNode fn = 10;
+      // .clojure.rt.protobuf.bytecode.FnNode fn = 10;
       case 10:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
           ptr = ctx->ParseMessage(_internal_mutable_fn(), ptr);
@@ -3264,7 +3725,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.FnMethodNode fnMethod = 11;
+      // .clojure.rt.protobuf.bytecode.FnMethodNode fnMethod = 11;
       case 11:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
           ptr = ctx->ParseMessage(_internal_mutable_fnmethod(), ptr);
@@ -3272,7 +3733,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.HostInteropNode hostInterop = 12;
+      // .clojure.rt.protobuf.bytecode.HostInteropNode hostInterop = 12;
       case 12:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
           ptr = ctx->ParseMessage(_internal_mutable_hostinterop(), ptr);
@@ -3280,7 +3741,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.IfNode if = 13;
+      // .clojure.rt.protobuf.bytecode.IfNode if = 13;
       case 13:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
           ptr = ctx->ParseMessage(_internal_mutable_if_(), ptr);
@@ -3288,7 +3749,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.ImportNode import = 14;
+      // .clojure.rt.protobuf.bytecode.ImportNode import = 14;
       case 14:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 114)) {
           ptr = ctx->ParseMessage(_internal_mutable_import(), ptr);
@@ -3296,7 +3757,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.InstanceCallNode instanceCall = 15;
+      // .clojure.rt.protobuf.bytecode.InstanceCallNode instanceCall = 15;
       case 15:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 122)) {
           ptr = ctx->ParseMessage(_internal_mutable_instancecall(), ptr);
@@ -3304,7 +3765,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.InstanceFieldNode instanceField = 16;
+      // .clojure.rt.protobuf.bytecode.InstanceFieldNode instanceField = 16;
       case 16:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 130)) {
           ptr = ctx->ParseMessage(_internal_mutable_instancefield(), ptr);
@@ -3312,7 +3773,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.IsInstanceNode isInstance = 17;
+      // .clojure.rt.protobuf.bytecode.IsInstanceNode isInstance = 17;
       case 17:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 138)) {
           ptr = ctx->ParseMessage(_internal_mutable_isinstance(), ptr);
@@ -3320,7 +3781,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.InvokeNode invoke = 18;
+      // .clojure.rt.protobuf.bytecode.InvokeNode invoke = 18;
       case 18:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 146)) {
           ptr = ctx->ParseMessage(_internal_mutable_invoke(), ptr);
@@ -3328,7 +3789,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.KeywordInvokeNode keywordInvoke = 19;
+      // .clojure.rt.protobuf.bytecode.KeywordInvokeNode keywordInvoke = 19;
       case 19:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 154)) {
           ptr = ctx->ParseMessage(_internal_mutable_keywordinvoke(), ptr);
@@ -3336,7 +3797,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.LetNode let = 20;
+      // .clojure.rt.protobuf.bytecode.LetNode let = 20;
       case 20:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 162)) {
           ptr = ctx->ParseMessage(_internal_mutable_let(), ptr);
@@ -3344,7 +3805,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.LetfnNode letfn = 21;
+      // .clojure.rt.protobuf.bytecode.LetfnNode letfn = 21;
       case 21:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 170)) {
           ptr = ctx->ParseMessage(_internal_mutable_letfn(), ptr);
@@ -3352,7 +3813,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.LocalNode local = 22;
+      // .clojure.rt.protobuf.bytecode.LocalNode local = 22;
       case 22:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 178)) {
           ptr = ctx->ParseMessage(_internal_mutable_local(), ptr);
@@ -3360,7 +3821,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.LoopNode loop = 23;
+      // .clojure.rt.protobuf.bytecode.LoopNode loop = 23;
       case 23:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 186)) {
           ptr = ctx->ParseMessage(_internal_mutable_loop(), ptr);
@@ -3368,7 +3829,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.MapNode map = 24;
+      // .clojure.rt.protobuf.bytecode.MapNode map = 24;
       case 24:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 194)) {
           ptr = ctx->ParseMessage(_internal_mutable_map(), ptr);
@@ -3376,7 +3837,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.MethodNode method = 25;
+      // .clojure.rt.protobuf.bytecode.MethodNode method = 25;
       case 25:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 202)) {
           ptr = ctx->ParseMessage(_internal_mutable_method(), ptr);
@@ -3384,7 +3845,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.MonitorEnterNode monitorEnter = 26;
+      // .clojure.rt.protobuf.bytecode.MonitorEnterNode monitorEnter = 26;
       case 26:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 210)) {
           ptr = ctx->ParseMessage(_internal_mutable_monitorenter(), ptr);
@@ -3392,7 +3853,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.MonitorExitNode monitorExit = 27;
+      // .clojure.rt.protobuf.bytecode.MonitorExitNode monitorExit = 27;
       case 27:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 218)) {
           ptr = ctx->ParseMessage(_internal_mutable_monitorexit(), ptr);
@@ -3400,7 +3861,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.NewNode new = 28;
+      // .clojure.rt.protobuf.bytecode.NewNode new = 28;
       case 28:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 226)) {
           ptr = ctx->ParseMessage(_internal_mutable_new_(), ptr);
@@ -3408,7 +3869,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.PrimInvokeNode primInvoke = 29;
+      // .clojure.rt.protobuf.bytecode.PrimInvokeNode primInvoke = 29;
       case 29:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 234)) {
           ptr = ctx->ParseMessage(_internal_mutable_priminvoke(), ptr);
@@ -3416,7 +3877,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.ProtocolInvokeNode protocolInvoke = 30;
+      // .clojure.rt.protobuf.bytecode.ProtocolInvokeNode protocolInvoke = 30;
       case 30:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 242)) {
           ptr = ctx->ParseMessage(_internal_mutable_protocolinvoke(), ptr);
@@ -3424,7 +3885,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.QuoteNode quote = 31;
+      // .clojure.rt.protobuf.bytecode.QuoteNode quote = 31;
       case 31:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 250)) {
           ptr = ctx->ParseMessage(_internal_mutable_quote(), ptr);
@@ -3432,7 +3893,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.RecurNode recur = 32;
+      // .clojure.rt.protobuf.bytecode.RecurNode recur = 32;
       case 32:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 2)) {
           ptr = ctx->ParseMessage(_internal_mutable_recur(), ptr);
@@ -3440,7 +3901,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.ReifyNode reify = 33;
+      // .clojure.rt.protobuf.bytecode.ReifyNode reify = 33;
       case 33:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_reify(), ptr);
@@ -3448,7 +3909,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.SetNode set = 34;
+      // .clojure.rt.protobuf.bytecode.SetNode set = 34;
       case 34:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_set(), ptr);
@@ -3456,7 +3917,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.MutateSetNode mutateSet = 35;
+      // .clojure.rt.protobuf.bytecode.MutateSetNode mutateSet = 35;
       case 35:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_mutateset(), ptr);
@@ -3464,7 +3925,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.StaticCallNode staticCall = 36;
+      // .clojure.rt.protobuf.bytecode.StaticCallNode staticCall = 36;
       case 36:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_staticcall(), ptr);
@@ -3472,7 +3933,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.StaticFieldNode staticField = 37;
+      // .clojure.rt.protobuf.bytecode.StaticFieldNode staticField = 37;
       case 37:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr = ctx->ParseMessage(_internal_mutable_staticfield(), ptr);
@@ -3480,7 +3941,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.TheVarNode theVar = 38;
+      // .clojure.rt.protobuf.bytecode.TheVarNode theVar = 38;
       case 38:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
           ptr = ctx->ParseMessage(_internal_mutable_thevar(), ptr);
@@ -3488,7 +3949,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.ThrowNode throw = 39;
+      // .clojure.rt.protobuf.bytecode.ThrowNode throw = 39;
       case 39:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 58)) {
           ptr = ctx->ParseMessage(_internal_mutable_throw_(), ptr);
@@ -3496,7 +3957,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.TryNode try = 40;
+      // .clojure.rt.protobuf.bytecode.TryNode try = 40;
       case 40:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
           ptr = ctx->ParseMessage(_internal_mutable_try_(), ptr);
@@ -3504,7 +3965,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.VarNode var = 41;
+      // .clojure.rt.protobuf.bytecode.VarNode var = 41;
       case 41:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
           ptr = ctx->ParseMessage(_internal_mutable_var(), ptr);
@@ -3512,7 +3973,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.VectorNode vector = 42;
+      // .clojure.rt.protobuf.bytecode.VectorNode vector = 42;
       case 42:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
           ptr = ctx->ParseMessage(_internal_mutable_vector(), ptr);
@@ -3520,7 +3981,7 @@ const char* Subnode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.WithMetaNode withMeta = 43;
+      // .clojure.rt.protobuf.bytecode.WithMetaNode withMeta = 43;
       case 43:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
           ptr = ctx->ParseMessage(_internal_mutable_withmeta(), ptr);
@@ -3553,305 +4014,305 @@ failure:
 
 uint8_t* Subnode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.Subnode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.Subnode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.BindingNode binding = 1;
+  // .clojure.rt.protobuf.bytecode.BindingNode binding = 1;
   if (_internal_has_binding()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::binding(this),
         _Internal::binding(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.CaseNode case = 2;
+  // .clojure.rt.protobuf.bytecode.CaseNode case = 2;
   if (_internal_has_case_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::case_(this),
         _Internal::case_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.CaseTestNode caseTest = 3;
+  // .clojure.rt.protobuf.bytecode.CaseTestNode caseTest = 3;
   if (_internal_has_casetest()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(3, _Internal::casetest(this),
         _Internal::casetest(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.CaseThenNode caseThen = 4;
+  // .clojure.rt.protobuf.bytecode.CaseThenNode caseThen = 4;
   if (_internal_has_casethen()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(4, _Internal::casethen(this),
         _Internal::casethen(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.CatchNode catch = 5;
+  // .clojure.rt.protobuf.bytecode.CatchNode catch = 5;
   if (_internal_has_catch_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(5, _Internal::catch_(this),
         _Internal::catch_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.ConstNode const = 6;
+  // .clojure.rt.protobuf.bytecode.ConstNode const = 6;
   if (_internal_has_const_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(6, _Internal::const_(this),
         _Internal::const_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.DefNode def = 7;
+  // .clojure.rt.protobuf.bytecode.DefNode def = 7;
   if (_internal_has_def()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(7, _Internal::def(this),
         _Internal::def(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.DeftypeNode deftype = 8;
+  // .clojure.rt.protobuf.bytecode.DeftypeNode deftype = 8;
   if (_internal_has_deftype()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(8, _Internal::deftype(this),
         _Internal::deftype(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.DoNode do = 9;
+  // .clojure.rt.protobuf.bytecode.DoNode do = 9;
   if (_internal_has_do_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(9, _Internal::do_(this),
         _Internal::do_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.FnNode fn = 10;
+  // .clojure.rt.protobuf.bytecode.FnNode fn = 10;
   if (_internal_has_fn()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(10, _Internal::fn(this),
         _Internal::fn(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.FnMethodNode fnMethod = 11;
+  // .clojure.rt.protobuf.bytecode.FnMethodNode fnMethod = 11;
   if (_internal_has_fnmethod()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(11, _Internal::fnmethod(this),
         _Internal::fnmethod(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.HostInteropNode hostInterop = 12;
+  // .clojure.rt.protobuf.bytecode.HostInteropNode hostInterop = 12;
   if (_internal_has_hostinterop()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(12, _Internal::hostinterop(this),
         _Internal::hostinterop(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.IfNode if = 13;
+  // .clojure.rt.protobuf.bytecode.IfNode if = 13;
   if (_internal_has_if_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(13, _Internal::if_(this),
         _Internal::if_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.ImportNode import = 14;
+  // .clojure.rt.protobuf.bytecode.ImportNode import = 14;
   if (_internal_has_import()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(14, _Internal::import(this),
         _Internal::import(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.InstanceCallNode instanceCall = 15;
+  // .clojure.rt.protobuf.bytecode.InstanceCallNode instanceCall = 15;
   if (_internal_has_instancecall()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(15, _Internal::instancecall(this),
         _Internal::instancecall(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.InstanceFieldNode instanceField = 16;
+  // .clojure.rt.protobuf.bytecode.InstanceFieldNode instanceField = 16;
   if (_internal_has_instancefield()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(16, _Internal::instancefield(this),
         _Internal::instancefield(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.IsInstanceNode isInstance = 17;
+  // .clojure.rt.protobuf.bytecode.IsInstanceNode isInstance = 17;
   if (_internal_has_isinstance()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(17, _Internal::isinstance(this),
         _Internal::isinstance(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.InvokeNode invoke = 18;
+  // .clojure.rt.protobuf.bytecode.InvokeNode invoke = 18;
   if (_internal_has_invoke()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(18, _Internal::invoke(this),
         _Internal::invoke(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.KeywordInvokeNode keywordInvoke = 19;
+  // .clojure.rt.protobuf.bytecode.KeywordInvokeNode keywordInvoke = 19;
   if (_internal_has_keywordinvoke()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(19, _Internal::keywordinvoke(this),
         _Internal::keywordinvoke(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.LetNode let = 20;
+  // .clojure.rt.protobuf.bytecode.LetNode let = 20;
   if (_internal_has_let()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(20, _Internal::let(this),
         _Internal::let(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.LetfnNode letfn = 21;
+  // .clojure.rt.protobuf.bytecode.LetfnNode letfn = 21;
   if (_internal_has_letfn()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(21, _Internal::letfn(this),
         _Internal::letfn(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.LocalNode local = 22;
+  // .clojure.rt.protobuf.bytecode.LocalNode local = 22;
   if (_internal_has_local()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(22, _Internal::local(this),
         _Internal::local(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.LoopNode loop = 23;
+  // .clojure.rt.protobuf.bytecode.LoopNode loop = 23;
   if (_internal_has_loop()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(23, _Internal::loop(this),
         _Internal::loop(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.MapNode map = 24;
+  // .clojure.rt.protobuf.bytecode.MapNode map = 24;
   if (_internal_has_map()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(24, _Internal::map(this),
         _Internal::map(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.MethodNode method = 25;
+  // .clojure.rt.protobuf.bytecode.MethodNode method = 25;
   if (_internal_has_method()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(25, _Internal::method(this),
         _Internal::method(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.MonitorEnterNode monitorEnter = 26;
+  // .clojure.rt.protobuf.bytecode.MonitorEnterNode monitorEnter = 26;
   if (_internal_has_monitorenter()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(26, _Internal::monitorenter(this),
         _Internal::monitorenter(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.MonitorExitNode monitorExit = 27;
+  // .clojure.rt.protobuf.bytecode.MonitorExitNode monitorExit = 27;
   if (_internal_has_monitorexit()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(27, _Internal::monitorexit(this),
         _Internal::monitorexit(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.NewNode new = 28;
+  // .clojure.rt.protobuf.bytecode.NewNode new = 28;
   if (_internal_has_new_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(28, _Internal::new_(this),
         _Internal::new_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.PrimInvokeNode primInvoke = 29;
+  // .clojure.rt.protobuf.bytecode.PrimInvokeNode primInvoke = 29;
   if (_internal_has_priminvoke()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(29, _Internal::priminvoke(this),
         _Internal::priminvoke(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.ProtocolInvokeNode protocolInvoke = 30;
+  // .clojure.rt.protobuf.bytecode.ProtocolInvokeNode protocolInvoke = 30;
   if (_internal_has_protocolinvoke()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(30, _Internal::protocolinvoke(this),
         _Internal::protocolinvoke(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.QuoteNode quote = 31;
+  // .clojure.rt.protobuf.bytecode.QuoteNode quote = 31;
   if (_internal_has_quote()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(31, _Internal::quote(this),
         _Internal::quote(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.RecurNode recur = 32;
+  // .clojure.rt.protobuf.bytecode.RecurNode recur = 32;
   if (_internal_has_recur()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(32, _Internal::recur(this),
         _Internal::recur(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.ReifyNode reify = 33;
+  // .clojure.rt.protobuf.bytecode.ReifyNode reify = 33;
   if (_internal_has_reify()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(33, _Internal::reify(this),
         _Internal::reify(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.SetNode set = 34;
+  // .clojure.rt.protobuf.bytecode.SetNode set = 34;
   if (_internal_has_set()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(34, _Internal::set(this),
         _Internal::set(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.MutateSetNode mutateSet = 35;
+  // .clojure.rt.protobuf.bytecode.MutateSetNode mutateSet = 35;
   if (_internal_has_mutateset()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(35, _Internal::mutateset(this),
         _Internal::mutateset(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.StaticCallNode staticCall = 36;
+  // .clojure.rt.protobuf.bytecode.StaticCallNode staticCall = 36;
   if (_internal_has_staticcall()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(36, _Internal::staticcall(this),
         _Internal::staticcall(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.StaticFieldNode staticField = 37;
+  // .clojure.rt.protobuf.bytecode.StaticFieldNode staticField = 37;
   if (_internal_has_staticfield()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(37, _Internal::staticfield(this),
         _Internal::staticfield(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.TheVarNode theVar = 38;
+  // .clojure.rt.protobuf.bytecode.TheVarNode theVar = 38;
   if (_internal_has_thevar()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(38, _Internal::thevar(this),
         _Internal::thevar(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.ThrowNode throw = 39;
+  // .clojure.rt.protobuf.bytecode.ThrowNode throw = 39;
   if (_internal_has_throw_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(39, _Internal::throw_(this),
         _Internal::throw_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.TryNode try = 40;
+  // .clojure.rt.protobuf.bytecode.TryNode try = 40;
   if (_internal_has_try_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(40, _Internal::try_(this),
         _Internal::try_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.VarNode var = 41;
+  // .clojure.rt.protobuf.bytecode.VarNode var = 41;
   if (_internal_has_var()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(41, _Internal::var(this),
         _Internal::var(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.VectorNode vector = 42;
+  // .clojure.rt.protobuf.bytecode.VectorNode vector = 42;
   if (_internal_has_vector()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(42, _Internal::vector(this),
         _Internal::vector(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.WithMetaNode withMeta = 43;
+  // .clojure.rt.protobuf.bytecode.WithMetaNode withMeta = 43;
   if (_internal_has_withmeta()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(43, _Internal::withmeta(this),
@@ -3862,12 +4323,12 @@ uint8_t* Subnode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.Subnode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.Subnode)
   return target;
 }
 
 size_t Subnode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.Subnode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.Subnode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -3875,301 +4336,301 @@ size_t Subnode::ByteSizeLong() const {
   (void) cached_has_bits;
 
   switch (types_case()) {
-    // .clojureRT.protobuf.BindingNode binding = 1;
+    // .clojure.rt.protobuf.bytecode.BindingNode binding = 1;
     case kBinding: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.binding_);
       break;
     }
-    // .clojureRT.protobuf.CaseNode case = 2;
+    // .clojure.rt.protobuf.bytecode.CaseNode case = 2;
     case kCase: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.case__);
       break;
     }
-    // .clojureRT.protobuf.CaseTestNode caseTest = 3;
+    // .clojure.rt.protobuf.bytecode.CaseTestNode caseTest = 3;
     case kCaseTest: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.casetest_);
       break;
     }
-    // .clojureRT.protobuf.CaseThenNode caseThen = 4;
+    // .clojure.rt.protobuf.bytecode.CaseThenNode caseThen = 4;
     case kCaseThen: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.casethen_);
       break;
     }
-    // .clojureRT.protobuf.CatchNode catch = 5;
+    // .clojure.rt.protobuf.bytecode.CatchNode catch = 5;
     case kCatch: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.catch__);
       break;
     }
-    // .clojureRT.protobuf.ConstNode const = 6;
+    // .clojure.rt.protobuf.bytecode.ConstNode const = 6;
     case kConst: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.const__);
       break;
     }
-    // .clojureRT.protobuf.DefNode def = 7;
+    // .clojure.rt.protobuf.bytecode.DefNode def = 7;
     case kDef: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.def_);
       break;
     }
-    // .clojureRT.protobuf.DeftypeNode deftype = 8;
+    // .clojure.rt.protobuf.bytecode.DeftypeNode deftype = 8;
     case kDeftype: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.deftype_);
       break;
     }
-    // .clojureRT.protobuf.DoNode do = 9;
+    // .clojure.rt.protobuf.bytecode.DoNode do = 9;
     case kDo: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.do__);
       break;
     }
-    // .clojureRT.protobuf.FnNode fn = 10;
+    // .clojure.rt.protobuf.bytecode.FnNode fn = 10;
     case kFn: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.fn_);
       break;
     }
-    // .clojureRT.protobuf.FnMethodNode fnMethod = 11;
+    // .clojure.rt.protobuf.bytecode.FnMethodNode fnMethod = 11;
     case kFnMethod: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.fnmethod_);
       break;
     }
-    // .clojureRT.protobuf.HostInteropNode hostInterop = 12;
+    // .clojure.rt.protobuf.bytecode.HostInteropNode hostInterop = 12;
     case kHostInterop: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.hostinterop_);
       break;
     }
-    // .clojureRT.protobuf.IfNode if = 13;
+    // .clojure.rt.protobuf.bytecode.IfNode if = 13;
     case kIf: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.if__);
       break;
     }
-    // .clojureRT.protobuf.ImportNode import = 14;
+    // .clojure.rt.protobuf.bytecode.ImportNode import = 14;
     case kImport: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.import_);
       break;
     }
-    // .clojureRT.protobuf.InstanceCallNode instanceCall = 15;
+    // .clojure.rt.protobuf.bytecode.InstanceCallNode instanceCall = 15;
     case kInstanceCall: {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.instancecall_);
       break;
     }
-    // .clojureRT.protobuf.InstanceFieldNode instanceField = 16;
+    // .clojure.rt.protobuf.bytecode.InstanceFieldNode instanceField = 16;
     case kInstanceField: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.instancefield_);
       break;
     }
-    // .clojureRT.protobuf.IsInstanceNode isInstance = 17;
+    // .clojure.rt.protobuf.bytecode.IsInstanceNode isInstance = 17;
     case kIsInstance: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.isinstance_);
       break;
     }
-    // .clojureRT.protobuf.InvokeNode invoke = 18;
+    // .clojure.rt.protobuf.bytecode.InvokeNode invoke = 18;
     case kInvoke: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.invoke_);
       break;
     }
-    // .clojureRT.protobuf.KeywordInvokeNode keywordInvoke = 19;
+    // .clojure.rt.protobuf.bytecode.KeywordInvokeNode keywordInvoke = 19;
     case kKeywordInvoke: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.keywordinvoke_);
       break;
     }
-    // .clojureRT.protobuf.LetNode let = 20;
+    // .clojure.rt.protobuf.bytecode.LetNode let = 20;
     case kLet: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.let_);
       break;
     }
-    // .clojureRT.protobuf.LetfnNode letfn = 21;
+    // .clojure.rt.protobuf.bytecode.LetfnNode letfn = 21;
     case kLetfn: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.letfn_);
       break;
     }
-    // .clojureRT.protobuf.LocalNode local = 22;
+    // .clojure.rt.protobuf.bytecode.LocalNode local = 22;
     case kLocal: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.local_);
       break;
     }
-    // .clojureRT.protobuf.LoopNode loop = 23;
+    // .clojure.rt.protobuf.bytecode.LoopNode loop = 23;
     case kLoop: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.loop_);
       break;
     }
-    // .clojureRT.protobuf.MapNode map = 24;
+    // .clojure.rt.protobuf.bytecode.MapNode map = 24;
     case kMap: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.map_);
       break;
     }
-    // .clojureRT.protobuf.MethodNode method = 25;
+    // .clojure.rt.protobuf.bytecode.MethodNode method = 25;
     case kMethod: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.method_);
       break;
     }
-    // .clojureRT.protobuf.MonitorEnterNode monitorEnter = 26;
+    // .clojure.rt.protobuf.bytecode.MonitorEnterNode monitorEnter = 26;
     case kMonitorEnter: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.monitorenter_);
       break;
     }
-    // .clojureRT.protobuf.MonitorExitNode monitorExit = 27;
+    // .clojure.rt.protobuf.bytecode.MonitorExitNode monitorExit = 27;
     case kMonitorExit: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.monitorexit_);
       break;
     }
-    // .clojureRT.protobuf.NewNode new = 28;
+    // .clojure.rt.protobuf.bytecode.NewNode new = 28;
     case kNew: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.new__);
       break;
     }
-    // .clojureRT.protobuf.PrimInvokeNode primInvoke = 29;
+    // .clojure.rt.protobuf.bytecode.PrimInvokeNode primInvoke = 29;
     case kPrimInvoke: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.priminvoke_);
       break;
     }
-    // .clojureRT.protobuf.ProtocolInvokeNode protocolInvoke = 30;
+    // .clojure.rt.protobuf.bytecode.ProtocolInvokeNode protocolInvoke = 30;
     case kProtocolInvoke: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.protocolinvoke_);
       break;
     }
-    // .clojureRT.protobuf.QuoteNode quote = 31;
+    // .clojure.rt.protobuf.bytecode.QuoteNode quote = 31;
     case kQuote: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.quote_);
       break;
     }
-    // .clojureRT.protobuf.RecurNode recur = 32;
+    // .clojure.rt.protobuf.bytecode.RecurNode recur = 32;
     case kRecur: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.recur_);
       break;
     }
-    // .clojureRT.protobuf.ReifyNode reify = 33;
+    // .clojure.rt.protobuf.bytecode.ReifyNode reify = 33;
     case kReify: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.reify_);
       break;
     }
-    // .clojureRT.protobuf.SetNode set = 34;
+    // .clojure.rt.protobuf.bytecode.SetNode set = 34;
     case kSet: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.set_);
       break;
     }
-    // .clojureRT.protobuf.MutateSetNode mutateSet = 35;
+    // .clojure.rt.protobuf.bytecode.MutateSetNode mutateSet = 35;
     case kMutateSet: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.mutateset_);
       break;
     }
-    // .clojureRT.protobuf.StaticCallNode staticCall = 36;
+    // .clojure.rt.protobuf.bytecode.StaticCallNode staticCall = 36;
     case kStaticCall: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.staticcall_);
       break;
     }
-    // .clojureRT.protobuf.StaticFieldNode staticField = 37;
+    // .clojure.rt.protobuf.bytecode.StaticFieldNode staticField = 37;
     case kStaticField: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.staticfield_);
       break;
     }
-    // .clojureRT.protobuf.TheVarNode theVar = 38;
+    // .clojure.rt.protobuf.bytecode.TheVarNode theVar = 38;
     case kTheVar: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.thevar_);
       break;
     }
-    // .clojureRT.protobuf.ThrowNode throw = 39;
+    // .clojure.rt.protobuf.bytecode.ThrowNode throw = 39;
     case kThrow: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.throw__);
       break;
     }
-    // .clojureRT.protobuf.TryNode try = 40;
+    // .clojure.rt.protobuf.bytecode.TryNode try = 40;
     case kTry: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.try__);
       break;
     }
-    // .clojureRT.protobuf.VarNode var = 41;
+    // .clojure.rt.protobuf.bytecode.VarNode var = 41;
     case kVar: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.var_);
       break;
     }
-    // .clojureRT.protobuf.VectorNode vector = 42;
+    // .clojure.rt.protobuf.bytecode.VectorNode vector = 42;
     case kVector: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *_impl_.types_.vector_);
       break;
     }
-    // .clojureRT.protobuf.WithMetaNode withMeta = 43;
+    // .clojure.rt.protobuf.bytecode.WithMetaNode withMeta = 43;
     case kWithMeta: {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -4193,224 +4654,224 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Subnode::GetClassData() const 
 void Subnode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<Subnode*>(&to_msg);
   auto& from = static_cast<const Subnode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.Subnode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.Subnode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   switch (from.types_case()) {
     case kBinding: {
-      _this->_internal_mutable_binding()->::clojureRT::protobuf::BindingNode::MergeFrom(
+      _this->_internal_mutable_binding()->::clojure::rt::protobuf::bytecode::BindingNode::MergeFrom(
           from._internal_binding());
       break;
     }
     case kCase: {
-      _this->_internal_mutable_case_()->::clojureRT::protobuf::CaseNode::MergeFrom(
+      _this->_internal_mutable_case_()->::clojure::rt::protobuf::bytecode::CaseNode::MergeFrom(
           from._internal_case_());
       break;
     }
     case kCaseTest: {
-      _this->_internal_mutable_casetest()->::clojureRT::protobuf::CaseTestNode::MergeFrom(
+      _this->_internal_mutable_casetest()->::clojure::rt::protobuf::bytecode::CaseTestNode::MergeFrom(
           from._internal_casetest());
       break;
     }
     case kCaseThen: {
-      _this->_internal_mutable_casethen()->::clojureRT::protobuf::CaseThenNode::MergeFrom(
+      _this->_internal_mutable_casethen()->::clojure::rt::protobuf::bytecode::CaseThenNode::MergeFrom(
           from._internal_casethen());
       break;
     }
     case kCatch: {
-      _this->_internal_mutable_catch_()->::clojureRT::protobuf::CatchNode::MergeFrom(
+      _this->_internal_mutable_catch_()->::clojure::rt::protobuf::bytecode::CatchNode::MergeFrom(
           from._internal_catch_());
       break;
     }
     case kConst: {
-      _this->_internal_mutable_const_()->::clojureRT::protobuf::ConstNode::MergeFrom(
+      _this->_internal_mutable_const_()->::clojure::rt::protobuf::bytecode::ConstNode::MergeFrom(
           from._internal_const_());
       break;
     }
     case kDef: {
-      _this->_internal_mutable_def()->::clojureRT::protobuf::DefNode::MergeFrom(
+      _this->_internal_mutable_def()->::clojure::rt::protobuf::bytecode::DefNode::MergeFrom(
           from._internal_def());
       break;
     }
     case kDeftype: {
-      _this->_internal_mutable_deftype()->::clojureRT::protobuf::DeftypeNode::MergeFrom(
+      _this->_internal_mutable_deftype()->::clojure::rt::protobuf::bytecode::DeftypeNode::MergeFrom(
           from._internal_deftype());
       break;
     }
     case kDo: {
-      _this->_internal_mutable_do_()->::clojureRT::protobuf::DoNode::MergeFrom(
+      _this->_internal_mutable_do_()->::clojure::rt::protobuf::bytecode::DoNode::MergeFrom(
           from._internal_do_());
       break;
     }
     case kFn: {
-      _this->_internal_mutable_fn()->::clojureRT::protobuf::FnNode::MergeFrom(
+      _this->_internal_mutable_fn()->::clojure::rt::protobuf::bytecode::FnNode::MergeFrom(
           from._internal_fn());
       break;
     }
     case kFnMethod: {
-      _this->_internal_mutable_fnmethod()->::clojureRT::protobuf::FnMethodNode::MergeFrom(
+      _this->_internal_mutable_fnmethod()->::clojure::rt::protobuf::bytecode::FnMethodNode::MergeFrom(
           from._internal_fnmethod());
       break;
     }
     case kHostInterop: {
-      _this->_internal_mutable_hostinterop()->::clojureRT::protobuf::HostInteropNode::MergeFrom(
+      _this->_internal_mutable_hostinterop()->::clojure::rt::protobuf::bytecode::HostInteropNode::MergeFrom(
           from._internal_hostinterop());
       break;
     }
     case kIf: {
-      _this->_internal_mutable_if_()->::clojureRT::protobuf::IfNode::MergeFrom(
+      _this->_internal_mutable_if_()->::clojure::rt::protobuf::bytecode::IfNode::MergeFrom(
           from._internal_if_());
       break;
     }
     case kImport: {
-      _this->_internal_mutable_import()->::clojureRT::protobuf::ImportNode::MergeFrom(
+      _this->_internal_mutable_import()->::clojure::rt::protobuf::bytecode::ImportNode::MergeFrom(
           from._internal_import());
       break;
     }
     case kInstanceCall: {
-      _this->_internal_mutable_instancecall()->::clojureRT::protobuf::InstanceCallNode::MergeFrom(
+      _this->_internal_mutable_instancecall()->::clojure::rt::protobuf::bytecode::InstanceCallNode::MergeFrom(
           from._internal_instancecall());
       break;
     }
     case kInstanceField: {
-      _this->_internal_mutable_instancefield()->::clojureRT::protobuf::InstanceFieldNode::MergeFrom(
+      _this->_internal_mutable_instancefield()->::clojure::rt::protobuf::bytecode::InstanceFieldNode::MergeFrom(
           from._internal_instancefield());
       break;
     }
     case kIsInstance: {
-      _this->_internal_mutable_isinstance()->::clojureRT::protobuf::IsInstanceNode::MergeFrom(
+      _this->_internal_mutable_isinstance()->::clojure::rt::protobuf::bytecode::IsInstanceNode::MergeFrom(
           from._internal_isinstance());
       break;
     }
     case kInvoke: {
-      _this->_internal_mutable_invoke()->::clojureRT::protobuf::InvokeNode::MergeFrom(
+      _this->_internal_mutable_invoke()->::clojure::rt::protobuf::bytecode::InvokeNode::MergeFrom(
           from._internal_invoke());
       break;
     }
     case kKeywordInvoke: {
-      _this->_internal_mutable_keywordinvoke()->::clojureRT::protobuf::KeywordInvokeNode::MergeFrom(
+      _this->_internal_mutable_keywordinvoke()->::clojure::rt::protobuf::bytecode::KeywordInvokeNode::MergeFrom(
           from._internal_keywordinvoke());
       break;
     }
     case kLet: {
-      _this->_internal_mutable_let()->::clojureRT::protobuf::LetNode::MergeFrom(
+      _this->_internal_mutable_let()->::clojure::rt::protobuf::bytecode::LetNode::MergeFrom(
           from._internal_let());
       break;
     }
     case kLetfn: {
-      _this->_internal_mutable_letfn()->::clojureRT::protobuf::LetfnNode::MergeFrom(
+      _this->_internal_mutable_letfn()->::clojure::rt::protobuf::bytecode::LetfnNode::MergeFrom(
           from._internal_letfn());
       break;
     }
     case kLocal: {
-      _this->_internal_mutable_local()->::clojureRT::protobuf::LocalNode::MergeFrom(
+      _this->_internal_mutable_local()->::clojure::rt::protobuf::bytecode::LocalNode::MergeFrom(
           from._internal_local());
       break;
     }
     case kLoop: {
-      _this->_internal_mutable_loop()->::clojureRT::protobuf::LoopNode::MergeFrom(
+      _this->_internal_mutable_loop()->::clojure::rt::protobuf::bytecode::LoopNode::MergeFrom(
           from._internal_loop());
       break;
     }
     case kMap: {
-      _this->_internal_mutable_map()->::clojureRT::protobuf::MapNode::MergeFrom(
+      _this->_internal_mutable_map()->::clojure::rt::protobuf::bytecode::MapNode::MergeFrom(
           from._internal_map());
       break;
     }
     case kMethod: {
-      _this->_internal_mutable_method()->::clojureRT::protobuf::MethodNode::MergeFrom(
+      _this->_internal_mutable_method()->::clojure::rt::protobuf::bytecode::MethodNode::MergeFrom(
           from._internal_method());
       break;
     }
     case kMonitorEnter: {
-      _this->_internal_mutable_monitorenter()->::clojureRT::protobuf::MonitorEnterNode::MergeFrom(
+      _this->_internal_mutable_monitorenter()->::clojure::rt::protobuf::bytecode::MonitorEnterNode::MergeFrom(
           from._internal_monitorenter());
       break;
     }
     case kMonitorExit: {
-      _this->_internal_mutable_monitorexit()->::clojureRT::protobuf::MonitorExitNode::MergeFrom(
+      _this->_internal_mutable_monitorexit()->::clojure::rt::protobuf::bytecode::MonitorExitNode::MergeFrom(
           from._internal_monitorexit());
       break;
     }
     case kNew: {
-      _this->_internal_mutable_new_()->::clojureRT::protobuf::NewNode::MergeFrom(
+      _this->_internal_mutable_new_()->::clojure::rt::protobuf::bytecode::NewNode::MergeFrom(
           from._internal_new_());
       break;
     }
     case kPrimInvoke: {
-      _this->_internal_mutable_priminvoke()->::clojureRT::protobuf::PrimInvokeNode::MergeFrom(
+      _this->_internal_mutable_priminvoke()->::clojure::rt::protobuf::bytecode::PrimInvokeNode::MergeFrom(
           from._internal_priminvoke());
       break;
     }
     case kProtocolInvoke: {
-      _this->_internal_mutable_protocolinvoke()->::clojureRT::protobuf::ProtocolInvokeNode::MergeFrom(
+      _this->_internal_mutable_protocolinvoke()->::clojure::rt::protobuf::bytecode::ProtocolInvokeNode::MergeFrom(
           from._internal_protocolinvoke());
       break;
     }
     case kQuote: {
-      _this->_internal_mutable_quote()->::clojureRT::protobuf::QuoteNode::MergeFrom(
+      _this->_internal_mutable_quote()->::clojure::rt::protobuf::bytecode::QuoteNode::MergeFrom(
           from._internal_quote());
       break;
     }
     case kRecur: {
-      _this->_internal_mutable_recur()->::clojureRT::protobuf::RecurNode::MergeFrom(
+      _this->_internal_mutable_recur()->::clojure::rt::protobuf::bytecode::RecurNode::MergeFrom(
           from._internal_recur());
       break;
     }
     case kReify: {
-      _this->_internal_mutable_reify()->::clojureRT::protobuf::ReifyNode::MergeFrom(
+      _this->_internal_mutable_reify()->::clojure::rt::protobuf::bytecode::ReifyNode::MergeFrom(
           from._internal_reify());
       break;
     }
     case kSet: {
-      _this->_internal_mutable_set()->::clojureRT::protobuf::SetNode::MergeFrom(
+      _this->_internal_mutable_set()->::clojure::rt::protobuf::bytecode::SetNode::MergeFrom(
           from._internal_set());
       break;
     }
     case kMutateSet: {
-      _this->_internal_mutable_mutateset()->::clojureRT::protobuf::MutateSetNode::MergeFrom(
+      _this->_internal_mutable_mutateset()->::clojure::rt::protobuf::bytecode::MutateSetNode::MergeFrom(
           from._internal_mutateset());
       break;
     }
     case kStaticCall: {
-      _this->_internal_mutable_staticcall()->::clojureRT::protobuf::StaticCallNode::MergeFrom(
+      _this->_internal_mutable_staticcall()->::clojure::rt::protobuf::bytecode::StaticCallNode::MergeFrom(
           from._internal_staticcall());
       break;
     }
     case kStaticField: {
-      _this->_internal_mutable_staticfield()->::clojureRT::protobuf::StaticFieldNode::MergeFrom(
+      _this->_internal_mutable_staticfield()->::clojure::rt::protobuf::bytecode::StaticFieldNode::MergeFrom(
           from._internal_staticfield());
       break;
     }
     case kTheVar: {
-      _this->_internal_mutable_thevar()->::clojureRT::protobuf::TheVarNode::MergeFrom(
+      _this->_internal_mutable_thevar()->::clojure::rt::protobuf::bytecode::TheVarNode::MergeFrom(
           from._internal_thevar());
       break;
     }
     case kThrow: {
-      _this->_internal_mutable_throw_()->::clojureRT::protobuf::ThrowNode::MergeFrom(
+      _this->_internal_mutable_throw_()->::clojure::rt::protobuf::bytecode::ThrowNode::MergeFrom(
           from._internal_throw_());
       break;
     }
     case kTry: {
-      _this->_internal_mutable_try_()->::clojureRT::protobuf::TryNode::MergeFrom(
+      _this->_internal_mutable_try_()->::clojure::rt::protobuf::bytecode::TryNode::MergeFrom(
           from._internal_try_());
       break;
     }
     case kVar: {
-      _this->_internal_mutable_var()->::clojureRT::protobuf::VarNode::MergeFrom(
+      _this->_internal_mutable_var()->::clojure::rt::protobuf::bytecode::VarNode::MergeFrom(
           from._internal_var());
       break;
     }
     case kVector: {
-      _this->_internal_mutable_vector()->::clojureRT::protobuf::VectorNode::MergeFrom(
+      _this->_internal_mutable_vector()->::clojure::rt::protobuf::bytecode::VectorNode::MergeFrom(
           from._internal_vector());
       break;
     }
     case kWithMeta: {
-      _this->_internal_mutable_withmeta()->::clojureRT::protobuf::WithMetaNode::MergeFrom(
+      _this->_internal_mutable_withmeta()->::clojure::rt::protobuf::bytecode::WithMetaNode::MergeFrom(
           from._internal_withmeta());
       break;
     }
@@ -4422,7 +4883,7 @@ void Subnode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOB
 }
 
 void Subnode::CopyFrom(const Subnode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.Subnode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.Subnode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -4442,27 +4903,17 @@ void Subnode::InternalSwap(Subnode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata Subnode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[0]);
+      file_level_metadata_bytecode_2eproto[1]);
 }
 
 // ===================================================================
 
 class BindingNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<BindingNode>()._impl_._has_bits_);
-  static void set_has_argid(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
-  }
-  static const ::clojureRT::protobuf::Node& init(const BindingNode* msg);
-  static void set_has_init(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
-  static void set_has_isvariadic(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Node& init(const BindingNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 BindingNode::_Internal::init(const BindingNode* msg) {
   return *msg->_impl_.init_;
 }
@@ -4470,19 +4921,18 @@ BindingNode::BindingNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.BindingNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.BindingNode)
 }
 BindingNode::BindingNode(const BindingNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   BindingNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.name_){}
+      decltype(_impl_.name_){}
     , decltype(_impl_.init_){nullptr}
     , decltype(_impl_.argid_){}
     , decltype(_impl_.local_){}
-    , decltype(_impl_.isvariadic_){}};
+    , decltype(_impl_.isvariadic_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.name_.InitDefault();
@@ -4494,12 +4944,12 @@ BindingNode::BindingNode(const BindingNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_init()) {
-    _this->_impl_.init_ = new ::clojureRT::protobuf::Node(*from._impl_.init_);
+    _this->_impl_.init_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.init_);
   }
   ::memcpy(&_impl_.argid_, &from._impl_.argid_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.isvariadic_) -
     reinterpret_cast<char*>(&_impl_.argid_)) + sizeof(_impl_.isvariadic_));
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.BindingNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.BindingNode)
 }
 
 inline void BindingNode::SharedCtor(
@@ -4507,13 +4957,12 @@ inline void BindingNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.name_){}
+      decltype(_impl_.name_){}
     , decltype(_impl_.init_){nullptr}
     , decltype(_impl_.argid_){0u}
     , decltype(_impl_.local_){0}
     , decltype(_impl_.isvariadic_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.name_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -4522,7 +4971,7 @@ inline void BindingNode::SharedCtor(
 }
 
 BindingNode::~BindingNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.BindingNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.BindingNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -4541,41 +4990,37 @@ void BindingNode::SetCachedSize(int size) const {
 }
 
 void BindingNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.BindingNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.BindingNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   _impl_.name_.ClearToEmpty();
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    GOOGLE_DCHECK(_impl_.init_ != nullptr);
-    _impl_.init_->Clear();
+  if (GetArenaForAllocation() == nullptr && _impl_.init_ != nullptr) {
+    delete _impl_.init_;
   }
-  _impl_.argid_ = 0u;
-  _impl_.local_ = 0;
-  _impl_.isvariadic_ = false;
-  _impl_._has_bits_.Clear();
+  _impl_.init_ = nullptr;
+  ::memset(&_impl_.argid_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.isvariadic_) -
+      reinterpret_cast<char*>(&_impl_.argid_)) + sizeof(_impl_.isvariadic_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* BindingNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // optional uint32 argId = 1;
+      // uint32 argId = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
-          _Internal::set_has_argid(&has_bits);
           _impl_.argid_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // optional .clojureRT.protobuf.Node init = 2;
+      // .clojure.rt.protobuf.bytecode.Node init = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_init(), ptr);
@@ -4583,12 +5028,12 @@ const char* BindingNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.LocalType local = 3;
+      // .clojure.rt.protobuf.bytecode.LocalType local = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_local(static_cast<::clojureRT::protobuf::LocalType>(val));
+          _internal_set_local(static_cast<::clojure::rt::protobuf::bytecode::LocalType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -4598,14 +5043,13 @@ const char* BindingNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.BindingNode.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.BindingNode.name"));
         } else
           goto handle_unusual;
         continue;
-      // optional bool isVariadic = 5;
+      // bool isVariadic = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
-          _Internal::set_has_isvariadic(&has_bits);
           _impl_.isvariadic_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -4627,7 +5071,6 @@ const char* BindingNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -4637,24 +5080,24 @@ failure:
 
 uint8_t* BindingNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.BindingNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.BindingNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // optional uint32 argId = 1;
-  if (_internal_has_argid()) {
+  // uint32 argId = 1;
+  if (this->_internal_argid() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_argid(), target);
   }
 
-  // optional .clojureRT.protobuf.Node init = 2;
-  if (_internal_has_init()) {
+  // .clojure.rt.protobuf.bytecode.Node init = 2;
+  if (this->_internal_has_init()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::init(this),
         _Internal::init(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.LocalType local = 3;
+  // .clojure.rt.protobuf.bytecode.LocalType local = 3;
   if (this->_internal_local() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -4666,13 +5109,13 @@ uint8_t* BindingNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.BindingNode.name");
+      "clojure.rt.protobuf.bytecode.BindingNode.name");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_name(), target);
   }
 
-  // optional bool isVariadic = 5;
-  if (_internal_has_isvariadic()) {
+  // bool isVariadic = 5;
+  if (this->_internal_isvariadic() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(5, this->_internal_isvariadic(), target);
   }
@@ -4681,12 +5124,12 @@ uint8_t* BindingNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.BindingNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.BindingNode)
   return target;
 }
 
 size_t BindingNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.BindingNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.BindingNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -4700,29 +5143,26 @@ size_t BindingNode::ByteSizeLong() const {
         this->_internal_name());
   }
 
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
-    // optional .clojureRT.protobuf.Node init = 2;
-    if (cached_has_bits & 0x00000001u) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-          *_impl_.init_);
-    }
-
-    // optional uint32 argId = 1;
-    if (cached_has_bits & 0x00000002u) {
-      total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_argid());
-    }
-
+  // .clojure.rt.protobuf.bytecode.Node init = 2;
+  if (this->_internal_has_init()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.init_);
   }
-  // .clojureRT.protobuf.LocalType local = 3;
+
+  // uint32 argId = 1;
+  if (this->_internal_argid() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_argid());
+  }
+
+  // .clojure.rt.protobuf.bytecode.LocalType local = 3;
   if (this->_internal_local() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_local());
   }
 
-  // optional bool isVariadic = 5;
-  if (cached_has_bits & 0x00000004u) {
+  // bool isVariadic = 5;
+  if (this->_internal_isvariadic() != 0) {
     total_size += 1 + 1;
   }
 
@@ -4739,7 +5179,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*BindingNode::GetClassData() co
 void BindingNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<BindingNode*>(&to_msg);
   auto& from = static_cast<const BindingNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.BindingNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.BindingNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -4747,28 +5187,24 @@ void BindingNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
   if (!from._internal_name().empty()) {
     _this->_internal_set_name(from._internal_name());
   }
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
-    if (cached_has_bits & 0x00000001u) {
-      _this->_internal_mutable_init()->::clojureRT::protobuf::Node::MergeFrom(
-          from._internal_init());
-    }
-    if (cached_has_bits & 0x00000002u) {
-      _this->_impl_.argid_ = from._impl_.argid_;
-    }
-    _this->_impl_._has_bits_[0] |= cached_has_bits;
+  if (from._internal_has_init()) {
+    _this->_internal_mutable_init()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
+        from._internal_init());
+  }
+  if (from._internal_argid() != 0) {
+    _this->_internal_set_argid(from._internal_argid());
   }
   if (from._internal_local() != 0) {
     _this->_internal_set_local(from._internal_local());
   }
-  if (cached_has_bits & 0x00000004u) {
+  if (from._internal_isvariadic() != 0) {
     _this->_internal_set_isvariadic(from._internal_isvariadic());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void BindingNode::CopyFrom(const BindingNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.BindingNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.BindingNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -4783,7 +5219,6 @@ void BindingNode::InternalSwap(BindingNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.name_, lhs_arena,
       &other->_impl_.name_, rhs_arena
@@ -4799,22 +5234,22 @@ void BindingNode::InternalSwap(BindingNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata BindingNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[1]);
+      file_level_metadata_bytecode_2eproto[2]);
 }
 
 // ===================================================================
 
 class CaseNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& default_(const CaseNode* msg);
-  static const ::clojureRT::protobuf::Node& test(const CaseNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& default_(const CaseNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& test(const CaseNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 CaseNode::_Internal::default_(const CaseNode* msg) {
   return *msg->_impl_.default__;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 CaseNode::_Internal::test(const CaseNode* msg) {
   return *msg->_impl_.test_;
 }
@@ -4822,7 +5257,7 @@ CaseNode::CaseNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.CaseNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.CaseNode)
 }
 CaseNode::CaseNode(const CaseNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -4867,15 +5302,15 @@ CaseNode::CaseNode(const CaseNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_default_()) {
-    _this->_impl_.default__ = new ::clojureRT::protobuf::Node(*from._impl_.default__);
+    _this->_impl_.default__ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.default__);
   }
   if (from._internal_has_test()) {
-    _this->_impl_.test_ = new ::clojureRT::protobuf::Node(*from._impl_.test_);
+    _this->_impl_.test_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.test_);
   }
   ::memcpy(&_impl_.mask_, &from._impl_.mask_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.testtype_) -
     reinterpret_cast<char*>(&_impl_.mask_)) + sizeof(_impl_.testtype_));
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.CaseNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.CaseNode)
 }
 
 inline void CaseNode::SharedCtor(
@@ -4911,7 +5346,7 @@ inline void CaseNode::SharedCtor(
 }
 
 CaseNode::~CaseNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.CaseNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.CaseNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -4935,7 +5370,7 @@ void CaseNode::SetCachedSize(int size) const {
 }
 
 void CaseNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.CaseNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.CaseNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -4965,7 +5400,7 @@ const char* CaseNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node default = 1;
+      // .clojure.rt.protobuf.bytecode.Node default = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_default_(), ptr);
@@ -4979,7 +5414,7 @@ const char* CaseNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
           auto str = _internal_mutable_high();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.CaseNode.high"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.CaseNode.high"));
         } else
           goto handle_unusual;
         continue;
@@ -4989,7 +5424,7 @@ const char* CaseNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
           auto str = _internal_mutable_low();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.CaseNode.low"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.CaseNode.low"));
         } else
           goto handle_unusual;
         continue;
@@ -5015,20 +5450,20 @@ const char* CaseNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
           auto str = _internal_mutable_isskipcheck();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.CaseNode.isSkipCheck"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.CaseNode.isSkipCheck"));
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.CaseNode.SwitchType switchType = 7;
+      // .clojure.rt.protobuf.bytecode.CaseNode.SwitchType switchType = 7;
       case 7:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_switchtype(static_cast<::clojureRT::protobuf::CaseNode_SwitchType>(val));
+          _internal_set_switchtype(static_cast<::clojure::rt::protobuf::bytecode::CaseNode_SwitchType>(val));
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node test = 8;
+      // .clojure.rt.protobuf.bytecode.Node test = 8;
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
           ptr = ctx->ParseMessage(_internal_mutable_test(), ptr);
@@ -5036,16 +5471,16 @@ const char* CaseNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.CaseNode.TestType testType = 9;
+      // .clojure.rt.protobuf.bytecode.CaseNode.TestType testType = 9;
       case 9:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_testtype(static_cast<::clojureRT::protobuf::CaseNode_TestType>(val));
+          _internal_set_testtype(static_cast<::clojure::rt::protobuf::bytecode::CaseNode_TestType>(val));
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node tests = 10;
+      // repeated .clojure.rt.protobuf.bytecode.Node tests = 10;
       case 10:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
           ptr -= 1;
@@ -5058,7 +5493,7 @@ const char* CaseNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node thens = 11;
+      // repeated .clojure.rt.protobuf.bytecode.Node thens = 11;
       case 11:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
           ptr -= 1;
@@ -5096,11 +5531,11 @@ failure:
 
 uint8_t* CaseNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.CaseNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.CaseNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node default = 1;
+  // .clojure.rt.protobuf.bytecode.Node default = 1;
   if (this->_internal_has_default_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::default_(this),
@@ -5112,7 +5547,7 @@ uint8_t* CaseNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_high().data(), static_cast<int>(this->_internal_high().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.CaseNode.high");
+      "clojure.rt.protobuf.bytecode.CaseNode.high");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_high(), target);
   }
@@ -5122,7 +5557,7 @@ uint8_t* CaseNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_low().data(), static_cast<int>(this->_internal_low().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.CaseNode.low");
+      "clojure.rt.protobuf.bytecode.CaseNode.low");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_low(), target);
   }
@@ -5144,33 +5579,33 @@ uint8_t* CaseNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_isskipcheck().data(), static_cast<int>(this->_internal_isskipcheck().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.CaseNode.isSkipCheck");
+      "clojure.rt.protobuf.bytecode.CaseNode.isSkipCheck");
     target = stream->WriteStringMaybeAliased(
         6, this->_internal_isskipcheck(), target);
   }
 
-  // .clojureRT.protobuf.CaseNode.SwitchType switchType = 7;
+  // .clojure.rt.protobuf.bytecode.CaseNode.SwitchType switchType = 7;
   if (this->_internal_switchtype() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
       7, this->_internal_switchtype(), target);
   }
 
-  // .clojureRT.protobuf.Node test = 8;
+  // .clojure.rt.protobuf.bytecode.Node test = 8;
   if (this->_internal_has_test()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(8, _Internal::test(this),
         _Internal::test(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.CaseNode.TestType testType = 9;
+  // .clojure.rt.protobuf.bytecode.CaseNode.TestType testType = 9;
   if (this->_internal_testtype() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
       9, this->_internal_testtype(), target);
   }
 
-  // repeated .clojureRT.protobuf.Node tests = 10;
+  // repeated .clojure.rt.protobuf.bytecode.Node tests = 10;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_tests_size()); i < n; i++) {
     const auto& repfield = this->_internal_tests(i);
@@ -5178,7 +5613,7 @@ uint8_t* CaseNode::_InternalSerialize(
         InternalWriteMessage(10, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // repeated .clojureRT.protobuf.Node thens = 11;
+  // repeated .clojure.rt.protobuf.bytecode.Node thens = 11;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_thens_size()); i < n; i++) {
     const auto& repfield = this->_internal_thens(i);
@@ -5190,26 +5625,26 @@ uint8_t* CaseNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.CaseNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.CaseNode)
   return target;
 }
 
 size_t CaseNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.CaseNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.CaseNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node tests = 10;
+  // repeated .clojure.rt.protobuf.bytecode.Node tests = 10;
   total_size += 1UL * this->_internal_tests_size();
   for (const auto& msg : this->_impl_.tests_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // repeated .clojureRT.protobuf.Node thens = 11;
+  // repeated .clojure.rt.protobuf.bytecode.Node thens = 11;
   total_size += 1UL * this->_internal_thens_size();
   for (const auto& msg : this->_impl_.thens_) {
     total_size +=
@@ -5237,14 +5672,14 @@ size_t CaseNode::ByteSizeLong() const {
         this->_internal_isskipcheck());
   }
 
-  // .clojureRT.protobuf.Node default = 1;
+  // .clojure.rt.protobuf.bytecode.Node default = 1;
   if (this->_internal_has_default_()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.default__);
   }
 
-  // .clojureRT.protobuf.Node test = 8;
+  // .clojure.rt.protobuf.bytecode.Node test = 8;
   if (this->_internal_has_test()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -5261,13 +5696,13 @@ size_t CaseNode::ByteSizeLong() const {
     total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_shift());
   }
 
-  // .clojureRT.protobuf.CaseNode.SwitchType switchType = 7;
+  // .clojure.rt.protobuf.bytecode.CaseNode.SwitchType switchType = 7;
   if (this->_internal_switchtype() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_switchtype());
   }
 
-  // .clojureRT.protobuf.CaseNode.TestType testType = 9;
+  // .clojure.rt.protobuf.bytecode.CaseNode.TestType testType = 9;
   if (this->_internal_testtype() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_testtype());
@@ -5286,7 +5721,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*CaseNode::GetClassData() const
 void CaseNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<CaseNode*>(&to_msg);
   auto& from = static_cast<const CaseNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.CaseNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.CaseNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -5303,11 +5738,11 @@ void CaseNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTO
     _this->_internal_set_isskipcheck(from._internal_isskipcheck());
   }
   if (from._internal_has_default_()) {
-    _this->_internal_mutable_default_()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_default_()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_default_());
   }
   if (from._internal_has_test()) {
-    _this->_internal_mutable_test()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_test()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_test());
   }
   if (from._internal_mask() != 0) {
@@ -5326,7 +5761,7 @@ void CaseNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTO
 }
 
 void CaseNode::CopyFrom(const CaseNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.CaseNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.CaseNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -5366,17 +5801,17 @@ void CaseNode::InternalSwap(CaseNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata CaseNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[2]);
+      file_level_metadata_bytecode_2eproto[3]);
 }
 
 // ===================================================================
 
 class CaseTestNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& test(const CaseTestNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& test(const CaseTestNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 CaseTestNode::_Internal::test(const CaseTestNode* msg) {
   return *msg->_impl_.test_;
 }
@@ -5384,7 +5819,7 @@ CaseTestNode::CaseTestNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.CaseTestNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.CaseTestNode)
 }
 CaseTestNode::CaseTestNode(const CaseTestNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -5396,10 +5831,10 @@ CaseTestNode::CaseTestNode(const CaseTestNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_test()) {
-    _this->_impl_.test_ = new ::clojureRT::protobuf::Node(*from._impl_.test_);
+    _this->_impl_.test_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.test_);
   }
   _this->_impl_.hash_ = from._impl_.hash_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.CaseTestNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.CaseTestNode)
 }
 
 inline void CaseTestNode::SharedCtor(
@@ -5414,7 +5849,7 @@ inline void CaseTestNode::SharedCtor(
 }
 
 CaseTestNode::~CaseTestNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.CaseTestNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.CaseTestNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -5432,7 +5867,7 @@ void CaseTestNode::SetCachedSize(int size) const {
 }
 
 void CaseTestNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.CaseTestNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.CaseTestNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -5459,7 +5894,7 @@ const char* CaseTestNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node test = 2;
+      // .clojure.rt.protobuf.bytecode.Node test = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_test(), ptr);
@@ -5492,7 +5927,7 @@ failure:
 
 uint8_t* CaseTestNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.CaseTestNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.CaseTestNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -5502,7 +5937,7 @@ uint8_t* CaseTestNode::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_hash(), target);
   }
 
-  // .clojureRT.protobuf.Node test = 2;
+  // .clojure.rt.protobuf.bytecode.Node test = 2;
   if (this->_internal_has_test()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::test(this),
@@ -5513,19 +5948,19 @@ uint8_t* CaseTestNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.CaseTestNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.CaseTestNode)
   return target;
 }
 
 size_t CaseTestNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.CaseTestNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.CaseTestNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node test = 2;
+  // .clojure.rt.protobuf.bytecode.Node test = 2;
   if (this->_internal_has_test()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -5550,13 +5985,13 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*CaseTestNode::GetClassData() c
 void CaseTestNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<CaseTestNode*>(&to_msg);
   auto& from = static_cast<const CaseTestNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.CaseTestNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.CaseTestNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_test()) {
-    _this->_internal_mutable_test()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_test()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_test());
   }
   if (from._internal_hash() != 0) {
@@ -5566,7 +6001,7 @@ void CaseTestNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
 }
 
 void CaseTestNode::CopyFrom(const CaseTestNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.CaseTestNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.CaseTestNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -5590,17 +6025,17 @@ void CaseTestNode::InternalSwap(CaseTestNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata CaseTestNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[3]);
+      file_level_metadata_bytecode_2eproto[4]);
 }
 
 // ===================================================================
 
 class CaseThenNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& then(const CaseThenNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& then(const CaseThenNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 CaseThenNode::_Internal::then(const CaseThenNode* msg) {
   return *msg->_impl_.then_;
 }
@@ -5608,7 +6043,7 @@ CaseThenNode::CaseThenNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.CaseThenNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.CaseThenNode)
 }
 CaseThenNode::CaseThenNode(const CaseThenNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -5620,10 +6055,10 @@ CaseThenNode::CaseThenNode(const CaseThenNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_then()) {
-    _this->_impl_.then_ = new ::clojureRT::protobuf::Node(*from._impl_.then_);
+    _this->_impl_.then_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.then_);
   }
   _this->_impl_.hash_ = from._impl_.hash_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.CaseThenNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.CaseThenNode)
 }
 
 inline void CaseThenNode::SharedCtor(
@@ -5638,7 +6073,7 @@ inline void CaseThenNode::SharedCtor(
 }
 
 CaseThenNode::~CaseThenNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.CaseThenNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.CaseThenNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -5656,7 +6091,7 @@ void CaseThenNode::SetCachedSize(int size) const {
 }
 
 void CaseThenNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.CaseThenNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.CaseThenNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -5683,7 +6118,7 @@ const char* CaseThenNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node then = 2;
+      // .clojure.rt.protobuf.bytecode.Node then = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_then(), ptr);
@@ -5716,7 +6151,7 @@ failure:
 
 uint8_t* CaseThenNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.CaseThenNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.CaseThenNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -5726,7 +6161,7 @@ uint8_t* CaseThenNode::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_hash(), target);
   }
 
-  // .clojureRT.protobuf.Node then = 2;
+  // .clojure.rt.protobuf.bytecode.Node then = 2;
   if (this->_internal_has_then()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::then(this),
@@ -5737,19 +6172,19 @@ uint8_t* CaseThenNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.CaseThenNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.CaseThenNode)
   return target;
 }
 
 size_t CaseThenNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.CaseThenNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.CaseThenNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node then = 2;
+  // .clojure.rt.protobuf.bytecode.Node then = 2;
   if (this->_internal_has_then()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -5774,13 +6209,13 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*CaseThenNode::GetClassData() c
 void CaseThenNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<CaseThenNode*>(&to_msg);
   auto& from = static_cast<const CaseThenNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.CaseThenNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.CaseThenNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_then()) {
-    _this->_internal_mutable_then()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_then()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_then());
   }
   if (from._internal_hash() != 0) {
@@ -5790,7 +6225,7 @@ void CaseThenNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
 }
 
 void CaseThenNode::CopyFrom(const CaseThenNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.CaseThenNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.CaseThenNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -5814,27 +6249,27 @@ void CaseThenNode::InternalSwap(CaseThenNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata CaseThenNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[4]);
+      file_level_metadata_bytecode_2eproto[5]);
 }
 
 // ===================================================================
 
 class CatchNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& body(const CatchNode* msg);
-  static const ::clojureRT::protobuf::Node& class_(const CatchNode* msg);
-  static const ::clojureRT::protobuf::Node& local(const CatchNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& body(const CatchNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& class_(const CatchNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& local(const CatchNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 CatchNode::_Internal::body(const CatchNode* msg) {
   return *msg->_impl_.body_;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 CatchNode::_Internal::class_(const CatchNode* msg) {
   return *msg->_impl_.class__;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 CatchNode::_Internal::local(const CatchNode* msg) {
   return *msg->_impl_.local_;
 }
@@ -5842,7 +6277,7 @@ CatchNode::CatchNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.CatchNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.CatchNode)
 }
 CatchNode::CatchNode(const CatchNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -5855,15 +6290,15 @@ CatchNode::CatchNode(const CatchNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_body()) {
-    _this->_impl_.body_ = new ::clojureRT::protobuf::Node(*from._impl_.body_);
+    _this->_impl_.body_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.body_);
   }
   if (from._internal_has_class_()) {
-    _this->_impl_.class__ = new ::clojureRT::protobuf::Node(*from._impl_.class__);
+    _this->_impl_.class__ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.class__);
   }
   if (from._internal_has_local()) {
-    _this->_impl_.local_ = new ::clojureRT::protobuf::Node(*from._impl_.local_);
+    _this->_impl_.local_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.local_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.CatchNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.CatchNode)
 }
 
 inline void CatchNode::SharedCtor(
@@ -5879,7 +6314,7 @@ inline void CatchNode::SharedCtor(
 }
 
 CatchNode::~CatchNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.CatchNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.CatchNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -5899,7 +6334,7 @@ void CatchNode::SetCachedSize(int size) const {
 }
 
 void CatchNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.CatchNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.CatchNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -5925,7 +6360,7 @@ const char* CatchNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node body = 1;
+      // .clojure.rt.protobuf.bytecode.Node body = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_body(), ptr);
@@ -5933,7 +6368,7 @@ const char* CatchNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node class = 2;
+      // .clojure.rt.protobuf.bytecode.Node class = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_class_(), ptr);
@@ -5941,7 +6376,7 @@ const char* CatchNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node local = 3;
+      // .clojure.rt.protobuf.bytecode.Node local = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_local(), ptr);
@@ -5974,25 +6409,25 @@ failure:
 
 uint8_t* CatchNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.CatchNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.CatchNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node body = 1;
+  // .clojure.rt.protobuf.bytecode.Node body = 1;
   if (this->_internal_has_body()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::body(this),
         _Internal::body(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node class = 2;
+  // .clojure.rt.protobuf.bytecode.Node class = 2;
   if (this->_internal_has_class_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::class_(this),
         _Internal::class_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node local = 3;
+  // .clojure.rt.protobuf.bytecode.Node local = 3;
   if (this->_internal_has_local()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(3, _Internal::local(this),
@@ -6003,33 +6438,33 @@ uint8_t* CatchNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.CatchNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.CatchNode)
   return target;
 }
 
 size_t CatchNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.CatchNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.CatchNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node body = 1;
+  // .clojure.rt.protobuf.bytecode.Node body = 1;
   if (this->_internal_has_body()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.body_);
   }
 
-  // .clojureRT.protobuf.Node class = 2;
+  // .clojure.rt.protobuf.bytecode.Node class = 2;
   if (this->_internal_has_class_()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.class__);
   }
 
-  // .clojureRT.protobuf.Node local = 3;
+  // .clojure.rt.protobuf.bytecode.Node local = 3;
   if (this->_internal_has_local()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -6049,28 +6484,28 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*CatchNode::GetClassData() cons
 void CatchNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<CatchNode*>(&to_msg);
   auto& from = static_cast<const CatchNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.CatchNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.CatchNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_body()) {
-    _this->_internal_mutable_body()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_body()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_body());
   }
   if (from._internal_has_class_()) {
-    _this->_internal_mutable_class_()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_class_()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_class_());
   }
   if (from._internal_has_local()) {
-    _this->_internal_mutable_local()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_local()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_local());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void CatchNode::CopyFrom(const CatchNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.CatchNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.CatchNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -6094,21 +6529,17 @@ void CatchNode::InternalSwap(CatchNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata CatchNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[5]);
+      file_level_metadata_bytecode_2eproto[6]);
 }
 
 // ===================================================================
 
 class ConstNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<ConstNode>()._impl_._has_bits_);
-  static const ::clojureRT::protobuf::Node& meta(const ConstNode* msg);
-  static void set_has_meta(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Node& meta(const ConstNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 ConstNode::_Internal::meta(const ConstNode* msg) {
   return *msg->_impl_.meta_;
 }
@@ -6116,18 +6547,17 @@ ConstNode::ConstNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.ConstNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.ConstNode)
 }
 ConstNode::ConstNode(const ConstNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   ConstNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.val_){}
+      decltype(_impl_.val_){}
     , decltype(_impl_.meta_){nullptr}
     , decltype(_impl_.isliteral_){}
-    , decltype(_impl_.type_){}};
+    , decltype(_impl_.type_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.val_.InitDefault();
@@ -6139,12 +6569,12 @@ ConstNode::ConstNode(const ConstNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_meta()) {
-    _this->_impl_.meta_ = new ::clojureRT::protobuf::Node(*from._impl_.meta_);
+    _this->_impl_.meta_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.meta_);
   }
   ::memcpy(&_impl_.isliteral_, &from._impl_.isliteral_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.type_) -
     reinterpret_cast<char*>(&_impl_.isliteral_)) + sizeof(_impl_.type_));
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.ConstNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.ConstNode)
 }
 
 inline void ConstNode::SharedCtor(
@@ -6152,12 +6582,11 @@ inline void ConstNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.val_){}
+      decltype(_impl_.val_){}
     , decltype(_impl_.meta_){nullptr}
     , decltype(_impl_.isliteral_){false}
     , decltype(_impl_.type_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.val_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -6166,7 +6595,7 @@ inline void ConstNode::SharedCtor(
 }
 
 ConstNode::~ConstNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.ConstNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.ConstNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -6185,27 +6614,24 @@ void ConstNode::SetCachedSize(int size) const {
 }
 
 void ConstNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.ConstNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.ConstNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   _impl_.val_.ClearToEmpty();
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    GOOGLE_DCHECK(_impl_.meta_ != nullptr);
-    _impl_.meta_->Clear();
+  if (GetArenaForAllocation() == nullptr && _impl_.meta_ != nullptr) {
+    delete _impl_.meta_;
   }
+  _impl_.meta_ = nullptr;
   ::memset(&_impl_.isliteral_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&_impl_.type_) -
       reinterpret_cast<char*>(&_impl_.isliteral_)) + sizeof(_impl_.type_));
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* ConstNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
@@ -6218,7 +6644,7 @@ const char* ConstNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         } else
           goto handle_unusual;
         continue;
-      // optional .clojureRT.protobuf.Node meta = 2;
+      // .clojure.rt.protobuf.bytecode.Node meta = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_meta(), ptr);
@@ -6226,12 +6652,12 @@ const char* ConstNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.ConstNode.ConstType type = 3;
+      // .clojure.rt.protobuf.bytecode.ConstNode.ConstType type = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_type(static_cast<::clojureRT::protobuf::ConstNode_ConstType>(val));
+          _internal_set_type(static_cast<::clojure::rt::protobuf::bytecode::ConstNode_ConstType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -6241,7 +6667,7 @@ const char* ConstNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
           auto str = _internal_mutable_val();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.ConstNode.val"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.ConstNode.val"));
         } else
           goto handle_unusual;
         continue;
@@ -6261,7 +6687,6 @@ const char* ConstNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -6271,7 +6696,7 @@ failure:
 
 uint8_t* ConstNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.ConstNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.ConstNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -6281,14 +6706,14 @@ uint8_t* ConstNode::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_isliteral(), target);
   }
 
-  // optional .clojureRT.protobuf.Node meta = 2;
-  if (_internal_has_meta()) {
+  // .clojure.rt.protobuf.bytecode.Node meta = 2;
+  if (this->_internal_has_meta()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::meta(this),
         _Internal::meta(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.ConstNode.ConstType type = 3;
+  // .clojure.rt.protobuf.bytecode.ConstNode.ConstType type = 3;
   if (this->_internal_type() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -6300,7 +6725,7 @@ uint8_t* ConstNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_val().data(), static_cast<int>(this->_internal_val().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.ConstNode.val");
+      "clojure.rt.protobuf.bytecode.ConstNode.val");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_val(), target);
   }
@@ -6309,12 +6734,12 @@ uint8_t* ConstNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.ConstNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.ConstNode)
   return target;
 }
 
 size_t ConstNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.ConstNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.ConstNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -6328,9 +6753,8 @@ size_t ConstNode::ByteSizeLong() const {
         this->_internal_val());
   }
 
-  // optional .clojureRT.protobuf.Node meta = 2;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // .clojure.rt.protobuf.bytecode.Node meta = 2;
+  if (this->_internal_has_meta()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.meta_);
@@ -6341,7 +6765,7 @@ size_t ConstNode::ByteSizeLong() const {
     total_size += 1 + 1;
   }
 
-  // .clojureRT.protobuf.ConstNode.ConstType type = 3;
+  // .clojure.rt.protobuf.bytecode.ConstNode.ConstType type = 3;
   if (this->_internal_type() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_type());
@@ -6360,7 +6784,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ConstNode::GetClassData() cons
 void ConstNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<ConstNode*>(&to_msg);
   auto& from = static_cast<const ConstNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.ConstNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.ConstNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -6369,7 +6793,7 @@ void ConstNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
     _this->_internal_set_val(from._internal_val());
   }
   if (from._internal_has_meta()) {
-    _this->_internal_mutable_meta()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_meta()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_meta());
   }
   if (from._internal_isliteral() != 0) {
@@ -6382,7 +6806,7 @@ void ConstNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
 }
 
 void ConstNode::CopyFrom(const ConstNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.ConstNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.ConstNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -6397,7 +6821,6 @@ void ConstNode::InternalSwap(ConstNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.val_, lhs_arena,
       &other->_impl_.val_, rhs_arena
@@ -6413,32 +6836,22 @@ void ConstNode::InternalSwap(ConstNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ConstNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[6]);
+      file_level_metadata_bytecode_2eproto[7]);
 }
 
 // ===================================================================
 
 class DefNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<DefNode>()._impl_._has_bits_);
-  static void set_has_doc(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
-  static const ::clojureRT::protobuf::Node& init(const DefNode* msg);
-  static void set_has_init(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
-  }
-  static const ::clojureRT::protobuf::Node& meta(const DefNode* msg);
-  static void set_has_meta(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Node& init(const DefNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& meta(const DefNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 DefNode::_Internal::init(const DefNode* msg) {
   return *msg->_impl_.init_;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 DefNode::_Internal::meta(const DefNode* msg) {
   return *msg->_impl_.meta_;
 }
@@ -6446,26 +6859,25 @@ DefNode::DefNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.DefNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.DefNode)
 }
 DefNode::DefNode(const DefNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   DefNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.doc_){}
+      decltype(_impl_.doc_){}
     , decltype(_impl_.name_){}
     , decltype(_impl_.var_){}
     , decltype(_impl_.init_){nullptr}
-    , decltype(_impl_.meta_){nullptr}};
+    , decltype(_impl_.meta_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.doc_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     _impl_.doc_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (from._internal_has_doc()) {
+  if (!from._internal_doc().empty()) {
     _this->_impl_.doc_.Set(from._internal_doc(), 
       _this->GetArenaForAllocation());
   }
@@ -6486,12 +6898,12 @@ DefNode::DefNode(const DefNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_init()) {
-    _this->_impl_.init_ = new ::clojureRT::protobuf::Node(*from._impl_.init_);
+    _this->_impl_.init_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.init_);
   }
   if (from._internal_has_meta()) {
-    _this->_impl_.meta_ = new ::clojureRT::protobuf::Node(*from._impl_.meta_);
+    _this->_impl_.meta_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.meta_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.DefNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.DefNode)
 }
 
 inline void DefNode::SharedCtor(
@@ -6499,13 +6911,12 @@ inline void DefNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.doc_){}
+      decltype(_impl_.doc_){}
     , decltype(_impl_.name_){}
     , decltype(_impl_.var_){}
     , decltype(_impl_.init_){nullptr}
     , decltype(_impl_.meta_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.doc_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -6522,7 +6933,7 @@ inline void DefNode::SharedCtor(
 }
 
 DefNode::~DefNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.DefNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.DefNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -6544,49 +6955,42 @@ void DefNode::SetCachedSize(int size) const {
 }
 
 void DefNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.DefNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.DefNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    _impl_.doc_.ClearNonDefaultToEmpty();
-  }
+  _impl_.doc_.ClearToEmpty();
   _impl_.name_.ClearToEmpty();
   _impl_.var_.ClearToEmpty();
-  if (cached_has_bits & 0x00000006u) {
-    if (cached_has_bits & 0x00000002u) {
-      GOOGLE_DCHECK(_impl_.init_ != nullptr);
-      _impl_.init_->Clear();
-    }
-    if (cached_has_bits & 0x00000004u) {
-      GOOGLE_DCHECK(_impl_.meta_ != nullptr);
-      _impl_.meta_->Clear();
-    }
+  if (GetArenaForAllocation() == nullptr && _impl_.init_ != nullptr) {
+    delete _impl_.init_;
   }
-  _impl_._has_bits_.Clear();
+  _impl_.init_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.meta_ != nullptr) {
+    delete _impl_.meta_;
+  }
+  _impl_.meta_ = nullptr;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* DefNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // optional string doc = 1;
+      // string doc = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           auto str = _internal_mutable_doc();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.DefNode.doc"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.DefNode.doc"));
         } else
           goto handle_unusual;
         continue;
-      // optional .clojureRT.protobuf.Node init = 2;
+      // .clojure.rt.protobuf.bytecode.Node init = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_init(), ptr);
@@ -6594,7 +6998,7 @@ const char* DefNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // optional .clojureRT.protobuf.Node meta = 3;
+      // .clojure.rt.protobuf.bytecode.Node meta = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_meta(), ptr);
@@ -6608,7 +7012,7 @@ const char* DefNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.DefNode.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.DefNode.name"));
         } else
           goto handle_unusual;
         continue;
@@ -6618,7 +7022,7 @@ const char* DefNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
           auto str = _internal_mutable_var();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.DefNode.var"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.DefNode.var"));
         } else
           goto handle_unusual;
         continue;
@@ -6638,7 +7042,6 @@ const char* DefNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -6648,29 +7051,29 @@ failure:
 
 uint8_t* DefNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.DefNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.DefNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // optional string doc = 1;
-  if (_internal_has_doc()) {
+  // string doc = 1;
+  if (!this->_internal_doc().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_doc().data(), static_cast<int>(this->_internal_doc().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.DefNode.doc");
+      "clojure.rt.protobuf.bytecode.DefNode.doc");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_doc(), target);
   }
 
-  // optional .clojureRT.protobuf.Node init = 2;
-  if (_internal_has_init()) {
+  // .clojure.rt.protobuf.bytecode.Node init = 2;
+  if (this->_internal_has_init()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::init(this),
         _Internal::init(this).GetCachedSize(), target, stream);
   }
 
-  // optional .clojureRT.protobuf.Node meta = 3;
-  if (_internal_has_meta()) {
+  // .clojure.rt.protobuf.bytecode.Node meta = 3;
+  if (this->_internal_has_meta()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(3, _Internal::meta(this),
         _Internal::meta(this).GetCachedSize(), target, stream);
@@ -6681,7 +7084,7 @@ uint8_t* DefNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.DefNode.name");
+      "clojure.rt.protobuf.bytecode.DefNode.name");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_name(), target);
   }
@@ -6691,7 +7094,7 @@ uint8_t* DefNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_var().data(), static_cast<int>(this->_internal_var().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.DefNode.var");
+      "clojure.rt.protobuf.bytecode.DefNode.var");
     target = stream->WriteStringMaybeAliased(
         5, this->_internal_var(), target);
   }
@@ -6700,21 +7103,20 @@ uint8_t* DefNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.DefNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.DefNode)
   return target;
 }
 
 size_t DefNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.DefNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.DefNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // optional string doc = 1;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // string doc = 1;
+  if (!this->_internal_doc().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_doc());
@@ -6734,22 +7136,20 @@ size_t DefNode::ByteSizeLong() const {
         this->_internal_var());
   }
 
-  if (cached_has_bits & 0x00000006u) {
-    // optional .clojureRT.protobuf.Node init = 2;
-    if (cached_has_bits & 0x00000002u) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-          *_impl_.init_);
-    }
-
-    // optional .clojureRT.protobuf.Node meta = 3;
-    if (cached_has_bits & 0x00000004u) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-          *_impl_.meta_);
-    }
-
+  // .clojure.rt.protobuf.bytecode.Node init = 2;
+  if (this->_internal_has_init()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.init_);
   }
+
+  // .clojure.rt.protobuf.bytecode.Node meta = 3;
+  if (this->_internal_has_meta()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.meta_);
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -6763,12 +7163,12 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DefNode::GetClassData() const 
 void DefNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<DefNode*>(&to_msg);
   auto& from = static_cast<const DefNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.DefNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.DefNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from._internal_has_doc()) {
+  if (!from._internal_doc().empty()) {
     _this->_internal_set_doc(from._internal_doc());
   }
   if (!from._internal_name().empty()) {
@@ -6777,22 +7177,19 @@ void DefNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOB
   if (!from._internal_var().empty()) {
     _this->_internal_set_var(from._internal_var());
   }
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000006u) {
-    if (cached_has_bits & 0x00000002u) {
-      _this->_internal_mutable_init()->::clojureRT::protobuf::Node::MergeFrom(
-          from._internal_init());
-    }
-    if (cached_has_bits & 0x00000004u) {
-      _this->_internal_mutable_meta()->::clojureRT::protobuf::Node::MergeFrom(
-          from._internal_meta());
-    }
+  if (from._internal_has_init()) {
+    _this->_internal_mutable_init()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
+        from._internal_init());
+  }
+  if (from._internal_has_meta()) {
+    _this->_internal_mutable_meta()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
+        from._internal_meta());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void DefNode::CopyFrom(const DefNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.DefNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.DefNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -6807,7 +7204,6 @@ void DefNode::InternalSwap(DefNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.doc_, lhs_arena,
       &other->_impl_.doc_, rhs_arena
@@ -6831,7 +7227,7 @@ void DefNode::InternalSwap(DefNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata DefNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[7]);
+      file_level_metadata_bytecode_2eproto[8]);
 }
 
 // ===================================================================
@@ -6844,7 +7240,7 @@ DeftypeNode::DeftypeNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.DeftypeNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.DeftypeNode)
 }
 DeftypeNode::DeftypeNode(const DeftypeNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -6874,7 +7270,7 @@ DeftypeNode::DeftypeNode(const DeftypeNode& from)
     _this->_impl_.name_.Set(from._internal_name(), 
       _this->GetArenaForAllocation());
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.DeftypeNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.DeftypeNode)
 }
 
 inline void DeftypeNode::SharedCtor(
@@ -6900,7 +7296,7 @@ inline void DeftypeNode::SharedCtor(
 }
 
 DeftypeNode::~DeftypeNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.DeftypeNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.DeftypeNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -6922,7 +7318,7 @@ void DeftypeNode::SetCachedSize(int size) const {
 }
 
 void DeftypeNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.DeftypeNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.DeftypeNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -6947,11 +7343,11 @@ const char* DeftypeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_classname();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.DeftypeNode.className"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.DeftypeNode.className"));
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node fields = 2;
+      // repeated .clojure.rt.protobuf.bytecode.Node fields = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -6973,13 +7369,13 @@ const char* DeftypeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
             auto str = _internal_add_interfaces();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.DeftypeNode.interfaces"));
+            CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.DeftypeNode.interfaces"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node methods = 4;
+      // repeated .clojure.rt.protobuf.bytecode.Node methods = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr -= 1;
@@ -6998,7 +7394,7 @@ const char* DeftypeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* c
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.DeftypeNode.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.DeftypeNode.name"));
         } else
           goto handle_unusual;
         continue;
@@ -7027,7 +7423,7 @@ failure:
 
 uint8_t* DeftypeNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.DeftypeNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.DeftypeNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -7036,12 +7432,12 @@ uint8_t* DeftypeNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_classname().data(), static_cast<int>(this->_internal_classname().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.DeftypeNode.className");
+      "clojure.rt.protobuf.bytecode.DeftypeNode.className");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_classname(), target);
   }
 
-  // repeated .clojureRT.protobuf.Node fields = 2;
+  // repeated .clojure.rt.protobuf.bytecode.Node fields = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_fields_size()); i < n; i++) {
     const auto& repfield = this->_internal_fields(i);
@@ -7055,11 +7451,11 @@ uint8_t* DeftypeNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.DeftypeNode.interfaces");
+      "clojure.rt.protobuf.bytecode.DeftypeNode.interfaces");
     target = stream->WriteString(3, s, target);
   }
 
-  // repeated .clojureRT.protobuf.Node methods = 4;
+  // repeated .clojure.rt.protobuf.bytecode.Node methods = 4;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_methods_size()); i < n; i++) {
     const auto& repfield = this->_internal_methods(i);
@@ -7072,7 +7468,7 @@ uint8_t* DeftypeNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.DeftypeNode.name");
+      "clojure.rt.protobuf.bytecode.DeftypeNode.name");
     target = stream->WriteStringMaybeAliased(
         5, this->_internal_name(), target);
   }
@@ -7081,19 +7477,19 @@ uint8_t* DeftypeNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.DeftypeNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.DeftypeNode)
   return target;
 }
 
 size_t DeftypeNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.DeftypeNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.DeftypeNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node fields = 2;
+  // repeated .clojure.rt.protobuf.bytecode.Node fields = 2;
   total_size += 1UL * this->_internal_fields_size();
   for (const auto& msg : this->_impl_.fields_) {
     total_size +=
@@ -7108,7 +7504,7 @@ size_t DeftypeNode::ByteSizeLong() const {
       _impl_.interfaces_.Get(i));
   }
 
-  // repeated .clojureRT.protobuf.Node methods = 4;
+  // repeated .clojure.rt.protobuf.bytecode.Node methods = 4;
   total_size += 1UL * this->_internal_methods_size();
   for (const auto& msg : this->_impl_.methods_) {
     total_size +=
@@ -7142,7 +7538,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DeftypeNode::GetClassData() co
 void DeftypeNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<DeftypeNode*>(&to_msg);
   auto& from = static_cast<const DeftypeNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.DeftypeNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.DeftypeNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -7160,7 +7556,7 @@ void DeftypeNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PR
 }
 
 void DeftypeNode::CopyFrom(const DeftypeNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.DeftypeNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.DeftypeNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -7191,21 +7587,17 @@ void DeftypeNode::InternalSwap(DeftypeNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata DeftypeNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[8]);
+      file_level_metadata_bytecode_2eproto[9]);
 }
 
 // ===================================================================
 
 class DoNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<DoNode>()._impl_._has_bits_);
-  static void set_has_isbody(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
-  static const ::clojureRT::protobuf::Node& ret(const DoNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& ret(const DoNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 DoNode::_Internal::ret(const DoNode* msg) {
   return *msg->_impl_.ret_;
 }
@@ -7213,24 +7605,23 @@ DoNode::DoNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.DoNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.DoNode)
 }
 DoNode::DoNode(const DoNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   DoNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.statements_){from._impl_.statements_}
+      decltype(_impl_.statements_){from._impl_.statements_}
     , decltype(_impl_.ret_){nullptr}
-    , decltype(_impl_.isbody_){}};
+    , decltype(_impl_.isbody_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_ret()) {
-    _this->_impl_.ret_ = new ::clojureRT::protobuf::Node(*from._impl_.ret_);
+    _this->_impl_.ret_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.ret_);
   }
   _this->_impl_.isbody_ = from._impl_.isbody_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.DoNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.DoNode)
 }
 
 inline void DoNode::SharedCtor(
@@ -7238,16 +7629,15 @@ inline void DoNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.statements_){arena}
+      decltype(_impl_.statements_){arena}
     , decltype(_impl_.ret_){nullptr}
     , decltype(_impl_.isbody_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
 }
 
 DoNode::~DoNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.DoNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.DoNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -7266,7 +7656,7 @@ void DoNode::SetCachedSize(int size) const {
 }
 
 void DoNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.DoNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.DoNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -7277,27 +7667,24 @@ void DoNode::Clear() {
   }
   _impl_.ret_ = nullptr;
   _impl_.isbody_ = false;
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* DoNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // optional bool isBody = 1;
+      // bool isBody = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
-          _Internal::set_has_isbody(&has_bits);
           _impl_.isbody_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node ret = 2;
+      // .clojure.rt.protobuf.bytecode.Node ret = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_ret(), ptr);
@@ -7305,7 +7692,7 @@ const char* DoNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node statements = 3;
+      // repeated .clojure.rt.protobuf.bytecode.Node statements = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr -= 1;
@@ -7334,7 +7721,6 @@ const char* DoNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -7344,24 +7730,24 @@ failure:
 
 uint8_t* DoNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.DoNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.DoNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // optional bool isBody = 1;
-  if (_internal_has_isbody()) {
+  // bool isBody = 1;
+  if (this->_internal_isbody() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_isbody(), target);
   }
 
-  // .clojureRT.protobuf.Node ret = 2;
+  // .clojure.rt.protobuf.bytecode.Node ret = 2;
   if (this->_internal_has_ret()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::ret(this),
         _Internal::ret(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .clojureRT.protobuf.Node statements = 3;
+  // repeated .clojure.rt.protobuf.bytecode.Node statements = 3;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_statements_size()); i < n; i++) {
     const auto& repfield = this->_internal_statements(i);
@@ -7373,35 +7759,34 @@ uint8_t* DoNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.DoNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.DoNode)
   return target;
 }
 
 size_t DoNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.DoNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.DoNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node statements = 3;
+  // repeated .clojure.rt.protobuf.bytecode.Node statements = 3;
   total_size += 1UL * this->_internal_statements_size();
   for (const auto& msg : this->_impl_.statements_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // .clojureRT.protobuf.Node ret = 2;
+  // .clojure.rt.protobuf.bytecode.Node ret = 2;
   if (this->_internal_has_ret()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.ret_);
   }
 
-  // optional bool isBody = 1;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // bool isBody = 1;
+  if (this->_internal_isbody() != 0) {
     total_size += 1 + 1;
   }
 
@@ -7418,24 +7803,24 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DoNode::GetClassData() const {
 void DoNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<DoNode*>(&to_msg);
   auto& from = static_cast<const DoNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.DoNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.DoNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.statements_.MergeFrom(from._impl_.statements_);
   if (from._internal_has_ret()) {
-    _this->_internal_mutable_ret()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_ret()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_ret());
   }
-  if (from._internal_has_isbody()) {
+  if (from._internal_isbody() != 0) {
     _this->_internal_set_isbody(from._internal_isbody());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void DoNode::CopyFrom(const DoNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.DoNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.DoNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -7448,7 +7833,6 @@ bool DoNode::IsInitialized() const {
 void DoNode::InternalSwap(DoNode* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.statements_.InternalSwap(&other->_impl_.statements_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(DoNode, _impl_.isbody_)
@@ -7461,21 +7845,17 @@ void DoNode::InternalSwap(DoNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata DoNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[9]);
+      file_level_metadata_bytecode_2eproto[10]);
 }
 
 // ===================================================================
 
 class FnNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<FnNode>()._impl_._has_bits_);
-  static const ::clojureRT::protobuf::Node& local(const FnNode* msg);
-  static void set_has_local(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Node& local(const FnNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 FnNode::_Internal::local(const FnNode* msg) {
   return *msg->_impl_.local_;
 }
@@ -7483,28 +7863,27 @@ FnNode::FnNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.FnNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.FnNode)
 }
 FnNode::FnNode(const FnNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   FnNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.methods_){from._impl_.methods_}
+      decltype(_impl_.methods_){from._impl_.methods_}
     , decltype(_impl_.local_){nullptr}
     , decltype(_impl_.maxfixedarity_){}
     , decltype(_impl_.once_){}
-    , decltype(_impl_.isvariadic_){}};
+    , decltype(_impl_.isvariadic_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_local()) {
-    _this->_impl_.local_ = new ::clojureRT::protobuf::Node(*from._impl_.local_);
+    _this->_impl_.local_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.local_);
   }
   ::memcpy(&_impl_.maxfixedarity_, &from._impl_.maxfixedarity_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.isvariadic_) -
     reinterpret_cast<char*>(&_impl_.maxfixedarity_)) + sizeof(_impl_.isvariadic_));
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.FnNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.FnNode)
 }
 
 inline void FnNode::SharedCtor(
@@ -7512,18 +7891,17 @@ inline void FnNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.methods_){arena}
+      decltype(_impl_.methods_){arena}
     , decltype(_impl_.local_){nullptr}
     , decltype(_impl_.maxfixedarity_){0u}
     , decltype(_impl_.once_){false}
     , decltype(_impl_.isvariadic_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
 }
 
 FnNode::~FnNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.FnNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.FnNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -7542,32 +7920,29 @@ void FnNode::SetCachedSize(int size) const {
 }
 
 void FnNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.FnNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.FnNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   _impl_.methods_.Clear();
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    GOOGLE_DCHECK(_impl_.local_ != nullptr);
-    _impl_.local_->Clear();
+  if (GetArenaForAllocation() == nullptr && _impl_.local_ != nullptr) {
+    delete _impl_.local_;
   }
+  _impl_.local_ = nullptr;
   ::memset(&_impl_.maxfixedarity_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&_impl_.isvariadic_) -
       reinterpret_cast<char*>(&_impl_.maxfixedarity_)) + sizeof(_impl_.isvariadic_));
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* FnNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // optional .clojureRT.protobuf.Node local = 1;
+      // .clojure.rt.protobuf.bytecode.Node local = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_local(), ptr);
@@ -7583,7 +7958,7 @@ const char* FnNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node methods = 3;
+      // repeated .clojure.rt.protobuf.bytecode.Node methods = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr -= 1;
@@ -7628,7 +8003,6 @@ const char* FnNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -7638,12 +8012,12 @@ failure:
 
 uint8_t* FnNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.FnNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.FnNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // optional .clojureRT.protobuf.Node local = 1;
-  if (_internal_has_local()) {
+  // .clojure.rt.protobuf.bytecode.Node local = 1;
+  if (this->_internal_has_local()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::local(this),
         _Internal::local(this).GetCachedSize(), target, stream);
@@ -7655,7 +8029,7 @@ uint8_t* FnNode::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_maxfixedarity(), target);
   }
 
-  // repeated .clojureRT.protobuf.Node methods = 3;
+  // repeated .clojure.rt.protobuf.bytecode.Node methods = 3;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_methods_size()); i < n; i++) {
     const auto& repfield = this->_internal_methods(i);
@@ -7679,28 +8053,27 @@ uint8_t* FnNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.FnNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.FnNode)
   return target;
 }
 
 size_t FnNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.FnNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.FnNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node methods = 3;
+  // repeated .clojure.rt.protobuf.bytecode.Node methods = 3;
   total_size += 1UL * this->_internal_methods_size();
   for (const auto& msg : this->_impl_.methods_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // optional .clojureRT.protobuf.Node local = 1;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // .clojure.rt.protobuf.bytecode.Node local = 1;
+  if (this->_internal_has_local()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.local_);
@@ -7734,14 +8107,14 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*FnNode::GetClassData() const {
 void FnNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<FnNode*>(&to_msg);
   auto& from = static_cast<const FnNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.FnNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.FnNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.methods_.MergeFrom(from._impl_.methods_);
   if (from._internal_has_local()) {
-    _this->_internal_mutable_local()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_local()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_local());
   }
   if (from._internal_maxfixedarity() != 0) {
@@ -7757,7 +8130,7 @@ void FnNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBU
 }
 
 void FnNode::CopyFrom(const FnNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.FnNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.FnNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -7770,7 +8143,6 @@ bool FnNode::IsInitialized() const {
 void FnNode::InternalSwap(FnNode* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.methods_.InternalSwap(&other->_impl_.methods_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(FnNode, _impl_.isvariadic_)
@@ -7783,17 +8155,17 @@ void FnNode::InternalSwap(FnNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata FnNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[10]);
+      file_level_metadata_bytecode_2eproto[11]);
 }
 
 // ===================================================================
 
 class FnMethodNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& body(const FnMethodNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& body(const FnMethodNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 FnMethodNode::_Internal::body(const FnMethodNode* msg) {
   return *msg->_impl_.body_;
 }
@@ -7801,7 +8173,7 @@ FnMethodNode::FnMethodNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.FnMethodNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.FnMethodNode)
 }
 FnMethodNode::FnMethodNode(const FnMethodNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -7824,12 +8196,12 @@ FnMethodNode::FnMethodNode(const FnMethodNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_body()) {
-    _this->_impl_.body_ = new ::clojureRT::protobuf::Node(*from._impl_.body_);
+    _this->_impl_.body_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.body_);
   }
   ::memcpy(&_impl_.fixedarity_, &from._impl_.fixedarity_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.isvariadic_) -
     reinterpret_cast<char*>(&_impl_.fixedarity_)) + sizeof(_impl_.isvariadic_));
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.FnMethodNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.FnMethodNode)
 }
 
 inline void FnMethodNode::SharedCtor(
@@ -7851,7 +8223,7 @@ inline void FnMethodNode::SharedCtor(
 }
 
 FnMethodNode::~FnMethodNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.FnMethodNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.FnMethodNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -7871,7 +8243,7 @@ void FnMethodNode::SetCachedSize(int size) const {
 }
 
 void FnMethodNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.FnMethodNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.FnMethodNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -7894,7 +8266,7 @@ const char* FnMethodNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node body = 1;
+      // .clojure.rt.protobuf.bytecode.Node body = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_body(), ptr);
@@ -7916,11 +8288,11 @@ const char* FnMethodNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
           auto str = _internal_mutable_loopid();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.FnMethodNode.loopId"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.FnMethodNode.loopId"));
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node params = 4;
+      // repeated .clojure.rt.protobuf.bytecode.Node params = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr -= 1;
@@ -7966,11 +8338,11 @@ failure:
 
 uint8_t* FnMethodNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.FnMethodNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.FnMethodNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node body = 1;
+  // .clojure.rt.protobuf.bytecode.Node body = 1;
   if (this->_internal_has_body()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::body(this),
@@ -7988,12 +8360,12 @@ uint8_t* FnMethodNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_loopid().data(), static_cast<int>(this->_internal_loopid().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.FnMethodNode.loopId");
+      "clojure.rt.protobuf.bytecode.FnMethodNode.loopId");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_loopid(), target);
   }
 
-  // repeated .clojureRT.protobuf.Node params = 4;
+  // repeated .clojure.rt.protobuf.bytecode.Node params = 4;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_params_size()); i < n; i++) {
     const auto& repfield = this->_internal_params(i);
@@ -8011,19 +8383,19 @@ uint8_t* FnMethodNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.FnMethodNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.FnMethodNode)
   return target;
 }
 
 size_t FnMethodNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.FnMethodNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.FnMethodNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node params = 4;
+  // repeated .clojure.rt.protobuf.bytecode.Node params = 4;
   total_size += 1UL * this->_internal_params_size();
   for (const auto& msg : this->_impl_.params_) {
     total_size +=
@@ -8037,7 +8409,7 @@ size_t FnMethodNode::ByteSizeLong() const {
         this->_internal_loopid());
   }
 
-  // .clojureRT.protobuf.Node body = 1;
+  // .clojure.rt.protobuf.bytecode.Node body = 1;
   if (this->_internal_has_body()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -8067,7 +8439,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*FnMethodNode::GetClassData() c
 void FnMethodNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<FnMethodNode*>(&to_msg);
   auto& from = static_cast<const FnMethodNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.FnMethodNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.FnMethodNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -8077,7 +8449,7 @@ void FnMethodNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
     _this->_internal_set_loopid(from._internal_loopid());
   }
   if (from._internal_has_body()) {
-    _this->_internal_mutable_body()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_body()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_body());
   }
   if (from._internal_fixedarity() != 0) {
@@ -8090,7 +8462,7 @@ void FnMethodNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
 }
 
 void FnMethodNode::CopyFrom(const FnMethodNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.FnMethodNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.FnMethodNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -8121,17 +8493,17 @@ void FnMethodNode::InternalSwap(FnMethodNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata FnMethodNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[11]);
+      file_level_metadata_bytecode_2eproto[12]);
 }
 
 // ===================================================================
 
 class HostInteropNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& target(const HostInteropNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& target(const HostInteropNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 HostInteropNode::_Internal::target(const HostInteropNode* msg) {
   return *msg->_impl_.target_;
 }
@@ -8139,7 +8511,7 @@ HostInteropNode::HostInteropNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.HostInteropNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.HostInteropNode)
 }
 HostInteropNode::HostInteropNode(const HostInteropNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -8160,10 +8532,10 @@ HostInteropNode::HostInteropNode(const HostInteropNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_target()) {
-    _this->_impl_.target_ = new ::clojureRT::protobuf::Node(*from._impl_.target_);
+    _this->_impl_.target_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.target_);
   }
   _this->_impl_.isassignable_ = from._impl_.isassignable_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.HostInteropNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.HostInteropNode)
 }
 
 inline void HostInteropNode::SharedCtor(
@@ -8183,7 +8555,7 @@ inline void HostInteropNode::SharedCtor(
 }
 
 HostInteropNode::~HostInteropNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.HostInteropNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.HostInteropNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -8202,7 +8574,7 @@ void HostInteropNode::SetCachedSize(int size) const {
 }
 
 void HostInteropNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.HostInteropNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.HostInteropNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -8236,11 +8608,11 @@ const char* HostInteropNode::_InternalParse(const char* ptr, ::_pbi::ParseContex
           auto str = _internal_mutable_morf();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.HostInteropNode.mOrF"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.HostInteropNode.mOrF"));
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node target = 3;
+      // .clojure.rt.protobuf.bytecode.Node target = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_target(), ptr);
@@ -8273,7 +8645,7 @@ failure:
 
 uint8_t* HostInteropNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.HostInteropNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.HostInteropNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -8288,12 +8660,12 @@ uint8_t* HostInteropNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_morf().data(), static_cast<int>(this->_internal_morf().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.HostInteropNode.mOrF");
+      "clojure.rt.protobuf.bytecode.HostInteropNode.mOrF");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_morf(), target);
   }
 
-  // .clojureRT.protobuf.Node target = 3;
+  // .clojure.rt.protobuf.bytecode.Node target = 3;
   if (this->_internal_has_target()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(3, _Internal::target(this),
@@ -8304,12 +8676,12 @@ uint8_t* HostInteropNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.HostInteropNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.HostInteropNode)
   return target;
 }
 
 size_t HostInteropNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.HostInteropNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.HostInteropNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -8323,7 +8695,7 @@ size_t HostInteropNode::ByteSizeLong() const {
         this->_internal_morf());
   }
 
-  // .clojureRT.protobuf.Node target = 3;
+  // .clojure.rt.protobuf.bytecode.Node target = 3;
   if (this->_internal_has_target()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -8348,7 +8720,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*HostInteropNode::GetClassData(
 void HostInteropNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<HostInteropNode*>(&to_msg);
   auto& from = static_cast<const HostInteropNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.HostInteropNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.HostInteropNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -8357,7 +8729,7 @@ void HostInteropNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const 
     _this->_internal_set_morf(from._internal_morf());
   }
   if (from._internal_has_target()) {
-    _this->_internal_mutable_target()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_target()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_target());
   }
   if (from._internal_isassignable() != 0) {
@@ -8367,7 +8739,7 @@ void HostInteropNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const 
 }
 
 void HostInteropNode::CopyFrom(const HostInteropNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.HostInteropNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.HostInteropNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -8397,27 +8769,27 @@ void HostInteropNode::InternalSwap(HostInteropNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata HostInteropNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[12]);
+      file_level_metadata_bytecode_2eproto[13]);
 }
 
 // ===================================================================
 
 class IfNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& else_(const IfNode* msg);
-  static const ::clojureRT::protobuf::Node& test(const IfNode* msg);
-  static const ::clojureRT::protobuf::Node& then(const IfNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& else_(const IfNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& test(const IfNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& then(const IfNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 IfNode::_Internal::else_(const IfNode* msg) {
   return *msg->_impl_.else__;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 IfNode::_Internal::test(const IfNode* msg) {
   return *msg->_impl_.test_;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 IfNode::_Internal::then(const IfNode* msg) {
   return *msg->_impl_.then_;
 }
@@ -8425,7 +8797,7 @@ IfNode::IfNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.IfNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.IfNode)
 }
 IfNode::IfNode(const IfNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -8438,15 +8810,15 @@ IfNode::IfNode(const IfNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_else_()) {
-    _this->_impl_.else__ = new ::clojureRT::protobuf::Node(*from._impl_.else__);
+    _this->_impl_.else__ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.else__);
   }
   if (from._internal_has_test()) {
-    _this->_impl_.test_ = new ::clojureRT::protobuf::Node(*from._impl_.test_);
+    _this->_impl_.test_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.test_);
   }
   if (from._internal_has_then()) {
-    _this->_impl_.then_ = new ::clojureRT::protobuf::Node(*from._impl_.then_);
+    _this->_impl_.then_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.then_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.IfNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.IfNode)
 }
 
 inline void IfNode::SharedCtor(
@@ -8462,7 +8834,7 @@ inline void IfNode::SharedCtor(
 }
 
 IfNode::~IfNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.IfNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.IfNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -8482,7 +8854,7 @@ void IfNode::SetCachedSize(int size) const {
 }
 
 void IfNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.IfNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.IfNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -8508,7 +8880,7 @@ const char* IfNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node else = 1;
+      // .clojure.rt.protobuf.bytecode.Node else = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_else_(), ptr);
@@ -8516,7 +8888,7 @@ const char* IfNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node test = 2;
+      // .clojure.rt.protobuf.bytecode.Node test = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_test(), ptr);
@@ -8524,7 +8896,7 @@ const char* IfNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node then = 3;
+      // .clojure.rt.protobuf.bytecode.Node then = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_then(), ptr);
@@ -8557,25 +8929,25 @@ failure:
 
 uint8_t* IfNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.IfNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.IfNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node else = 1;
+  // .clojure.rt.protobuf.bytecode.Node else = 1;
   if (this->_internal_has_else_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::else_(this),
         _Internal::else_(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node test = 2;
+  // .clojure.rt.protobuf.bytecode.Node test = 2;
   if (this->_internal_has_test()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::test(this),
         _Internal::test(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node then = 3;
+  // .clojure.rt.protobuf.bytecode.Node then = 3;
   if (this->_internal_has_then()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(3, _Internal::then(this),
@@ -8586,33 +8958,33 @@ uint8_t* IfNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.IfNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.IfNode)
   return target;
 }
 
 size_t IfNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.IfNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.IfNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node else = 1;
+  // .clojure.rt.protobuf.bytecode.Node else = 1;
   if (this->_internal_has_else_()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.else__);
   }
 
-  // .clojureRT.protobuf.Node test = 2;
+  // .clojure.rt.protobuf.bytecode.Node test = 2;
   if (this->_internal_has_test()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.test_);
   }
 
-  // .clojureRT.protobuf.Node then = 3;
+  // .clojure.rt.protobuf.bytecode.Node then = 3;
   if (this->_internal_has_then()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -8632,28 +9004,28 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*IfNode::GetClassData() const {
 void IfNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<IfNode*>(&to_msg);
   auto& from = static_cast<const IfNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.IfNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.IfNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_else_()) {
-    _this->_internal_mutable_else_()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_else_()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_else_());
   }
   if (from._internal_has_test()) {
-    _this->_internal_mutable_test()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_test()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_test());
   }
   if (from._internal_has_then()) {
-    _this->_internal_mutable_then()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_then()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_then());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void IfNode::CopyFrom(const IfNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.IfNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.IfNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -8677,7 +9049,7 @@ void IfNode::InternalSwap(IfNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata IfNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[13]);
+      file_level_metadata_bytecode_2eproto[14]);
 }
 
 // ===================================================================
@@ -8690,7 +9062,7 @@ ImportNode::ImportNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.ImportNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.ImportNode)
 }
 ImportNode::ImportNode(const ImportNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -8708,7 +9080,7 @@ ImportNode::ImportNode(const ImportNode& from)
     _this->_impl_.class__.Set(from._internal_class_(), 
       _this->GetArenaForAllocation());
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.ImportNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.ImportNode)
 }
 
 inline void ImportNode::SharedCtor(
@@ -8726,7 +9098,7 @@ inline void ImportNode::SharedCtor(
 }
 
 ImportNode::~ImportNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.ImportNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.ImportNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -8744,7 +9116,7 @@ void ImportNode::SetCachedSize(int size) const {
 }
 
 void ImportNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.ImportNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.ImportNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -8765,7 +9137,7 @@ const char* ImportNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
           auto str = _internal_mutable_class_();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.ImportNode.class"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.ImportNode.class"));
         } else
           goto handle_unusual;
         continue;
@@ -8794,7 +9166,7 @@ failure:
 
 uint8_t* ImportNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.ImportNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.ImportNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -8803,7 +9175,7 @@ uint8_t* ImportNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_class_().data(), static_cast<int>(this->_internal_class_().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.ImportNode.class");
+      "clojure.rt.protobuf.bytecode.ImportNode.class");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_class_(), target);
   }
@@ -8812,12 +9184,12 @@ uint8_t* ImportNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.ImportNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.ImportNode)
   return target;
 }
 
 size_t ImportNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.ImportNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.ImportNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -8844,7 +9216,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ImportNode::GetClassData() con
 void ImportNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<ImportNode*>(&to_msg);
   auto& from = static_cast<const ImportNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.ImportNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.ImportNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -8856,7 +9228,7 @@ void ImportNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PRO
 }
 
 void ImportNode::CopyFrom(const ImportNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.ImportNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.ImportNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -8880,24 +9252,17 @@ void ImportNode::InternalSwap(ImportNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ImportNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[14]);
+      file_level_metadata_bytecode_2eproto[15]);
 }
 
 // ===================================================================
 
 class InstanceCallNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<InstanceCallNode>()._impl_._has_bits_);
-  static void set_has_class_(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
-  static const ::clojureRT::protobuf::Node& instance(const InstanceCallNode* msg);
-  static void set_has_isvalidated(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Node& instance(const InstanceCallNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 InstanceCallNode::_Internal::instance(const InstanceCallNode* msg) {
   return *msg->_impl_.instance_;
 }
@@ -8905,26 +9270,25 @@ InstanceCallNode::InstanceCallNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.InstanceCallNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.InstanceCallNode)
 }
 InstanceCallNode::InstanceCallNode(const InstanceCallNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   InstanceCallNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){from._impl_.args_}
+      decltype(_impl_.args_){from._impl_.args_}
     , decltype(_impl_.class__){}
     , decltype(_impl_.method_){}
     , decltype(_impl_.instance_){nullptr}
-    , decltype(_impl_.isvalidated_){}};
+    , decltype(_impl_.isvalidated_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.class__.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     _impl_.class__.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (from._internal_has_class_()) {
+  if (!from._internal_class_().empty()) {
     _this->_impl_.class__.Set(from._internal_class_(), 
       _this->GetArenaForAllocation());
   }
@@ -8937,10 +9301,10 @@ InstanceCallNode::InstanceCallNode(const InstanceCallNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_instance()) {
-    _this->_impl_.instance_ = new ::clojureRT::protobuf::Node(*from._impl_.instance_);
+    _this->_impl_.instance_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.instance_);
   }
   _this->_impl_.isvalidated_ = from._impl_.isvalidated_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.InstanceCallNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.InstanceCallNode)
 }
 
 inline void InstanceCallNode::SharedCtor(
@@ -8948,13 +9312,12 @@ inline void InstanceCallNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){arena}
+      decltype(_impl_.args_){arena}
     , decltype(_impl_.class__){}
     , decltype(_impl_.method_){}
     , decltype(_impl_.instance_){nullptr}
     , decltype(_impl_.isvalidated_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.class__.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -8967,7 +9330,7 @@ inline void InstanceCallNode::SharedCtor(
 }
 
 InstanceCallNode::~InstanceCallNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.InstanceCallNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.InstanceCallNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -8988,34 +9351,29 @@ void InstanceCallNode::SetCachedSize(int size) const {
 }
 
 void InstanceCallNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.InstanceCallNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.InstanceCallNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   _impl_.args_.Clear();
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    _impl_.class__.ClearNonDefaultToEmpty();
-  }
+  _impl_.class__.ClearToEmpty();
   _impl_.method_.ClearToEmpty();
   if (GetArenaForAllocation() == nullptr && _impl_.instance_ != nullptr) {
     delete _impl_.instance_;
   }
   _impl_.instance_ = nullptr;
   _impl_.isvalidated_ = false;
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* InstanceCallNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node args = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -9028,17 +9386,17 @@ const char* InstanceCallNode::_InternalParse(const char* ptr, ::_pbi::ParseConte
         } else
           goto handle_unusual;
         continue;
-      // optional string class = 2;
+      // string class = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           auto str = _internal_mutable_class_();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.InstanceCallNode.class"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.InstanceCallNode.class"));
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node instance = 3;
+      // .clojure.rt.protobuf.bytecode.Node instance = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_instance(), ptr);
@@ -9052,14 +9410,13 @@ const char* InstanceCallNode::_InternalParse(const char* ptr, ::_pbi::ParseConte
           auto str = _internal_mutable_method();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.InstanceCallNode.method"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.InstanceCallNode.method"));
         } else
           goto handle_unusual;
         continue;
-      // optional bool isValidated = 5;
+      // bool isValidated = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
-          _Internal::set_has_isvalidated(&has_bits);
           _impl_.isvalidated_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -9081,7 +9438,6 @@ const char* InstanceCallNode::_InternalParse(const char* ptr, ::_pbi::ParseConte
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -9091,11 +9447,11 @@ failure:
 
 uint8_t* InstanceCallNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.InstanceCallNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.InstanceCallNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_args_size()); i < n; i++) {
     const auto& repfield = this->_internal_args(i);
@@ -9103,17 +9459,17 @@ uint8_t* InstanceCallNode::_InternalSerialize(
         InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // optional string class = 2;
-  if (_internal_has_class_()) {
+  // string class = 2;
+  if (!this->_internal_class_().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_class_().data(), static_cast<int>(this->_internal_class_().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.InstanceCallNode.class");
+      "clojure.rt.protobuf.bytecode.InstanceCallNode.class");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_class_(), target);
   }
 
-  // .clojureRT.protobuf.Node instance = 3;
+  // .clojure.rt.protobuf.bytecode.Node instance = 3;
   if (this->_internal_has_instance()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(3, _Internal::instance(this),
@@ -9125,13 +9481,13 @@ uint8_t* InstanceCallNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_method().data(), static_cast<int>(this->_internal_method().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.InstanceCallNode.method");
+      "clojure.rt.protobuf.bytecode.InstanceCallNode.method");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_method(), target);
   }
 
-  // optional bool isValidated = 5;
-  if (_internal_has_isvalidated()) {
+  // bool isValidated = 5;
+  if (this->_internal_isvalidated() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(5, this->_internal_isvalidated(), target);
   }
@@ -9140,28 +9496,27 @@ uint8_t* InstanceCallNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.InstanceCallNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.InstanceCallNode)
   return target;
 }
 
 size_t InstanceCallNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.InstanceCallNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.InstanceCallNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   total_size += 1UL * this->_internal_args_size();
   for (const auto& msg : this->_impl_.args_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // optional string class = 2;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // string class = 2;
+  if (!this->_internal_class_().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_class_());
@@ -9174,15 +9529,15 @@ size_t InstanceCallNode::ByteSizeLong() const {
         this->_internal_method());
   }
 
-  // .clojureRT.protobuf.Node instance = 3;
+  // .clojure.rt.protobuf.bytecode.Node instance = 3;
   if (this->_internal_has_instance()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.instance_);
   }
 
-  // optional bool isValidated = 5;
-  if (cached_has_bits & 0x00000002u) {
+  // bool isValidated = 5;
+  if (this->_internal_isvalidated() != 0) {
     total_size += 1 + 1;
   }
 
@@ -9199,30 +9554,30 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*InstanceCallNode::GetClassData
 void InstanceCallNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<InstanceCallNode*>(&to_msg);
   auto& from = static_cast<const InstanceCallNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.InstanceCallNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.InstanceCallNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.args_.MergeFrom(from._impl_.args_);
-  if (from._internal_has_class_()) {
+  if (!from._internal_class_().empty()) {
     _this->_internal_set_class_(from._internal_class_());
   }
   if (!from._internal_method().empty()) {
     _this->_internal_set_method(from._internal_method());
   }
   if (from._internal_has_instance()) {
-    _this->_internal_mutable_instance()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_instance()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_instance());
   }
-  if (from._internal_has_isvalidated()) {
+  if (from._internal_isvalidated() != 0) {
     _this->_internal_set_isvalidated(from._internal_isvalidated());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void InstanceCallNode::CopyFrom(const InstanceCallNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.InstanceCallNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.InstanceCallNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -9237,7 +9592,6 @@ void InstanceCallNode::InternalSwap(InstanceCallNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.args_.InternalSwap(&other->_impl_.args_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.class__, lhs_arena,
@@ -9258,17 +9612,17 @@ void InstanceCallNode::InternalSwap(InstanceCallNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata InstanceCallNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[15]);
+      file_level_metadata_bytecode_2eproto[16]);
 }
 
 // ===================================================================
 
 class InstanceFieldNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& instance(const InstanceFieldNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& instance(const InstanceFieldNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 InstanceFieldNode::_Internal::instance(const InstanceFieldNode* msg) {
   return *msg->_impl_.instance_;
 }
@@ -9276,7 +9630,7 @@ InstanceFieldNode::InstanceFieldNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.InstanceFieldNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.InstanceFieldNode)
 }
 InstanceFieldNode::InstanceFieldNode(const InstanceFieldNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -9306,10 +9660,10 @@ InstanceFieldNode::InstanceFieldNode(const InstanceFieldNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_instance()) {
-    _this->_impl_.instance_ = new ::clojureRT::protobuf::Node(*from._impl_.instance_);
+    _this->_impl_.instance_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.instance_);
   }
   _this->_impl_.isassignable_ = from._impl_.isassignable_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.InstanceFieldNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.InstanceFieldNode)
 }
 
 inline void InstanceFieldNode::SharedCtor(
@@ -9334,7 +9688,7 @@ inline void InstanceFieldNode::SharedCtor(
 }
 
 InstanceFieldNode::~InstanceFieldNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.InstanceFieldNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.InstanceFieldNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -9354,7 +9708,7 @@ void InstanceFieldNode::SetCachedSize(int size) const {
 }
 
 void InstanceFieldNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.InstanceFieldNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.InstanceFieldNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -9389,7 +9743,7 @@ const char* InstanceFieldNode::_InternalParse(const char* ptr, ::_pbi::ParseCont
           auto str = _internal_mutable_class_();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.InstanceFieldNode.class"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.InstanceFieldNode.class"));
         } else
           goto handle_unusual;
         continue;
@@ -9399,11 +9753,11 @@ const char* InstanceFieldNode::_InternalParse(const char* ptr, ::_pbi::ParseCont
           auto str = _internal_mutable_field();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.InstanceFieldNode.field"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.InstanceFieldNode.field"));
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node instance = 4;
+      // .clojure.rt.protobuf.bytecode.Node instance = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_instance(), ptr);
@@ -9436,7 +9790,7 @@ failure:
 
 uint8_t* InstanceFieldNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.InstanceFieldNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.InstanceFieldNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -9451,7 +9805,7 @@ uint8_t* InstanceFieldNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_class_().data(), static_cast<int>(this->_internal_class_().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.InstanceFieldNode.class");
+      "clojure.rt.protobuf.bytecode.InstanceFieldNode.class");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_class_(), target);
   }
@@ -9461,12 +9815,12 @@ uint8_t* InstanceFieldNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_field().data(), static_cast<int>(this->_internal_field().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.InstanceFieldNode.field");
+      "clojure.rt.protobuf.bytecode.InstanceFieldNode.field");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_field(), target);
   }
 
-  // .clojureRT.protobuf.Node instance = 4;
+  // .clojure.rt.protobuf.bytecode.Node instance = 4;
   if (this->_internal_has_instance()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(4, _Internal::instance(this),
@@ -9477,12 +9831,12 @@ uint8_t* InstanceFieldNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.InstanceFieldNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.InstanceFieldNode)
   return target;
 }
 
 size_t InstanceFieldNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.InstanceFieldNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.InstanceFieldNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -9503,7 +9857,7 @@ size_t InstanceFieldNode::ByteSizeLong() const {
         this->_internal_field());
   }
 
-  // .clojureRT.protobuf.Node instance = 4;
+  // .clojure.rt.protobuf.bytecode.Node instance = 4;
   if (this->_internal_has_instance()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -9528,7 +9882,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*InstanceFieldNode::GetClassDat
 void InstanceFieldNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<InstanceFieldNode*>(&to_msg);
   auto& from = static_cast<const InstanceFieldNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.InstanceFieldNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.InstanceFieldNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -9540,7 +9894,7 @@ void InstanceFieldNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, cons
     _this->_internal_set_field(from._internal_field());
   }
   if (from._internal_has_instance()) {
-    _this->_internal_mutable_instance()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_instance()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_instance());
   }
   if (from._internal_isassignable() != 0) {
@@ -9550,7 +9904,7 @@ void InstanceFieldNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, cons
 }
 
 void InstanceFieldNode::CopyFrom(const InstanceFieldNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.InstanceFieldNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.InstanceFieldNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -9584,17 +9938,17 @@ void InstanceFieldNode::InternalSwap(InstanceFieldNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata InstanceFieldNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[16]);
+      file_level_metadata_bytecode_2eproto[17]);
 }
 
 // ===================================================================
 
 class IsInstanceNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& target(const IsInstanceNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& target(const IsInstanceNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 IsInstanceNode::_Internal::target(const IsInstanceNode* msg) {
   return *msg->_impl_.target_;
 }
@@ -9602,7 +9956,7 @@ IsInstanceNode::IsInstanceNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.IsInstanceNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.IsInstanceNode)
 }
 IsInstanceNode::IsInstanceNode(const IsInstanceNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -9622,9 +9976,9 @@ IsInstanceNode::IsInstanceNode(const IsInstanceNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_target()) {
-    _this->_impl_.target_ = new ::clojureRT::protobuf::Node(*from._impl_.target_);
+    _this->_impl_.target_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.target_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.IsInstanceNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.IsInstanceNode)
 }
 
 inline void IsInstanceNode::SharedCtor(
@@ -9643,7 +9997,7 @@ inline void IsInstanceNode::SharedCtor(
 }
 
 IsInstanceNode::~IsInstanceNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.IsInstanceNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.IsInstanceNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -9662,7 +10016,7 @@ void IsInstanceNode::SetCachedSize(int size) const {
 }
 
 void IsInstanceNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.IsInstanceNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.IsInstanceNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -9687,11 +10041,11 @@ const char* IsInstanceNode::_InternalParse(const char* ptr, ::_pbi::ParseContext
           auto str = _internal_mutable_class_();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.IsInstanceNode.class"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.IsInstanceNode.class"));
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node target = 2;
+      // .clojure.rt.protobuf.bytecode.Node target = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_target(), ptr);
@@ -9724,7 +10078,7 @@ failure:
 
 uint8_t* IsInstanceNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.IsInstanceNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.IsInstanceNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -9733,12 +10087,12 @@ uint8_t* IsInstanceNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_class_().data(), static_cast<int>(this->_internal_class_().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.IsInstanceNode.class");
+      "clojure.rt.protobuf.bytecode.IsInstanceNode.class");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_class_(), target);
   }
 
-  // .clojureRT.protobuf.Node target = 2;
+  // .clojure.rt.protobuf.bytecode.Node target = 2;
   if (this->_internal_has_target()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::target(this),
@@ -9749,12 +10103,12 @@ uint8_t* IsInstanceNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.IsInstanceNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.IsInstanceNode)
   return target;
 }
 
 size_t IsInstanceNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.IsInstanceNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.IsInstanceNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -9768,7 +10122,7 @@ size_t IsInstanceNode::ByteSizeLong() const {
         this->_internal_class_());
   }
 
-  // .clojureRT.protobuf.Node target = 2;
+  // .clojure.rt.protobuf.bytecode.Node target = 2;
   if (this->_internal_has_target()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -9788,7 +10142,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*IsInstanceNode::GetClassData()
 void IsInstanceNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<IsInstanceNode*>(&to_msg);
   auto& from = static_cast<const IsInstanceNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.IsInstanceNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.IsInstanceNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -9797,14 +10151,14 @@ void IsInstanceNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const :
     _this->_internal_set_class_(from._internal_class_());
   }
   if (from._internal_has_target()) {
-    _this->_internal_mutable_target()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_target()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_target());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void IsInstanceNode::CopyFrom(const IsInstanceNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.IsInstanceNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.IsInstanceNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -9829,21 +10183,17 @@ void IsInstanceNode::InternalSwap(IsInstanceNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata IsInstanceNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[17]);
+      file_level_metadata_bytecode_2eproto[18]);
 }
 
 // ===================================================================
 
 class InvokeNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<InvokeNode>()._impl_._has_bits_);
-  static const ::clojureRT::protobuf::Node& fn(const InvokeNode* msg);
-  static void set_has_meta(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Node& fn(const InvokeNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 InvokeNode::_Internal::fn(const InvokeNode* msg) {
   return *msg->_impl_.fn_;
 }
@@ -9851,31 +10201,30 @@ InvokeNode::InvokeNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.InvokeNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.InvokeNode)
 }
 InvokeNode::InvokeNode(const InvokeNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   InvokeNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){from._impl_.args_}
+      decltype(_impl_.args_){from._impl_.args_}
     , decltype(_impl_.meta_){}
-    , decltype(_impl_.fn_){nullptr}};
+    , decltype(_impl_.fn_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.meta_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     _impl_.meta_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (from._internal_has_meta()) {
+  if (!from._internal_meta().empty()) {
     _this->_impl_.meta_.Set(from._internal_meta(), 
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_fn()) {
-    _this->_impl_.fn_ = new ::clojureRT::protobuf::Node(*from._impl_.fn_);
+    _this->_impl_.fn_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.fn_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.InvokeNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.InvokeNode)
 }
 
 inline void InvokeNode::SharedCtor(
@@ -9883,11 +10232,10 @@ inline void InvokeNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){arena}
+      decltype(_impl_.args_){arena}
     , decltype(_impl_.meta_){}
     , decltype(_impl_.fn_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.meta_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -9896,7 +10244,7 @@ inline void InvokeNode::SharedCtor(
 }
 
 InvokeNode::~InvokeNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.InvokeNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.InvokeNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -9916,32 +10264,27 @@ void InvokeNode::SetCachedSize(int size) const {
 }
 
 void InvokeNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.InvokeNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.InvokeNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   _impl_.args_.Clear();
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    _impl_.meta_.ClearNonDefaultToEmpty();
-  }
+  _impl_.meta_.ClearToEmpty();
   if (GetArenaForAllocation() == nullptr && _impl_.fn_ != nullptr) {
     delete _impl_.fn_;
   }
   _impl_.fn_ = nullptr;
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* InvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node args = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -9954,7 +10297,7 @@ const char* InvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node fn = 2;
+      // .clojure.rt.protobuf.bytecode.Node fn = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_fn(), ptr);
@@ -9962,13 +10305,13 @@ const char* InvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
         } else
           goto handle_unusual;
         continue;
-      // optional string meta = 3;
+      // string meta = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           auto str = _internal_mutable_meta();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.InvokeNode.meta"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.InvokeNode.meta"));
         } else
           goto handle_unusual;
         continue;
@@ -9988,7 +10331,6 @@ const char* InvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -9998,11 +10340,11 @@ failure:
 
 uint8_t* InvokeNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.InvokeNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.InvokeNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_args_size()); i < n; i++) {
     const auto& repfield = this->_internal_args(i);
@@ -10010,19 +10352,19 @@ uint8_t* InvokeNode::_InternalSerialize(
         InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node fn = 2;
+  // .clojure.rt.protobuf.bytecode.Node fn = 2;
   if (this->_internal_has_fn()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::fn(this),
         _Internal::fn(this).GetCachedSize(), target, stream);
   }
 
-  // optional string meta = 3;
-  if (_internal_has_meta()) {
+  // string meta = 3;
+  if (!this->_internal_meta().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_meta().data(), static_cast<int>(this->_internal_meta().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.InvokeNode.meta");
+      "clojure.rt.protobuf.bytecode.InvokeNode.meta");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_meta(), target);
   }
@@ -10031,34 +10373,33 @@ uint8_t* InvokeNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.InvokeNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.InvokeNode)
   return target;
 }
 
 size_t InvokeNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.InvokeNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.InvokeNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   total_size += 1UL * this->_internal_args_size();
   for (const auto& msg : this->_impl_.args_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // optional string meta = 3;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // string meta = 3;
+  if (!this->_internal_meta().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_meta());
   }
 
-  // .clojureRT.protobuf.Node fn = 2;
+  // .clojure.rt.protobuf.bytecode.Node fn = 2;
   if (this->_internal_has_fn()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -10078,24 +10419,24 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*InvokeNode::GetClassData() con
 void InvokeNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<InvokeNode*>(&to_msg);
   auto& from = static_cast<const InvokeNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.InvokeNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.InvokeNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.args_.MergeFrom(from._impl_.args_);
-  if (from._internal_has_meta()) {
+  if (!from._internal_meta().empty()) {
     _this->_internal_set_meta(from._internal_meta());
   }
   if (from._internal_has_fn()) {
-    _this->_internal_mutable_fn()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_fn()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_fn());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void InvokeNode::CopyFrom(const InvokeNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.InvokeNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.InvokeNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -10110,7 +10451,6 @@ void InvokeNode::InternalSwap(InvokeNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.args_.InternalSwap(&other->_impl_.args_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.meta_, lhs_arena,
@@ -10122,22 +10462,22 @@ void InvokeNode::InternalSwap(InvokeNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata InvokeNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[18]);
+      file_level_metadata_bytecode_2eproto[19]);
 }
 
 // ===================================================================
 
 class KeywordInvokeNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& keyword(const KeywordInvokeNode* msg);
-  static const ::clojureRT::protobuf::Node& target(const KeywordInvokeNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& keyword(const KeywordInvokeNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& target(const KeywordInvokeNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 KeywordInvokeNode::_Internal::keyword(const KeywordInvokeNode* msg) {
   return *msg->_impl_.keyword_;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 KeywordInvokeNode::_Internal::target(const KeywordInvokeNode* msg) {
   return *msg->_impl_.target_;
 }
@@ -10145,7 +10485,7 @@ KeywordInvokeNode::KeywordInvokeNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.KeywordInvokeNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.KeywordInvokeNode)
 }
 KeywordInvokeNode::KeywordInvokeNode(const KeywordInvokeNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -10157,12 +10497,12 @@ KeywordInvokeNode::KeywordInvokeNode(const KeywordInvokeNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_keyword()) {
-    _this->_impl_.keyword_ = new ::clojureRT::protobuf::Node(*from._impl_.keyword_);
+    _this->_impl_.keyword_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.keyword_);
   }
   if (from._internal_has_target()) {
-    _this->_impl_.target_ = new ::clojureRT::protobuf::Node(*from._impl_.target_);
+    _this->_impl_.target_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.target_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.KeywordInvokeNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.KeywordInvokeNode)
 }
 
 inline void KeywordInvokeNode::SharedCtor(
@@ -10177,7 +10517,7 @@ inline void KeywordInvokeNode::SharedCtor(
 }
 
 KeywordInvokeNode::~KeywordInvokeNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.KeywordInvokeNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.KeywordInvokeNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -10196,7 +10536,7 @@ void KeywordInvokeNode::SetCachedSize(int size) const {
 }
 
 void KeywordInvokeNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.KeywordInvokeNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.KeywordInvokeNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -10218,7 +10558,7 @@ const char* KeywordInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseCont
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node keyword = 1;
+      // .clojure.rt.protobuf.bytecode.Node keyword = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_keyword(), ptr);
@@ -10226,7 +10566,7 @@ const char* KeywordInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseCont
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node target = 2;
+      // .clojure.rt.protobuf.bytecode.Node target = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_target(), ptr);
@@ -10259,18 +10599,18 @@ failure:
 
 uint8_t* KeywordInvokeNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.KeywordInvokeNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.KeywordInvokeNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node keyword = 1;
+  // .clojure.rt.protobuf.bytecode.Node keyword = 1;
   if (this->_internal_has_keyword()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::keyword(this),
         _Internal::keyword(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node target = 2;
+  // .clojure.rt.protobuf.bytecode.Node target = 2;
   if (this->_internal_has_target()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::target(this),
@@ -10281,26 +10621,26 @@ uint8_t* KeywordInvokeNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.KeywordInvokeNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.KeywordInvokeNode)
   return target;
 }
 
 size_t KeywordInvokeNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.KeywordInvokeNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.KeywordInvokeNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node keyword = 1;
+  // .clojure.rt.protobuf.bytecode.Node keyword = 1;
   if (this->_internal_has_keyword()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.keyword_);
   }
 
-  // .clojureRT.protobuf.Node target = 2;
+  // .clojure.rt.protobuf.bytecode.Node target = 2;
   if (this->_internal_has_target()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -10320,24 +10660,24 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*KeywordInvokeNode::GetClassDat
 void KeywordInvokeNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<KeywordInvokeNode*>(&to_msg);
   auto& from = static_cast<const KeywordInvokeNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.KeywordInvokeNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.KeywordInvokeNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_keyword()) {
-    _this->_internal_mutable_keyword()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_keyword()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_keyword());
   }
   if (from._internal_has_target()) {
-    _this->_internal_mutable_target()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_target()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_target());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void KeywordInvokeNode::CopyFrom(const KeywordInvokeNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.KeywordInvokeNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.KeywordInvokeNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -10361,17 +10701,17 @@ void KeywordInvokeNode::InternalSwap(KeywordInvokeNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata KeywordInvokeNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[19]);
+      file_level_metadata_bytecode_2eproto[20]);
 }
 
 // ===================================================================
 
 class LetNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& body(const LetNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& body(const LetNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 LetNode::_Internal::body(const LetNode* msg) {
   return *msg->_impl_.body_;
 }
@@ -10379,7 +10719,7 @@ LetNode::LetNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.LetNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.LetNode)
 }
 LetNode::LetNode(const LetNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -10391,9 +10731,9 @@ LetNode::LetNode(const LetNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_body()) {
-    _this->_impl_.body_ = new ::clojureRT::protobuf::Node(*from._impl_.body_);
+    _this->_impl_.body_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.body_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.LetNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.LetNode)
 }
 
 inline void LetNode::SharedCtor(
@@ -10408,7 +10748,7 @@ inline void LetNode::SharedCtor(
 }
 
 LetNode::~LetNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.LetNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.LetNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -10427,7 +10767,7 @@ void LetNode::SetCachedSize(int size) const {
 }
 
 void LetNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.LetNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.LetNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -10446,7 +10786,7 @@ const char* LetNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node bindings = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node bindings = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -10459,7 +10799,7 @@ const char* LetNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node body = 2;
+      // .clojure.rt.protobuf.bytecode.Node body = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_body(), ptr);
@@ -10492,11 +10832,11 @@ failure:
 
 uint8_t* LetNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.LetNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.LetNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node bindings = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node bindings = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_bindings_size()); i < n; i++) {
     const auto& repfield = this->_internal_bindings(i);
@@ -10504,7 +10844,7 @@ uint8_t* LetNode::_InternalSerialize(
         InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node body = 2;
+  // .clojure.rt.protobuf.bytecode.Node body = 2;
   if (this->_internal_has_body()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::body(this),
@@ -10515,26 +10855,26 @@ uint8_t* LetNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.LetNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.LetNode)
   return target;
 }
 
 size_t LetNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.LetNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.LetNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node bindings = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node bindings = 1;
   total_size += 1UL * this->_internal_bindings_size();
   for (const auto& msg : this->_impl_.bindings_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // .clojureRT.protobuf.Node body = 2;
+  // .clojure.rt.protobuf.bytecode.Node body = 2;
   if (this->_internal_has_body()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -10554,21 +10894,21 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*LetNode::GetClassData() const 
 void LetNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<LetNode*>(&to_msg);
   auto& from = static_cast<const LetNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.LetNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.LetNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.bindings_.MergeFrom(from._impl_.bindings_);
   if (from._internal_has_body()) {
-    _this->_internal_mutable_body()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_body()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_body());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void LetNode::CopyFrom(const LetNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.LetNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.LetNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -10588,17 +10928,17 @@ void LetNode::InternalSwap(LetNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata LetNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[20]);
+      file_level_metadata_bytecode_2eproto[21]);
 }
 
 // ===================================================================
 
 class LetfnNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& body(const LetfnNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& body(const LetfnNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 LetfnNode::_Internal::body(const LetfnNode* msg) {
   return *msg->_impl_.body_;
 }
@@ -10606,7 +10946,7 @@ LetfnNode::LetfnNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.LetfnNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.LetfnNode)
 }
 LetfnNode::LetfnNode(const LetfnNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -10618,9 +10958,9 @@ LetfnNode::LetfnNode(const LetfnNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_body()) {
-    _this->_impl_.body_ = new ::clojureRT::protobuf::Node(*from._impl_.body_);
+    _this->_impl_.body_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.body_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.LetfnNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.LetfnNode)
 }
 
 inline void LetfnNode::SharedCtor(
@@ -10635,7 +10975,7 @@ inline void LetfnNode::SharedCtor(
 }
 
 LetfnNode::~LetfnNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.LetfnNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.LetfnNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -10654,7 +10994,7 @@ void LetfnNode::SetCachedSize(int size) const {
 }
 
 void LetfnNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.LetfnNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.LetfnNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -10673,7 +11013,7 @@ const char* LetfnNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node bindings = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node bindings = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -10686,7 +11026,7 @@ const char* LetfnNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node body = 2;
+      // .clojure.rt.protobuf.bytecode.Node body = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_body(), ptr);
@@ -10719,11 +11059,11 @@ failure:
 
 uint8_t* LetfnNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.LetfnNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.LetfnNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node bindings = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node bindings = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_bindings_size()); i < n; i++) {
     const auto& repfield = this->_internal_bindings(i);
@@ -10731,7 +11071,7 @@ uint8_t* LetfnNode::_InternalSerialize(
         InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node body = 2;
+  // .clojure.rt.protobuf.bytecode.Node body = 2;
   if (this->_internal_has_body()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::body(this),
@@ -10742,26 +11082,26 @@ uint8_t* LetfnNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.LetfnNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.LetfnNode)
   return target;
 }
 
 size_t LetfnNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.LetfnNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.LetfnNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node bindings = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node bindings = 1;
   total_size += 1UL * this->_internal_bindings_size();
   for (const auto& msg : this->_impl_.bindings_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // .clojureRT.protobuf.Node body = 2;
+  // .clojure.rt.protobuf.bytecode.Node body = 2;
   if (this->_internal_has_body()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -10781,21 +11121,21 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*LetfnNode::GetClassData() cons
 void LetfnNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<LetfnNode*>(&to_msg);
   auto& from = static_cast<const LetfnNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.LetfnNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.LetfnNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.bindings_.MergeFrom(from._impl_.bindings_);
   if (from._internal_has_body()) {
-    _this->_internal_mutable_body()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_body()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_body());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void LetfnNode::CopyFrom(const LetfnNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.LetfnNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.LetfnNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -10815,39 +11155,31 @@ void LetfnNode::InternalSwap(LetfnNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata LetfnNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[21]);
+      file_level_metadata_bytecode_2eproto[22]);
 }
 
 // ===================================================================
 
 class LocalNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<LocalNode>()._impl_._has_bits_);
-  static void set_has_argid(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
-  static void set_has_isvariadic(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
-  }
 };
 
 LocalNode::LocalNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.LocalNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.LocalNode)
 }
 LocalNode::LocalNode(const LocalNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   LocalNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.name_){}
+      decltype(_impl_.name_){}
     , decltype(_impl_.argid_){}
     , decltype(_impl_.local_){}
     , decltype(_impl_.isassignable_){}
-    , decltype(_impl_.isvariadic_){}};
+    , decltype(_impl_.isvariadic_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.name_.InitDefault();
@@ -10861,7 +11193,7 @@ LocalNode::LocalNode(const LocalNode& from)
   ::memcpy(&_impl_.argid_, &from._impl_.argid_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.isvariadic_) -
     reinterpret_cast<char*>(&_impl_.argid_)) + sizeof(_impl_.isvariadic_));
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.LocalNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.LocalNode)
 }
 
 inline void LocalNode::SharedCtor(
@@ -10869,13 +11201,12 @@ inline void LocalNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.name_){}
+      decltype(_impl_.name_){}
     , decltype(_impl_.argid_){0u}
     , decltype(_impl_.local_){0}
     , decltype(_impl_.isassignable_){false}
     , decltype(_impl_.isvariadic_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.name_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -10884,7 +11215,7 @@ inline void LocalNode::SharedCtor(
 }
 
 LocalNode::~LocalNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.LocalNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.LocalNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -10902,32 +11233,27 @@ void LocalNode::SetCachedSize(int size) const {
 }
 
 void LocalNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.LocalNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.LocalNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   _impl_.name_.ClearToEmpty();
-  _impl_.argid_ = 0u;
-  ::memset(&_impl_.local_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.isassignable_) -
-      reinterpret_cast<char*>(&_impl_.local_)) + sizeof(_impl_.isassignable_));
-  _impl_.isvariadic_ = false;
-  _impl_._has_bits_.Clear();
+  ::memset(&_impl_.argid_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.isvariadic_) -
+      reinterpret_cast<char*>(&_impl_.argid_)) + sizeof(_impl_.isvariadic_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* LocalNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // optional uint32 argId = 1;
+      // uint32 argId = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
-          _Internal::set_has_argid(&has_bits);
           _impl_.argid_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
@@ -10941,12 +11267,12 @@ const char* LocalNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.LocalType local = 3;
+      // .clojure.rt.protobuf.bytecode.LocalType local = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_local(static_cast<::clojureRT::protobuf::LocalType>(val));
+          _internal_set_local(static_cast<::clojure::rt::protobuf::bytecode::LocalType>(val));
         } else
           goto handle_unusual;
         continue;
@@ -10956,14 +11282,13 @@ const char* LocalNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.LocalNode.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.LocalNode.name"));
         } else
           goto handle_unusual;
         continue;
-      // optional bool isVariadic = 5;
+      // bool isVariadic = 5;
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
-          _Internal::set_has_isvariadic(&has_bits);
           _impl_.isvariadic_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -10985,7 +11310,6 @@ const char* LocalNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -10995,12 +11319,12 @@ failure:
 
 uint8_t* LocalNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.LocalNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.LocalNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // optional uint32 argId = 1;
-  if (_internal_has_argid()) {
+  // uint32 argId = 1;
+  if (this->_internal_argid() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_argid(), target);
   }
@@ -11011,7 +11335,7 @@ uint8_t* LocalNode::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(2, this->_internal_isassignable(), target);
   }
 
-  // .clojureRT.protobuf.LocalType local = 3;
+  // .clojure.rt.protobuf.bytecode.LocalType local = 3;
   if (this->_internal_local() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -11023,13 +11347,13 @@ uint8_t* LocalNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.LocalNode.name");
+      "clojure.rt.protobuf.bytecode.LocalNode.name");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_name(), target);
   }
 
-  // optional bool isVariadic = 5;
-  if (_internal_has_isvariadic()) {
+  // bool isVariadic = 5;
+  if (this->_internal_isvariadic() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(5, this->_internal_isvariadic(), target);
   }
@@ -11038,12 +11362,12 @@ uint8_t* LocalNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.LocalNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.LocalNode)
   return target;
 }
 
 size_t LocalNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.LocalNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.LocalNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -11057,13 +11381,12 @@ size_t LocalNode::ByteSizeLong() const {
         this->_internal_name());
   }
 
-  // optional uint32 argId = 1;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // uint32 argId = 1;
+  if (this->_internal_argid() != 0) {
     total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_argid());
   }
 
-  // .clojureRT.protobuf.LocalType local = 3;
+  // .clojure.rt.protobuf.bytecode.LocalType local = 3;
   if (this->_internal_local() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_local());
@@ -11074,8 +11397,8 @@ size_t LocalNode::ByteSizeLong() const {
     total_size += 1 + 1;
   }
 
-  // optional bool isVariadic = 5;
-  if (cached_has_bits & 0x00000002u) {
+  // bool isVariadic = 5;
+  if (this->_internal_isvariadic() != 0) {
     total_size += 1 + 1;
   }
 
@@ -11092,7 +11415,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*LocalNode::GetClassData() cons
 void LocalNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<LocalNode*>(&to_msg);
   auto& from = static_cast<const LocalNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.LocalNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.LocalNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -11100,7 +11423,7 @@ void LocalNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
   if (!from._internal_name().empty()) {
     _this->_internal_set_name(from._internal_name());
   }
-  if (from._internal_has_argid()) {
+  if (from._internal_argid() != 0) {
     _this->_internal_set_argid(from._internal_argid());
   }
   if (from._internal_local() != 0) {
@@ -11109,14 +11432,14 @@ void LocalNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
   if (from._internal_isassignable() != 0) {
     _this->_internal_set_isassignable(from._internal_isassignable());
   }
-  if (from._internal_has_isvariadic()) {
+  if (from._internal_isvariadic() != 0) {
     _this->_internal_set_isvariadic(from._internal_isvariadic());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void LocalNode::CopyFrom(const LocalNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.LocalNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.LocalNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -11131,7 +11454,6 @@ void LocalNode::InternalSwap(LocalNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.name_, lhs_arena,
       &other->_impl_.name_, rhs_arena
@@ -11147,17 +11469,17 @@ void LocalNode::InternalSwap(LocalNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata LocalNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[22]);
+      file_level_metadata_bytecode_2eproto[23]);
 }
 
 // ===================================================================
 
 class LoopNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& body(const LoopNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& body(const LoopNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 LoopNode::_Internal::body(const LoopNode* msg) {
   return *msg->_impl_.body_;
 }
@@ -11165,7 +11487,7 @@ LoopNode::LoopNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.LoopNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.LoopNode)
 }
 LoopNode::LoopNode(const LoopNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -11186,9 +11508,9 @@ LoopNode::LoopNode(const LoopNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_body()) {
-    _this->_impl_.body_ = new ::clojureRT::protobuf::Node(*from._impl_.body_);
+    _this->_impl_.body_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.body_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.LoopNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.LoopNode)
 }
 
 inline void LoopNode::SharedCtor(
@@ -11208,7 +11530,7 @@ inline void LoopNode::SharedCtor(
 }
 
 LoopNode::~LoopNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.LoopNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.LoopNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -11228,7 +11550,7 @@ void LoopNode::SetCachedSize(int size) const {
 }
 
 void LoopNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.LoopNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.LoopNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -11248,7 +11570,7 @@ const char* LoopNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node bindings = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node bindings = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -11261,7 +11583,7 @@ const char* LoopNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node body = 2;
+      // .clojure.rt.protobuf.bytecode.Node body = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_body(), ptr);
@@ -11275,7 +11597,7 @@ const char* LoopNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx)
           auto str = _internal_mutable_loopid();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.LoopNode.loopId"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.LoopNode.loopId"));
         } else
           goto handle_unusual;
         continue;
@@ -11304,11 +11626,11 @@ failure:
 
 uint8_t* LoopNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.LoopNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.LoopNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node bindings = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node bindings = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_bindings_size()); i < n; i++) {
     const auto& repfield = this->_internal_bindings(i);
@@ -11316,7 +11638,7 @@ uint8_t* LoopNode::_InternalSerialize(
         InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node body = 2;
+  // .clojure.rt.protobuf.bytecode.Node body = 2;
   if (this->_internal_has_body()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::body(this),
@@ -11328,7 +11650,7 @@ uint8_t* LoopNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_loopid().data(), static_cast<int>(this->_internal_loopid().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.LoopNode.loopId");
+      "clojure.rt.protobuf.bytecode.LoopNode.loopId");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_loopid(), target);
   }
@@ -11337,19 +11659,19 @@ uint8_t* LoopNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.LoopNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.LoopNode)
   return target;
 }
 
 size_t LoopNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.LoopNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.LoopNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node bindings = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node bindings = 1;
   total_size += 1UL * this->_internal_bindings_size();
   for (const auto& msg : this->_impl_.bindings_) {
     total_size +=
@@ -11363,7 +11685,7 @@ size_t LoopNode::ByteSizeLong() const {
         this->_internal_loopid());
   }
 
-  // .clojureRT.protobuf.Node body = 2;
+  // .clojure.rt.protobuf.bytecode.Node body = 2;
   if (this->_internal_has_body()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -11383,7 +11705,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*LoopNode::GetClassData() const
 void LoopNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<LoopNode*>(&to_msg);
   auto& from = static_cast<const LoopNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.LoopNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.LoopNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -11393,14 +11715,14 @@ void LoopNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTO
     _this->_internal_set_loopid(from._internal_loopid());
   }
   if (from._internal_has_body()) {
-    _this->_internal_mutable_body()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_body()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_body());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void LoopNode::CopyFrom(const LoopNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.LoopNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.LoopNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -11426,7 +11748,7 @@ void LoopNode::InternalSwap(LoopNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata LoopNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[23]);
+      file_level_metadata_bytecode_2eproto[24]);
 }
 
 // ===================================================================
@@ -11439,7 +11761,7 @@ MapNode::MapNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.MapNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.MapNode)
 }
 MapNode::MapNode(const MapNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -11450,7 +11772,7 @@ MapNode::MapNode(const MapNode& from)
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.MapNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.MapNode)
 }
 
 inline void MapNode::SharedCtor(
@@ -11465,7 +11787,7 @@ inline void MapNode::SharedCtor(
 }
 
 MapNode::~MapNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.MapNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.MapNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -11484,7 +11806,7 @@ void MapNode::SetCachedSize(int size) const {
 }
 
 void MapNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.MapNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.MapNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -11500,7 +11822,7 @@ const char* MapNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node keys = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node keys = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -11513,7 +11835,7 @@ const char* MapNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node vals = 2;
+      // repeated .clojure.rt.protobuf.bytecode.Node vals = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -11551,11 +11873,11 @@ failure:
 
 uint8_t* MapNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.MapNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.MapNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node keys = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node keys = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_keys_size()); i < n; i++) {
     const auto& repfield = this->_internal_keys(i);
@@ -11563,7 +11885,7 @@ uint8_t* MapNode::_InternalSerialize(
         InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // repeated .clojureRT.protobuf.Node vals = 2;
+  // repeated .clojure.rt.protobuf.bytecode.Node vals = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_vals_size()); i < n; i++) {
     const auto& repfield = this->_internal_vals(i);
@@ -11575,26 +11897,26 @@ uint8_t* MapNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.MapNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.MapNode)
   return target;
 }
 
 size_t MapNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.MapNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.MapNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node keys = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node keys = 1;
   total_size += 1UL * this->_internal_keys_size();
   for (const auto& msg : this->_impl_.keys_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // repeated .clojureRT.protobuf.Node vals = 2;
+  // repeated .clojure.rt.protobuf.bytecode.Node vals = 2;
   total_size += 1UL * this->_internal_vals_size();
   for (const auto& msg : this->_impl_.vals_) {
     total_size +=
@@ -11614,7 +11936,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*MapNode::GetClassData() const 
 void MapNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<MapNode*>(&to_msg);
   auto& from = static_cast<const MapNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.MapNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.MapNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -11625,7 +11947,7 @@ void MapNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOB
 }
 
 void MapNode::CopyFrom(const MapNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.MapNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.MapNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -11645,22 +11967,22 @@ void MapNode::InternalSwap(MapNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata MapNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[24]);
+      file_level_metadata_bytecode_2eproto[25]);
 }
 
 // ===================================================================
 
 class MethodNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& body(const MethodNode* msg);
-  static const ::clojureRT::protobuf::Node& this_(const MethodNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& body(const MethodNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& this_(const MethodNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 MethodNode::_Internal::body(const MethodNode* msg) {
   return *msg->_impl_.body_;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 MethodNode::_Internal::this_(const MethodNode* msg) {
   return *msg->_impl_.this__;
 }
@@ -11668,7 +11990,7 @@ MethodNode::MethodNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.MethodNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.MethodNode)
 }
 MethodNode::MethodNode(const MethodNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -11710,13 +12032,13 @@ MethodNode::MethodNode(const MethodNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_body()) {
-    _this->_impl_.body_ = new ::clojureRT::protobuf::Node(*from._impl_.body_);
+    _this->_impl_.body_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.body_);
   }
   if (from._internal_has_this_()) {
-    _this->_impl_.this__ = new ::clojureRT::protobuf::Node(*from._impl_.this__);
+    _this->_impl_.this__ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.this__);
   }
   _this->_impl_.fixedarity_ = from._impl_.fixedarity_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.MethodNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.MethodNode)
 }
 
 inline void MethodNode::SharedCtor(
@@ -11749,7 +12071,7 @@ inline void MethodNode::SharedCtor(
 }
 
 MethodNode::~MethodNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.MethodNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.MethodNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -11773,7 +12095,7 @@ void MethodNode::SetCachedSize(int size) const {
 }
 
 void MethodNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.MethodNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.MethodNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -11801,7 +12123,7 @@ const char* MethodNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node body = 1;
+      // .clojure.rt.protobuf.bytecode.Node body = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_body(), ptr);
@@ -11818,7 +12140,7 @@ const char* MethodNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
             auto str = _internal_add_bridges();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.MethodNode.bridges"));
+            CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.MethodNode.bridges"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
         } else
@@ -11838,7 +12160,7 @@ const char* MethodNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
           auto str = _internal_mutable_interface();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.MethodNode.interface"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.MethodNode.interface"));
         } else
           goto handle_unusual;
         continue;
@@ -11848,7 +12170,7 @@ const char* MethodNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
           auto str = _internal_mutable_loopid();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.MethodNode.loopId"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.MethodNode.loopId"));
         } else
           goto handle_unusual;
         continue;
@@ -11858,11 +12180,11 @@ const char* MethodNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
           auto str = _internal_mutable_name();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.MethodNode.name"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.MethodNode.name"));
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node params = 7;
+      // repeated .clojure.rt.protobuf.bytecode.Node params = 7;
       case 7:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 58)) {
           ptr -= 1;
@@ -11875,7 +12197,7 @@ const char* MethodNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node this = 8;
+      // .clojure.rt.protobuf.bytecode.Node this = 8;
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
           ptr = ctx->ParseMessage(_internal_mutable_this_(), ptr);
@@ -11908,11 +12230,11 @@ failure:
 
 uint8_t* MethodNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.MethodNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.MethodNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node body = 1;
+  // .clojure.rt.protobuf.bytecode.Node body = 1;
   if (this->_internal_has_body()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::body(this),
@@ -11925,7 +12247,7 @@ uint8_t* MethodNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.MethodNode.bridges");
+      "clojure.rt.protobuf.bytecode.MethodNode.bridges");
     target = stream->WriteString(2, s, target);
   }
 
@@ -11940,7 +12262,7 @@ uint8_t* MethodNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_interface().data(), static_cast<int>(this->_internal_interface().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.MethodNode.interface");
+      "clojure.rt.protobuf.bytecode.MethodNode.interface");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_interface(), target);
   }
@@ -11950,7 +12272,7 @@ uint8_t* MethodNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_loopid().data(), static_cast<int>(this->_internal_loopid().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.MethodNode.loopId");
+      "clojure.rt.protobuf.bytecode.MethodNode.loopId");
     target = stream->WriteStringMaybeAliased(
         5, this->_internal_loopid(), target);
   }
@@ -11960,12 +12282,12 @@ uint8_t* MethodNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.MethodNode.name");
+      "clojure.rt.protobuf.bytecode.MethodNode.name");
     target = stream->WriteStringMaybeAliased(
         6, this->_internal_name(), target);
   }
 
-  // repeated .clojureRT.protobuf.Node params = 7;
+  // repeated .clojure.rt.protobuf.bytecode.Node params = 7;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_params_size()); i < n; i++) {
     const auto& repfield = this->_internal_params(i);
@@ -11973,7 +12295,7 @@ uint8_t* MethodNode::_InternalSerialize(
         InternalWriteMessage(7, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node this = 8;
+  // .clojure.rt.protobuf.bytecode.Node this = 8;
   if (this->_internal_has_this_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(8, _Internal::this_(this),
@@ -11984,12 +12306,12 @@ uint8_t* MethodNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.MethodNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.MethodNode)
   return target;
 }
 
 size_t MethodNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.MethodNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.MethodNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -12004,7 +12326,7 @@ size_t MethodNode::ByteSizeLong() const {
       _impl_.bridges_.Get(i));
   }
 
-  // repeated .clojureRT.protobuf.Node params = 7;
+  // repeated .clojure.rt.protobuf.bytecode.Node params = 7;
   total_size += 1UL * this->_internal_params_size();
   for (const auto& msg : this->_impl_.params_) {
     total_size +=
@@ -12032,14 +12354,14 @@ size_t MethodNode::ByteSizeLong() const {
         this->_internal_name());
   }
 
-  // .clojureRT.protobuf.Node body = 1;
+  // .clojure.rt.protobuf.bytecode.Node body = 1;
   if (this->_internal_has_body()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.body_);
   }
 
-  // .clojureRT.protobuf.Node this = 8;
+  // .clojure.rt.protobuf.bytecode.Node this = 8;
   if (this->_internal_has_this_()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -12064,7 +12386,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*MethodNode::GetClassData() con
 void MethodNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<MethodNode*>(&to_msg);
   auto& from = static_cast<const MethodNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.MethodNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.MethodNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -12081,11 +12403,11 @@ void MethodNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PRO
     _this->_internal_set_name(from._internal_name());
   }
   if (from._internal_has_body()) {
-    _this->_internal_mutable_body()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_body()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_body());
   }
   if (from._internal_has_this_()) {
-    _this->_internal_mutable_this_()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_this_()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_this_());
   }
   if (from._internal_fixedarity() != 0) {
@@ -12095,7 +12417,7 @@ void MethodNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PRO
 }
 
 void MethodNode::CopyFrom(const MethodNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.MethodNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.MethodNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -12135,17 +12457,17 @@ void MethodNode::InternalSwap(MethodNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata MethodNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[25]);
+      file_level_metadata_bytecode_2eproto[26]);
 }
 
 // ===================================================================
 
 class MonitorEnterNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& target(const MonitorEnterNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& target(const MonitorEnterNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 MonitorEnterNode::_Internal::target(const MonitorEnterNode* msg) {
   return *msg->_impl_.target_;
 }
@@ -12153,7 +12475,7 @@ MonitorEnterNode::MonitorEnterNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.MonitorEnterNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.MonitorEnterNode)
 }
 MonitorEnterNode::MonitorEnterNode(const MonitorEnterNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -12164,9 +12486,9 @@ MonitorEnterNode::MonitorEnterNode(const MonitorEnterNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_target()) {
-    _this->_impl_.target_ = new ::clojureRT::protobuf::Node(*from._impl_.target_);
+    _this->_impl_.target_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.target_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.MonitorEnterNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.MonitorEnterNode)
 }
 
 inline void MonitorEnterNode::SharedCtor(
@@ -12180,7 +12502,7 @@ inline void MonitorEnterNode::SharedCtor(
 }
 
 MonitorEnterNode::~MonitorEnterNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.MonitorEnterNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.MonitorEnterNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -12198,7 +12520,7 @@ void MonitorEnterNode::SetCachedSize(int size) const {
 }
 
 void MonitorEnterNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.MonitorEnterNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.MonitorEnterNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -12216,7 +12538,7 @@ const char* MonitorEnterNode::_InternalParse(const char* ptr, ::_pbi::ParseConte
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node target = 1;
+      // .clojure.rt.protobuf.bytecode.Node target = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_target(), ptr);
@@ -12249,11 +12571,11 @@ failure:
 
 uint8_t* MonitorEnterNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.MonitorEnterNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.MonitorEnterNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node target = 1;
+  // .clojure.rt.protobuf.bytecode.Node target = 1;
   if (this->_internal_has_target()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::target(this),
@@ -12264,19 +12586,19 @@ uint8_t* MonitorEnterNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.MonitorEnterNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.MonitorEnterNode)
   return target;
 }
 
 size_t MonitorEnterNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.MonitorEnterNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.MonitorEnterNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node target = 1;
+  // .clojure.rt.protobuf.bytecode.Node target = 1;
   if (this->_internal_has_target()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -12296,20 +12618,20 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*MonitorEnterNode::GetClassData
 void MonitorEnterNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<MonitorEnterNode*>(&to_msg);
   auto& from = static_cast<const MonitorEnterNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.MonitorEnterNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.MonitorEnterNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_target()) {
-    _this->_internal_mutable_target()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_target()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_target());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void MonitorEnterNode::CopyFrom(const MonitorEnterNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.MonitorEnterNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.MonitorEnterNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -12328,17 +12650,17 @@ void MonitorEnterNode::InternalSwap(MonitorEnterNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata MonitorEnterNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[26]);
+      file_level_metadata_bytecode_2eproto[27]);
 }
 
 // ===================================================================
 
 class MonitorExitNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& target(const MonitorExitNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& target(const MonitorExitNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 MonitorExitNode::_Internal::target(const MonitorExitNode* msg) {
   return *msg->_impl_.target_;
 }
@@ -12346,7 +12668,7 @@ MonitorExitNode::MonitorExitNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.MonitorExitNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.MonitorExitNode)
 }
 MonitorExitNode::MonitorExitNode(const MonitorExitNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -12357,9 +12679,9 @@ MonitorExitNode::MonitorExitNode(const MonitorExitNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_target()) {
-    _this->_impl_.target_ = new ::clojureRT::protobuf::Node(*from._impl_.target_);
+    _this->_impl_.target_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.target_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.MonitorExitNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.MonitorExitNode)
 }
 
 inline void MonitorExitNode::SharedCtor(
@@ -12373,7 +12695,7 @@ inline void MonitorExitNode::SharedCtor(
 }
 
 MonitorExitNode::~MonitorExitNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.MonitorExitNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.MonitorExitNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -12391,7 +12713,7 @@ void MonitorExitNode::SetCachedSize(int size) const {
 }
 
 void MonitorExitNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.MonitorExitNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.MonitorExitNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -12409,7 +12731,7 @@ const char* MonitorExitNode::_InternalParse(const char* ptr, ::_pbi::ParseContex
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node target = 1;
+      // .clojure.rt.protobuf.bytecode.Node target = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_target(), ptr);
@@ -12442,11 +12764,11 @@ failure:
 
 uint8_t* MonitorExitNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.MonitorExitNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.MonitorExitNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node target = 1;
+  // .clojure.rt.protobuf.bytecode.Node target = 1;
   if (this->_internal_has_target()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::target(this),
@@ -12457,19 +12779,19 @@ uint8_t* MonitorExitNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.MonitorExitNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.MonitorExitNode)
   return target;
 }
 
 size_t MonitorExitNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.MonitorExitNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.MonitorExitNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node target = 1;
+  // .clojure.rt.protobuf.bytecode.Node target = 1;
   if (this->_internal_has_target()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -12489,20 +12811,20 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*MonitorExitNode::GetClassData(
 void MonitorExitNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<MonitorExitNode*>(&to_msg);
   auto& from = static_cast<const MonitorExitNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.MonitorExitNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.MonitorExitNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_target()) {
-    _this->_internal_mutable_target()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_target()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_target());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void MonitorExitNode::CopyFrom(const MonitorExitNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.MonitorExitNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.MonitorExitNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -12521,21 +12843,17 @@ void MonitorExitNode::InternalSwap(MonitorExitNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata MonitorExitNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[27]);
+      file_level_metadata_bytecode_2eproto[28]);
 }
 
 // ===================================================================
 
 class NewNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<NewNode>()._impl_._has_bits_);
-  static const ::clojureRT::protobuf::Node& class_(const NewNode* msg);
-  static void set_has_isvalidated(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Node& class_(const NewNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 NewNode::_Internal::class_(const NewNode* msg) {
   return *msg->_impl_.class__;
 }
@@ -12543,24 +12861,23 @@ NewNode::NewNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.NewNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.NewNode)
 }
 NewNode::NewNode(const NewNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   NewNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){from._impl_.args_}
+      decltype(_impl_.args_){from._impl_.args_}
     , decltype(_impl_.class__){nullptr}
-    , decltype(_impl_.isvalidated_){}};
+    , decltype(_impl_.isvalidated_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_class_()) {
-    _this->_impl_.class__ = new ::clojureRT::protobuf::Node(*from._impl_.class__);
+    _this->_impl_.class__ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.class__);
   }
   _this->_impl_.isvalidated_ = from._impl_.isvalidated_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.NewNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.NewNode)
 }
 
 inline void NewNode::SharedCtor(
@@ -12568,16 +12885,15 @@ inline void NewNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){arena}
+      decltype(_impl_.args_){arena}
     , decltype(_impl_.class__){nullptr}
     , decltype(_impl_.isvalidated_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
 }
 
 NewNode::~NewNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.NewNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.NewNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -12596,7 +12912,7 @@ void NewNode::SetCachedSize(int size) const {
 }
 
 void NewNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.NewNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.NewNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -12607,18 +12923,16 @@ void NewNode::Clear() {
   }
   _impl_.class__ = nullptr;
   _impl_.isvalidated_ = false;
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* NewNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node args = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -12631,7 +12945,7 @@ const char* NewNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node class = 2;
+      // .clojure.rt.protobuf.bytecode.Node class = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_class_(), ptr);
@@ -12639,10 +12953,9 @@ const char* NewNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // optional bool isValidated = 3;
+      // bool isValidated = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
-          _Internal::set_has_isvalidated(&has_bits);
           _impl_.isvalidated_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -12664,7 +12977,6 @@ const char* NewNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -12674,11 +12986,11 @@ failure:
 
 uint8_t* NewNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.NewNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.NewNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_args_size()); i < n; i++) {
     const auto& repfield = this->_internal_args(i);
@@ -12686,15 +12998,15 @@ uint8_t* NewNode::_InternalSerialize(
         InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node class = 2;
+  // .clojure.rt.protobuf.bytecode.Node class = 2;
   if (this->_internal_has_class_()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::class_(this),
         _Internal::class_(this).GetCachedSize(), target, stream);
   }
 
-  // optional bool isValidated = 3;
-  if (_internal_has_isvalidated()) {
+  // bool isValidated = 3;
+  if (this->_internal_isvalidated() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(3, this->_internal_isvalidated(), target);
   }
@@ -12703,35 +13015,34 @@ uint8_t* NewNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.NewNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.NewNode)
   return target;
 }
 
 size_t NewNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.NewNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.NewNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   total_size += 1UL * this->_internal_args_size();
   for (const auto& msg : this->_impl_.args_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // .clojureRT.protobuf.Node class = 2;
+  // .clojure.rt.protobuf.bytecode.Node class = 2;
   if (this->_internal_has_class_()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.class__);
   }
 
-  // optional bool isValidated = 3;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // bool isValidated = 3;
+  if (this->_internal_isvalidated() != 0) {
     total_size += 1 + 1;
   }
 
@@ -12748,24 +13059,24 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*NewNode::GetClassData() const 
 void NewNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<NewNode*>(&to_msg);
   auto& from = static_cast<const NewNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.NewNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.NewNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.args_.MergeFrom(from._impl_.args_);
   if (from._internal_has_class_()) {
-    _this->_internal_mutable_class_()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_class_()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_class_());
   }
-  if (from._internal_has_isvalidated()) {
+  if (from._internal_isvalidated() != 0) {
     _this->_internal_set_isvalidated(from._internal_isvalidated());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void NewNode::CopyFrom(const NewNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.NewNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.NewNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -12778,7 +13089,6 @@ bool NewNode::IsInitialized() const {
 void NewNode::InternalSwap(NewNode* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.args_.InternalSwap(&other->_impl_.args_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(NewNode, _impl_.isvalidated_)
@@ -12791,21 +13101,17 @@ void NewNode::InternalSwap(NewNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata NewNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[28]);
+      file_level_metadata_bytecode_2eproto[29]);
 }
 
 // ===================================================================
 
 class PrimInvokeNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<PrimInvokeNode>()._impl_._has_bits_);
-  static const ::clojureRT::protobuf::Node& fn(const PrimInvokeNode* msg);
-  static void set_has_meta(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Node& fn(const PrimInvokeNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 PrimInvokeNode::_Internal::fn(const PrimInvokeNode* msg) {
   return *msg->_impl_.fn_;
 }
@@ -12813,25 +13119,24 @@ PrimInvokeNode::PrimInvokeNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.PrimInvokeNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.PrimInvokeNode)
 }
 PrimInvokeNode::PrimInvokeNode(const PrimInvokeNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   PrimInvokeNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){from._impl_.args_}
+      decltype(_impl_.args_){from._impl_.args_}
     , decltype(_impl_.meta_){}
     , decltype(_impl_.priminterface_){}
-    , decltype(_impl_.fn_){nullptr}};
+    , decltype(_impl_.fn_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.meta_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     _impl_.meta_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (from._internal_has_meta()) {
+  if (!from._internal_meta().empty()) {
     _this->_impl_.meta_.Set(from._internal_meta(), 
       _this->GetArenaForAllocation());
   }
@@ -12844,9 +13149,9 @@ PrimInvokeNode::PrimInvokeNode(const PrimInvokeNode& from)
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_fn()) {
-    _this->_impl_.fn_ = new ::clojureRT::protobuf::Node(*from._impl_.fn_);
+    _this->_impl_.fn_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.fn_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.PrimInvokeNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.PrimInvokeNode)
 }
 
 inline void PrimInvokeNode::SharedCtor(
@@ -12854,12 +13159,11 @@ inline void PrimInvokeNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){arena}
+      decltype(_impl_.args_){arena}
     , decltype(_impl_.meta_){}
     , decltype(_impl_.priminterface_){}
     , decltype(_impl_.fn_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.meta_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -12872,7 +13176,7 @@ inline void PrimInvokeNode::SharedCtor(
 }
 
 PrimInvokeNode::~PrimInvokeNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.PrimInvokeNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.PrimInvokeNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -12893,33 +13197,28 @@ void PrimInvokeNode::SetCachedSize(int size) const {
 }
 
 void PrimInvokeNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.PrimInvokeNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.PrimInvokeNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   _impl_.args_.Clear();
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    _impl_.meta_.ClearNonDefaultToEmpty();
-  }
+  _impl_.meta_.ClearToEmpty();
   _impl_.priminterface_.ClearToEmpty();
   if (GetArenaForAllocation() == nullptr && _impl_.fn_ != nullptr) {
     delete _impl_.fn_;
   }
   _impl_.fn_ = nullptr;
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* PrimInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node args = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -12932,7 +13231,7 @@ const char* PrimInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node fn = 2;
+      // .clojure.rt.protobuf.bytecode.Node fn = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_fn(), ptr);
@@ -12940,13 +13239,13 @@ const char* PrimInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext
         } else
           goto handle_unusual;
         continue;
-      // optional string meta = 3;
+      // string meta = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           auto str = _internal_mutable_meta();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.PrimInvokeNode.meta"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.PrimInvokeNode.meta"));
         } else
           goto handle_unusual;
         continue;
@@ -12956,7 +13255,7 @@ const char* PrimInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext
           auto str = _internal_mutable_priminterface();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.PrimInvokeNode.primInterface"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.PrimInvokeNode.primInterface"));
         } else
           goto handle_unusual;
         continue;
@@ -12976,7 +13275,6 @@ const char* PrimInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseContext
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -12986,11 +13284,11 @@ failure:
 
 uint8_t* PrimInvokeNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.PrimInvokeNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.PrimInvokeNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_args_size()); i < n; i++) {
     const auto& repfield = this->_internal_args(i);
@@ -12998,19 +13296,19 @@ uint8_t* PrimInvokeNode::_InternalSerialize(
         InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node fn = 2;
+  // .clojure.rt.protobuf.bytecode.Node fn = 2;
   if (this->_internal_has_fn()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::fn(this),
         _Internal::fn(this).GetCachedSize(), target, stream);
   }
 
-  // optional string meta = 3;
-  if (_internal_has_meta()) {
+  // string meta = 3;
+  if (!this->_internal_meta().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_meta().data(), static_cast<int>(this->_internal_meta().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.PrimInvokeNode.meta");
+      "clojure.rt.protobuf.bytecode.PrimInvokeNode.meta");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_meta(), target);
   }
@@ -13020,7 +13318,7 @@ uint8_t* PrimInvokeNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_priminterface().data(), static_cast<int>(this->_internal_priminterface().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.PrimInvokeNode.primInterface");
+      "clojure.rt.protobuf.bytecode.PrimInvokeNode.primInterface");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_priminterface(), target);
   }
@@ -13029,28 +13327,27 @@ uint8_t* PrimInvokeNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.PrimInvokeNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.PrimInvokeNode)
   return target;
 }
 
 size_t PrimInvokeNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.PrimInvokeNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.PrimInvokeNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   total_size += 1UL * this->_internal_args_size();
   for (const auto& msg : this->_impl_.args_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // optional string meta = 3;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // string meta = 3;
+  if (!this->_internal_meta().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_meta());
@@ -13063,7 +13360,7 @@ size_t PrimInvokeNode::ByteSizeLong() const {
         this->_internal_priminterface());
   }
 
-  // .clojureRT.protobuf.Node fn = 2;
+  // .clojure.rt.protobuf.bytecode.Node fn = 2;
   if (this->_internal_has_fn()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -13083,27 +13380,27 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*PrimInvokeNode::GetClassData()
 void PrimInvokeNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<PrimInvokeNode*>(&to_msg);
   auto& from = static_cast<const PrimInvokeNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.PrimInvokeNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.PrimInvokeNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.args_.MergeFrom(from._impl_.args_);
-  if (from._internal_has_meta()) {
+  if (!from._internal_meta().empty()) {
     _this->_internal_set_meta(from._internal_meta());
   }
   if (!from._internal_priminterface().empty()) {
     _this->_internal_set_priminterface(from._internal_priminterface());
   }
   if (from._internal_has_fn()) {
-    _this->_internal_mutable_fn()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_fn()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_fn());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void PrimInvokeNode::CopyFrom(const PrimInvokeNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.PrimInvokeNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.PrimInvokeNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -13118,7 +13415,6 @@ void PrimInvokeNode::InternalSwap(PrimInvokeNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.args_.InternalSwap(&other->_impl_.args_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.meta_, lhs_arena,
@@ -13134,22 +13430,22 @@ void PrimInvokeNode::InternalSwap(PrimInvokeNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata PrimInvokeNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[29]);
+      file_level_metadata_bytecode_2eproto[30]);
 }
 
 // ===================================================================
 
 class ProtocolInvokeNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& protocolfn(const ProtocolInvokeNode* msg);
-  static const ::clojureRT::protobuf::Node& target(const ProtocolInvokeNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& protocolfn(const ProtocolInvokeNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& target(const ProtocolInvokeNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 ProtocolInvokeNode::_Internal::protocolfn(const ProtocolInvokeNode* msg) {
   return *msg->_impl_.protocolfn_;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 ProtocolInvokeNode::_Internal::target(const ProtocolInvokeNode* msg) {
   return *msg->_impl_.target_;
 }
@@ -13157,7 +13453,7 @@ ProtocolInvokeNode::ProtocolInvokeNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.ProtocolInvokeNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.ProtocolInvokeNode)
 }
 ProtocolInvokeNode::ProtocolInvokeNode(const ProtocolInvokeNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -13170,12 +13466,12 @@ ProtocolInvokeNode::ProtocolInvokeNode(const ProtocolInvokeNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_protocolfn()) {
-    _this->_impl_.protocolfn_ = new ::clojureRT::protobuf::Node(*from._impl_.protocolfn_);
+    _this->_impl_.protocolfn_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.protocolfn_);
   }
   if (from._internal_has_target()) {
-    _this->_impl_.target_ = new ::clojureRT::protobuf::Node(*from._impl_.target_);
+    _this->_impl_.target_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.target_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.ProtocolInvokeNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.ProtocolInvokeNode)
 }
 
 inline void ProtocolInvokeNode::SharedCtor(
@@ -13191,7 +13487,7 @@ inline void ProtocolInvokeNode::SharedCtor(
 }
 
 ProtocolInvokeNode::~ProtocolInvokeNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.ProtocolInvokeNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.ProtocolInvokeNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -13211,7 +13507,7 @@ void ProtocolInvokeNode::SetCachedSize(int size) const {
 }
 
 void ProtocolInvokeNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.ProtocolInvokeNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.ProtocolInvokeNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -13234,7 +13530,7 @@ const char* ProtocolInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseCon
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node args = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -13247,7 +13543,7 @@ const char* ProtocolInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseCon
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node protocolFn = 2;
+      // .clojure.rt.protobuf.bytecode.Node protocolFn = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_protocolfn(), ptr);
@@ -13255,7 +13551,7 @@ const char* ProtocolInvokeNode::_InternalParse(const char* ptr, ::_pbi::ParseCon
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node target = 3;
+      // .clojure.rt.protobuf.bytecode.Node target = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_target(), ptr);
@@ -13288,11 +13584,11 @@ failure:
 
 uint8_t* ProtocolInvokeNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.ProtocolInvokeNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.ProtocolInvokeNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_args_size()); i < n; i++) {
     const auto& repfield = this->_internal_args(i);
@@ -13300,14 +13596,14 @@ uint8_t* ProtocolInvokeNode::_InternalSerialize(
         InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node protocolFn = 2;
+  // .clojure.rt.protobuf.bytecode.Node protocolFn = 2;
   if (this->_internal_has_protocolfn()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::protocolfn(this),
         _Internal::protocolfn(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node target = 3;
+  // .clojure.rt.protobuf.bytecode.Node target = 3;
   if (this->_internal_has_target()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(3, _Internal::target(this),
@@ -13318,33 +13614,33 @@ uint8_t* ProtocolInvokeNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.ProtocolInvokeNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.ProtocolInvokeNode)
   return target;
 }
 
 size_t ProtocolInvokeNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.ProtocolInvokeNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.ProtocolInvokeNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   total_size += 1UL * this->_internal_args_size();
   for (const auto& msg : this->_impl_.args_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // .clojureRT.protobuf.Node protocolFn = 2;
+  // .clojure.rt.protobuf.bytecode.Node protocolFn = 2;
   if (this->_internal_has_protocolfn()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.protocolfn_);
   }
 
-  // .clojureRT.protobuf.Node target = 3;
+  // .clojure.rt.protobuf.bytecode.Node target = 3;
   if (this->_internal_has_target()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -13364,25 +13660,25 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ProtocolInvokeNode::GetClassDa
 void ProtocolInvokeNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<ProtocolInvokeNode*>(&to_msg);
   auto& from = static_cast<const ProtocolInvokeNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.ProtocolInvokeNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.ProtocolInvokeNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.args_.MergeFrom(from._impl_.args_);
   if (from._internal_has_protocolfn()) {
-    _this->_internal_mutable_protocolfn()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_protocolfn()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_protocolfn());
   }
   if (from._internal_has_target()) {
-    _this->_internal_mutable_target()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_target()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_target());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void ProtocolInvokeNode::CopyFrom(const ProtocolInvokeNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.ProtocolInvokeNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.ProtocolInvokeNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -13407,17 +13703,17 @@ void ProtocolInvokeNode::InternalSwap(ProtocolInvokeNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ProtocolInvokeNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[30]);
+      file_level_metadata_bytecode_2eproto[31]);
 }
 
 // ===================================================================
 
 class QuoteNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& expr(const QuoteNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& expr(const QuoteNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 QuoteNode::_Internal::expr(const QuoteNode* msg) {
   return *msg->_impl_.expr_;
 }
@@ -13425,7 +13721,7 @@ QuoteNode::QuoteNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.QuoteNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.QuoteNode)
 }
 QuoteNode::QuoteNode(const QuoteNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -13437,10 +13733,10 @@ QuoteNode::QuoteNode(const QuoteNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_expr()) {
-    _this->_impl_.expr_ = new ::clojureRT::protobuf::Node(*from._impl_.expr_);
+    _this->_impl_.expr_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.expr_);
   }
   _this->_impl_.isliteral_ = from._impl_.isliteral_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.QuoteNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.QuoteNode)
 }
 
 inline void QuoteNode::SharedCtor(
@@ -13455,7 +13751,7 @@ inline void QuoteNode::SharedCtor(
 }
 
 QuoteNode::~QuoteNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.QuoteNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.QuoteNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -13473,7 +13769,7 @@ void QuoteNode::SetCachedSize(int size) const {
 }
 
 void QuoteNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.QuoteNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.QuoteNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -13492,7 +13788,7 @@ const char* QuoteNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node expr = 1;
+      // .clojure.rt.protobuf.bytecode.Node expr = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_expr(), ptr);
@@ -13533,11 +13829,11 @@ failure:
 
 uint8_t* QuoteNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.QuoteNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.QuoteNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node expr = 1;
+  // .clojure.rt.protobuf.bytecode.Node expr = 1;
   if (this->_internal_has_expr()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::expr(this),
@@ -13554,19 +13850,19 @@ uint8_t* QuoteNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.QuoteNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.QuoteNode)
   return target;
 }
 
 size_t QuoteNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.QuoteNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.QuoteNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node expr = 1;
+  // .clojure.rt.protobuf.bytecode.Node expr = 1;
   if (this->_internal_has_expr()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -13591,13 +13887,13 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*QuoteNode::GetClassData() cons
 void QuoteNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<QuoteNode*>(&to_msg);
   auto& from = static_cast<const QuoteNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.QuoteNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.QuoteNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_expr()) {
-    _this->_internal_mutable_expr()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_expr()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_expr());
   }
   if (from._internal_isliteral() != 0) {
@@ -13607,7 +13903,7 @@ void QuoteNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
 }
 
 void QuoteNode::CopyFrom(const QuoteNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.QuoteNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.QuoteNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -13631,7 +13927,7 @@ void QuoteNode::InternalSwap(QuoteNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata QuoteNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[31]);
+      file_level_metadata_bytecode_2eproto[32]);
 }
 
 // ===================================================================
@@ -13644,7 +13940,7 @@ RecurNode::RecurNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.RecurNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.RecurNode)
 }
 RecurNode::RecurNode(const RecurNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -13663,7 +13959,7 @@ RecurNode::RecurNode(const RecurNode& from)
     _this->_impl_.loopid_.Set(from._internal_loopid(), 
       _this->GetArenaForAllocation());
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.RecurNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.RecurNode)
 }
 
 inline void RecurNode::SharedCtor(
@@ -13682,7 +13978,7 @@ inline void RecurNode::SharedCtor(
 }
 
 RecurNode::~RecurNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.RecurNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.RecurNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -13701,7 +13997,7 @@ void RecurNode::SetCachedSize(int size) const {
 }
 
 void RecurNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.RecurNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.RecurNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -13717,7 +14013,7 @@ const char* RecurNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node exprs = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node exprs = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -13736,7 +14032,7 @@ const char* RecurNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
           auto str = _internal_mutable_loopid();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.RecurNode.loopId"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.RecurNode.loopId"));
         } else
           goto handle_unusual;
         continue;
@@ -13765,11 +14061,11 @@ failure:
 
 uint8_t* RecurNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.RecurNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.RecurNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node exprs = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node exprs = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_exprs_size()); i < n; i++) {
     const auto& repfield = this->_internal_exprs(i);
@@ -13782,7 +14078,7 @@ uint8_t* RecurNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_loopid().data(), static_cast<int>(this->_internal_loopid().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.RecurNode.loopId");
+      "clojure.rt.protobuf.bytecode.RecurNode.loopId");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_loopid(), target);
   }
@@ -13791,19 +14087,19 @@ uint8_t* RecurNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.RecurNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.RecurNode)
   return target;
 }
 
 size_t RecurNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.RecurNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.RecurNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node exprs = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node exprs = 1;
   total_size += 1UL * this->_internal_exprs_size();
   for (const auto& msg : this->_impl_.exprs_) {
     total_size +=
@@ -13830,7 +14126,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*RecurNode::GetClassData() cons
 void RecurNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<RecurNode*>(&to_msg);
   auto& from = static_cast<const RecurNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.RecurNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.RecurNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -13843,7 +14139,7 @@ void RecurNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
 }
 
 void RecurNode::CopyFrom(const RecurNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.RecurNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.RecurNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -13868,7 +14164,7 @@ void RecurNode::InternalSwap(RecurNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata RecurNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[32]);
+      file_level_metadata_bytecode_2eproto[33]);
 }
 
 // ===================================================================
@@ -13881,7 +14177,7 @@ ReifyNode::ReifyNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.ReifyNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.ReifyNode)
 }
 ReifyNode::ReifyNode(const ReifyNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -13901,7 +14197,7 @@ ReifyNode::ReifyNode(const ReifyNode& from)
     _this->_impl_.classname_.Set(from._internal_classname(), 
       _this->GetArenaForAllocation());
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.ReifyNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.ReifyNode)
 }
 
 inline void ReifyNode::SharedCtor(
@@ -13921,7 +14217,7 @@ inline void ReifyNode::SharedCtor(
 }
 
 ReifyNode::~ReifyNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.ReifyNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.ReifyNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -13941,7 +14237,7 @@ void ReifyNode::SetCachedSize(int size) const {
 }
 
 void ReifyNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.ReifyNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.ReifyNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -13964,7 +14260,7 @@ const char* ReifyNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
           auto str = _internal_mutable_classname();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.ReifyNode.className"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.ReifyNode.className"));
         } else
           goto handle_unusual;
         continue;
@@ -13977,13 +14273,13 @@ const char* ReifyNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
             auto str = _internal_add_interfaces();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.ReifyNode.interfaces"));
+            CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.ReifyNode.interfaces"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<18>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node methods = 3;
+      // repeated .clojure.rt.protobuf.bytecode.Node methods = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr -= 1;
@@ -14021,7 +14317,7 @@ failure:
 
 uint8_t* ReifyNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.ReifyNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.ReifyNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -14030,7 +14326,7 @@ uint8_t* ReifyNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_classname().data(), static_cast<int>(this->_internal_classname().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.ReifyNode.className");
+      "clojure.rt.protobuf.bytecode.ReifyNode.className");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_classname(), target);
   }
@@ -14041,11 +14337,11 @@ uint8_t* ReifyNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.ReifyNode.interfaces");
+      "clojure.rt.protobuf.bytecode.ReifyNode.interfaces");
     target = stream->WriteString(2, s, target);
   }
 
-  // repeated .clojureRT.protobuf.Node methods = 3;
+  // repeated .clojure.rt.protobuf.bytecode.Node methods = 3;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_methods_size()); i < n; i++) {
     const auto& repfield = this->_internal_methods(i);
@@ -14057,12 +14353,12 @@ uint8_t* ReifyNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.ReifyNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.ReifyNode)
   return target;
 }
 
 size_t ReifyNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.ReifyNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.ReifyNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -14077,7 +14373,7 @@ size_t ReifyNode::ByteSizeLong() const {
       _impl_.interfaces_.Get(i));
   }
 
-  // repeated .clojureRT.protobuf.Node methods = 3;
+  // repeated .clojure.rt.protobuf.bytecode.Node methods = 3;
   total_size += 1UL * this->_internal_methods_size();
   for (const auto& msg : this->_impl_.methods_) {
     total_size +=
@@ -14104,7 +14400,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ReifyNode::GetClassData() cons
 void ReifyNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<ReifyNode*>(&to_msg);
   auto& from = static_cast<const ReifyNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.ReifyNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.ReifyNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -14118,7 +14414,7 @@ void ReifyNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
 }
 
 void ReifyNode::CopyFrom(const ReifyNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.ReifyNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.ReifyNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -14144,7 +14440,7 @@ void ReifyNode::InternalSwap(ReifyNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ReifyNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[33]);
+      file_level_metadata_bytecode_2eproto[34]);
 }
 
 // ===================================================================
@@ -14157,7 +14453,7 @@ SetNode::SetNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.SetNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.SetNode)
 }
 SetNode::SetNode(const SetNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -14167,7 +14463,7 @@ SetNode::SetNode(const SetNode& from)
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.SetNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.SetNode)
 }
 
 inline void SetNode::SharedCtor(
@@ -14181,7 +14477,7 @@ inline void SetNode::SharedCtor(
 }
 
 SetNode::~SetNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.SetNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.SetNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -14199,7 +14495,7 @@ void SetNode::SetCachedSize(int size) const {
 }
 
 void SetNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.SetNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.SetNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -14214,7 +14510,7 @@ const char* SetNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node items = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node items = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -14252,11 +14548,11 @@ failure:
 
 uint8_t* SetNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.SetNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.SetNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node items = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node items = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_items_size()); i < n; i++) {
     const auto& repfield = this->_internal_items(i);
@@ -14268,19 +14564,19 @@ uint8_t* SetNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.SetNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.SetNode)
   return target;
 }
 
 size_t SetNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.SetNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.SetNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node items = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node items = 1;
   total_size += 1UL * this->_internal_items_size();
   for (const auto& msg : this->_impl_.items_) {
     total_size +=
@@ -14300,7 +14596,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SetNode::GetClassData() const 
 void SetNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<SetNode*>(&to_msg);
   auto& from = static_cast<const SetNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.SetNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.SetNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -14310,7 +14606,7 @@ void SetNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOB
 }
 
 void SetNode::CopyFrom(const SetNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.SetNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.SetNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -14329,22 +14625,22 @@ void SetNode::InternalSwap(SetNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata SetNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[34]);
+      file_level_metadata_bytecode_2eproto[35]);
 }
 
 // ===================================================================
 
 class MutateSetNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& target(const MutateSetNode* msg);
-  static const ::clojureRT::protobuf::Node& val(const MutateSetNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& target(const MutateSetNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& val(const MutateSetNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 MutateSetNode::_Internal::target(const MutateSetNode* msg) {
   return *msg->_impl_.target_;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 MutateSetNode::_Internal::val(const MutateSetNode* msg) {
   return *msg->_impl_.val_;
 }
@@ -14352,7 +14648,7 @@ MutateSetNode::MutateSetNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.MutateSetNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.MutateSetNode)
 }
 MutateSetNode::MutateSetNode(const MutateSetNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -14364,12 +14660,12 @@ MutateSetNode::MutateSetNode(const MutateSetNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_target()) {
-    _this->_impl_.target_ = new ::clojureRT::protobuf::Node(*from._impl_.target_);
+    _this->_impl_.target_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.target_);
   }
   if (from._internal_has_val()) {
-    _this->_impl_.val_ = new ::clojureRT::protobuf::Node(*from._impl_.val_);
+    _this->_impl_.val_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.val_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.MutateSetNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.MutateSetNode)
 }
 
 inline void MutateSetNode::SharedCtor(
@@ -14384,7 +14680,7 @@ inline void MutateSetNode::SharedCtor(
 }
 
 MutateSetNode::~MutateSetNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.MutateSetNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.MutateSetNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -14403,7 +14699,7 @@ void MutateSetNode::SetCachedSize(int size) const {
 }
 
 void MutateSetNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.MutateSetNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.MutateSetNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -14425,7 +14721,7 @@ const char* MutateSetNode::_InternalParse(const char* ptr, ::_pbi::ParseContext*
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node target = 1;
+      // .clojure.rt.protobuf.bytecode.Node target = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_target(), ptr);
@@ -14433,7 +14729,7 @@ const char* MutateSetNode::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node val = 2;
+      // .clojure.rt.protobuf.bytecode.Node val = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_val(), ptr);
@@ -14466,18 +14762,18 @@ failure:
 
 uint8_t* MutateSetNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.MutateSetNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.MutateSetNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node target = 1;
+  // .clojure.rt.protobuf.bytecode.Node target = 1;
   if (this->_internal_has_target()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::target(this),
         _Internal::target(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node val = 2;
+  // .clojure.rt.protobuf.bytecode.Node val = 2;
   if (this->_internal_has_val()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::val(this),
@@ -14488,26 +14784,26 @@ uint8_t* MutateSetNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.MutateSetNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.MutateSetNode)
   return target;
 }
 
 size_t MutateSetNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.MutateSetNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.MutateSetNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node target = 1;
+  // .clojure.rt.protobuf.bytecode.Node target = 1;
   if (this->_internal_has_target()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.target_);
   }
 
-  // .clojureRT.protobuf.Node val = 2;
+  // .clojure.rt.protobuf.bytecode.Node val = 2;
   if (this->_internal_has_val()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -14527,24 +14823,24 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*MutateSetNode::GetClassData() 
 void MutateSetNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<MutateSetNode*>(&to_msg);
   auto& from = static_cast<const MutateSetNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.MutateSetNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.MutateSetNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_target()) {
-    _this->_internal_mutable_target()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_target()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_target());
   }
   if (from._internal_has_val()) {
-    _this->_internal_mutable_val()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_val()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_val());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void MutateSetNode::CopyFrom(const MutateSetNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.MutateSetNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.MutateSetNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -14568,35 +14864,30 @@ void MutateSetNode::InternalSwap(MutateSetNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata MutateSetNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[35]);
+      file_level_metadata_bytecode_2eproto[36]);
 }
 
 // ===================================================================
 
 class StaticCallNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<StaticCallNode>()._impl_._has_bits_);
-  static void set_has_isvalidated(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
 };
 
 StaticCallNode::StaticCallNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.StaticCallNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.StaticCallNode)
 }
 StaticCallNode::StaticCallNode(const StaticCallNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   StaticCallNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){from._impl_.args_}
+      decltype(_impl_.args_){from._impl_.args_}
     , decltype(_impl_.class__){}
     , decltype(_impl_.method_){}
-    , decltype(_impl_.isvalidated_){}};
+    , decltype(_impl_.isvalidated_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.class__.InitDefault();
@@ -14616,7 +14907,7 @@ StaticCallNode::StaticCallNode(const StaticCallNode& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.isvalidated_ = from._impl_.isvalidated_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.StaticCallNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.StaticCallNode)
 }
 
 inline void StaticCallNode::SharedCtor(
@@ -14624,12 +14915,11 @@ inline void StaticCallNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.args_){arena}
+      decltype(_impl_.args_){arena}
     , decltype(_impl_.class__){}
     , decltype(_impl_.method_){}
     , decltype(_impl_.isvalidated_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.class__.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -14642,7 +14932,7 @@ inline void StaticCallNode::SharedCtor(
 }
 
 StaticCallNode::~StaticCallNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.StaticCallNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.StaticCallNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -14662,7 +14952,7 @@ void StaticCallNode::SetCachedSize(int size) const {
 }
 
 void StaticCallNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.StaticCallNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.StaticCallNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -14671,18 +14961,16 @@ void StaticCallNode::Clear() {
   _impl_.class__.ClearToEmpty();
   _impl_.method_.ClearToEmpty();
   _impl_.isvalidated_ = false;
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* StaticCallNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node args = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -14701,7 +14989,7 @@ const char* StaticCallNode::_InternalParse(const char* ptr, ::_pbi::ParseContext
           auto str = _internal_mutable_class_();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.StaticCallNode.class"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.StaticCallNode.class"));
         } else
           goto handle_unusual;
         continue;
@@ -14711,14 +14999,13 @@ const char* StaticCallNode::_InternalParse(const char* ptr, ::_pbi::ParseContext
           auto str = _internal_mutable_method();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.StaticCallNode.method"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.StaticCallNode.method"));
         } else
           goto handle_unusual;
         continue;
-      // optional bool isValidated = 4;
+      // bool isValidated = 4;
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
-          _Internal::set_has_isvalidated(&has_bits);
           _impl_.isvalidated_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -14740,7 +15027,6 @@ const char* StaticCallNode::_InternalParse(const char* ptr, ::_pbi::ParseContext
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -14750,11 +15036,11 @@ failure:
 
 uint8_t* StaticCallNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.StaticCallNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.StaticCallNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_args_size()); i < n; i++) {
     const auto& repfield = this->_internal_args(i);
@@ -14767,7 +15053,7 @@ uint8_t* StaticCallNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_class_().data(), static_cast<int>(this->_internal_class_().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.StaticCallNode.class");
+      "clojure.rt.protobuf.bytecode.StaticCallNode.class");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_class_(), target);
   }
@@ -14777,13 +15063,13 @@ uint8_t* StaticCallNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_method().data(), static_cast<int>(this->_internal_method().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.StaticCallNode.method");
+      "clojure.rt.protobuf.bytecode.StaticCallNode.method");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_method(), target);
   }
 
-  // optional bool isValidated = 4;
-  if (_internal_has_isvalidated()) {
+  // bool isValidated = 4;
+  if (this->_internal_isvalidated() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(4, this->_internal_isvalidated(), target);
   }
@@ -14792,19 +15078,19 @@ uint8_t* StaticCallNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.StaticCallNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.StaticCallNode)
   return target;
 }
 
 size_t StaticCallNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.StaticCallNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.StaticCallNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node args = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node args = 1;
   total_size += 1UL * this->_internal_args_size();
   for (const auto& msg : this->_impl_.args_) {
     total_size +=
@@ -14825,9 +15111,8 @@ size_t StaticCallNode::ByteSizeLong() const {
         this->_internal_method());
   }
 
-  // optional bool isValidated = 4;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // bool isValidated = 4;
+  if (this->_internal_isvalidated() != 0) {
     total_size += 1 + 1;
   }
 
@@ -14844,7 +15129,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*StaticCallNode::GetClassData()
 void StaticCallNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<StaticCallNode*>(&to_msg);
   auto& from = static_cast<const StaticCallNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.StaticCallNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.StaticCallNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -14856,14 +15141,14 @@ void StaticCallNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const :
   if (!from._internal_method().empty()) {
     _this->_internal_set_method(from._internal_method());
   }
-  if (from._internal_has_isvalidated()) {
+  if (from._internal_isvalidated() != 0) {
     _this->_internal_set_isvalidated(from._internal_isvalidated());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void StaticCallNode::CopyFrom(const StaticCallNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.StaticCallNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.StaticCallNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -14878,7 +15163,6 @@ void StaticCallNode::InternalSwap(StaticCallNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.args_.InternalSwap(&other->_impl_.args_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.class__, lhs_arena,
@@ -14894,34 +15178,29 @@ void StaticCallNode::InternalSwap(StaticCallNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata StaticCallNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[36]);
+      file_level_metadata_bytecode_2eproto[37]);
 }
 
 // ===================================================================
 
 class StaticFieldNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<StaticFieldNode>()._impl_._has_bits_);
-  static void set_has_isassignable(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
 };
 
 StaticFieldNode::StaticFieldNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.StaticFieldNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.StaticFieldNode)
 }
 StaticFieldNode::StaticFieldNode(const StaticFieldNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   StaticFieldNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.class__){}
+      decltype(_impl_.class__){}
     , decltype(_impl_.field_){}
-    , decltype(_impl_.isassignable_){}};
+    , decltype(_impl_.isassignable_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.class__.InitDefault();
@@ -14941,7 +15220,7 @@ StaticFieldNode::StaticFieldNode(const StaticFieldNode& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.isassignable_ = from._impl_.isassignable_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.StaticFieldNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.StaticFieldNode)
 }
 
 inline void StaticFieldNode::SharedCtor(
@@ -14949,11 +15228,10 @@ inline void StaticFieldNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.class__){}
+      decltype(_impl_.class__){}
     , decltype(_impl_.field_){}
     , decltype(_impl_.isassignable_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.class__.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -14966,7 +15244,7 @@ inline void StaticFieldNode::SharedCtor(
 }
 
 StaticFieldNode::~StaticFieldNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.StaticFieldNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.StaticFieldNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -14985,7 +15263,7 @@ void StaticFieldNode::SetCachedSize(int size) const {
 }
 
 void StaticFieldNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.StaticFieldNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.StaticFieldNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -14993,21 +15271,18 @@ void StaticFieldNode::Clear() {
   _impl_.class__.ClearToEmpty();
   _impl_.field_.ClearToEmpty();
   _impl_.isassignable_ = false;
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* StaticFieldNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // optional bool isAssignable = 1;
+      // bool isAssignable = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
-          _Internal::set_has_isassignable(&has_bits);
           _impl_.isassignable_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -15019,7 +15294,7 @@ const char* StaticFieldNode::_InternalParse(const char* ptr, ::_pbi::ParseContex
           auto str = _internal_mutable_class_();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.StaticFieldNode.class"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.StaticFieldNode.class"));
         } else
           goto handle_unusual;
         continue;
@@ -15029,7 +15304,7 @@ const char* StaticFieldNode::_InternalParse(const char* ptr, ::_pbi::ParseContex
           auto str = _internal_mutable_field();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.StaticFieldNode.field"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.StaticFieldNode.field"));
         } else
           goto handle_unusual;
         continue;
@@ -15049,7 +15324,6 @@ const char* StaticFieldNode::_InternalParse(const char* ptr, ::_pbi::ParseContex
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -15059,12 +15333,12 @@ failure:
 
 uint8_t* StaticFieldNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.StaticFieldNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.StaticFieldNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // optional bool isAssignable = 1;
-  if (_internal_has_isassignable()) {
+  // bool isAssignable = 1;
+  if (this->_internal_isassignable() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_isassignable(), target);
   }
@@ -15074,7 +15348,7 @@ uint8_t* StaticFieldNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_class_().data(), static_cast<int>(this->_internal_class_().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.StaticFieldNode.class");
+      "clojure.rt.protobuf.bytecode.StaticFieldNode.class");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_class_(), target);
   }
@@ -15084,7 +15358,7 @@ uint8_t* StaticFieldNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_field().data(), static_cast<int>(this->_internal_field().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.StaticFieldNode.field");
+      "clojure.rt.protobuf.bytecode.StaticFieldNode.field");
     target = stream->WriteStringMaybeAliased(
         3, this->_internal_field(), target);
   }
@@ -15093,12 +15367,12 @@ uint8_t* StaticFieldNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.StaticFieldNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.StaticFieldNode)
   return target;
 }
 
 size_t StaticFieldNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.StaticFieldNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.StaticFieldNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -15119,9 +15393,8 @@ size_t StaticFieldNode::ByteSizeLong() const {
         this->_internal_field());
   }
 
-  // optional bool isAssignable = 1;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // bool isAssignable = 1;
+  if (this->_internal_isassignable() != 0) {
     total_size += 1 + 1;
   }
 
@@ -15138,7 +15411,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*StaticFieldNode::GetClassData(
 void StaticFieldNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<StaticFieldNode*>(&to_msg);
   auto& from = static_cast<const StaticFieldNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.StaticFieldNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.StaticFieldNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -15149,14 +15422,14 @@ void StaticFieldNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const 
   if (!from._internal_field().empty()) {
     _this->_internal_set_field(from._internal_field());
   }
-  if (from._internal_has_isassignable()) {
+  if (from._internal_isassignable() != 0) {
     _this->_internal_set_isassignable(from._internal_isassignable());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void StaticFieldNode::CopyFrom(const StaticFieldNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.StaticFieldNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.StaticFieldNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -15171,7 +15444,6 @@ void StaticFieldNode::InternalSwap(StaticFieldNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.class__, lhs_arena,
       &other->_impl_.class__, rhs_arena
@@ -15186,7 +15458,7 @@ void StaticFieldNode::InternalSwap(StaticFieldNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata StaticFieldNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[37]);
+      file_level_metadata_bytecode_2eproto[38]);
 }
 
 // ===================================================================
@@ -15199,7 +15471,7 @@ TheVarNode::TheVarNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.TheVarNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.TheVarNode)
 }
 TheVarNode::TheVarNode(const TheVarNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -15217,7 +15489,7 @@ TheVarNode::TheVarNode(const TheVarNode& from)
     _this->_impl_.var_.Set(from._internal_var(), 
       _this->GetArenaForAllocation());
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.TheVarNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.TheVarNode)
 }
 
 inline void TheVarNode::SharedCtor(
@@ -15235,7 +15507,7 @@ inline void TheVarNode::SharedCtor(
 }
 
 TheVarNode::~TheVarNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.TheVarNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.TheVarNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -15253,7 +15525,7 @@ void TheVarNode::SetCachedSize(int size) const {
 }
 
 void TheVarNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.TheVarNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.TheVarNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -15274,7 +15546,7 @@ const char* TheVarNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
           auto str = _internal_mutable_var();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.TheVarNode.var"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.TheVarNode.var"));
         } else
           goto handle_unusual;
         continue;
@@ -15303,7 +15575,7 @@ failure:
 
 uint8_t* TheVarNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.TheVarNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.TheVarNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -15312,7 +15584,7 @@ uint8_t* TheVarNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_var().data(), static_cast<int>(this->_internal_var().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.TheVarNode.var");
+      "clojure.rt.protobuf.bytecode.TheVarNode.var");
     target = stream->WriteStringMaybeAliased(
         1, this->_internal_var(), target);
   }
@@ -15321,12 +15593,12 @@ uint8_t* TheVarNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.TheVarNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.TheVarNode)
   return target;
 }
 
 size_t TheVarNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.TheVarNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.TheVarNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -15353,7 +15625,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*TheVarNode::GetClassData() con
 void TheVarNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<TheVarNode*>(&to_msg);
   auto& from = static_cast<const TheVarNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.TheVarNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.TheVarNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -15365,7 +15637,7 @@ void TheVarNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PRO
 }
 
 void TheVarNode::CopyFrom(const TheVarNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.TheVarNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.TheVarNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -15389,17 +15661,17 @@ void TheVarNode::InternalSwap(TheVarNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata TheVarNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[38]);
+      file_level_metadata_bytecode_2eproto[39]);
 }
 
 // ===================================================================
 
 class ThrowNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& exception(const ThrowNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& exception(const ThrowNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 ThrowNode::_Internal::exception(const ThrowNode* msg) {
   return *msg->_impl_.exception_;
 }
@@ -15407,7 +15679,7 @@ ThrowNode::ThrowNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.ThrowNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.ThrowNode)
 }
 ThrowNode::ThrowNode(const ThrowNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -15418,9 +15690,9 @@ ThrowNode::ThrowNode(const ThrowNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_exception()) {
-    _this->_impl_.exception_ = new ::clojureRT::protobuf::Node(*from._impl_.exception_);
+    _this->_impl_.exception_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.exception_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.ThrowNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.ThrowNode)
 }
 
 inline void ThrowNode::SharedCtor(
@@ -15434,7 +15706,7 @@ inline void ThrowNode::SharedCtor(
 }
 
 ThrowNode::~ThrowNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.ThrowNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.ThrowNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -15452,7 +15724,7 @@ void ThrowNode::SetCachedSize(int size) const {
 }
 
 void ThrowNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.ThrowNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.ThrowNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -15470,7 +15742,7 @@ const char* ThrowNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node exception = 1;
+      // .clojure.rt.protobuf.bytecode.Node exception = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_exception(), ptr);
@@ -15503,11 +15775,11 @@ failure:
 
 uint8_t* ThrowNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.ThrowNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.ThrowNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node exception = 1;
+  // .clojure.rt.protobuf.bytecode.Node exception = 1;
   if (this->_internal_has_exception()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::exception(this),
@@ -15518,19 +15790,19 @@ uint8_t* ThrowNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.ThrowNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.ThrowNode)
   return target;
 }
 
 size_t ThrowNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.ThrowNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.ThrowNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node exception = 1;
+  // .clojure.rt.protobuf.bytecode.Node exception = 1;
   if (this->_internal_has_exception()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -15550,20 +15822,20 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ThrowNode::GetClassData() cons
 void ThrowNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<ThrowNode*>(&to_msg);
   auto& from = static_cast<const ThrowNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.ThrowNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.ThrowNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_exception()) {
-    _this->_internal_mutable_exception()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_exception()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_exception());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void ThrowNode::CopyFrom(const ThrowNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.ThrowNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.ThrowNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -15582,26 +15854,22 @@ void ThrowNode::InternalSwap(ThrowNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ThrowNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[39]);
+      file_level_metadata_bytecode_2eproto[40]);
 }
 
 // ===================================================================
 
 class TryNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<TryNode>()._impl_._has_bits_);
-  static const ::clojureRT::protobuf::Node& body(const TryNode* msg);
-  static const ::clojureRT::protobuf::Node& finally(const TryNode* msg);
-  static void set_has_finally(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Node& body(const TryNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& finally(const TryNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 TryNode::_Internal::body(const TryNode* msg) {
   return *msg->_impl_.body_;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 TryNode::_Internal::finally(const TryNode* msg) {
   return *msg->_impl_.finally_;
 }
@@ -15609,26 +15877,25 @@ TryNode::TryNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.TryNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.TryNode)
 }
 TryNode::TryNode(const TryNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   TryNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.catches_){from._impl_.catches_}
+      decltype(_impl_.catches_){from._impl_.catches_}
     , decltype(_impl_.body_){nullptr}
-    , decltype(_impl_.finally_){nullptr}};
+    , decltype(_impl_.finally_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_body()) {
-    _this->_impl_.body_ = new ::clojureRT::protobuf::Node(*from._impl_.body_);
+    _this->_impl_.body_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.body_);
   }
   if (from._internal_has_finally()) {
-    _this->_impl_.finally_ = new ::clojureRT::protobuf::Node(*from._impl_.finally_);
+    _this->_impl_.finally_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.finally_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.TryNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.TryNode)
 }
 
 inline void TryNode::SharedCtor(
@@ -15636,16 +15903,15 @@ inline void TryNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.catches_){arena}
+      decltype(_impl_.catches_){arena}
     , decltype(_impl_.body_){nullptr}
     , decltype(_impl_.finally_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
 }
 
 TryNode::~TryNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.TryNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.TryNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -15665,7 +15931,7 @@ void TryNode::SetCachedSize(int size) const {
 }
 
 void TryNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.TryNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.TryNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -15675,23 +15941,20 @@ void TryNode::Clear() {
     delete _impl_.body_;
   }
   _impl_.body_ = nullptr;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    GOOGLE_DCHECK(_impl_.finally_ != nullptr);
-    _impl_.finally_->Clear();
+  if (GetArenaForAllocation() == nullptr && _impl_.finally_ != nullptr) {
+    delete _impl_.finally_;
   }
-  _impl_._has_bits_.Clear();
+  _impl_.finally_ = nullptr;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* TryNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node body = 1;
+      // .clojure.rt.protobuf.bytecode.Node body = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_body(), ptr);
@@ -15699,7 +15962,7 @@ const char* TryNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // repeated .clojureRT.protobuf.Node catches = 2;
+      // repeated .clojure.rt.protobuf.bytecode.Node catches = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr -= 1;
@@ -15712,7 +15975,7 @@ const char* TryNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         } else
           goto handle_unusual;
         continue;
-      // optional .clojureRT.protobuf.Node finally = 3;
+      // .clojure.rt.protobuf.bytecode.Node finally = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_finally(), ptr);
@@ -15736,7 +15999,6 @@ const char* TryNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -15746,18 +16008,18 @@ failure:
 
 uint8_t* TryNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.TryNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.TryNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node body = 1;
+  // .clojure.rt.protobuf.bytecode.Node body = 1;
   if (this->_internal_has_body()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::body(this),
         _Internal::body(this).GetCachedSize(), target, stream);
   }
 
-  // repeated .clojureRT.protobuf.Node catches = 2;
+  // repeated .clojure.rt.protobuf.bytecode.Node catches = 2;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_catches_size()); i < n; i++) {
     const auto& repfield = this->_internal_catches(i);
@@ -15765,8 +16027,8 @@ uint8_t* TryNode::_InternalSerialize(
         InternalWriteMessage(2, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // optional .clojureRT.protobuf.Node finally = 3;
-  if (_internal_has_finally()) {
+  // .clojure.rt.protobuf.bytecode.Node finally = 3;
+  if (this->_internal_has_finally()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(3, _Internal::finally(this),
         _Internal::finally(this).GetCachedSize(), target, stream);
@@ -15776,35 +16038,34 @@ uint8_t* TryNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.TryNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.TryNode)
   return target;
 }
 
 size_t TryNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.TryNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.TryNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node catches = 2;
+  // repeated .clojure.rt.protobuf.bytecode.Node catches = 2;
   total_size += 1UL * this->_internal_catches_size();
   for (const auto& msg : this->_impl_.catches_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
 
-  // .clojureRT.protobuf.Node body = 1;
+  // .clojure.rt.protobuf.bytecode.Node body = 1;
   if (this->_internal_has_body()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.body_);
   }
 
-  // optional .clojureRT.protobuf.Node finally = 3;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // .clojure.rt.protobuf.bytecode.Node finally = 3;
+  if (this->_internal_has_finally()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.finally_);
@@ -15823,25 +16084,25 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*TryNode::GetClassData() const 
 void TryNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<TryNode*>(&to_msg);
   auto& from = static_cast<const TryNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.TryNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.TryNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.catches_.MergeFrom(from._impl_.catches_);
   if (from._internal_has_body()) {
-    _this->_internal_mutable_body()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_body()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_body());
   }
   if (from._internal_has_finally()) {
-    _this->_internal_mutable_finally()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_finally()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_finally());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void TryNode::CopyFrom(const TryNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.TryNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.TryNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -15854,7 +16115,6 @@ bool TryNode::IsInitialized() const {
 void TryNode::InternalSwap(TryNode* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.catches_.InternalSwap(&other->_impl_.catches_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(TryNode, _impl_.finally_)
@@ -15867,33 +16127,28 @@ void TryNode::InternalSwap(TryNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata TryNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[40]);
+      file_level_metadata_bytecode_2eproto[41]);
 }
 
 // ===================================================================
 
 class VarNode::_Internal {
  public:
-  using HasBits = decltype(std::declval<VarNode>()._impl_._has_bits_);
-  static void set_has_isassignable(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
 };
 
 VarNode::VarNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.VarNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.VarNode)
 }
 VarNode::VarNode(const VarNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   VarNode* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.var_){}
-    , decltype(_impl_.isassignable_){}};
+      decltype(_impl_.var_){}
+    , decltype(_impl_.isassignable_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   _impl_.var_.InitDefault();
@@ -15905,7 +16160,7 @@ VarNode::VarNode(const VarNode& from)
       _this->GetArenaForAllocation());
   }
   _this->_impl_.isassignable_ = from._impl_.isassignable_;
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.VarNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.VarNode)
 }
 
 inline void VarNode::SharedCtor(
@@ -15913,10 +16168,9 @@ inline void VarNode::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.var_){}
+      decltype(_impl_.var_){}
     , decltype(_impl_.isassignable_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.var_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -15925,7 +16179,7 @@ inline void VarNode::SharedCtor(
 }
 
 VarNode::~VarNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.VarNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.VarNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -15943,28 +16197,25 @@ void VarNode::SetCachedSize(int size) const {
 }
 
 void VarNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.VarNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.VarNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   _impl_.var_.ClearToEmpty();
   _impl_.isassignable_ = false;
-  _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* VarNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // optional bool isAssignable = 1;
+      // bool isAssignable = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
-          _Internal::set_has_isassignable(&has_bits);
           _impl_.isassignable_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -15976,7 +16227,7 @@ const char* VarNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
           auto str = _internal_mutable_var();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.VarNode.var"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.VarNode.var"));
         } else
           goto handle_unusual;
         continue;
@@ -15996,7 +16247,6 @@ const char* VarNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -16006,12 +16256,12 @@ failure:
 
 uint8_t* VarNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.VarNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.VarNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // optional bool isAssignable = 1;
-  if (_internal_has_isassignable()) {
+  // bool isAssignable = 1;
+  if (this->_internal_isassignable() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_isassignable(), target);
   }
@@ -16021,7 +16271,7 @@ uint8_t* VarNode::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_var().data(), static_cast<int>(this->_internal_var().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.VarNode.var");
+      "clojure.rt.protobuf.bytecode.VarNode.var");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_var(), target);
   }
@@ -16030,12 +16280,12 @@ uint8_t* VarNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.VarNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.VarNode)
   return target;
 }
 
 size_t VarNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.VarNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.VarNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -16049,9 +16299,8 @@ size_t VarNode::ByteSizeLong() const {
         this->_internal_var());
   }
 
-  // optional bool isAssignable = 1;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
+  // bool isAssignable = 1;
+  if (this->_internal_isassignable() != 0) {
     total_size += 1 + 1;
   }
 
@@ -16068,7 +16317,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*VarNode::GetClassData() const 
 void VarNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<VarNode*>(&to_msg);
   auto& from = static_cast<const VarNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.VarNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.VarNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -16076,14 +16325,14 @@ void VarNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOB
   if (!from._internal_var().empty()) {
     _this->_internal_set_var(from._internal_var());
   }
-  if (from._internal_has_isassignable()) {
+  if (from._internal_isassignable() != 0) {
     _this->_internal_set_isassignable(from._internal_isassignable());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void VarNode::CopyFrom(const VarNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.VarNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.VarNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -16098,7 +16347,6 @@ void VarNode::InternalSwap(VarNode* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.var_, lhs_arena,
       &other->_impl_.var_, rhs_arena
@@ -16109,7 +16357,7 @@ void VarNode::InternalSwap(VarNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata VarNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[41]);
+      file_level_metadata_bytecode_2eproto[42]);
 }
 
 // ===================================================================
@@ -16122,7 +16370,7 @@ VectorNode::VectorNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.VectorNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.VectorNode)
 }
 VectorNode::VectorNode(const VectorNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -16132,7 +16380,7 @@ VectorNode::VectorNode(const VectorNode& from)
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.VectorNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.VectorNode)
 }
 
 inline void VectorNode::SharedCtor(
@@ -16146,7 +16394,7 @@ inline void VectorNode::SharedCtor(
 }
 
 VectorNode::~VectorNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.VectorNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.VectorNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -16164,7 +16412,7 @@ void VectorNode::SetCachedSize(int size) const {
 }
 
 void VectorNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.VectorNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.VectorNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -16179,7 +16427,7 @@ const char* VectorNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // repeated .clojureRT.protobuf.Node items = 1;
+      // repeated .clojure.rt.protobuf.bytecode.Node items = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr -= 1;
@@ -16217,11 +16465,11 @@ failure:
 
 uint8_t* VectorNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.VectorNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.VectorNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node items = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node items = 1;
   for (unsigned i = 0,
       n = static_cast<unsigned>(this->_internal_items_size()); i < n; i++) {
     const auto& repfield = this->_internal_items(i);
@@ -16233,19 +16481,19 @@ uint8_t* VectorNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.VectorNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.VectorNode)
   return target;
 }
 
 size_t VectorNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.VectorNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.VectorNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .clojureRT.protobuf.Node items = 1;
+  // repeated .clojure.rt.protobuf.bytecode.Node items = 1;
   total_size += 1UL * this->_internal_items_size();
   for (const auto& msg : this->_impl_.items_) {
     total_size +=
@@ -16265,7 +16513,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*VectorNode::GetClassData() con
 void VectorNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<VectorNode*>(&to_msg);
   auto& from = static_cast<const VectorNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.VectorNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.VectorNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
@@ -16275,7 +16523,7 @@ void VectorNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PRO
 }
 
 void VectorNode::CopyFrom(const VectorNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.VectorNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.VectorNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -16294,22 +16542,22 @@ void VectorNode::InternalSwap(VectorNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata VectorNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[42]);
+      file_level_metadata_bytecode_2eproto[43]);
 }
 
 // ===================================================================
 
 class WithMetaNode::_Internal {
  public:
-  static const ::clojureRT::protobuf::Node& expr(const WithMetaNode* msg);
-  static const ::clojureRT::protobuf::Node& meta(const WithMetaNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& expr(const WithMetaNode* msg);
+  static const ::clojure::rt::protobuf::bytecode::Node& meta(const WithMetaNode* msg);
 };
 
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 WithMetaNode::_Internal::expr(const WithMetaNode* msg) {
   return *msg->_impl_.expr_;
 }
-const ::clojureRT::protobuf::Node&
+const ::clojure::rt::protobuf::bytecode::Node&
 WithMetaNode::_Internal::meta(const WithMetaNode* msg) {
   return *msg->_impl_.meta_;
 }
@@ -16317,7 +16565,7 @@ WithMetaNode::WithMetaNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.WithMetaNode)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.WithMetaNode)
 }
 WithMetaNode::WithMetaNode(const WithMetaNode& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
@@ -16329,12 +16577,12 @@ WithMetaNode::WithMetaNode(const WithMetaNode& from)
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_expr()) {
-    _this->_impl_.expr_ = new ::clojureRT::protobuf::Node(*from._impl_.expr_);
+    _this->_impl_.expr_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.expr_);
   }
   if (from._internal_has_meta()) {
-    _this->_impl_.meta_ = new ::clojureRT::protobuf::Node(*from._impl_.meta_);
+    _this->_impl_.meta_ = new ::clojure::rt::protobuf::bytecode::Node(*from._impl_.meta_);
   }
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.WithMetaNode)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.WithMetaNode)
 }
 
 inline void WithMetaNode::SharedCtor(
@@ -16349,7 +16597,7 @@ inline void WithMetaNode::SharedCtor(
 }
 
 WithMetaNode::~WithMetaNode() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.WithMetaNode)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.WithMetaNode)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -16368,7 +16616,7 @@ void WithMetaNode::SetCachedSize(int size) const {
 }
 
 void WithMetaNode::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.WithMetaNode)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.WithMetaNode)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -16390,7 +16638,7 @@ const char* WithMetaNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .clojureRT.protobuf.Node expr = 1;
+      // .clojure.rt.protobuf.bytecode.Node expr = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_expr(), ptr);
@@ -16398,7 +16646,7 @@ const char* WithMetaNode::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Node meta = 2;
+      // .clojure.rt.protobuf.bytecode.Node meta = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_meta(), ptr);
@@ -16431,18 +16679,18 @@ failure:
 
 uint8_t* WithMetaNode::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.WithMetaNode)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.WithMetaNode)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node expr = 1;
+  // .clojure.rt.protobuf.bytecode.Node expr = 1;
   if (this->_internal_has_expr()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(1, _Internal::expr(this),
         _Internal::expr(this).GetCachedSize(), target, stream);
   }
 
-  // .clojureRT.protobuf.Node meta = 2;
+  // .clojure.rt.protobuf.bytecode.Node meta = 2;
   if (this->_internal_has_meta()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(2, _Internal::meta(this),
@@ -16453,26 +16701,26 @@ uint8_t* WithMetaNode::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.WithMetaNode)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.WithMetaNode)
   return target;
 }
 
 size_t WithMetaNode::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.WithMetaNode)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.WithMetaNode)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .clojureRT.protobuf.Node expr = 1;
+  // .clojure.rt.protobuf.bytecode.Node expr = 1;
   if (this->_internal_has_expr()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.expr_);
   }
 
-  // .clojureRT.protobuf.Node meta = 2;
+  // .clojure.rt.protobuf.bytecode.Node meta = 2;
   if (this->_internal_has_meta()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -16492,24 +16740,24 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*WithMetaNode::GetClassData() c
 void WithMetaNode::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<WithMetaNode*>(&to_msg);
   auto& from = static_cast<const WithMetaNode&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.WithMetaNode)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.WithMetaNode)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   if (from._internal_has_expr()) {
-    _this->_internal_mutable_expr()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_expr()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_expr());
   }
   if (from._internal_has_meta()) {
-    _this->_internal_mutable_meta()->::clojureRT::protobuf::Node::MergeFrom(
+    _this->_internal_mutable_meta()->::clojure::rt::protobuf::bytecode::Node::MergeFrom(
         from._internal_meta());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void WithMetaNode::CopyFrom(const WithMetaNode& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.WithMetaNode)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.WithMetaNode)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -16533,24 +16781,22 @@ void WithMetaNode::InternalSwap(WithMetaNode* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata WithMetaNode::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[43]);
+      file_level_metadata_bytecode_2eproto[44]);
 }
 
 // ===================================================================
 
 class Node::_Internal {
  public:
-  using HasBits = decltype(std::declval<Node>()._impl_._has_bits_);
-  static void set_has_ignoretag(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
-  static const ::clojureRT::protobuf::Subnode& subnode(const Node* msg);
-  static void set_has_toplevel(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
-  }
+  static const ::clojure::rt::protobuf::bytecode::Environment& env(const Node* msg);
+  static const ::clojure::rt::protobuf::bytecode::Subnode& subnode(const Node* msg);
 };
 
-const ::clojureRT::protobuf::Subnode&
+const ::clojure::rt::protobuf::bytecode::Environment&
+Node::_Internal::env(const Node* msg) {
+  return *msg->_impl_.env_;
+}
+const ::clojure::rt::protobuf::bytecode::Subnode&
 Node::_Internal::subnode(const Node* msg) {
   return *msg->_impl_.subnode_;
 }
@@ -16558,34 +16804,25 @@ Node::Node(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
   SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:clojureRT.protobuf.Node)
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.Node)
 }
 Node::Node(const Node& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   Node* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.loops_){from._impl_.loops_}
+      decltype(_impl_.loops_){from._impl_.loops_}
     , decltype(_impl_.rawforms_){from._impl_.rawforms_}
-    , decltype(_impl_.env_){}
     , decltype(_impl_.form_){}
     , decltype(_impl_.otag_){}
     , decltype(_impl_.tag_){}
+    , decltype(_impl_.env_){nullptr}
     , decltype(_impl_.subnode_){nullptr}
     , decltype(_impl_.op_){}
     , decltype(_impl_.ignoretag_){}
-    , decltype(_impl_.toplevel_){}};
+    , decltype(_impl_.toplevel_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  _impl_.env_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.env_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_env().empty()) {
-    _this->_impl_.env_.Set(from._internal_env(), 
-      _this->GetArenaForAllocation());
-  }
   _impl_.form_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     _impl_.form_.Set("", GetArenaForAllocation());
@@ -16610,13 +16847,16 @@ Node::Node(const Node& from)
     _this->_impl_.tag_.Set(from._internal_tag(), 
       _this->GetArenaForAllocation());
   }
+  if (from._internal_has_env()) {
+    _this->_impl_.env_ = new ::clojure::rt::protobuf::bytecode::Environment(*from._impl_.env_);
+  }
   if (from._internal_has_subnode()) {
-    _this->_impl_.subnode_ = new ::clojureRT::protobuf::Subnode(*from._impl_.subnode_);
+    _this->_impl_.subnode_ = new ::clojure::rt::protobuf::bytecode::Subnode(*from._impl_.subnode_);
   }
   ::memcpy(&_impl_.op_, &from._impl_.op_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.toplevel_) -
     reinterpret_cast<char*>(&_impl_.op_)) + sizeof(_impl_.toplevel_));
-  // @@protoc_insertion_point(copy_constructor:clojureRT.protobuf.Node)
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.Node)
 }
 
 inline void Node::SharedCtor(
@@ -16624,23 +16864,18 @@ inline void Node::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){}
-    , /*decltype(_impl_._cached_size_)*/{}
-    , decltype(_impl_.loops_){arena}
+      decltype(_impl_.loops_){arena}
     , decltype(_impl_.rawforms_){arena}
-    , decltype(_impl_.env_){}
     , decltype(_impl_.form_){}
     , decltype(_impl_.otag_){}
     , decltype(_impl_.tag_){}
+    , decltype(_impl_.env_){nullptr}
     , decltype(_impl_.subnode_){nullptr}
     , decltype(_impl_.op_){0}
     , decltype(_impl_.ignoretag_){false}
     , decltype(_impl_.toplevel_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
   };
-  _impl_.env_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.env_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   _impl_.form_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     _impl_.form_.Set("", GetArenaForAllocation());
@@ -16656,7 +16891,7 @@ inline void Node::SharedCtor(
 }
 
 Node::~Node() {
-  // @@protoc_insertion_point(destructor:clojureRT.protobuf.Node)
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.Node)
   if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
   (void)arena;
     return;
@@ -16668,10 +16903,10 @@ inline void Node::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   _impl_.loops_.~RepeatedPtrField();
   _impl_.rawforms_.~RepeatedPtrField();
-  _impl_.env_.Destroy();
   _impl_.form_.Destroy();
   _impl_.otag_.Destroy();
   _impl_.tag_.Destroy();
+  if (this != internal_default_instance()) delete _impl_.env_;
   if (this != internal_default_instance()) delete _impl_.subnode_;
 }
 
@@ -16680,46 +16915,41 @@ void Node::SetCachedSize(int size) const {
 }
 
 void Node::Clear() {
-// @@protoc_insertion_point(message_clear_start:clojureRT.protobuf.Node)
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.Node)
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
   _impl_.loops_.Clear();
   _impl_.rawforms_.Clear();
-  _impl_.env_.ClearToEmpty();
   _impl_.form_.ClearToEmpty();
   _impl_.otag_.ClearToEmpty();
   _impl_.tag_.ClearToEmpty();
+  if (GetArenaForAllocation() == nullptr && _impl_.env_ != nullptr) {
+    delete _impl_.env_;
+  }
+  _impl_.env_ = nullptr;
   if (GetArenaForAllocation() == nullptr && _impl_.subnode_ != nullptr) {
     delete _impl_.subnode_;
   }
   _impl_.subnode_ = nullptr;
-  _impl_.op_ = 0;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
-    ::memset(&_impl_.ignoretag_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&_impl_.toplevel_) -
-        reinterpret_cast<char*>(&_impl_.ignoretag_)) + sizeof(_impl_.toplevel_));
-  }
-  _impl_._has_bits_.Clear();
+  ::memset(&_impl_.op_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.toplevel_) -
+      reinterpret_cast<char*>(&_impl_.op_)) + sizeof(_impl_.toplevel_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
 const char* Node::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // string env = 1;
+      // .clojure.rt.protobuf.bytecode.Environment env = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
-          auto str = _internal_mutable_env();
-          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          ptr = ctx->ParseMessage(_internal_mutable_env(), ptr);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.Node.env"));
         } else
           goto handle_unusual;
         continue;
@@ -16729,14 +16959,13 @@ const char* Node::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
           auto str = _internal_mutable_form();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.Node.form"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.Node.form"));
         } else
           goto handle_unusual;
         continue;
-      // optional bool ignoreTag = 3;
+      // bool ignoreTag = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
-          _Internal::set_has_ignoretag(&has_bits);
           _impl_.ignoretag_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -16751,7 +16980,7 @@ const char* Node::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
             auto str = _internal_add_loops();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.Node.loops"));
+            CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.Node.loops"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<34>(ptr));
         } else
@@ -16763,16 +16992,16 @@ const char* Node::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
           auto str = _internal_mutable_otag();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.Node.oTag"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.Node.oTag"));
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Op op = 6;
+      // .clojure.rt.protobuf.bytecode.Op op = 6;
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
           uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          _internal_set_op(static_cast<::clojureRT::protobuf::Op>(val));
+          _internal_set_op(static_cast<::clojure::rt::protobuf::bytecode::Op>(val));
         } else
           goto handle_unusual;
         continue;
@@ -16785,13 +17014,13 @@ const char* Node::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
             auto str = _internal_add_rawforms();
             ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
             CHK_(ptr);
-            CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.Node.rawForms"));
+            CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.Node.rawForms"));
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<58>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // .clojureRT.protobuf.Subnode subnode = 8;
+      // .clojure.rt.protobuf.bytecode.Subnode subnode = 8;
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
           ptr = ctx->ParseMessage(_internal_mutable_subnode(), ptr);
@@ -16805,14 +17034,13 @@ const char* Node::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
           auto str = _internal_mutable_tag();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "clojureRT.protobuf.Node.tag"));
+          CHK_(::_pbi::VerifyUTF8(str, "clojure.rt.protobuf.bytecode.Node.tag"));
         } else
           goto handle_unusual;
         continue;
-      // optional bool topLevel = 10;
+      // bool topLevel = 10;
       case 10:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
-          _Internal::set_has_toplevel(&has_bits);
           _impl_.toplevel_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
@@ -16834,7 +17062,6 @@ const char* Node::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
     CHK_(ptr != nullptr);
   }  // while
 message_done:
-  _impl_._has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -16844,18 +17071,15 @@ failure:
 
 uint8_t* Node::_InternalSerialize(
     uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:clojureRT.protobuf.Node)
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.Node)
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // string env = 1;
-  if (!this->_internal_env().empty()) {
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_env().data(), static_cast<int>(this->_internal_env().length()),
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.Node.env");
-    target = stream->WriteStringMaybeAliased(
-        1, this->_internal_env(), target);
+  // .clojure.rt.protobuf.bytecode.Environment env = 1;
+  if (this->_internal_has_env()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::env(this),
+        _Internal::env(this).GetCachedSize(), target, stream);
   }
 
   // string form = 2;
@@ -16863,13 +17087,13 @@ uint8_t* Node::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_form().data(), static_cast<int>(this->_internal_form().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.Node.form");
+      "clojure.rt.protobuf.bytecode.Node.form");
     target = stream->WriteStringMaybeAliased(
         2, this->_internal_form(), target);
   }
 
-  // optional bool ignoreTag = 3;
-  if (_internal_has_ignoretag()) {
+  // bool ignoreTag = 3;
+  if (this->_internal_ignoretag() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(3, this->_internal_ignoretag(), target);
   }
@@ -16880,7 +17104,7 @@ uint8_t* Node::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.Node.loops");
+      "clojure.rt.protobuf.bytecode.Node.loops");
     target = stream->WriteString(4, s, target);
   }
 
@@ -16889,12 +17113,12 @@ uint8_t* Node::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_otag().data(), static_cast<int>(this->_internal_otag().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.Node.oTag");
+      "clojure.rt.protobuf.bytecode.Node.oTag");
     target = stream->WriteStringMaybeAliased(
         5, this->_internal_otag(), target);
   }
 
-  // .clojureRT.protobuf.Op op = 6;
+  // .clojure.rt.protobuf.bytecode.Op op = 6;
   if (this->_internal_op() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -16907,11 +17131,11 @@ uint8_t* Node::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       s.data(), static_cast<int>(s.length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.Node.rawForms");
+      "clojure.rt.protobuf.bytecode.Node.rawForms");
     target = stream->WriteString(7, s, target);
   }
 
-  // .clojureRT.protobuf.Subnode subnode = 8;
+  // .clojure.rt.protobuf.bytecode.Subnode subnode = 8;
   if (this->_internal_has_subnode()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(8, _Internal::subnode(this),
@@ -16923,13 +17147,13 @@ uint8_t* Node::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_tag().data(), static_cast<int>(this->_internal_tag().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "clojureRT.protobuf.Node.tag");
+      "clojure.rt.protobuf.bytecode.Node.tag");
     target = stream->WriteStringMaybeAliased(
         9, this->_internal_tag(), target);
   }
 
-  // optional bool topLevel = 10;
-  if (_internal_has_toplevel()) {
+  // bool topLevel = 10;
+  if (this->_internal_toplevel() != 0) {
     target = stream->EnsureSpace(target);
     target = ::_pbi::WireFormatLite::WriteBoolToArray(10, this->_internal_toplevel(), target);
   }
@@ -16938,12 +17162,12 @@ uint8_t* Node::_InternalSerialize(
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:clojureRT.protobuf.Node)
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.Node)
   return target;
 }
 
 size_t Node::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:clojureRT.protobuf.Node)
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.Node)
   size_t total_size = 0;
 
   uint32_t cached_has_bits = 0;
@@ -16964,13 +17188,6 @@ size_t Node::ByteSizeLong() const {
   for (int i = 0, n = _impl_.rawforms_.size(); i < n; i++) {
     total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
       _impl_.rawforms_.Get(i));
-  }
-
-  // string env = 1;
-  if (!this->_internal_env().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_env());
   }
 
   // string form = 2;
@@ -16994,32 +17211,36 @@ size_t Node::ByteSizeLong() const {
         this->_internal_tag());
   }
 
-  // .clojureRT.protobuf.Subnode subnode = 8;
+  // .clojure.rt.protobuf.bytecode.Environment env = 1;
+  if (this->_internal_has_env()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.env_);
+  }
+
+  // .clojure.rt.protobuf.bytecode.Subnode subnode = 8;
   if (this->_internal_has_subnode()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.subnode_);
   }
 
-  // .clojureRT.protobuf.Op op = 6;
+  // .clojure.rt.protobuf.bytecode.Op op = 6;
   if (this->_internal_op() != 0) {
     total_size += 1 +
       ::_pbi::WireFormatLite::EnumSize(this->_internal_op());
   }
 
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
-    // optional bool ignoreTag = 3;
-    if (cached_has_bits & 0x00000001u) {
-      total_size += 1 + 1;
-    }
-
-    // optional bool topLevel = 10;
-    if (cached_has_bits & 0x00000002u) {
-      total_size += 1 + 1;
-    }
-
+  // bool ignoreTag = 3;
+  if (this->_internal_ignoretag() != 0) {
+    total_size += 1 + 1;
   }
+
+  // bool topLevel = 10;
+  if (this->_internal_toplevel() != 0) {
+    total_size += 1 + 1;
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -17033,16 +17254,13 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Node::GetClassData() const { r
 void Node::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
   auto* const _this = static_cast<Node*>(&to_msg);
   auto& from = static_cast<const Node&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:clojureRT.protobuf.Node)
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.Node)
   GOOGLE_DCHECK_NE(&from, _this);
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   _this->_impl_.loops_.MergeFrom(from._impl_.loops_);
   _this->_impl_.rawforms_.MergeFrom(from._impl_.rawforms_);
-  if (!from._internal_env().empty()) {
-    _this->_internal_set_env(from._internal_env());
-  }
   if (!from._internal_form().empty()) {
     _this->_internal_set_form(from._internal_form());
   }
@@ -17052,28 +17270,28 @@ void Node::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_
   if (!from._internal_tag().empty()) {
     _this->_internal_set_tag(from._internal_tag());
   }
+  if (from._internal_has_env()) {
+    _this->_internal_mutable_env()->::clojure::rt::protobuf::bytecode::Environment::MergeFrom(
+        from._internal_env());
+  }
   if (from._internal_has_subnode()) {
-    _this->_internal_mutable_subnode()->::clojureRT::protobuf::Subnode::MergeFrom(
+    _this->_internal_mutable_subnode()->::clojure::rt::protobuf::bytecode::Subnode::MergeFrom(
         from._internal_subnode());
   }
   if (from._internal_op() != 0) {
     _this->_internal_set_op(from._internal_op());
   }
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
-    if (cached_has_bits & 0x00000001u) {
-      _this->_impl_.ignoretag_ = from._impl_.ignoretag_;
-    }
-    if (cached_has_bits & 0x00000002u) {
-      _this->_impl_.toplevel_ = from._impl_.toplevel_;
-    }
-    _this->_impl_._has_bits_[0] |= cached_has_bits;
+  if (from._internal_ignoretag() != 0) {
+    _this->_internal_set_ignoretag(from._internal_ignoretag());
+  }
+  if (from._internal_toplevel() != 0) {
+    _this->_internal_set_toplevel(from._internal_toplevel());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void Node::CopyFrom(const Node& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:clojureRT.protobuf.Node)
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.Node)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -17088,13 +17306,8 @@ void Node::InternalSwap(Node* other) {
   auto* lhs_arena = GetArenaForAllocation();
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.loops_.InternalSwap(&other->_impl_.loops_);
   _impl_.rawforms_.InternalSwap(&other->_impl_.rawforms_);
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &_impl_.env_, lhs_arena,
-      &other->_impl_.env_, rhs_arena
-  );
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.form_, lhs_arena,
       &other->_impl_.form_, rhs_arena
@@ -17110,200 +17323,395 @@ void Node::InternalSwap(Node* other) {
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Node, _impl_.toplevel_)
       + sizeof(Node::_impl_.toplevel_)
-      - PROTOBUF_FIELD_OFFSET(Node, _impl_.subnode_)>(
-          reinterpret_cast<char*>(&_impl_.subnode_),
-          reinterpret_cast<char*>(&other->_impl_.subnode_));
+      - PROTOBUF_FIELD_OFFSET(Node, _impl_.env_)>(
+          reinterpret_cast<char*>(&_impl_.env_),
+          reinterpret_cast<char*>(&other->_impl_.env_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata Node::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
-      file_level_metadata_bytecode_2eproto[44]);
+      file_level_metadata_bytecode_2eproto[45]);
+}
+
+// ===================================================================
+
+class Programme::_Internal {
+ public:
+};
+
+Programme::Programme(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:clojure.rt.protobuf.bytecode.Programme)
+}
+Programme::Programme(const Programme& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  Programme* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.nodes_){from._impl_.nodes_}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:clojure.rt.protobuf.bytecode.Programme)
+}
+
+inline void Programme::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.nodes_){arena}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+Programme::~Programme() {
+  // @@protoc_insertion_point(destructor:clojure.rt.protobuf.bytecode.Programme)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void Programme::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.nodes_.~RepeatedPtrField();
+}
+
+void Programme::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void Programme::Clear() {
+// @@protoc_insertion_point(message_clear_start:clojure.rt.protobuf.bytecode.Programme)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.nodes_.Clear();
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* Programme::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // repeated .clojure.rt.protobuf.bytecode.Node nodes = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_nodes(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* Programme::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:clojure.rt.protobuf.bytecode.Programme)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated .clojure.rt.protobuf.bytecode.Node nodes = 1;
+  for (unsigned i = 0,
+      n = static_cast<unsigned>(this->_internal_nodes_size()); i < n; i++) {
+    const auto& repfield = this->_internal_nodes(i);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:clojure.rt.protobuf.bytecode.Programme)
+  return target;
+}
+
+size_t Programme::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:clojure.rt.protobuf.bytecode.Programme)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .clojure.rt.protobuf.bytecode.Node nodes = 1;
+  total_size += 1UL * this->_internal_nodes_size();
+  for (const auto& msg : this->_impl_.nodes_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData Programme::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    Programme::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Programme::GetClassData() const { return &_class_data_; }
+
+
+void Programme::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<Programme*>(&to_msg);
+  auto& from = static_cast<const Programme&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:clojure.rt.protobuf.bytecode.Programme)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  _this->_impl_.nodes_.MergeFrom(from._impl_.nodes_);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void Programme::CopyFrom(const Programme& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:clojure.rt.protobuf.bytecode.Programme)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool Programme::IsInitialized() const {
+  return true;
+}
+
+void Programme::InternalSwap(Programme* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  _impl_.nodes_.InternalSwap(&other->_impl_.nodes_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata Programme::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_bytecode_2eproto_getter, &descriptor_table_bytecode_2eproto_once,
+      file_level_metadata_bytecode_2eproto[46]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
+}  // namespace bytecode
 }  // namespace protobuf
-}  // namespace clojureRT
+}  // namespace rt
+}  // namespace clojure
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::Subnode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::Subnode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::Subnode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::Environment*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::Environment >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::Environment >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::BindingNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::BindingNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::BindingNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::Subnode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::Subnode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::Subnode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::CaseNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::CaseNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::CaseNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::BindingNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::BindingNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::BindingNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::CaseTestNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::CaseTestNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::CaseTestNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::CaseNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::CaseNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::CaseNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::CaseThenNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::CaseThenNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::CaseThenNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::CaseTestNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::CaseTestNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::CaseTestNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::CatchNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::CatchNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::CatchNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::CaseThenNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::CaseThenNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::CaseThenNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::ConstNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::ConstNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::ConstNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::CatchNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::CatchNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::CatchNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::DefNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::DefNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::DefNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::ConstNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::ConstNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::ConstNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::DeftypeNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::DeftypeNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::DeftypeNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::DefNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::DefNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::DefNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::DoNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::DoNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::DoNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::DeftypeNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::DeftypeNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::DeftypeNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::FnNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::FnNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::FnNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::DoNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::DoNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::DoNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::FnMethodNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::FnMethodNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::FnMethodNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::FnNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::FnNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::FnNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::HostInteropNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::HostInteropNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::HostInteropNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::FnMethodNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::FnMethodNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::FnMethodNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::IfNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::IfNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::IfNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::HostInteropNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::HostInteropNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::HostInteropNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::ImportNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::ImportNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::ImportNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::IfNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::IfNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::IfNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::InstanceCallNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::InstanceCallNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::InstanceCallNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::ImportNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::ImportNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::ImportNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::InstanceFieldNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::InstanceFieldNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::InstanceFieldNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::InstanceCallNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::InstanceCallNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::InstanceCallNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::IsInstanceNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::IsInstanceNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::IsInstanceNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::InstanceFieldNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::InstanceFieldNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::InstanceFieldNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::InvokeNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::InvokeNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::InvokeNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::IsInstanceNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::IsInstanceNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::IsInstanceNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::KeywordInvokeNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::KeywordInvokeNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::KeywordInvokeNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::InvokeNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::InvokeNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::InvokeNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::LetNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::LetNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::LetNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::KeywordInvokeNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::KeywordInvokeNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::KeywordInvokeNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::LetfnNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::LetfnNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::LetfnNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::LetNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::LetNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::LetNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::LocalNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::LocalNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::LocalNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::LetfnNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::LetfnNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::LetfnNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::LoopNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::LoopNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::LoopNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::LocalNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::LocalNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::LocalNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::MapNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::MapNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::MapNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::LoopNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::LoopNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::LoopNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::MethodNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::MethodNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::MethodNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::MapNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::MapNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::MapNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::MonitorEnterNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::MonitorEnterNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::MonitorEnterNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::MethodNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::MethodNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::MethodNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::MonitorExitNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::MonitorExitNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::MonitorExitNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::MonitorEnterNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::MonitorEnterNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::MonitorEnterNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::NewNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::NewNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::NewNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::MonitorExitNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::MonitorExitNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::MonitorExitNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::PrimInvokeNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::PrimInvokeNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::PrimInvokeNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::NewNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::NewNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::NewNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::ProtocolInvokeNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::ProtocolInvokeNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::ProtocolInvokeNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::PrimInvokeNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::PrimInvokeNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::PrimInvokeNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::QuoteNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::QuoteNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::QuoteNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::ProtocolInvokeNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::ProtocolInvokeNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::ProtocolInvokeNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::RecurNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::RecurNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::RecurNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::QuoteNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::QuoteNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::QuoteNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::ReifyNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::ReifyNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::ReifyNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::RecurNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::RecurNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::RecurNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::SetNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::SetNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::SetNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::ReifyNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::ReifyNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::ReifyNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::MutateSetNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::MutateSetNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::MutateSetNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::SetNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::SetNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::SetNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::StaticCallNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::StaticCallNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::StaticCallNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::MutateSetNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::MutateSetNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::MutateSetNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::StaticFieldNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::StaticFieldNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::StaticFieldNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::StaticCallNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::StaticCallNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::StaticCallNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::TheVarNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::TheVarNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::TheVarNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::StaticFieldNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::StaticFieldNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::StaticFieldNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::ThrowNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::ThrowNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::ThrowNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::TheVarNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::TheVarNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::TheVarNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::TryNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::TryNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::TryNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::ThrowNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::ThrowNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::ThrowNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::VarNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::VarNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::VarNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::TryNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::TryNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::TryNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::VectorNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::VectorNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::VectorNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::VarNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::VarNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::VarNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::WithMetaNode*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::WithMetaNode >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::WithMetaNode >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::VectorNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::VectorNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::VectorNode >(arena);
 }
-template<> PROTOBUF_NOINLINE ::clojureRT::protobuf::Node*
-Arena::CreateMaybeMessage< ::clojureRT::protobuf::Node >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::clojureRT::protobuf::Node >(arena);
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::WithMetaNode*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::WithMetaNode >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::WithMetaNode >(arena);
+}
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::Node*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::Node >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::Node >(arena);
+}
+template<> PROTOBUF_NOINLINE ::clojure::rt::protobuf::bytecode::Programme*
+Arena::CreateMaybeMessage< ::clojure::rt::protobuf::bytecode::Programme >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::clojure::rt::protobuf::bytecode::Programme >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

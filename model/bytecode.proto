@@ -1,7 +1,6 @@
 syntax = "proto3";
 
-package clojureRT.protobuf;
-option java_outer_classname = "Protobuf";
+package clojure.rt.protobuf.bytecode;
 
 enum Op {
   opBinding = 0;
@@ -60,6 +59,17 @@ enum LocalType {
   localTypeThis = 7;
 }
 
+message Environment {
+  string context = 1;
+  repeated string locals = 2;
+  string ns = 3;
+  uint32 column = 4;
+  uint32 line = 5;
+  uint32 endColumn = 6;
+  uint32 endLine = 7;
+  string file = 8;
+}
+
 message Subnode {
   oneof types {
     BindingNode binding = 1;
@@ -110,11 +120,11 @@ message Subnode {
 
 /* Node for a binding symbol */
 message BindingNode {
-  /* When :local is :arg, the parameter index */
-  optional uint32 argId = 1;
+  /* OPTIONAL: When :local is :arg, the parameter index */
+  uint32 argId = 1;
 
-  /* When :local is :let, :letfn or :loop, an AST node representing the bound value */
-  optional Node init = 2;
+  /* OPTIONAL: When :local is :let, :letfn or :loop, an AST node representing the bound value */
+  Node init = 2;
 
   /* One of :arg, :catch, :fn, :let, :letfn, :loop, :field or :this */
   LocalType local = 3;
@@ -122,8 +132,8 @@ message BindingNode {
   /* The uniquified binding symbol */
   string name = 4;
 
-  /* When :local is :arg, a boolean indicating whether this parameter binds to a variable number of arguments */
-  optional bool isVariadic = 5;
+  /* OPTIONAL: When :local is :arg, a boolean indicating whether this parameter binds to a variable number of arguments */
+  bool isVariadic = 5;
 }
 
 /* Node for a case* special-form expression */
@@ -222,8 +232,8 @@ message ConstNode {
   /* `true` */
   bool isLiteral = 1;
 
-  /* An AST node representing the metadata of the constant value, if present. The node will be either a :map node or a :const node with :type :map */
-  optional Node meta = 2;
+  /* OPTIONAL: An AST node representing the metadata of the constant value, if present. The node will be either a :map node or a :const node with :type :map */
+  Node meta = 2;
 
   /* one of :nil, :bool, :keyword, :symbol, :string, :number, :type, :record, :map, :vector, :set, :seq, :char, :regex, :class, :var, or :unknown */
   ConstType type = 3;
@@ -234,14 +244,14 @@ message ConstNode {
 
 /* Node for a def special-form expression */
 message DefNode {
-  /* The docstring for this var */
-  optional string doc = 1;
+  /* OPTIONAL: The docstring for this var */
+  string doc = 1;
 
-  /* An AST node representing the initial value of the var */
-  optional Node init = 2;
+  /* OPTIONAL: An AST node representing the initial value of the var */
+  Node init = 2;
 
-  /* An AST node representing the metadata attached to :name, if present. The node will be either a :map node or a :const node with :type :map */
-  optional Node meta = 3;
+  /* OPTIONAL: An AST node representing the metadata attached to :name, if present. The node will be either a :map node or a :const node with :type :map */
+  Node meta = 3;
 
   /* The var symbol to define in the current namespace */
   string name = 4;
@@ -270,8 +280,8 @@ message DeftypeNode {
 
 /* Node for a do special-form expression or for another special-form's body */
 message DoNode {
-  /* `true` if this node is a synthetic body */
-  optional bool isBody = 1;
+  /* OPTIONAL: `true` if this node is a synthetic body */
+  bool isBody = 1;
 
   /* An AST node representing the last expression in the do body (the block's return value) */
   Node ret = 2;
@@ -282,8 +292,8 @@ message DoNode {
 
 /* Node for a fn* special-form expression */
 message FnNode {
-  /* A :binding AST node with :local :fn representing the function's local name, if one is supplied */
-  optional Node local = 1;
+  /* OPTIONAL: A :binding AST node with :local :fn representing the function's local name, if one is supplied */
+  Node local = 1;
 
   /* The number of arguments taken by the fixed-arity method taking the most arguments */
   uint32 maxFixedArity = 2;
@@ -351,8 +361,8 @@ message InstanceCallNode {
   /* A vector of AST nodes representing the args passed to the method call */
   repeated Node args = 1;
 
-  /* If :validated? the class or interface the method belongs to */
-  optional string class = 2;
+  /* OPTIONAL: If :validated? the class or interface the method belongs to */
+  string class = 2;
 
   /* An AST node representing the instance to call the method on */
   Node instance = 3;
@@ -360,8 +370,8 @@ message InstanceCallNode {
   /* Symbol naming the invoked method */
   string method = 4;
 
-  /* `true` if the method call could be resolved at compile time */
-  optional bool isValidated = 5;
+  /* OPTIONAL: `true` if the method call could be resolved at compile time */
+  bool isValidated = 5;
 }
 
 /* Node for an instance field access */
@@ -396,8 +406,8 @@ message InvokeNode {
   /* An AST node representing the function to invoke */
   Node fn = 2;
 
-  /* Map of metadata attached to the invoke :form */
-  optional string meta = 3;
+  /* OPTIONAL: Map of metadata attached to the invoke :form */
+  string meta = 3;
 }
 
 /* Node for an invoke expression where the fn is a not-namespaced keyword and thus a keyword callsite can be emitted */
@@ -429,8 +439,8 @@ message LetfnNode {
 
 /* Node for a local symbol */
 message LocalNode {
-  /* When :local is :arg, the parameter index */
-  optional uint32 argId = 1;
+  /* OPTIONAL: When :local is :arg, the parameter index */
+  uint32 argId = 1;
 
   /* `true` if the corresponding :binding AST node is :local :field and is declared either ^:volatile-mutable or ^:unsynchronized-mutable */
   bool isAssignable = 2;
@@ -441,8 +451,8 @@ message LocalNode {
   /* The uniquified local symbol */
   string name = 4;
 
-  /* When :local is :arg, a boolean indicating whether this parameter binds to a variable number of arguments */
-  optional bool isVariadic = 5;
+  /* OPTIONAL: When :local is :arg, a boolean indicating whether this parameter binds to a variable number of arguments */
+  bool isVariadic = 5;
 }
 
 /* Node a loop* special-form expression */
@@ -513,8 +523,8 @@ message NewNode {
   /* A :const AST node with :type :class representing the Class to instantiate */
   Node class = 2;
 
-  /* `true` if the constructor call could be resolved at compile time */
-  optional bool isValidated = 3;
+  /* OPTIONAL: `true` if the constructor call could be resolved at compile time */
+  bool isValidated = 3;
 }
 
 /* Node for an invoke expression that can be optimized using one of the primitive interfaces in IFn */
@@ -525,8 +535,8 @@ message PrimInvokeNode {
   /* An AST node representing the function to invoke */
   Node fn = 2;
 
-  /* Map of metadata attached to the invoke :form */
-  optional string meta = 3;
+  /* OPTIONAL: Map of metadata attached to the invoke :form */
+  string meta = 3;
 
   /* The primitive interface in IFn that will be used */
   string primInterface = 4;
@@ -600,14 +610,14 @@ message StaticCallNode {
   /* The symbol name of the static method */
   string method = 3;
 
-  /* `true` if the static method could be resolved at compile time */
-  optional bool isValidated = 4;
+  /* OPTIONAL: `true` if the static method could be resolved at compile time */
+  bool isValidated = 4;
 }
 
 /* Node for a static field access */
 message StaticFieldNode {
-  /* `true` if the static field is set!able */
-  optional bool isAssignable = 1;
+  /* OPTIONAL: `true` if the static field is set!able */
+  bool isAssignable = 1;
 
   /* The Class the static field belongs to */
   string class = 2;
@@ -636,14 +646,14 @@ message TryNode {
   /* A vector of :catch AST nodes representing the catch clauses of this try expression */
   repeated Node catches = 2;
 
-  /* Synthetic :do AST node (with :body? `true`) representing the final clause of this try expression */
-  optional Node finally = 3;
+  /* OPTIONAL: Synthetic :do AST node (with :body? `true`) representing the final clause of this try expression */
+  Node finally = 3;
 }
 
 /* Node for a var symbol */
 message VarNode {
-  /* `true` if the Var is :dynamic */
-  optional bool isAssignable = 1;
+  /* OPTIONAL: `true` if the Var is :dynamic */
+  bool isAssignable = 1;
 
   /* The Var object this symbol refers to */
   string var = 2;
@@ -667,13 +677,13 @@ message WithMetaNode {
 /* Universal node containing common fields */
 message Node {
   /* The environment map */
-  string env = 1;
+  Environment env = 1;
 
   /* The clojure form from which the node originated */
   string form = 2;
 
-  /* `true` if this node returns a statement rather than an expression */
-  optional bool ignoreTag = 3;
+  /* OPTIONAL: `true` if this node returns a statement rather than an expression */
+  bool ignoreTag = 3;
 
   /* A set of the loop-ids that might cause this node to recur */
   repeated string loops = 4;
@@ -692,6 +702,10 @@ message Node {
   /* The tag this expression is required to have */
   string tag = 9;
 
-  /* `true` if this is the root node */
-  optional bool topLevel = 10;
+  /* OPTIONAL: `true` if this is the root node */
+  bool topLevel = 10;
+}
+
+message Programme {
+  repeated Node nodes = 1;
 }

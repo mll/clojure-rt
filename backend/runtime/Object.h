@@ -18,15 +18,6 @@
 
 typedef struct String String; 
 
-enum objectType {
-   integerType,
-   stringType,
-   persistentListType,
-   persistentVectorType,
-   persistentVectorNodeType,
-   doubleType
-};
-
 typedef enum objectType objectType;
 
 struct Object {

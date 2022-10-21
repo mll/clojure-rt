@@ -319,7 +319,13 @@ int main(int argc, char *argv[]) {
   auto gen = CodeGenerator();
 
   try {
-    gen.codegen(astRoot);
+    cout << "Expressions: " << endl;
+    for (auto g : gen.codegen(astRoot)) {
+      g.second->print(errs());
+      cout << endl << endl;
+    }
+
+    gen.TheModule->print(errs(), nullptr);
   } catch (CodeGenerationException e) {
     cerr << e.toString();
     return -1;

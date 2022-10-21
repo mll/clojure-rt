@@ -1,0 +1,43 @@
+
+
+Runtime:
+
+v String
+v PersistentList
+v PersistentVector
+v Integer
+v Double
+* Ratio
+* BigInteger
+* PersistentArrayMap
+* PersistentHashMap
+* PersistentSet
+
+Compiler:
+
+* Const 
+  v Integer
+  v Double
+  * String <--
+  * Map
+  * Vector
+  * List
+  * Ratio
+  * BigInteger
+
+v StaticCall (works for simple math, framework prepared to add more functionality)
+v WithMeta (for now just ignores meta)
+* If <--
+* Loop (+ recur for loop)
+* Def and vars system
+* Binding  
+* Fn
+* FnMethod
+* Invoke
+* Recur (for Fn)
+* Vector
+* Case (CaseTest CaseThen)
+* Memory management (let us start with string)
+
+....
+

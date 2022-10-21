@@ -13,7 +13,7 @@ LIBS = -L/opt/homebrew/lib -lprotobuf
 OBJFILES = main.o runtime/runtime.a bytecode.pb.o codegen.o jit.o BindingNode.o CaseNode.o CaseTestNode.o CaseThenNode.o CatchNode.o ConstNode.o DefNode.o DeftypeNode.o DoNode.o \
 FnMethodNode.o FnNode.o HostInteropNode.o IfNode.o ImportNode.o InstanceCallNode.o InstanceFieldNode.o InvokeNode.o IsInstanceNode.o KeywordInvokeNode.o LetNode.o LetfnNode.o \
 LocalNode.o LoopNode.o MapNode.o MethodNode.o MonitorEnterNode.o MonitorExitNode.o MutateSetNode.o NewNode.o PrimInvokeNode.o ProtocolInvokeNode.o QuoteNode.o RecurNode.o ReifyNode.o \
-SetNode.o StaticCallNode.o StaticFieldNode.o TheVarNode.o ThrowNode.o TryNode.o VarNode.o VectorNode.o WithMetaNode.o libtcmalloc_and_profiler.a
+SetNode.o StaticCallNode.o StaticFieldNode.o TheVarNode.o ThrowNode.o TryNode.o VarNode.o VectorNode.o WithMetaNode.o Numbers.o libtcmalloc_and_profiler.a 
            
 LLVM_LINKER_FLAGS = $(shell llvm-config --cxxflags --ldflags --system-libs --libs core orcjit native)
 LLVM_COMPILE_FLAGS = $(shell llvm-config --cxxflags --system-libs)
@@ -124,3 +124,5 @@ VectorNode.o: ops/VectorNode.cpp codegen.h
 	$(CCP) -c $(CFLAGS) $(LLVM_COMPILE_FLAGS) ops/VectorNode.cpp
 WithMetaNode.o: ops/WithMetaNode.cpp codegen.h
 	$(CCP) -c $(CFLAGS) $(LLVM_COMPILE_FLAGS) ops/WithMetaNode.cpp
+Numbers.o: Numbers.cpp Numbers.h
+	$(CCP) -c $(CFLAGS) $(LLVM_COMPILE_FLAGS) Numbers.cpp

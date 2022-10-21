@@ -5,4 +5,14 @@
 #define FALSE 0
 typedef uint8_t BOOL;
 
+enum objectType {
+   integerType,
+   stringType,
+   persistentListType,
+   persistentVectorType,
+   persistentVectorNodeType,
+   doubleType
+};
+
+
 #endif

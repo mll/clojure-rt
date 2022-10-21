@@ -68,10 +68,10 @@
                                                                     (name (proto-symbol %))))))]
                                           (if val
                                             [(proto-symbol k) 
-                                             (if repeated? (map converter val) (converter val))]))) keymap))))
+                                             (if repeated? (vec (map converter val)) (converter val))]))) keymap))))
         create-subnode (fn [subnode] 
                          (bc/new-Subnode  
-                          {:types {op ((ctor-for-op op) (map-node node-type converters subnode))}}))
+                          {:types {(keyword (cl->pt op)) ((ctor-for-op op) (map-node node-type converters subnode))}}))
         create-environment (fn [environ]
                              (bc/new-Environment (map-node environment-keys converters environ)))]
     (bc/new-Node (map-node all-keys-types 

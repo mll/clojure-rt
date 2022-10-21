@@ -1,7 +1,7 @@
 #include "../codegen.h"  
 
-Value *CodeGenerator::codegen(const Node &node, const VectorNode &subnode) {
+pair<objectType, Value *> CodeGenerator::codegen(const Node &node, const VectorNode &subnode) {
   throw CodeGenerationException(string("Compiler does not support the following op yet: ") + Op_Name(node.op()), node);
-  return nullptr;
+  return pair<objectType, Value *>(integerType, nullptr);
 }
 

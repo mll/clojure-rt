@@ -33,18 +33,31 @@
 #include <fstream>
 #include <sstream>
 #include "jit.h"
+#include "runtime/defines.h"
 
 using namespace std;
 using namespace llvm;
 using namespace llvm::orc;
 using namespace clojure::rt::protobuf::bytecode;
+class CodeGenerator;
+
+typedef pair<objectType, Value *> TypedValue;
+typedef TypedValue (*StaticCall)(CodeGenerator *, const string &, const Node&, const std::vector<TypedValue>&);
 
 class CodeGenerationException: public exception {
   string errorMessage;
   public:
-  CodeGenerationException(const string errorMessage, const Node& node); 
+  CodeGenerationException(const string &errorMessage, const Node& node); 
   string toString(); 
 };
+
+class InternalInconsistencyException: public exception {
+  string errorMessage;
+  public:
+  InternalInconsistencyException(const string &error) : errorMessage(error) {} 
+  string toString() { return errorMessage; } 
+};
+
 
 
 class CodeGenerator {
@@ -52,59 +65,63 @@ class CodeGenerator {
   std::unique_ptr<LLVMContext> TheContext;
   std::unique_ptr<Module> TheModule;
   std::unique_ptr<IRBuilder<>> Builder;
-  std::map<std::string, Value *> NamedValues;
+  std::map<std::string, StaticCall> StaticCallLibrary; 
+  std::map<std::string, TypedValue> NamedValues;
   std::unique_ptr<legacy::FunctionPassManager> TheFPM;
   std::unique_ptr<ClojureJIT> TheJIT;
 //  std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
   ExitOnError ExitOnErr;
 
-  CodeGenerator();
-  Value *codegen(const Programme &programme);
-  Value *codegen(const Node &node);
+  string typeStringForArgs(vector<TypedValue> &args);
+  vector<objectType> typesForArgString(Node &node, string &typeString); 
 
-  Value *codegen(const Node &node, const BindingNode &subnode);
-  Value *codegen(const Node &node, const CaseNode &subnode);
-  Value *codegen(const Node &node, const CaseTestNode &subnode);
-  Value *codegen(const Node &node, const CaseThenNode &subnode);
-  Value *codegen(const Node &node, const CatchNode &subnode);
-  Value *codegen(const Node &node, const ConstNode &subnode);
-  Value *codegen(const Node &node, const DefNode &subnode);
-  Value *codegen(const Node &node, const DeftypeNode &subnode);
-  Value *codegen(const Node &node, const DoNode &subnode);
-  Value *codegen(const Node &node, const FnNode &subnode);
-  Value *codegen(const Node &node, const FnMethodNode &subnode);
-  Value *codegen(const Node &node, const HostInteropNode &subnode);
-  Value *codegen(const Node &node, const IfNode &subnode);
-  Value *codegen(const Node &node, const ImportNode &subnode);
-  Value *codegen(const Node &node, const InstanceCallNode &subnode);
-  Value *codegen(const Node &node, const InstanceFieldNode &subnode);
-  Value *codegen(const Node &node, const IsInstanceNode &subnode);
-  Value *codegen(const Node &node, const InvokeNode &subnode);
-  Value *codegen(const Node &node, const KeywordInvokeNode &subnode);
-  Value *codegen(const Node &node, const LetNode &subnode);
-  Value *codegen(const Node &node, const LetfnNode &subnode);
-  Value *codegen(const Node &node, const LocalNode &subnode);
-  Value *codegen(const Node &node, const LoopNode &subnode);
-  Value *codegen(const Node &node, const MapNode &subnode);
-  Value *codegen(const Node &node, const MethodNode &subnode);
-  Value *codegen(const Node &node, const MonitorEnterNode &subnode);
-  Value *codegen(const Node &node, const MonitorExitNode &subnode);
-  Value *codegen(const Node &node, const NewNode &subnode);
-  Value *codegen(const Node &node, const PrimInvokeNode &subnode);
-  Value *codegen(const Node &node, const ProtocolInvokeNode &subnode);
-  Value *codegen(const Node &node, const QuoteNode &subnode);
-  Value *codegen(const Node &node, const RecurNode &subnode);
-  Value *codegen(const Node &node, const ReifyNode &subnode);
-  Value *codegen(const Node &node, const SetNode &subnode);
-  Value *codegen(const Node &node, const MutateSetNode &subnode);
-  Value *codegen(const Node &node, const StaticCallNode &subnode);
-  Value *codegen(const Node &node, const StaticFieldNode &subnode);
-  Value *codegen(const Node &node, const TheVarNode &subnode);
-  Value *codegen(const Node &node, const ThrowNode &subnode);
-  Value *codegen(const Node &node, const TryNode &subnode);
-  Value *codegen(const Node &node, const VarNode &subnode);
-  Value *codegen(const Node &node, const VectorNode &subnode);
-  Value *codegen(const Node &node, const WithMetaNode &subnode);
+  CodeGenerator();
+  vector<TypedValue> codegen(const Programme &programme);
+  TypedValue codegen(const Node &node);
+
+  TypedValue codegen(const Node &node, const BindingNode &subnode);
+  TypedValue codegen(const Node &node, const CaseNode &subnode);
+  TypedValue codegen(const Node &node, const CaseTestNode &subnode);
+  TypedValue codegen(const Node &node, const CaseThenNode &subnode);
+  TypedValue codegen(const Node &node, const CatchNode &subnode);
+  TypedValue codegen(const Node &node, const ConstNode &subnode);
+  TypedValue codegen(const Node &node, const DefNode &subnode);
+  TypedValue codegen(const Node &node, const DeftypeNode &subnode);
+  TypedValue codegen(const Node &node, const DoNode &subnode);
+  TypedValue codegen(const Node &node, const FnNode &subnode);
+  TypedValue codegen(const Node &node, const FnMethodNode &subnode);
+  TypedValue codegen(const Node &node, const HostInteropNode &subnode);
+  TypedValue codegen(const Node &node, const IfNode &subnode);
+  TypedValue codegen(const Node &node, const ImportNode &subnode);
+  TypedValue codegen(const Node &node, const InstanceCallNode &subnode);
+  TypedValue codegen(const Node &node, const InstanceFieldNode &subnode);
+  TypedValue codegen(const Node &node, const IsInstanceNode &subnode);
+  TypedValue codegen(const Node &node, const InvokeNode &subnode);
+  TypedValue codegen(const Node &node, const KeywordInvokeNode &subnode);
+  TypedValue codegen(const Node &node, const LetNode &subnode);
+  TypedValue codegen(const Node &node, const LetfnNode &subnode);
+  TypedValue codegen(const Node &node, const LocalNode &subnode);
+  TypedValue codegen(const Node &node, const LoopNode &subnode);
+  TypedValue codegen(const Node &node, const MapNode &subnode);
+  TypedValue codegen(const Node &node, const MethodNode &subnode);
+  TypedValue codegen(const Node &node, const MonitorEnterNode &subnode);
+  TypedValue codegen(const Node &node, const MonitorExitNode &subnode);
+  TypedValue codegen(const Node &node, const NewNode &subnode);
+  TypedValue codegen(const Node &node, const PrimInvokeNode &subnode);
+  TypedValue codegen(const Node &node, const ProtocolInvokeNode &subnode);
+  TypedValue codegen(const Node &node, const QuoteNode &subnode);
+  TypedValue codegen(const Node &node, const RecurNode &subnode);
+  TypedValue codegen(const Node &node, const ReifyNode &subnode);
+  TypedValue codegen(const Node &node, const SetNode &subnode);
+  TypedValue codegen(const Node &node, const MutateSetNode &subnode);
+  TypedValue codegen(const Node &node, const StaticCallNode &subnode);
+  TypedValue codegen(const Node &node, const StaticFieldNode &subnode);
+  TypedValue codegen(const Node &node, const TheVarNode &subnode);
+  TypedValue codegen(const Node &node, const ThrowNode &subnode);
+  TypedValue codegen(const Node &node, const TryNode &subnode);
+  TypedValue codegen(const Node &node, const VarNode &subnode);
+  TypedValue codegen(const Node &node, const VectorNode &subnode);
+  TypedValue codegen(const Node &node, const WithMetaNode &subnode);
 };
 
 #endif

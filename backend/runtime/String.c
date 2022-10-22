@@ -12,6 +12,12 @@ String* String_create(sds string) {
   return self;
 }
 
+String* String_create_copy(char *string) {
+  return String_create(sdsnew(string));
+}
+
+
+
 BOOL String_equals(String *self, String *other) {
   return sdscmp(self->value, other->value) == 0;
 }

@@ -4,11 +4,11 @@
 #include "Object.h"
 #include "sds/sds.h"
 
-PersistentVector *EMPTY = NULL;
+PersistentVector *EMPTY_VECTOR = NULL;
 
 PersistentVector* PersistentVector_create() {  
-  retain(EMPTY);
-  return EMPTY;
+  retain(EMPTY_VECTOR);
+  return EMPTY_VECTOR;
 }
 
 PersistentVector* PersistentVector_allocate() {  
@@ -23,8 +23,8 @@ PersistentVector* PersistentVector_allocate() {
 }
 
 void PersistentVector_initialise() {  
-  EMPTY = PersistentVector_allocate();
-  EMPTY->tail = PersistentVectorNode_allocate(0, leafNode);
+  EMPTY_VECTOR = PersistentVector_allocate();
+  EMPTY_VECTOR->tail = PersistentVectorNode_allocate(0, leafNode);
 }
 
 BOOL PersistentVector_equals(PersistentVector *self, PersistentVector *other) {

@@ -327,7 +327,10 @@ int main(int argc, char *argv[]) {
 
     gen.TheModule->print(errs(), nullptr);
   } catch (CodeGenerationException e) {
-    cerr << e.toString();
+    cerr << e.toString() <<endl;
+    return -1;
+  } catch (InternalInconsistencyException e) {
+    cerr << e.toString() <<endl;
     return -1;
   }
   

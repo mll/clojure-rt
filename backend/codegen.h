@@ -72,10 +72,30 @@ class CodeGenerator {
 //  std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
   ExitOnError ExitOnErr;
 
+  CodeGenerator();
+
+  /* Tools */
+
   string typeStringForArgs(vector<TypedValue> &args);
   vector<objectType> typesForArgString(Node &node, string &typeString); 
 
-  CodeGenerator();
+  /* Runtime interop */
+
+  Value *dynamicNil();
+  Value *dynamicString(const char *str);
+  Value *dynamicCond(Value *cond);
+  Value *box(const TypedValue &value);
+  
+
+  Value *callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args);
+  Value *dynamicCreate(objectType type, const vector<Type *> &argTypes, const vector<Value *> &args);
+ 
+  Type *dynamicUnboxedType(objectType type);
+  Type *dynamicBoxedType(objectType type);
+
+
+  /* Code generation */
+
   vector<TypedValue> codegen(const Programme &programme);
   TypedValue codegen(const Node &node);
 

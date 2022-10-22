@@ -3,15 +3,15 @@ CC = arch -arm64 clang
 CCP = arch -arm64 clang++
 AR = arch -arm64 ar
 ARFLAGS = rcs
-MYFLAGSOPT = -Wall -Ofast  -I/opt/homebrew/include
-MYFLAGS = -Wall -g -I/opt/homebrew/include
+MYFLAGSOPT = -Ofast
+MYFLAGS = -g 
 CPPFLAGS = -std=c++17  
-CFLAGS =  $(MYFLAGS) 
+CFLAGS =  $(MYFLAGS) -I/opt/homebrew/include
 PROFILE = -Ofast 
 
 LIBS = -L/opt/homebrew/lib -lprotobuf
 
-OBJFILES =  Object.o Integer.o PersistentList.o PersistentVector.o PersistentVectorNode.o String.o Double.o sds.o pool.o 
+OBJFILES =  Object.o Integer.o PersistentList.o PersistentVector.o PersistentVectorNode.o String.o Double.o Nil.o Boolean.o sds.o pool.o 
 
 default: all
 
@@ -40,6 +40,10 @@ String.o: String.c String.h
 	$(CC) -c $(CFLAGS) String.c
 Double.o: Double.c Double.h  
 	$(CC) -c $(CFLAGS) Double.c
+Nil.o: Nil.c Nil.h
+	$(CC) -c $(CFLAGS) Nil.c
+Boolean.o: Boolean.c Boolean.h  
+	$(CC) -c $(CFLAGS) Boolean.c
 sds.o: sds/sds.c sds/sds.h
 	$(CC) -c $(CFLAGS) sds/sds.c
 pool.o: pool/pool.c pool/pool.h

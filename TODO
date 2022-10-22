@@ -1,24 +1,43 @@
 
+* - not done
+v - done
+<-- - in progress
+
 
 Runtime:
+
+* Make decision about integer types (64 bit or 32 bit or compiler/options-dependent?)
+* Double / float / quad - the same
+
+* UTF8 strings (library from Julia is already there)
+* 
 
 v String
 v PersistentList
 v PersistentVector
 v Integer
 v Double
+v Boolean   
+v nil 
+* Character
 * Ratio
 * BigInteger
 * PersistentArrayMap
 * PersistentHashMap
 * PersistentSet
 
+* Implement all java methods for runtime functions (horrible)
+
 Compiler:
+
+* JIT infrastructure + arg type deduction
 
 * Const 
   v Integer
   v Double
-  * String <--
+  v Boolean 
+  v Nil 
+  v String 
   * Map
   * Vector
   * List
@@ -27,7 +46,7 @@ Compiler:
 
 v StaticCall (works for simple math, framework prepared to add more functionality)
 v WithMeta (for now just ignores meta)
-* If <--
+v If 
 * Loop (+ recur for loop)
 * Def and vars system
 * Binding  

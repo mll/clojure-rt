@@ -16,6 +16,7 @@
 #define BLOCK_SIZE 8 * 40
 
 void PersistentVector_initialise();
+void Nil_initialise();
 
 void initialise_memory() {
   /* memset(allocationCount, 0, sizeof(int)*5); */
@@ -23,6 +24,7 @@ void initialise_memory() {
   /* poolInitialize(&globalPool2, 128, 100000); */
   /* poolInitialize(&globalPool3, 64, 100000); */
   PersistentVector_initialise();
+  Nil_initialise();
 }
 
 /* BOOL poolFreeCheck(void *ptr, pool *mempool) { */

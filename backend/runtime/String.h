@@ -11,13 +11,14 @@
 typedef struct Object Object; 
 
 struct String {
-  char *value;
   unsigned int count;
+  char *value;
 };
 
 typedef struct String String; 
 
 String* String_create(char *string);
+String* String_create_copy(char *string);
 BOOL String_equals(String *self, String *other);
 uint64_t String_hash(String *self);
 String *String_toString(String *self);

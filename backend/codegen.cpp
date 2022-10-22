@@ -29,11 +29,24 @@ CodeGenerator::CodeGenerator() {
   StaticCallLibrary.insert(numbers.begin(), numbers.end());
 }
 
-vector<TypedValue > CodeGenerator::codegen(const Programme &programme) {
+vector<TypedValue> CodeGenerator::codegen(const Programme &programme) {
   vector<TypedValue> values;
   for (int i=0; i< programme.nodes_size(); i++) {
     auto node = programme.nodes(i);
-    values.push_back(codegen(node));
+    /* TODO: This is all temporary. */
+    string fname = string("__anon__") + to_string(i);
+    std::vector<Type*> args;
+    FunctionType *FT = FunctionType::get(Type::getInt8Ty(*TheContext)->getPointerTo(), args, false);
+    Function *F = Function::Create(FT, Function::ExternalLinkage, fname, TheModule.get());
+    BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", F);
+    Builder->SetInsertPoint(BB);
+    Builder->CreateRet(box(codegen(node)));
+    verifyFunction(*F);
+    //F->print(errs());
+    //fprintf(stderr, "\n");
+    
+    // Remove the anonymous expression.
+   // F->eraseFromParent();
   }
   return values;
 }
@@ -151,6 +164,14 @@ string CodeGenerator::typeStringForArgs(vector<TypedValue> &args) {
       case doubleType:
         retval << "D";
         break;
+      case booleanType:
+        retval << "B";
+        break;
+      case nilType:
+        retval << "N";
+        break;
+      case runtimeDeterminedType: 
+        throw InternalInconsistencyException("runtimeDeterminedType cannot be allowed here");
     }
   }
   return retval.str();

@@ -17,7 +17,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     name = c;
   }
   name = name + "/" + m + " " + typeStringForArgs(args);
-  
+  /* TODO - handle dynamic arguments */
   auto found = StaticCallLibrary.find(name);
   if (found == StaticCallLibrary.end()) throw CodeGenerationException(string("Static call not implemented: ") + name, node);
   auto fptr = (*found).second;

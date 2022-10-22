@@ -11,10 +11,12 @@
 #include "String.h"
 #include "Integer.h"
 #include "Double.h"
+#include "Boolean.h"
+#include "Nil.h"
 #include "PersistentList.h"
 #include "PersistentVector.h"
 #include "PersistentVectorNode.h"
-
+#include <assert.h>
 
 typedef struct String String; 
 
@@ -86,7 +88,15 @@ inline BOOL Object_release_internal(Object *self, BOOL deallocateChildren) {
     case doubleType:
       Double_destroy(data(self));
       break;          
-
+    case booleanType:
+      Boolean_destroy(data(self));
+      break;
+    case nilType:
+      Nil_destroy(data(self));
+      break;
+    case runtimeDeterminedType:
+      assert(FALSE);
+      break;
     }
     deallocate(self);
     return TRUE;
@@ -140,6 +150,15 @@ inline BOOL equals(Object *self, Object *other) {
   case doubleType:
     return Double_equals(selfData, otherData);
     break;
+  case booleanType:
+    return Boolean_equals(selfData, otherData);
+    break;
+  case nilType:
+    return Nil_equals(selfData, otherData);
+    break;
+  case runtimeDeterminedType:
+    assert(FALSE);
+    break;
   }
 }
 
@@ -163,32 +182,59 @@ inline uint64_t hash(Object *self) {
       case doubleType:
         return Double_hash(data(self));
         break;          
+      case booleanType:
+        return Boolean_hash(data(self));
+        break;
+      case nilType:
+        return Nil_hash(data(self));
+        break;
+      case runtimeDeterminedType:
+        assert(FALSE);
+        break;
       }
 }
 
 inline String *toString(Object *self) {
-    switch((objectType)self->type) {
-      case integerType:
-        return Integer_toString(data(self));
-        break;          
-      case stringType:
-        return String_toString(data(self));
-        break;          
-      case persistentListType:
-        return PersistentList_toString(data(self));
-        break;          
-      case persistentVectorType:
-        return PersistentVector_toString(data(self));
-        break;
-      case persistentVectorNodeType:
-        return PersistentVectorNode_toString(data(self));
-        break;
-      case doubleType:
-        return Double_toString(data(self));
-        break;          
-
-      }
+  switch((objectType)self->type) {
+  case integerType:
+    return Integer_toString(data(self));
+    break;          
+  case stringType:
+    return String_toString(data(self));
+    break;          
+  case persistentListType:
+    return PersistentList_toString(data(self));
+    break;          
+  case persistentVectorType:
+    return PersistentVector_toString(data(self));
+    break;
+  case persistentVectorNodeType:
+    return PersistentVectorNode_toString(data(self));
+    break;
+  case doubleType:
+    return Double_toString(data(self));
+    break;
+  case booleanType:
+    return Boolean_toString(data(self));
+    break;
+  case nilType:
+    return Nil_toString(data(self));
+    break;
+  case runtimeDeterminedType:
+    assert(FALSE);
+    break;             
+  }
 }
+
+inline BOOL logicalValue(void *self) {
+  Object *o = super(self);
+  objectType type = o->type;
+  if(type == nilType) return FALSE;
+  if(type == booleanType) return ((Boolean *)self)->value;
+  return TRUE;
+}
+
+
 
 
 #endif

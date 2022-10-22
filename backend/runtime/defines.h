@@ -6,12 +6,15 @@
 typedef uint8_t BOOL;
 
 enum objectType {
+   runtimeDeterminedType,
    integerType,
    stringType,
    persistentListType,
    persistentVectorType,
    persistentVectorNodeType,
-   doubleType
+   doubleType,
+   nilType,
+   booleanType
 };
 
 

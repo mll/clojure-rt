@@ -5,20 +5,15 @@ using namespace llvm;
 using namespace llvm::orc;
 using namespace clojure::rt::protobuf::bytecode;
 
-pair<objectType, Value *> CodeGenerator::codegen(const Node &node, const ConstNode &subnode) {
- // cout << "Parsing const node" << endl;
- // cout << subnode.type() << endl;
- // cout << subnode.val() << endl;
- // throw CodeGenerationException(string("Compiler does not support the following op yet: ") + Op_Name(node.op()), node);
-  
+TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode) {
   switch(subnode.type()) {
   case ConstNode_ConstType_constTypeNumber:
     if (node.tag() == "long" || node.otag() == "long" || node.tag() == "class java.lang.Long") {
-      return pair<objectType, Value*>(integerType, ConstantInt::get(*TheContext, APInt(64, StringRef(subnode.val().c_str()), 10)));
+      return TypedValue(integerType, ConstantInt::get(*TheContext, APInt(64, StringRef(subnode.val().c_str()), 10)));
     } 
 
     if (node.tag() == "double" || node.otag() == "double" || node.tag() == "class java.lang.Double") {
-      return pair<objectType, Value*>(doubleType, ConstantFP::get(*TheContext, 
+      return TypedValue(doubleType, ConstantFP::get(*TheContext, 
                              APFloat(APFloatBase::EnumToSemantics
                                      (llvm::APFloatBase::Semantics::S_IEEEdouble), 
                                      StringRef(subnode.val().c_str()))));
@@ -29,10 +24,14 @@ pair<objectType, Value *> CodeGenerator::codegen(const Node &node, const ConstNo
 
     break;
   case ConstNode_ConstType_constTypeNil:
-  case ConstNode_ConstType_constTypeBool:
+    return TypedValue(nilType, dynamicNil());
+    break;
+  case ConstNode_ConstType_constTypeBool:      
+    return TypedValue(booleanType, ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext), subnode.val() == "true" ? 1 : 0));
+  case ConstNode_ConstType_constTypeString:
+    return TypedValue(stringType, dynamicString(subnode.val().c_str()));
   case ConstNode_ConstType_constTypeKeyword:
   case ConstNode_ConstType_constTypeSymbol:
-  case ConstNode_ConstType_constTypeString:
   case ConstNode_ConstType_constTypeType:
   case ConstNode_ConstType_constTypeRecord:
   case ConstNode_ConstType_constTypeMap:
@@ -47,6 +46,6 @@ pair<objectType, Value *> CodeGenerator::codegen(const Node &node, const ConstNo
   default:
     throw CodeGenerationException(string("Compiler does not support the following const type yet: ") + ConstNode_ConstType_Name(subnode.type()), node);
   }
-  return pair<objectType, Value *>(integerType, nullptr);
+  return TypedValue(integerType, nullptr);
 }
 

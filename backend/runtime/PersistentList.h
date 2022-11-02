@@ -13,12 +13,13 @@ struct PersistentList {
 };
 
 PersistentList* PersistentList_empty();
-PersistentList* PersistentList_create(Object *first, PersistentList *rest);
+
 BOOL PersistentList_equals(PersistentList *self, PersistentList *other);
 uint64_t PersistentList_hash(PersistentList *self);
 String *PersistentList_toString(PersistentList *self);
 void PersistentList_destroy(PersistentList *self, BOOL deallocateChildren);
 
+PersistentList* PersistentList_create(Object *first, PersistentList *rest);
 PersistentList* PersistentList_conj(PersistentList *self, Object *other);
 
 

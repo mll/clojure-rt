@@ -18,7 +18,7 @@ BOOL Double_equals(Double *self, Double *other) {
 
 uint64_t Double_hash(Double *self) {
   uint64_t v = *((uint64_t *) &(self->value)); 
-  return (uint64_t)(v^(v>>32));
+  return combineHash(5381, v);
 }
 
 String *Double_toString(Double *self) {

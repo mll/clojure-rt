@@ -6,7 +6,7 @@
 #include <stdatomic.h>
 
 
-/* int allocationCount[5]; */
+_Atomic uint64_t allocationCount[10]; 
 /* pool globalPool1; */
 /* pool globalPool2; */
 /* pool globalPool3; */
@@ -19,7 +19,7 @@ void PersistentVector_initialise();
 void Nil_initialise();
 
 void initialise_memory() {
-  /* memset(allocationCount, 0, sizeof(int)*5); */
+  for(int i=0; i<10; i++) atomic_exchange(&(allocationCount[i]), 0); 
   /* poolInitialize(&globalPool1, BLOCK_SIZE, 100000); */
   /* poolInitialize(&globalPool2, 128, 100000); */
   /* poolInitialize(&globalPool3, 64, 100000); */
@@ -41,23 +41,28 @@ void initialise_memory() {
 /* } */
 
 extern void *allocate(size_t size);
-extern void deallocate(void *ptr);
+extern void deallocate(void * restrict ptr);
 
 
-extern void *data(Object *self);
-extern Object *super(void *self);
+extern void *data(Object * restrict self);
+extern Object *super(void * restrict self);
 
-extern void Object_create(Object *self, objectType type);
-extern void retain(void *self);
-extern BOOL release(void *self);
-extern BOOL release_internal(void *self, BOOL deallocatesChildren);
+extern void Object_create(Object * restrict self, objectType type);
+extern void retain(void * restrict self);
+extern BOOL release(void * restrict self);
+extern BOOL release_internal(void * restrict self, BOOL deallocatesChildren);
 
-extern void Object_retain(Object *self);
-extern BOOL Object_release(Object *self);
-extern BOOL Object_release_internal(Object *self, BOOL deallocatesChildren);
+extern void Object_retain(Object * restrict self);
+extern BOOL Object_release(Object * restrict self);
+extern BOOL Object_release_internal(Object * restrict self, BOOL deallocatesChildren);
+extern void Object_autorelease(Object * restrict self);
 
+extern BOOL equals(Object * restrict self, Object * restrict other);
+extern uint64_t hash(Object * restrict self);
+extern String *toString(Object * restrict self);
 
-extern BOOL equals(Object *self, Object *other);
-extern uint64_t hash(Object *self);
-extern String *toString(Object *self);
+extern void logException(const char * restrict description);
+extern uint64_t combineHash(uint64_t lhs, uint64_t rhs);
+extern BOOL logicalValue(void * restrict self);
+
 

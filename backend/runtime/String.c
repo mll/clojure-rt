@@ -16,8 +16,6 @@ String* String_create_copy(char *string) {
   return String_create(sdsnew(string));
 }
 
-
-
 BOOL String_equals(String *self, String *other) {
   return sdscmp(self->value, other->value) == 0;
 }
@@ -25,11 +23,9 @@ BOOL String_equals(String *self, String *other) {
 uint64_t String_hash(String *self) {
     sds str = self->value;
     uint64_t h = 5381;
-    int64_t c;
+    int32_t c;
 
-    while ((c = *str++))
-        h = ((h << 5) + h) + c; /* hash * 33 + c */
-
+    while ((c = *str++)) h = combineHash(h, c);
     return h;
 }
 
@@ -43,4 +39,8 @@ void String_destroy(String *self) {
 }
 
 
-
+String *String_concat(String *self, String *other) {
+  sds new = sdsnew(self->value);
+  new = sdscatsds(new, other->value);
+  return String_create(new);
+}

@@ -319,10 +319,10 @@ int main(int argc, char *argv[]) {
   auto gen = CodeGenerator();
 
   try {
-    cout << "Expressions: " << endl;
+    //cout << "Expressions: " << endl;
     for (auto g : gen.codegen(astRoot)) {
-      g.second->print(errs());
-      cout << endl << endl;
+      //g.second->print(errs());
+      //cout << endl << endl;
     }
 
     gen.TheModule->print(errs(), nullptr);

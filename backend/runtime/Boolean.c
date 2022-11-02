@@ -12,15 +12,22 @@ Boolean* Boolean_create(BOOL initial) {
 }
 
 BOOL Boolean_equals(Boolean *self, Boolean *other) {
-  return self->value == other->value;
+  BOOL retVal = self->value == other->value;
+  release(self);
+  release(other);
+  return retVal;
 }
 
 uint64_t Boolean_hash(Boolean *self) {
-  return (uint64_t) self->value; 
+  uint64_t retVal = combineHash(5381, ((uint64_t) self->value) + 1); 
+  release(self);
+  return retVal;
 }
 
 String *Boolean_toString(Boolean *self) {  
-  return String_create(self->value ? sdsnew("true") : sdsnew("false"));
+  String *retVal = String_create(self->value ? sdsnew("true") : sdsnew("false"));
+  release(self);
+  return retVal;
 }
 
 void Boolean_destroy(Boolean *self) {

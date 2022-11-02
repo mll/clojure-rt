@@ -27,44 +27,41 @@ void PersistentVector_initialise() {
   EMPTY_VECTOR->tail = PersistentVectorNode_allocate(0, leafNode);
 }
 
-BOOL PersistentVector_equals(PersistentVector *self, PersistentVector *other) {
+BOOL PersistentVector_equals(PersistentVector * restrict self, PersistentVector * restrict other) {
   if (self->count != other->count) return FALSE;
   BOOL retVal = equals(super(self->tail), super(other->tail));
   if (self->count > RRB_BRANCHING) retVal = retVal && equals(super(self->root), super(other->root));
   return retVal;
 }
 
-uint64_t PersistentVector_hash(PersistentVector *self) {
-    uint64_t h = 5381;
-    h = ((h << 5) + h) + (self->root ? hash(super(self->root)) : 0);
-    h = ((h << 5) + h) + hash(super(self->tail));
-  return h;
+uint64_t PersistentVector_hash(PersistentVector * restrict self) {
+  return combineHash(5381, self->root ? hash(super(self->root)) : 1);
 }
 
-String *PersistentVector_toString(PersistentVector *self) {
+String *PersistentVector_toString(PersistentVector * restrict self) {
   sds retVal = sdsnew("[");
 
   if (self->count > RRB_BRANCHING) {
     String *s = toString(super(self->root));
-    retVal = sdscat(retVal, s->value);
+    retVal = sdscatsds(retVal, s->value);
     retVal = sdscat(retVal, " ");
     release(s);
   }
   
   String *s = toString(super(self->tail));
-  retVal = sdscat(retVal, s->value);
+  retVal = sdscatsds(retVal, s->value);
   retVal = sdscat(retVal, " ");
   release(s);
   
   retVal = sdscat(retVal, "]");
   return String_create(retVal);
 }
-void PersistentVector_destroy(PersistentVector *self, BOOL deallocateChildren) {
+void PersistentVector_destroy(PersistentVector * restrict self, BOOL deallocateChildren) {
   release(self->tail);
   if (self->root) release(self->root);
 }
 
-PersistentVector* PersistentVector_assoc(PersistentVector *self, uint64_t index, Object *other) {
+PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint64_t index, Object * restrict other) {
   if (index > self->count) return NULL;
   if (index == self->count) return PersistentVector_conj(self, other);
   uint64_t tailOffset = self->count - self->tail->count;
@@ -87,7 +84,7 @@ PersistentVector* PersistentVector_assoc(PersistentVector *self, uint64_t index,
   return new;
 }
 
-void PersistentVectorNode_print(PersistentVectorNode *self) {
+void PersistentVectorNode_print(PersistentVectorNode * restrict self) {
   if (!self) return;
   if (self->type == leafNode) { printf("*Leaf* "); return; }
   printf(" <<< NODE: %llu subnodes: ", self->count);
@@ -97,7 +94,7 @@ void PersistentVectorNode_print(PersistentVectorNode *self) {
   printf(" >>> ");
 }
 
-void PersistentVector_print(PersistentVector *self) {
+void PersistentVector_print(PersistentVector * restrict self) {
   printf("==================\n");
   printf("Root: %llu, tail: %llu\n", self->count, self->tail->count);
   PersistentVectorNode_print(self->root);
@@ -106,7 +103,7 @@ void PersistentVector_print(PersistentVector *self) {
 }
 
 
-PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other) {
+PersistentVector* PersistentVector_conj(PersistentVector * restrict self, Object * restrict other) {
   PersistentVector *new = PersistentVector_allocate();
   /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
   memcpy(new, self, sizeof(PersistentVector));
@@ -144,7 +141,7 @@ PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other) {
   return new;
 }
 
-Object* PersistentVector_nth(PersistentVector *self, uint64_t index) {
+Object* PersistentVector_nth(PersistentVector * restrict self, uint64_t index) {
   if(index >= self->count) return NULL; 
   uint64_t tailOffset = self->count - self->tail->count;
   if(index >= tailOffset) return self->tail->array[index - tailOffset];

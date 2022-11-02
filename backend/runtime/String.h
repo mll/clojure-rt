@@ -24,6 +24,7 @@ uint64_t String_hash(String *self);
 String *String_toString(String *self);
 void String_destroy(String *self);
 
+String *String_concat(String *self, String *other);
 
 
 

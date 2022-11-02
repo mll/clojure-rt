@@ -6,7 +6,6 @@
 typedef uint8_t BOOL;
 
 enum objectType {
-   runtimeDeterminedType,
    integerType,
    stringType,
    persistentListType,
@@ -14,8 +13,11 @@ enum objectType {
    persistentVectorNodeType,
    doubleType,
    nilType,
-   booleanType
+   booleanType,
+   symbolType,
+   concurrentHashMapType
 };
 
+typedef enum objectType objectType;
 
 #endif

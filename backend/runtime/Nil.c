@@ -27,12 +27,12 @@ BOOL Nil_equals(Nil *self, Nil *other) {
 }
 
 uint64_t Nil_hash(Nil *self) {
-  return 0;
+  return combineHash(5381, 512);
 }
 
 String *Nil_toString(Nil *self) {
   return String_create(sdsnew("nil"));
 }
 
-void Double_destroy(Double *self) {
+void Nil_destroy(Nil *self) {
 }

@@ -55,7 +55,7 @@ String *PersistentList_toString(PersistentList *self) {
     if (current != self && current->first) retVal = sdscat(retVal, " ");
     if(current->first) {
       String *s = toString(current->first);
-      retVal = sdscat(retVal, s->value);
+      retVal = sdscatsds(retVal, s->value);
       release(s);
     }
     current = current->rest;

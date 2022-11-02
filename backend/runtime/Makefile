@@ -6,12 +6,12 @@ ARFLAGS = rcs
 MYFLAGSOPT = -Ofast
 MYFLAGS = -g 
 CPPFLAGS = -std=c++17  
-CFLAGS =  $(MYFLAGS) -I/opt/homebrew/include
+CFLAGS =  $(MYFLAGSOPT) -I/opt/homebrew/include
 PROFILE = -Ofast 
 
 LIBS = -L/opt/homebrew/lib -lprotobuf
 
-OBJFILES =  Object.o Integer.o PersistentList.o PersistentVector.o PersistentVectorNode.o String.o Double.o Nil.o Boolean.o sds.o pool.o 
+OBJFILES =  Object.o Integer.o PersistentList.o PersistentVector.o PersistentVectorNode.o String.o Double.o Nil.o Boolean.o Symbol.o ConcurrentHashMap.o sds.o pool.o 
 
 default: all
 
@@ -44,6 +44,10 @@ Nil.o: Nil.c Nil.h
 	$(CC) -c $(CFLAGS) Nil.c
 Boolean.o: Boolean.c Boolean.h  
 	$(CC) -c $(CFLAGS) Boolean.c
+Symbol.o: Symbol.c Symbol.h  
+	$(CC) -c $(CFLAGS) Symbol.c
+ConcurrentHashMap.o: ConcurrentHashMap.c ConcurrentHashMap.h  
+	$(CC) -c $(CFLAGS) ConcurrentHashMap.c
 sds.o: sds/sds.c sds/sds.h
 	$(CC) -c $(CFLAGS) sds/sds.c
 pool.o: pool/pool.c pool/pool.h

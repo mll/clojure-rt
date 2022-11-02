@@ -13,11 +13,11 @@ struct PersistentVectorNode {
 };
 
 PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type);
-BOOL PersistentVectorNode_equals(PersistentVectorNode *self, PersistentVectorNode *other);
-uint64_t PersistentVectorNode_hash(PersistentVectorNode *self);
-String *PersistentVectorNode_toString(PersistentVectorNode *self);
-void PersistentVectorNode_destroy(PersistentVectorNode *self, BOOL deallocateChildren);
+BOOL PersistentVectorNode_equals(PersistentVectorNode * restrict self, PersistentVectorNode * restrict other);
+uint64_t PersistentVectorNode_hash(PersistentVectorNode * restrict self);
+String *PersistentVectorNode_toString(PersistentVectorNode * restrict self);
+void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL deallocateChildren);
 
-PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode *self, uint64_t level, uint64_t index, Object *other);
-PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode *parent, PersistentVectorNode *self, PersistentVectorNode *tailToPush, int32_t level, BOOL *copied);
+PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other);
+PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied);
 #endif

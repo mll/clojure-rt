@@ -9,15 +9,19 @@
 ;(* 2 3)
 ;(/ 12 6.0)
 
-;(Math/sin 3)
+;(Math/sin (+ 3 (* 2 3.0)))
 ;(Math/exp 1.0)
 ;(Math/ln 3.0)
 
 
-;(if 3 2.0 1.0)
-;(if nil nil nil)
+;(Math/sin (if true 2 1.0))
+;(if true 1 (Math/sin (+ 3 5)))
 ;(if false 3.0 nil)
 
+;(if (= 3 5) 1.0 2)
+
+;'bb/aa
+'7
 ;(if true 6 7.0)
-"aaa"
-"kogutóóó"
+;"aaa"
+;"kogutóóó"

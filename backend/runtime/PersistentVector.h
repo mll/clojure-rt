@@ -21,13 +21,14 @@ struct PersistentVector {
 
 PersistentVector* PersistentVector_create();
 
-BOOL PersistentVector_equals(PersistentVector *self, PersistentVector *other);
-uint64_t PersistentVector_hash(PersistentVector *self);
-String *PersistentVector_toString(PersistentVector *self);
-void PersistentVector_destroy(PersistentVector *self, BOOL deallocateChildren);
+BOOL PersistentVector_equals(PersistentVector * restrict self, PersistentVector * restrict other);
+uint64_t PersistentVector_hash(PersistentVector * restrict self);
+String *PersistentVector_toString(PersistentVector * restrict self);
+void PersistentVector_destroy(PersistentVector * restrict self, BOOL deallocateChildren);
 
-PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other);
-Object* PersistentVector_nth(PersistentVector *self, uint64_t index);
-void PersistentVector_print(PersistentVector *self);
+PersistentVector* PersistentVector_conj(PersistentVector * restrict self, Object * restrict other);
+PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint64_t index, Object * restrict other);
+Object* PersistentVector_nth(PersistentVector * restrict self, uint64_t index);
+void PersistentVector_print(PersistentVector * restrict self);
 
 #endif

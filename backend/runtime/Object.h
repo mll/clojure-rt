@@ -16,11 +16,14 @@
 #include "PersistentList.h"
 #include "PersistentVector.h"
 #include "PersistentVectorNode.h"
+#include "ConcurrentHashMap.h"
+#include "Symbol.h"
 #include <assert.h>
+#include <execinfo.h>
 
 typedef struct String String; 
 
-typedef enum objectType objectType;
+//#define REFCOUNT_TRACING
 
 struct Object {
   objectType type;
@@ -29,46 +32,49 @@ struct Object {
 
 typedef struct Object Object; 
 
-void initialise_memory();
+extern _Atomic uint64_t allocationCount[10]; 
 
+void initialise_memory();
 
 inline void *allocate(size_t size) {
   /* if (size <= 32) return malloc(size);    */
   /* if (size <= 64) return poolMalloc(&globalPool3);    */
   /* if (size <= 128) return poolMalloc(&globalPool2);  */
   /* if (size > 64 && size <= BLOCK_SIZE) return poolMalloc(&globalPool1);    */
-
-  return malloc(size);  
+  void * retVal = malloc(size);  
+  assert(retVal && "Could not aloocate that much! ");
+  return retVal;
 }
 
-inline void deallocate(void *ptr) {
+inline void deallocate(void * restrict ptr) {
  /* if (poolFreeCheck(ptr, &globalPool3)) { poolFree(&globalPool3, ptr); return; } */
  /* if (poolFreeCheck(ptr, &globalPool2)) { poolFree(&globalPool2, ptr); return; } */
  /* if (poolFreeCheck(ptr, &globalPool1)) { poolFree(&globalPool1, ptr); return; }  */
-  free(ptr);  
+ free(ptr);  
 }
 
-inline void *data(Object *self) {
+inline void *data(Object * restrict self) {
   return self + 1;
 }
 
-inline Object *super(void *self) {
+inline Object *super(void * restrict self) {
   return (Object *)(self - sizeof(Object));
 }
 
-inline void Object_retain(Object *self) {
-  /* Just for single thread debug, nonatomic */
- // return;
-//  allocationCount[self->type]++;
-  atomic_fetch_add(&(self->refCount), 1);
+inline void Object_retain(Object * restrict self) {
+  #ifdef REFCOUNT_TRACING
+  atomic_fetch_add_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
+  #endif
+  atomic_fetch_add_explicit(&(self->refCount), 1, memory_order_relaxed);
 }
 
-inline BOOL Object_release_internal(Object *self, BOOL deallocateChildren) {
-  /* Just for single thread debug, nonatomic */
-  //return FALSE;
-  //allocationCount[self->type]--;
-  //assert(atomic_load(&(self->refCount)) > 0);
-  if (atomic_fetch_sub(&(self->refCount), 1) == 1) {
+inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChildren) {
+  #ifdef REFCOUNT_TRACING
+    atomic_fetch_sub_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
+    assert(atomic_load(&(self->refCount)) > 0);
+  #endif
+
+  if (atomic_fetch_sub_explicit(&(self->refCount), 1, memory_order_relaxed) == 1) {
     switch((objectType)self->type) {
     case integerType:
       Integer_destroy(data(self));
@@ -91,11 +97,14 @@ inline BOOL Object_release_internal(Object *self, BOOL deallocateChildren) {
     case booleanType:
       Boolean_destroy(data(self));
       break;
+    case symbolType:
+      Symbol_destroy(data(self));
+      break;
     case nilType:
       Nil_destroy(data(self));
       break;
-    case runtimeDeterminedType:
-      assert(FALSE);
+    case concurrentHashMapType:
+      ConcurrentHashMap_destroy(data(self));
       break;
     }
     deallocate(self);
@@ -104,33 +113,39 @@ inline BOOL Object_release_internal(Object *self, BOOL deallocateChildren) {
   return FALSE;
 }
 
-inline BOOL Object_release(Object *self) {
-  //return FALSE;
+inline BOOL Object_release(Object * restrict self) {
   return Object_release_internal(self, TRUE);
 }
 
-inline void retain(void *self) {
-  //return;
+inline void Object_autorelease(Object * restrict self) {
+  /* TODO: add an object to autorelease pool */
+
+}
+
+
+inline void retain(void * restrict self) {
   Object_retain(super(self));
 }
 
-inline BOOL release(void *self) {
-   //return FALSE; 
+inline BOOL release(void * restrict self) {
    return Object_release(super(self));
 }
 
-inline void Object_create(Object *self, objectType type) {
+inline void Object_create(Object * restrict self, objectType type) {
   atomic_store_explicit (&(self->refCount), 1, memory_order_relaxed);
   self->type = type;
-  /* Just for single thread debug, nonatomic */
-//  allocationCount[self->type]++;
+#ifdef REFCOUNT_TRACING
+  atomic_fetch_add_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
+#endif
 }
 
-inline BOOL equals(Object *self, Object *other) {
-  void *selfData = data(self);
-  void *otherData = data(other);
-  if (self == other || selfData == otherData) return TRUE;
+inline BOOL equals(Object * restrict self, Object * restrict other) {
+  if (self == other) return TRUE;
   if (self->type != other->type) return FALSE;
+
+  void *selfData = data(self);
+  void *otherData = data(other);  
+
   switch((objectType)self->type) {
   case integerType:
     return Integer_equals(selfData, otherData);
@@ -156,13 +171,16 @@ inline BOOL equals(Object *self, Object *other) {
   case nilType:
     return Nil_equals(selfData, otherData);
     break;
-  case runtimeDeterminedType:
-    assert(FALSE);
+  case symbolType:
+    return Symbol_equals(selfData, otherData);
+    break;
+  case concurrentHashMapType:
+    return ConcurrentHashMap_equals(selfData, otherData);
     break;
   }
 }
 
-inline uint64_t hash(Object *self) {
+inline uint64_t hash(Object * restrict self) {
       switch((objectType)self->type) {
       case integerType:
         return Integer_hash(data(self));
@@ -188,13 +206,14 @@ inline uint64_t hash(Object *self) {
       case nilType:
         return Nil_hash(data(self));
         break;
-      case runtimeDeterminedType:
-        assert(FALSE);
-        break;
+      case symbolType:
+        return Symbol_hash(data(self));
+      case concurrentHashMapType:
+        return ConcurrentHashMap_hash(data(self));
       }
 }
 
-inline String *toString(Object *self) {
+inline String *toString(Object * restrict self) {
   switch((objectType)self->type) {
   case integerType:
     return Integer_toString(data(self));
@@ -220,19 +239,49 @@ inline String *toString(Object *self) {
   case nilType:
     return Nil_toString(data(self));
     break;
-  case runtimeDeterminedType:
-    assert(FALSE);
-    break;             
+  case symbolType:
+    return Symbol_toString(data(self));
+  case concurrentHashMapType:
+    return ConcurrentHashMap_toString(data(self));
   }
 }
 
-inline BOOL logicalValue(void *self) {
+inline uint64_t combineHash(uint64_t lhs, uint64_t rhs) {
+  lhs ^= rhs + 0x9ddfea08eb382d69ULL + (lhs << 6) + (lhs >> 2);
+  return lhs;
+}
+
+
+inline BOOL logicalValue(void * restrict self) {
   Object *o = super(self);
   objectType type = o->type;
   if(type == nilType) return FALSE;
   if(type == booleanType) return ((Boolean *)self)->value;
   return TRUE;
 }
+
+inline void logException(const char *description) {
+  void *array[1000];
+  char **strings;
+  int size, i;
+
+  printf("%s\n", description);
+
+  size = backtrace (array, 1000);
+  strings = backtrace_symbols (array, size);
+  if (strings != NULL)
+  {
+
+    printf ("Obtained %d stack frames:\n", size);
+    for (i = 0; i < size; i++)
+      printf ("%s\n", strings[i]);
+  }
+
+  free (strings);
+  exit(1);
+}
+
+
 
 
 

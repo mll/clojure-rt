@@ -12,35 +12,35 @@ PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType typ
   return self;
 }
 
-BOOL PersistentVectorNode_equals(PersistentVectorNode *self, PersistentVectorNode *other) {
+BOOL PersistentVectorNode_equals(PersistentVectorNode * restrict self, PersistentVectorNode * restrict other) {
   if (self->count != other->count) return FALSE;
   for(int i=0; i < self->count; i++) if (!equals(self->array[i], other->array[i])) return FALSE;
   return TRUE;
 }
 
-uint64_t PersistentVectorNode_hash(PersistentVectorNode *self) {
-  uint64_t h = 5381;
-  for(int i=0; i< self->count; i++) h = ((h << 5) + h) + hash(self->array[i]);
+uint64_t PersistentVectorNode_hash(PersistentVectorNode * restrict self) {
+  uint64_t h = 5381;  
+  for(int i=0; i< self->count; i++) h = combineHash(h, hash(self->array[i])); 
   return h;
 }
 
-String *PersistentVectorNode_toString(PersistentVectorNode *self) {
+String *PersistentVectorNode_toString(PersistentVectorNode * restrict self) {
   sds retVal = sdsnew("");
   for(int i=0; i< self->count; i++) {
     String *s = toString(self->array[i]);
-    retVal = sdscat(retVal, s->value);
+    retVal = sdscatsds(retVal, s->value);
     if (i < self->count - 1) retVal = sdscat(retVal, " ");
     release(s);
   } 
   return String_create(retVal);
 }
 
-void PersistentVectorNode_destroy(PersistentVectorNode *self, BOOL deallocateChildren) {
+void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL deallocateChildren) {
   for(int i=0; i<self->count; i++) Object_release(self->array[i]);
 }
 
 
-PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode *self, uint64_t level, uint64_t index, Object *other) {
+PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other) {
   uint64_t level_index = (index >> level) & RRB_MASK;
   PersistentVectorNode *new = PersistentVectorNode_allocate(self->count, self->type);
   memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(Object *));
@@ -59,7 +59,7 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode *sel
   return new;
 }
 
-PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode *parent, PersistentVectorNode *self, PersistentVectorNode *tailToPush, int32_t level, BOOL *copied) {
+PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied) {
   if (self == NULL) { 
     /* Special case, we have no root in the vector */
     retain(tailToPush);

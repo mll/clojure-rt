@@ -28,8 +28,7 @@
 #include <memory>
 
 namespace llvm {
-  namespace orc {
-    
+  namespace orc {  
     class ClojureJIT {
     private:
       std::unique_ptr<ExecutionSession> ES;

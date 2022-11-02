@@ -16,7 +16,7 @@ BOOL Integer_equals(Integer *self, Integer *other) {
 }
 
 uint64_t Integer_hash(Integer *self) {
-  return (uint64_t) self->value; 
+  return combineHash(5381 , self->value); 
 }
 
 String *Integer_toString(Integer *self) {  

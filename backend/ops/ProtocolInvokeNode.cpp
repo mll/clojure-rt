@@ -1,7 +1,11 @@
 #include "../codegen.h"  
 
-pair<objectType, Value *> CodeGenerator::codegen(const Node &node, const ProtocolInvokeNode &subnode) {
+TypedValue CodeGenerator::codegen(const Node &node, const ProtocolInvokeNode &subnode, const ObjectTypeSet &typeRestrictions) {
   throw CodeGenerationException(string("Compiler does not support the following op yet: ") + Op_Name(node.op()), node);
-  return pair<objectType, Value *>(integerType, nullptr);
+  return TypedValue(ObjectTypeSet(), nullptr);
 }
 
+ObjectTypeSet CodeGenerator::getType(const Node &node, const ProtocolInvokeNode &subnode, const ObjectTypeSet &typeRestrictions) {
+  throw CodeGenerationException(string("Compiler does not support the following op yet: ") + Op_Name(node.op()), node);
+  return ObjectTypeSet();
+}

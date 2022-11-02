@@ -14,6 +14,14 @@ Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, cons
   return  Builder->CreateCall(CalleeF, args, string("call_") + fname);
 } 
 
+void CodeGenerator::runtimeException(const CodeGenerationException &runtimeException) {
+  vector<Type *> argTypes;
+  vector<Value *> args;
+  argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  args.push_back(Builder->CreateGlobalStringPtr(StringRef(runtimeException.toString().c_str()), "dynamicString"));      
+  callRuntimeFun("logException", Type::getVoidTy(*TheContext), argTypes, args);
+}
+
 Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTypes, const vector<Value *> &args) {
   string fname = "";
   switch(type) {
@@ -26,8 +34,6 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     case booleanType:
       fname = "Boolean_create";
       break;
-    case runtimeDeterminedType:
-      throw InternalInconsistencyException("Type must be known");
     case stringType:
       fname = "String_create_copy";
       break;
@@ -41,6 +47,9 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
       throw InternalInconsistencyException("We never allow creation of subtypes here, only runtime can do it");
     case nilType:
       fname = "Nil_create";
+      break;
+    case symbolType:
+      fname = "Symbol_create";
       break;
   }
 
@@ -59,6 +68,23 @@ Value * CodeGenerator::dynamicString(const char *str) {
   return dynamicCreate(stringType, types, args);
 }
 
+
+Value * CodeGenerator::dynamicSymbol(const char *ns, const char *name) {
+  auto nss = dynamicString(ns);
+  auto names = dynamicString(name);
+  vector<Type *> types;
+  vector<Value *> args;
+  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+
+
+  args.push_back(names);
+  args.push_back(nss);
+  return dynamicCreate(symbolType, types, args);
+}
+
+
+
 Type *CodeGenerator::dynamicUnboxedType(objectType type) {
   switch(type) {
     case integerType:
@@ -67,12 +93,12 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
       return Type::getDoubleTy(*TheContext);
     case booleanType:
       return Type::getInt1Ty(*TheContext);
-    case runtimeDeterminedType:
     case stringType:
     case persistentListType:
     case persistentVectorType:
     case persistentVectorNodeType:
     case nilType:
+    case symbolType:
       return Type::getInt8Ty(*TheContext)->getPointerTo();
   }
 }
@@ -82,11 +108,13 @@ Type *CodeGenerator::dynamicBoxedType(objectType type) {
 }
 
 Value *CodeGenerator::box(const TypedValue &value) {
+  if (!value.first.isDetermined()) return value.second;
+
   vector<Type *> argTypes;
   vector<Value *> args;
-  argTypes.push_back(dynamicUnboxedType(value.first));
+  argTypes.push_back(dynamicUnboxedType(value.first.determinedType()));
   
-  switch(value.first) {
+  switch(value.first.determinedType()) {
   case integerType:      
   case doubleType:
     args.push_back(value.second);
@@ -94,15 +122,15 @@ Value *CodeGenerator::box(const TypedValue &value) {
   case booleanType:
     args.push_back(Builder->CreateIntCast(value.second, Type::getInt8Ty(*TheContext), false));
     break;
-  case runtimeDeterminedType:
   case stringType:
   case persistentListType:
   case persistentVectorType:
   case persistentVectorNodeType:
   case nilType:
+  case symbolType:
     return value.second;
   }
-  return dynamicCreate(value.first, argTypes, args);
+  return dynamicCreate(value.first.determinedType(), argTypes, args);
 }
 
 Value *CodeGenerator::dynamicCond(Value *cond) {

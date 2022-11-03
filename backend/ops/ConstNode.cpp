@@ -38,12 +38,14 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   case symbolType:
     if(name.find("/") == string::npos) retVal = dynamicSymbol("", name.c_str());
     else retVal = dynamicSymbol(name.substr(0, name.find("/")).c_str(), name.substr(name.find("/") + 1, name.size() - name.find("/") - 1).c_str());
-
-
+  case keywordType:
+    if(name.find("/") == string::npos) retVal = dynamicKeyword("", name.c_str());
+    else retVal = dynamicKeyword(name.substr(0, name.find("/")).c_str(), name.substr(name.find("/") + 1, name.size() - name.find("/") - 1).c_str());
     break;    
   case persistentListType:
   case persistentVectorType:
   case persistentVectorNodeType:
+  case concurrentHashMapType:
     throw CodeGenerationException(string("Compiler does not support the following const type yet: ") + ConstNode_ConstType_Name(subnode.type()), node);
   }
   return TypedValue(types, retVal);
@@ -73,6 +75,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
   case ConstNode_ConstType_constTypeSymbol:
     return ObjectTypeSet(symbolType).intersection(typeRestrictions);
   case ConstNode_ConstType_constTypeKeyword:
+    return ObjectTypeSet(keywordType).intersection(typeRestrictions);
   case ConstNode_ConstType_constTypeType:
   case ConstNode_ConstType_constTypeRecord:
   case ConstNode_ConstType_constTypeMap:

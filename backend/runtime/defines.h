@@ -4,6 +4,7 @@
 #define TRUE 1
 #define FALSE 0
 typedef uint8_t BOOL;
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 enum objectType {
    integerType,
@@ -15,7 +16,8 @@ enum objectType {
    nilType,
    booleanType,
    symbolType,
-   concurrentHashMapType
+   concurrentHashMapType,
+   keywordType
 };
 
 typedef enum objectType objectType;

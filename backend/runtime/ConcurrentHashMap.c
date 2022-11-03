@@ -5,9 +5,7 @@
 #include <stdatomic.h>
 #include "Nil.h"
 #include "sds/sds.h"
-
-#define INITIAL_SIZE (1<<28) // must be a power of two
-#define RESIZE_THRESHOLD 128 // must be a power of two
+#include <math.h>
 
 extern Nil *UNIQUE_NIL;
 
@@ -17,13 +15,15 @@ extern BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uin
 extern Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uint64_t keyHash);
 extern uint64_t avalanche_64(uint64_t h);
 
-ConcurrentHashMap *ConcurrentHashMap_create() {
+ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent) {
+  size_t initialSize = 1<<initialSizeExponent;
   Object *super = allocate(sizeof(ConcurrentHashMap) + sizeof(Object)); 
   ConcurrentHashMap *self = (ConcurrentHashMap *)(super + 1);
-  size_t rootSize = sizeof(ConcurrentHashMapNode) + INITIAL_SIZE * sizeof(ConcurrentHashMapEntry);
+  size_t rootSize = sizeof(ConcurrentHashMapNode) + initialSize * sizeof(ConcurrentHashMapEntry);
   ConcurrentHashMapNode *node = allocate(rootSize);
   memset(node, 0, rootSize);
-  node->sizeMask = INITIAL_SIZE - 1ull;        
+  node->sizeMask = initialSize - 1ull;
+  node->resizingThreshold = MIN(round(pow(initialSize, 0.33)), 128);
   atomic_store(&(self->root), node);              
   Object_create(super, concurrentHashMapType);
   return self;
@@ -112,7 +112,7 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value
   BOOL lastChainEntryIsFirstEntry = lastChainEntryIndex == startIndex;
 
   /* We enter linear scan */
-  for(unsigned char i=1; i<RESIZE_THRESHOLD; i++) {
+  for(unsigned char i=1; i<root->resizingThreshold; i++) {
     index = (index + 1) & root->sizeMask;
     entry = &(root->array[index]);
     encounteredHash = tryReservingEmptyNode(entry, key, value, keyHash);

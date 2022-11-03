@@ -13,46 +13,29 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
   name = name + "/" + m;
   ObjectTypeSet returnTypeMismatched;
 
-  for(auto it : StaticCallLibrary) {
-    auto key = it.first;
-    if (key.rfind(name, 0) != 0) continue;
-    auto types = typesForArgString(node, key.substr(name.size() + 1, key.size() - name.size() - 1));
-    if(subnode.args_size() != types.size()) continue;
-    bool argsMatch = true;
-    for(int i=0; i<types.size(); i++) {
-      auto type = getType(subnode.args(i), ObjectTypeSet(types[i]));
-      if(!type.isDetermined()) argsMatch = false;
-      /* TODO - dynamic calls? */
-    }
-    if(!argsMatch) continue;
-    
+  /* We do not want to traverse all the std library here, we should generate candidates and check each of them against the library */
+  
+  auto found = StaticCallLibrary.find(name);
+  if(found == StaticCallLibrary.end()) throw CodeGenerationException(string("Static call ") + name + string(" not implemented"), node);
+
+  auto arities = found->second;
+
+  vector<ObjectTypeSet> types;
+  for(int i=0; i< subnode.args_size(); i++) types.push_back(getType(subnode.args(i), ObjectTypeSet::all()));
+  string requiredArity = typeStringForArgs(types);
+  for(auto method: arities) {
+    if(method.first != requiredArity) continue; 
+    auto retType = method.second.first;
+    if(retType.intersection(typeRestrictions).isEmpty()) continue;
     vector<TypedValue> args;
     
     for(int i=0; i< subnode.args_size();i++) {
-      args.push_back(codegen(subnode.args(i), ObjectTypeSet(types[i])));
+      args.push_back(codegen(subnode.args(i), types[i]));
     }
-
-    auto outType = it.second.first;
-
-    if(typeRestrictions.intersection(outType).isEmpty()) {
-      returnTypeMismatched = outType;
-      continue;
-    }
-    auto fptr = it.second.second;
-    return fptr(this, key, node, args); 
+    
+    return method.second.second(this, name + " " + requiredArity, node, args);
   }
-  
-  string types = "";
-  for(int i=0; i<types.size(); i++) {
-    auto type = getType(subnode.args(i), ObjectTypeSet::all());
-    types += type.toString() + ";";
-  }
-
-  if(returnTypeMismatched.isEmpty()) throw CodeGenerationException(string("Static call ") + name + string(" not implemented for arg types: ") + types, node);
-
-  throw CodeGenerationException(string("Static call ") + name + string(" Mismatched return type: ") + returnTypeMismatched.toString(), node);
-
-  return TypedValue(ObjectTypeSet(), nullptr);
+  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for args: ") + requiredArity + " return type: " + typeRestrictions.toString(), node);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions) {
@@ -66,20 +49,18 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
     name = c;
   }
   name = name + "/" + m;
-  for(auto it : StaticCallLibrary) {
-    auto key = it.first;
-    if (key.rfind(name, 0) != 0) continue;
-    auto types = typesForArgString(node, key.substr(name.size() + 1, key.size() - name.size() - 1));
-    if(subnode.args_size() != types.size()) continue;
-    bool argsMatch = true;
-    for(int i=0; i<types.size(); i++) {
-      auto type = getType(subnode.args(i), ObjectTypeSet(types[i]));
-      if(!type.isDetermined()) argsMatch = false;
-      /* TODO - dynamic calls? */
-    }
-    if(!argsMatch) continue;
-    auto outType = it.second.first;
-    return outType.intersection(typeRestrictions);
+
+  auto found = StaticCallLibrary.find(name);
+  if(found == StaticCallLibrary.end()) return ObjectTypeSet();
+
+  auto arities = found->second;
+
+  vector<ObjectTypeSet> types;
+  for(int i=0; i< subnode.args_size(); i++) types.push_back(getType(subnode.args(i), ObjectTypeSet::all()));
+  string requiredArity = typeStringForArgs(types);
+  for(auto method: arities) {
+    if(method.first != requiredArity) continue; 
+    return method.second.first.intersection(typeRestrictions);
   }
   return ObjectTypeSet();
 }

@@ -65,8 +65,8 @@ class CodeGenerator {
   std::unique_ptr<LLVMContext> TheContext;
   std::unique_ptr<Module> TheModule;
   std::unique_ptr<IRBuilder<>> Builder;
-  std::map<std::string, pair<ObjectTypeSet, StaticCall>> StaticCallLibrary; 
-  std::map<std::string, TypedValue> NamedValues;
+  unordered_map<string, vector<pair<string, pair<ObjectTypeSet, StaticCall>>>> StaticCallLibrary; 
+  std::unordered_map<std::string, TypedValue> NamedValues;
   std::unique_ptr<legacy::FunctionPassManager> TheFPM;
   std::unique_ptr<ClojureJIT> TheJIT;
 //  std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
@@ -76,14 +76,15 @@ class CodeGenerator {
 
   /* Tools */
 
-  string typeStringForArgs(const vector<TypedValue> &args);
-  vector<objectType> typesForArgString(const Node &node, const string &typeString); 
-
+  string typeStringForArgs(const vector<ObjectTypeSet> &args);
+  vector<ObjectTypeSet> typesForArgString(const Node &node, const string &typeString); 
+  ObjectTypeSet typeForArgString(const Node &node, const string &typeString);
   /* Runtime interop */
 
   Value *dynamicNil();
   Value *dynamicString(const char *str);
   Value *dynamicSymbol(const char *ns, const char *name);
+  Value *dynamicKeyword(const char *ns, const char *name);
   Value *dynamicCond(Value *cond);
   Value *box(const TypedValue &value);
   void runtimeException(const CodeGenerationException &runtimeException);  

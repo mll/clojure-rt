@@ -18,6 +18,7 @@
 #include "PersistentVectorNode.h"
 #include "ConcurrentHashMap.h"
 #include "Symbol.h"
+#include "Keyword.h"
 #include <assert.h>
 #include <execinfo.h>
 
@@ -106,6 +107,9 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
     case concurrentHashMapType:
       ConcurrentHashMap_destroy(data(self));
       break;
+    case keywordType:
+      Keyword_destroy(data(self));
+      break;
     }
     deallocate(self);
     return TRUE;
@@ -113,35 +117,45 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
   return FALSE;
 }
 
-inline BOOL Object_release(Object * restrict self) {
-  return Object_release_internal(self, TRUE);
-}
-
-inline void Object_autorelease(Object * restrict self) {
-  /* TODO: add an object to autorelease pool */
-
-}
-
-
-inline void retain(void * restrict self) {
-  Object_retain(super(self));
-}
-
-inline BOOL release(void * restrict self) {
-   return Object_release(super(self));
-}
-
-inline void Object_create(Object * restrict self, objectType type) {
-  atomic_store_explicit (&(self->refCount), 1, memory_order_relaxed);
-  self->type = type;
-#ifdef REFCOUNT_TRACING
-  atomic_fetch_add_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
-#endif
+inline uint64_t hash(Object * restrict self) {
+      switch((objectType)self->type) {
+      case integerType:
+        return Integer_hash(data(self));
+        break;          
+      case stringType:
+        return String_hash(data(self));
+        break;          
+      case persistentListType:
+        return PersistentList_hash(data(self));
+        break;          
+      case persistentVectorType:
+        return PersistentVector_hash(data(self));
+        break;
+      case persistentVectorNodeType:
+        return PersistentVector_hash(data(self));
+        break;
+      case doubleType:
+        return Double_hash(data(self));
+        break;          
+      case booleanType:
+        return Boolean_hash(data(self));
+        break;
+      case nilType:
+        return Nil_hash(data(self));
+        break;
+      case symbolType:
+        return Symbol_hash(data(self));
+      case concurrentHashMapType:
+        return ConcurrentHashMap_hash(data(self));
+      case keywordType:
+        return Keyword_hash(data(self));
+      }
 }
 
 inline BOOL equals(Object * restrict self, Object * restrict other) {
   if (self == other) return TRUE;
   if (self->type != other->type) return FALSE;
+  if (hash(self) != hash(other)) return FALSE;
 
   void *selfData = data(self);
   void *otherData = data(other);  
@@ -177,40 +191,10 @@ inline BOOL equals(Object * restrict self, Object * restrict other) {
   case concurrentHashMapType:
     return ConcurrentHashMap_equals(selfData, otherData);
     break;
+  case keywordType:
+    return Keyword_equals(selfData, otherData);
+    break;
   }
-}
-
-inline uint64_t hash(Object * restrict self) {
-      switch((objectType)self->type) {
-      case integerType:
-        return Integer_hash(data(self));
-        break;          
-      case stringType:
-        return String_hash(data(self));
-        break;          
-      case persistentListType:
-        return PersistentList_hash(data(self));
-        break;          
-      case persistentVectorType:
-        return PersistentVector_hash(data(self));
-        break;
-      case persistentVectorNodeType:
-        return PersistentVector_hash(data(self));
-        break;
-      case doubleType:
-        return Double_hash(data(self));
-        break;          
-      case booleanType:
-        return Boolean_hash(data(self));
-        break;
-      case nilType:
-        return Nil_hash(data(self));
-        break;
-      case symbolType:
-        return Symbol_hash(data(self));
-      case concurrentHashMapType:
-        return ConcurrentHashMap_hash(data(self));
-      }
 }
 
 inline String *toString(Object * restrict self) {
@@ -243,47 +227,40 @@ inline String *toString(Object * restrict self) {
     return Symbol_toString(data(self));
   case concurrentHashMapType:
     return ConcurrentHashMap_toString(data(self));
+  case keywordType:
+    return Keyword_toString(data(self));
   }
 }
+
+inline BOOL Object_release(Object * restrict self) {
+  return Object_release_internal(self, TRUE);
+}
+
+inline void Object_autorelease(Object * restrict self) {
+  /* TODO: add an object to autorelease pool */
+
+}
+
+inline void retain(void * restrict self) {
+  Object_retain(super(self));
+}
+
+inline BOOL release(void * restrict self) {
+   return Object_release(super(self));
+}
+
+inline void Object_create(Object * restrict self, objectType type) {
+  atomic_store_explicit (&(self->refCount), 1, memory_order_relaxed);
+  self->type = type;
+#ifdef REFCOUNT_TRACING
+  atomic_fetch_add_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
+#endif
+}
+
 
 inline uint64_t combineHash(uint64_t lhs, uint64_t rhs) {
   lhs ^= rhs + 0x9ddfea08eb382d69ULL + (lhs << 6) + (lhs >> 2);
   return lhs;
 }
-
-
-inline BOOL logicalValue(void * restrict self) {
-  Object *o = super(self);
-  objectType type = o->type;
-  if(type == nilType) return FALSE;
-  if(type == booleanType) return ((Boolean *)self)->value;
-  return TRUE;
-}
-
-inline void logException(const char *description) {
-  void *array[1000];
-  char **strings;
-  int size, i;
-
-  printf("%s\n", description);
-
-  size = backtrace (array, 1000);
-  strings = backtrace_symbols (array, size);
-  if (strings != NULL)
-  {
-
-    printf ("Obtained %d stack frames:\n", size);
-    for (i = 0; i < size; i++)
-      printf ("%s\n", strings[i]);
-  }
-
-  free (strings);
-  exit(1);
-}
-
-
-
-
-
 
 #endif

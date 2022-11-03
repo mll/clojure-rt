@@ -86,17 +86,18 @@ extern "C" {
     _Atomic uint64_t keyHash;
     _Atomic unsigned short leaps;
   } ConcurrentHashMapEntry;
-  
+
   typedef struct ConcurrentHashMapNode {
-    int64_t sizeMask;
+    uint64_t sizeMask;
+    short int resizingThreshold;
     ConcurrentHashMapEntry array[];
   } ConcurrentHashMapNode;
   
   typedef struct ConcurrentHashMap {
     ConcurrentHashMapNode * _Atomic root;
   } ConcurrentHashMap;
-  
-  ConcurrentHashMap *ConcurrentHashMap_create();
+
+  ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent);  
   
   void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value);
   void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, Object *key);
@@ -133,7 +134,7 @@ void *startThread(void *param) {
 
 
 void testMap (bool pauses) {
-  ConcurrentHashMap *l = ConcurrentHashMap_create();
+  ConcurrentHashMap *l = ConcurrentHashMap_create(28);
   // // l = l->conj(new Number(3));
   // // l = l->conj(new Number(7));
   // // l = l->conj(new PersistentList(new Number(2)));

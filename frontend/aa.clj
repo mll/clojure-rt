@@ -25,3 +25,8 @@
 ;(if true 6 7.0)
 ;"aaa"
 ;"kogutóóó"
+
+:kanga
+
+(= 1.0 7)
+

@@ -2,6 +2,7 @@
 #define RT_OBJECT_TYPE_SET
 
 #include <set>
+#include <vector>
 #include <algorithm>
 #include "runtime/defines.h"
 
@@ -77,10 +78,12 @@ class ObjectTypeSet {
   }
 
   string toString() const {
+    vector<objectType> types(internal.begin(), internal.end());
     string ss;
-    for (auto i: internal) {
-      ss += to_string((int)i);
-      ss += string(",");
+    
+    for (int i=0; i < types.size(); i++) {
+      ss += to_string((int)types[i]);
+      if(i < types.size() - 1) ss += string(",");
     }
     return ss;
   }
@@ -98,6 +101,8 @@ class ObjectTypeSet {
     retVal.insert(nilType);
     retVal.insert(booleanType);
     retVal.insert(symbolType);
+    retVal.insert(keywordType);
+    retVal.insert(concurrentHashMapType);
     return retVal;
   }
 

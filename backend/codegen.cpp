@@ -1,5 +1,6 @@
 #include "codegen.h"  
-#include "Numbers.h"
+#include "static/Numbers.h"
+#include "static/Utils.h"
 
 CodeGenerator::CodeGenerator() {
   TheContext = std::make_unique<LLVMContext>();
@@ -26,7 +27,9 @@ CodeGenerator::CodeGenerator() {
   TheFPM->doInitialization();
 
   auto numbers = getNumbersStaticFunctions();
+  auto utils = getUtilsStaticFunctions();
   StaticCallLibrary.insert(numbers.begin(), numbers.end());
+  StaticCallLibrary.insert(utils.begin(), utils.end());
 }
 
 vector<TypedValue> CodeGenerator::codegen(const Programme &programme) {
@@ -142,10 +145,11 @@ TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRes
   }
 }
 
-string CodeGenerator::typeStringForArgs(const vector<TypedValue> &args) {
+string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
   stringstream retval;
   for (auto i: args) {
-    switch (i.first.determinedType()) {
+    if(!i.isDetermined()) retval << "LO";
+    else switch (i.determinedType()) {
       case integerType:
         retval << "J";
         break;
@@ -164,6 +168,9 @@ string CodeGenerator::typeStringForArgs(const vector<TypedValue> &args) {
       case persistentVectorNodeType:
         assert(false && "Node cannot be used as an argument");
         break;
+      case concurrentHashMapType:
+        assert(false && "Concurrent hash map cannot be used as an argument");
+        break;
       case doubleType:
         retval << "D";
         break;
@@ -173,29 +180,47 @@ string CodeGenerator::typeStringForArgs(const vector<TypedValue> &args) {
       case nilType:
         retval << "LN";
         break;
+      case keywordType:
+        retval << "LK";
+        break;
     }
   }
   return retval.str();
 }
 
-vector<objectType> CodeGenerator::typesForArgString(const Node &node, const string &typeString) {
+ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &typeString) {
+  auto s = typeString.size();
+  if(s > 2 || s == 0) throw CodeGenerationException(string("Unknown type code: ")+ typeString, node);
+  auto currentChar = typeString[0];
+  if (currentChar == 'L') {
+    if(s!=2) throw CodeGenerationException(string("Unknown type code: ")+ typeString, node);
+    string typeName(&typeString[1]);      
+    if (typeName == "S") return ObjectTypeSet(stringType);
+    if (typeName == "L") return ObjectTypeSet(persistentListType);
+    if (typeName == "V") return ObjectTypeSet(persistentVectorType);
+    if (typeName == "N") return ObjectTypeSet(nilType);
+    if (typeName == "Y") return ObjectTypeSet(symbolType);
+    if (typeName == "K") return ObjectTypeSet(keywordType);
+    if (typeName == "O") return ObjectTypeSet::all();
+    throw CodeGenerationException(string("Unknown class: ")+ typeName, node);
+  }
+  if (currentChar == 'D') return ObjectTypeSet(doubleType);
+  if (currentChar == 'J') return ObjectTypeSet(integerType);
+  if (currentChar == 'Z') return ObjectTypeSet(booleanType);
+  throw CodeGenerationException(string("Unknown type code: ")+ currentChar, node);
+}
+
+vector<ObjectTypeSet> CodeGenerator::typesForArgString(const Node &node, const string &typeString) {
   int i = 0;
-  vector<objectType> types;
+  vector<ObjectTypeSet> types;
   while(i < typeString.length()) {
     auto currentChar = typeString[i++];
     if (currentChar == 'L') {
       string typeName(&typeString[i++]);      
-      if (typeName == "S") { types.push_back(stringType); continue; }
-      if (typeName == "L") { types.push_back(persistentListType); continue; }
-      if (typeName == "V") { types.push_back(persistentVectorType); continue; }
-      if (typeName == "N") { types.push_back(nilType); continue; }
-      if (typeName == "Y") { types.push_back(symbolType); continue; }
-      throw CodeGenerationException(string("Unknown class: ")+ typeName, node);
+      types.push_back(typeForArgString(node, string("L") + typeName));
+      continue;
     }
-    if (currentChar == 'D') { types.push_back(doubleType); continue; }
-    if (currentChar == 'J') { types.push_back(integerType); continue; }
-    if (currentChar == 'Z') { types.push_back(booleanType); continue; }
-    throw CodeGenerationException(string("Unknown type code: ")+ currentChar, node);
+    types.push_back(typeForArgString(node, string(&currentChar)));
   }
   return types;
 }

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdatomic.h>
-
+#include "Interface.h"
 
 _Atomic uint64_t allocationCount[10]; 
 /* pool globalPool1; */
@@ -25,6 +25,7 @@ void initialise_memory() {
   /* poolInitialize(&globalPool3, 64, 100000); */
   PersistentVector_initialise();
   Nil_initialise();
+  Interface_initialise();
 }
 
 /* BOOL poolFreeCheck(void *ptr, pool *mempool) { */
@@ -61,8 +62,6 @@ extern BOOL equals(Object * restrict self, Object * restrict other);
 extern uint64_t hash(Object * restrict self);
 extern String *toString(Object * restrict self);
 
-extern void logException(const char * restrict description);
 extern uint64_t combineHash(uint64_t lhs, uint64_t rhs);
-extern BOOL logicalValue(void * restrict self);
 
 

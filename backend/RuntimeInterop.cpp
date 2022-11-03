@@ -1,5 +1,4 @@
 #include "codegen.h"  
-#include "Numbers.h"
 
 Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args) {
   Function *CalleeF = TheModule->getFunction(fname);
@@ -51,6 +50,12 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     case symbolType:
       fname = "Symbol_create";
       break;
+    case keywordType:
+      fname = "Keyword_create";
+      break;
+    case concurrentHashMapType:
+      fname = "ConcurrentHashMap_create";
+      break;
   }
 
   return callRuntimeFun(fname, dynamicBoxedType(type), argTypes, args);
@@ -83,7 +88,19 @@ Value * CodeGenerator::dynamicSymbol(const char *ns, const char *name) {
   return dynamicCreate(symbolType, types, args);
 }
 
+Value * CodeGenerator::dynamicKeyword(const char *ns, const char *name) {
+  /* TODO: Instead of creating a new keyword, this needs to first consult the keyword table */
+  auto nss = dynamicString(ns);
+  auto names = dynamicString(name);
+  vector<Type *> types;
+  vector<Value *> args;
+  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
 
+  args.push_back(names);
+  args.push_back(nss);
+  return dynamicCreate(keywordType, types, args);
+}
 
 Type *CodeGenerator::dynamicUnboxedType(objectType type) {
   switch(type) {
@@ -99,6 +116,8 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case persistentVectorNodeType:
     case nilType:
     case symbolType:
+    case keywordType:
+    case concurrentHashMapType:
       return Type::getInt8Ty(*TheContext)->getPointerTo();
   }
 }
@@ -128,6 +147,8 @@ Value *CodeGenerator::box(const TypedValue &value) {
   case persistentVectorNodeType:
   case nilType:
   case symbolType:
+  case keywordType:
+  case concurrentHashMapType:
     return value.second;
   }
   return dynamicCreate(value.first.determinedType(), argTypes, args);

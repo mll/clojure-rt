@@ -16,6 +16,7 @@ typedef struct ConcurrentHashMapEntry {
 
 typedef struct ConcurrentHashMapNode {
   uint64_t sizeMask;
+  short int resizingThreshold;
   ConcurrentHashMapEntry array[];
 } ConcurrentHashMapNode;
 
@@ -23,7 +24,8 @@ typedef struct ConcurrentHashMap {
  ConcurrentHashMapNode * _Atomic root;
 } ConcurrentHashMap;
 
-ConcurrentHashMap *ConcurrentHashMap_create();
+
+ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent);
 
 void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value);
 void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, Object *key);

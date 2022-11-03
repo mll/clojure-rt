@@ -188,6 +188,15 @@ string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
   return retval.str();
 }
 
+TypedValue CodeGenerator::staticFalse() { 
+  return TypedValue(ObjectTypeSet(booleanType), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext),0));
+}
+
+TypedValue CodeGenerator::staticTrue() { 
+  return TypedValue(ObjectTypeSet(booleanType), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext),1));
+}
+
+
 ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &typeString) {
   auto s = typeString.size();
   if(s > 2 || s == 0) throw CodeGenerationException(string("Unknown type code: ")+ typeString, node);

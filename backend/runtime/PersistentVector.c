@@ -29,26 +29,26 @@ void PersistentVector_initialise() {
 
 BOOL PersistentVector_equals(PersistentVector * restrict self, PersistentVector * restrict other) {
   if (self->count != other->count) return FALSE;
-  BOOL retVal = equals(super(self->tail), super(other->tail));
-  if (self->count > RRB_BRANCHING) retVal = retVal && equals(super(self->root), super(other->root));
+  BOOL retVal = equals(self->tail, other->tail);
+  if (self->count > RRB_BRANCHING) retVal = retVal && equals(self->root, other->root);
   return retVal;
 }
 
 uint64_t PersistentVector_hash(PersistentVector * restrict self) {
-  return combineHash(5381, self->root ? hash(super(self->root)) : 1);
+  return combineHash(5381, self->root ? hash(self->root) : 1);
 }
 
 String *PersistentVector_toString(PersistentVector * restrict self) {
   sds retVal = sdsnew("[");
 
   if (self->count > RRB_BRANCHING) {
-    String *s = toString(super(self->root));
+    String *s = toString(self->root);
     retVal = sdscatsds(retVal, s->value);
     retVal = sdscat(retVal, " ");
     release(s);
   }
   
-  String *s = toString(super(self->tail));
+  String *s = toString(self->tail);
   retVal = sdscatsds(retVal, s->value);
   retVal = sdscat(retVal, " ");
   release(s);
@@ -89,7 +89,7 @@ void PersistentVectorNode_print(PersistentVectorNode * restrict self) {
   if (self->type == leafNode) { printf("*Leaf* "); return; }
   printf(" <<< NODE: %llu subnodes: ", self->count);
   for (int i=0; i<self->count; i++) {
-    PersistentVectorNode_print(data(self->array[i]));
+    PersistentVectorNode_print(Object_data(self->array[i]));
   }
   printf(" >>> ");
 }
@@ -131,11 +131,11 @@ PersistentVector* PersistentVector_conj(PersistentVector * restrict self, Object
     
     /* int depth = 0; */
     /* PersistentVectorNode *c = new->root; */
-    /* while(c->type != leafNode) { c = data(c->array[0]); depth++; } */
+    /* while(c->type != leafNode) { c = Object_data(c->array[0]); depth++; } */
     /* printf("--> Increasing depth from %llu to %llu, count: %llu, real depth: %d\n", new->shift-RRB_BITS, new->shift, new->count, depth); */
     /* depth = 0; */
     /* c = new->root; */
-    /* while(c->type != leafNode) { c = data(c->array[c->count -1]); depth++; } */
+    /* while(c->type != leafNode) { c = Object_data(c->array[c->count -1]); depth++; } */
     /* printf ("!!! Right depth: %d\n", depth); */
   }
   return new;
@@ -148,7 +148,7 @@ Object* PersistentVector_nth(PersistentVector * restrict self, uint64_t index) {
 
   PersistentVectorNode *node = self->root;
   for(uint64_t level = self->shift; level > 0; level -= RRB_BITS) {
-    node = data(node->array[(index >> level) & RRB_MASK]);
+    node = Object_data(node->array[(index >> level) & RRB_MASK]);
   }
   return node->array[index & RRB_MASK];
 }

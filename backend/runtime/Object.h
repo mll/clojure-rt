@@ -54,7 +54,7 @@ inline void deallocate(void * restrict ptr) {
  free(ptr);  
 }
 
-inline void *data(Object * restrict self) {
+inline void *Object_data(Object * restrict self) {
   return self + 1;
 }
 
@@ -78,37 +78,37 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
   if (atomic_fetch_sub_explicit(&(self->refCount), 1, memory_order_relaxed) == 1) {
     switch((objectType)self->type) {
     case integerType:
-      Integer_destroy(data(self));
+      Integer_destroy(Object_data(self));
       break;          
     case stringType:
-      String_destroy(data(self));
+      String_destroy(Object_data(self));
       break;          
     case persistentListType:
-      PersistentList_destroy(data(self), deallocateChildren);
+      PersistentList_destroy(Object_data(self), deallocateChildren);
       break;          
     case persistentVectorType:
-      PersistentVector_destroy(data(self), deallocateChildren);
+      PersistentVector_destroy(Object_data(self), deallocateChildren);
       break;
     case persistentVectorNodeType:
-      PersistentVectorNode_destroy(data(self), deallocateChildren);
+      PersistentVectorNode_destroy(Object_data(self), deallocateChildren);
       break;
     case doubleType:
-      Double_destroy(data(self));
+      Double_destroy(Object_data(self));
       break;          
     case booleanType:
-      Boolean_destroy(data(self));
+      Boolean_destroy(Object_data(self));
       break;
     case symbolType:
-      Symbol_destroy(data(self));
+      Symbol_destroy(Object_data(self));
       break;
     case nilType:
-      Nil_destroy(data(self));
+      Nil_destroy(Object_data(self));
       break;
     case concurrentHashMapType:
-      ConcurrentHashMap_destroy(data(self));
+      ConcurrentHashMap_destroy(Object_data(self));
       break;
     case keywordType:
-      Keyword_destroy(data(self));
+      Keyword_destroy(Object_data(self));
       break;
     }
     deallocate(self);
@@ -117,48 +117,52 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
   return FALSE;
 }
 
-inline uint64_t hash(Object * restrict self) {
+inline uint64_t Object_hash(Object * restrict self) {
       switch((objectType)self->type) {
       case integerType:
-        return Integer_hash(data(self));
+        return Integer_hash(Object_data(self));
         break;          
       case stringType:
-        return String_hash(data(self));
+        return String_hash(Object_data(self));
         break;          
       case persistentListType:
-        return PersistentList_hash(data(self));
+        return PersistentList_hash(Object_data(self));
         break;          
       case persistentVectorType:
-        return PersistentVector_hash(data(self));
+        return PersistentVector_hash(Object_data(self));
         break;
       case persistentVectorNodeType:
-        return PersistentVector_hash(data(self));
+        return PersistentVector_hash(Object_data(self));
         break;
       case doubleType:
-        return Double_hash(data(self));
+        return Double_hash(Object_data(self));
         break;          
       case booleanType:
-        return Boolean_hash(data(self));
+        return Boolean_hash(Object_data(self));
         break;
       case nilType:
-        return Nil_hash(data(self));
+        return Nil_hash(Object_data(self));
         break;
       case symbolType:
-        return Symbol_hash(data(self));
+        return Symbol_hash(Object_data(self));
       case concurrentHashMapType:
-        return ConcurrentHashMap_hash(data(self));
+        return ConcurrentHashMap_hash(Object_data(self));
       case keywordType:
-        return Keyword_hash(data(self));
+        return Keyword_hash(Object_data(self));
       }
 }
 
-inline BOOL equals(Object * restrict self, Object * restrict other) {
+inline uint64_t hash(void * restrict self) {
+  return Object_hash(super(self));
+}
+
+inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   if (self == other) return TRUE;
   if (self->type != other->type) return FALSE;
   if (hash(self) != hash(other)) return FALSE;
 
-  void *selfData = data(self);
-  void *otherData = data(other);  
+  void *selfData = Object_data(self);
+  void *otherData = Object_data(other);  
 
   switch((objectType)self->type) {
   case integerType:
@@ -197,39 +201,48 @@ inline BOOL equals(Object * restrict self, Object * restrict other) {
   }
 }
 
-inline String *toString(Object * restrict self) {
+inline BOOL equals(void * restrict self, void * restrict other) {
+  return Object_equals(super(self), super(other));
+}
+
+
+inline String *Object_toString(Object * restrict self) {
   switch((objectType)self->type) {
   case integerType:
-    return Integer_toString(data(self));
+    return Integer_toString(Object_data(self));
     break;          
   case stringType:
-    return String_toString(data(self));
+    return String_toString(Object_data(self));
     break;          
   case persistentListType:
-    return PersistentList_toString(data(self));
+    return PersistentList_toString(Object_data(self));
     break;          
   case persistentVectorType:
-    return PersistentVector_toString(data(self));
+    return PersistentVector_toString(Object_data(self));
     break;
   case persistentVectorNodeType:
-    return PersistentVectorNode_toString(data(self));
+    return PersistentVectorNode_toString(Object_data(self));
     break;
   case doubleType:
-    return Double_toString(data(self));
+    return Double_toString(Object_data(self));
     break;
   case booleanType:
-    return Boolean_toString(data(self));
+    return Boolean_toString(Object_data(self));
     break;
   case nilType:
-    return Nil_toString(data(self));
+    return Nil_toString(Object_data(self));
     break;
   case symbolType:
-    return Symbol_toString(data(self));
+    return Symbol_toString(Object_data(self));
   case concurrentHashMapType:
-    return ConcurrentHashMap_toString(data(self));
+    return ConcurrentHashMap_toString(Object_data(self));
   case keywordType:
-    return Keyword_toString(data(self));
+    return Keyword_toString(Object_data(self));
   }
+}
+
+inline String *toString(void * restrict self) {
+  return Object_toString(super(self));
 }
 
 inline BOOL Object_release(Object * restrict self) {

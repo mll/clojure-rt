@@ -64,7 +64,7 @@ inline BOOL tryReplacingEntry(ConcurrentHashMapEntry *entry, Object *key, Object
   /* Returns TRUE if successfully replaced, otherwise FALSE */
   if(encounteredHash == keyHash) {
     while((encounteredKey = atomic_load_explicit(&(entry->key), memory_order_relaxed)) == NULL);
-    if(equals(encounteredKey, key)) {
+    if(Object_equals(encounteredKey, key)) {
       while(TRUE) {
         Object *encounteredValue = atomic_load_explicit(&(entry->value), memory_order_relaxed);
         if(atomic_compare_exchange_strong_explicit(&(entry->value), &encounteredValue, value, memory_order_relaxed, memory_order_relaxed)) {
@@ -81,7 +81,7 @@ inline BOOL tryReplacingEntry(ConcurrentHashMapEntry *entry, Object *key, Object
 /* Memory model - swallows both */
 void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value) {
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
-  uint64_t keyHash = avalanche_64(hash(key));
+  uint64_t keyHash = avalanche_64(Object_hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
   uint64_t index = startIndex;
   ConcurrentHashMapEntry *entry = &(root->array[index]);
@@ -162,7 +162,7 @@ inline BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uin
     /* sbd is in the process of insertion, but we ignore it as dissoc works only for what 
        was already present in the table */
     if(!encounteredKey) return TRUE;
-    if(equals(encounteredKey, key)) {
+    if(Object_equals(encounteredKey, key)) {
       Object *encounteredValue = atomic_load_explicit(&(entry->value), memory_order_relaxed);
       atomic_exchange(&(entry->value), NULL);
       if(encounteredValue)  Object_autorelease(encounteredValue);
@@ -174,7 +174,7 @@ inline BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uin
 
 void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, Object *key) {
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
-  uint64_t keyHash = avalanche_64(hash(key));
+  uint64_t keyHash = avalanche_64(Object_hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
   uint64_t index = startIndex;
   ConcurrentHashMapEntry *entry = &(root->array[index]);
@@ -200,7 +200,7 @@ inline Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, u
   if(encounteredHash == keyHash) {
     encounteredKey = atomic_load_explicit(&(entry->key), memory_order_relaxed);
     if(!encounteredKey) { retain(UNIQUE_NIL); return super(UNIQUE_NIL); }
-    if(equals(encounteredKey, key)) {
+    if(Object_equals(encounteredKey, key)) {
       Object *value = atomic_load_explicit(&(entry->value), memory_order_relaxed);
       if(value) { 
         Object_retain(value);        
@@ -216,7 +216,7 @@ inline Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, u
 
 Object *ConcurrentHashMap_get(ConcurrentHashMap *self, Object *key) {
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
-  uint64_t keyHash = avalanche_64(hash(key));
+  uint64_t keyHash = avalanche_64(Object_hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
   uint64_t index = startIndex;
   ConcurrentHashMapEntry *entry = &(root->array[index]);
@@ -269,8 +269,8 @@ String *ConcurrentHashMap_toString(ConcurrentHashMap *self) {
     if(key && value) {
       if(found) retVal = sdscat(retVal, ", ");
       found = TRUE;      
-      String *ks = toString(key);
-      String *vs = toString(value);
+      String *ks = Object_toString(key);
+      String *vs = Object_toString(value);
       retVal = sdscatprintf(retVal, "Index: %d; hash %llu; Good index: %llu, leap %d:%d --> ", i, entry->keyHash ,  entry->keyHash & root->sizeMask, getLongLeap(entry->leaps), getShortLeap(entry->leaps));
       retVal = sdscatsds(retVal, ks->value);
       retVal = sdscat(retVal, " ");

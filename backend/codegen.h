@@ -79,6 +79,9 @@ class CodeGenerator {
   string typeStringForArgs(const vector<ObjectTypeSet> &args);
   vector<ObjectTypeSet> typesForArgString(const Node &node, const string &typeString); 
   ObjectTypeSet typeForArgString(const Node &node, const string &typeString);
+
+  TypedValue staticFalse();
+  TypedValue staticTrue();
   /* Runtime interop */
 
   Value *dynamicNil();

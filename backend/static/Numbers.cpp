@@ -7,23 +7,23 @@ TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &
   auto left = args[0];
   auto right = args[1];
   
-  if (left.first == doubleType && right.first == doubleType) {
-    return TypedValue(doubleType, gen->Builder->CreateFAdd(left.second, right.second, "add_dd_tmp"));
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(left.second, right.second, "add_dd_tmp"));
   }
   
-  if (left.first == integerType && right.first == integerType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first == left.first) {
     /* TODO integer overflow or promotion to bigint */
-    return TypedValue(integerType, gen->Builder->CreateAdd(left.second, right.second, "add_ii_tmp"));
+    return TypedValue(ObjectTypeSet(integerType), gen->Builder->CreateAdd(left.second, right.second, "add_ii_tmp"));
   }
   
-  if (left.first == integerType && right.first == doubleType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first.isDetermined() && right.first.determinedType() == doubleType) {
     auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(doubleType, gen->Builder->CreateFAdd(converted, right.second, "add_dd_tmp"));
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(converted, right.second, "add_dd_tmp"));
   }
   
-  if (left.first == doubleType && right.first == integerType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first.isDetermined() && right.first.determinedType() == integerType) {
     auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(doubleType, gen->Builder->CreateFAdd(left.second, converted, "add_dd_tmp"));
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(left.second, converted, "add_dd_tmp"));
   }
   
   throw CodeGenerationException(string("Wrong types for add call"), node);
@@ -36,23 +36,23 @@ TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node
   auto left = args[0];
   auto right = args[1];
   
-  if (left.first == doubleType && right.first == doubleType) {
-    return TypedValue(doubleType, gen->Builder->CreateFSub(left.second, right.second, "sub_dd_tmp"));
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(left.second, right.second, "sub_dd_tmp"));
   }
   
-  if (left.first == integerType && right.first == integerType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first == left.first) {
     /* TODO integer overflow or promotion to bigint */
-    return TypedValue(integerType, gen->Builder->CreateSub(left.second, right.second, "sub_ii_tmp"));
+    return TypedValue(ObjectTypeSet(integerType), gen->Builder->CreateSub(left.second, right.second, "sub_ii_tmp"));
   }
   
-  if (left.first == integerType && right.first == doubleType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first.isDetermined() && right.first.determinedType() == doubleType) {
     auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(doubleType, gen->Builder->CreateFSub(converted, right.second, "sub_dd_tmp"));
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(converted, right.second, "sub_dd_tmp"));
   }
   
-  if (left.first == doubleType && right.first == integerType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first.isDetermined() && right.first.determinedType() == integerType) {
     auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(doubleType, gen->Builder->CreateFSub(left.second, converted, "sub_dd_tmp"));
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(left.second, converted, "sub_dd_tmp"));
   }
   
   throw CodeGenerationException(string("Wrong types for minus call"), node);
@@ -64,23 +64,23 @@ TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const N
   auto left = args[0];
   auto right = args[1];
   
-  if (left.first == doubleType && right.first == doubleType) {
-    return TypedValue(doubleType, gen->Builder->CreateFMul(left.second, right.second, "mul_dd_tmp"));
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(left.second, right.second, "sub_dd_tmp"));
   }
   
-  if (left.first == integerType && right.first == integerType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first == left.first) {
     /* TODO integer overflow or promotion to bigint */
-    return TypedValue(integerType, gen->Builder->CreateMul(left.second, right.second, "mul_ii_tmp"));
+    return TypedValue(ObjectTypeSet(integerType), gen->Builder->CreateMul(left.second, right.second, "sub_ii_tmp"));
   }
   
-  if (left.first == integerType && right.first == doubleType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first.isDetermined() && right.first.determinedType() == doubleType) {
     auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(doubleType, gen->Builder->CreateFMul(converted, right.second, "mul_dd_tmp"));
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(converted, right.second, "sub_dd_tmp"));
   }
   
-  if (left.first == doubleType && right.first == integerType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first.isDetermined() && right.first.determinedType() == integerType) {
     auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(doubleType, gen->Builder->CreateFMul(left.second, converted, "mul_dd_tmp"));
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(left.second, converted, "sub_dd_tmp"));
   }
   
   throw CodeGenerationException(string("Wrong types for minus call"), node);
@@ -92,29 +92,30 @@ TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Nod
   
   /*TODO - naive implementation. Null denominator checks have to be performed as well as Ratio type (if both divisor and divider are ints or bigints) */
 
+  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+  
   auto left = args[0];
   auto right = args[1];
   
-  if (left.first == doubleType && right.first == doubleType) {
-    return TypedValue(doubleType, gen->Builder->CreateFDiv(left.second, right.second, "div_dd_tmp"));
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(left.second, right.second, "sub_dd_tmp"));
   }
   
-  if (left.first == integerType && right.first == integerType) {
-    /* TODO integer overflow or promotion to bigint */
-    return TypedValue(integerType, gen->Builder->CreateSDiv(left.second, right.second, "div_ii_tmp"));
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first == left.first) {
+    return TypedValue(ObjectTypeSet(integerType), gen->Builder->CreateSDiv(left.second, right.second, "sub_ii_tmp"));
   }
   
-  if (left.first == integerType && right.first == doubleType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first.isDetermined() && right.first.determinedType() == doubleType) {
     auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(doubleType, gen->Builder->CreateFDiv(converted, right.second, "div_dd_tmp"));
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(converted, right.second, "sub_dd_tmp"));
   }
   
-  if (left.first == doubleType && right.first == integerType) {
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first.isDetermined() && right.first.determinedType() == integerType) {
     auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(doubleType, gen->Builder->CreateFDiv(left.second, converted, "div_dd_tmp"));
+    return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(left.second, converted, "sub_dd_tmp"));
   }
   
-  throw CodeGenerationException(string("Wrong types for divide call"), node);
+  throw CodeGenerationException(string("Wrong types for minus call"), node);
 }
 
 TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
@@ -142,7 +143,7 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
 
   if (argsF.size() != args.size()) throw CodeGenerationException(string("Wrong types for calling") + fname, node);
 
-  return TypedValue(doubleType, gen->Builder->CreateCall(CalleeF, argsF, string("call_") + fname));
+  return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateCall(CalleeF, argsF, string("call_") + fname));
 }
 
 unordered_map<string, vector<pair<string, pair<ObjectTypeSet, StaticCall>>>> getNumbersStaticFunctions() {

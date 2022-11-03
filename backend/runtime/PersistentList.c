@@ -11,7 +11,7 @@ PersistentList* PersistentList_empty() {
 
 PersistentList* PersistentList_create(Object *first, PersistentList *rest) {
   Object *super = allocate(sizeof(PersistentList) + sizeof(Object)); 
-  PersistentList *self = data(super);
+  PersistentList *self = Object_data(super);
 
   self->first = first;
   self->rest = rest;
@@ -28,7 +28,7 @@ BOOL PersistentList_equals(PersistentList *self, PersistentList *other) {
   PersistentList* otherPtr = other;
 
   while(selfPtr) {
-    if (!(selfPtr->first == otherPtr->first || (selfPtr->first && otherPtr->first && equals(selfPtr->first, otherPtr->first)))) return FALSE;
+    if (!(selfPtr->first == otherPtr->first || (selfPtr->first && otherPtr->first && Object_equals(selfPtr->first, otherPtr->first)))) return FALSE;
     selfPtr = selfPtr->rest;
     otherPtr = otherPtr->rest;
   }
@@ -37,11 +37,11 @@ BOOL PersistentList_equals(PersistentList *self, PersistentList *other) {
 
 uint64_t PersistentList_hash(PersistentList *self) {
   uint64_t h = 5381;
-  h = ((h << 5) + h) + (self->first ? hash(self->first) : 0);
+  h = ((h << 5) + h) + (self->first ? Object_hash(self->first) : 0);
 
   PersistentList *current = self->rest;
   while (current) {
-    h = ((h << 5) + h) + hash(super(current));
+    h = ((h << 5) + h) + hash(current);
   }
   return h;
 }
@@ -54,7 +54,7 @@ String *PersistentList_toString(PersistentList *self) {
   while (current) {
     if (current != self && current->first) retVal = sdscat(retVal, " ");
     if(current->first) {
-      String *s = toString(current->first);
+      String *s = Object_toString(current->first);
       retVal = sdscatsds(retVal, s->value);
       release(s);
     }

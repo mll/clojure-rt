@@ -14,13 +14,13 @@ PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType typ
 
 BOOL PersistentVectorNode_equals(PersistentVectorNode * restrict self, PersistentVectorNode * restrict other) {
   if (self->count != other->count) return FALSE;
-  for(int i=0; i < self->count; i++) if (!equals(self->array[i], other->array[i])) return FALSE;
+  for(int i=0; i < self->count; i++) if (!Object_equals(self->array[i], other->array[i])) return FALSE;
   return TRUE;
 }
 
 uint64_t PersistentVectorNode_hash(PersistentVectorNode * restrict self) {
   uint64_t h = 5381;  
-  for(int i=0; i< self->count; i++) h = combineHash(h, hash(self->array[i])); 
+  for(int i=0; i< self->count; i++) h = combineHash(h, Object_hash(self->array[i])); 
   return h;
 }
 
@@ -50,7 +50,7 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * re
         Object_retain(other);
         new->array[i] = other;
       } else {
-        new->array[i] = super(PersistentVectorNode_replacePath(data(new->array[i]), level - RRB_BITS, index, other));
+        new->array[i] = super(PersistentVectorNode_replacePath(Object_data(new->array[i]), level - RRB_BITS, index, other));
       }
     } else {
       Object_retain(self->array[i]);
@@ -78,7 +78,7 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
     return new;
   }
 
-  PersistentVectorNode *entry = level <= RRB_BITS ? NULL : data(self->array[self->count - 1]);
+  PersistentVectorNode *entry = level <= RRB_BITS ? NULL : Object_data(self->array[self->count - 1]);
 
   BOOL copiedInSubtree;
   PersistentVectorNode *subtree = PersistentVectorNode_pushTail(self, entry, tailToPush, level -= RRB_BITS, &copiedInSubtree);

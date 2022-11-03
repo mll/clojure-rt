@@ -44,23 +44,25 @@ void initialise_memory() {
 extern void *allocate(size_t size);
 extern void deallocate(void * restrict ptr);
 
-
-extern void *data(Object * restrict self);
 extern Object *super(void * restrict self);
-
-extern void Object_create(Object * restrict self, objectType type);
 extern void retain(void * restrict self);
 extern BOOL release(void * restrict self);
 extern BOOL release_internal(void * restrict self, BOOL deallocatesChildren);
+extern BOOL equals(void * restrict self, void * restrict other);
+extern uint64_t hash(void * restrict self);
+extern String *toString(void * restrict self);
 
+extern void *Object_data(Object * restrict self);
+extern void Object_create(Object * restrict self, objectType type);
 extern void Object_retain(Object * restrict self);
 extern BOOL Object_release(Object * restrict self);
 extern BOOL Object_release_internal(Object * restrict self, BOOL deallocatesChildren);
 extern void Object_autorelease(Object * restrict self);
+extern BOOL Object_equals(Object * restrict self, Object * restrict other);
+extern uint64_t Object_hash(Object * restrict self);
+extern String *Object_toString(Object * restrict self);
 
-extern BOOL equals(Object * restrict self, Object * restrict other);
-extern uint64_t hash(Object * restrict self);
-extern String *toString(Object * restrict self);
+
 
 extern uint64_t combineHash(uint64_t lhs, uint64_t rhs);
 

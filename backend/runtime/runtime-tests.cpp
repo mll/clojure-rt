@@ -66,13 +66,14 @@ extern "C" {
   
   typedef struct String String; 
 
-  String *toString(Object * self);
+  String *Object_toString(Object * self);
+  String *toString(void * self);
   
   Integer *Integer_create(int64_t);
   Double* Double_create(double d);
 
   Object *super(void *);
-  void *data(Object *);		
+  void *Object_data(Object *);		
   
   PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other);
   PersistentVector* PersistentVector_assoc(PersistentVector *self, uint64_t index, Object *other);
@@ -173,14 +174,14 @@ void testMap (bool pauses) {
     assert(o);
     
     if(o->type != integerType) {
-      printf("Unknown type %d for entry %s\n", o->type, toString(super(k))->value);
+      printf("Unknown type %d for entry %s\n", o->type, toString(k)->value);
       o = ConcurrentHashMap_get(l, super(k));
-      printf("Unknown type %d for entry %s\n", o->type, toString(super(k))->value);
-      printf("Contents: %s %s\n", toString(o)->value, toString(super(l))->value);
+      printf("Unknown type %d for entry %s\n", o->type, toString(k)->value);
+      printf("Contents: %s %s\n", toString(o)->value, toString(l)->value);
     }
 
     assert(o->type == integerType);
-    Integer *res = (Integer *) data(o);
+    Integer *res = (Integer *) Object_data(o);
     assert(res->value == i);
     sum += res->value;
     release(res);
@@ -212,7 +213,7 @@ void testMap (bool pauses) {
   // PersistentList *tmp = l;
   // int64_t sum = 0;
   // while(tmp != NULL) {
-  //   if(tmp->first) sum += ((Integer *)(data(tmp->first)))->value;
+  //   if(tmp->first) sum += ((Integer *)(Object_data(tmp->first)))->value;
   //   tmp = tmp->rest;
   // }
   // clock_t op = clock();
@@ -256,7 +257,7 @@ void testList (bool pauses) {
   PersistentList *tmp = l;
   int64_t sum = 0;
   while(tmp != NULL) {
-    if(tmp->first) sum += ((Integer *)(data(tmp->first)))->value;
+    if(tmp->first) sum += ((Integer *)(Object_data(tmp->first)))->value;
     tmp = tmp->rest;
   }
   assert(sum == 4999999950000000ull && "Wrong result");
@@ -306,7 +307,7 @@ void testVector (bool pauses) {
   int64_t sum = 0;
   
   for(int i=0; i< l->count; i++) {
-    sum += ((Integer *) data(PersistentVector_nth(l, i)))->value;
+    sum += ((Integer *) Object_data(PersistentVector_nth(l, i)))->value;
   }
     assert(sum == 4999999950000000ull && "Wrong result");
   clock_t op = clock();
@@ -343,7 +344,7 @@ void testVector (bool pauses) {
   sum = 0;
   
   for(int i=0; i< l->count; i++) {
-    sum += ((Integer *) data(PersistentVector_nth(l, i)))->value;
+    sum += ((Integer *) Object_data(PersistentVector_nth(l, i)))->value;
   }
 
   clock_t asd = clock();

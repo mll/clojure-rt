@@ -87,8 +87,11 @@ v Integer
 v Double
 v Boolean   
 v nil 
-* Symbol <--
-* Keyword  
+v Symbol 
+v Keyword 
+v ConcurrentHashMap (TODO resizing) 
+* Keyword uniquing
+* Symbol uniquing 
 * Character
 * Ratio
 * BigInteger
@@ -108,8 +111,11 @@ Compiler:
   v Boolean 
   v Nil 
   v String 
-  * Symbol <-- 
-  * Keyword
+  v Symbol 
+  v Keyword
+  * Keyword uniquing
+  * Symbol uniquing 
+
   * Map
   * Vector
   * List
@@ -119,8 +125,8 @@ Compiler:
 v StaticCall (works for simple math, framework prepared to add more functionality)
 v WithMeta (for now just ignores meta)
 v If 
+--> Def and vars system
 * Loop (+ recur for loop)
-* Def and vars system
 * Binding  
 * Fn
 * FnMethod

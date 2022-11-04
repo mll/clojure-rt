@@ -5,6 +5,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
   string name = subnode.var().substr(2);
   auto found = StaticVars.find(name);
   auto mangled = globalNameForVar(name);
+
+  /* TODO - analyse metada for :static and if so block any redefinitions */
+
   if(!typeRestrictions.contains(nilType)) throw CodeGenerationException(string("Def cannot be used here because it returns nil: ") + name, node);
   auto nil = dynamicNil();  
 

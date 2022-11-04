@@ -125,6 +125,11 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
 Type *CodeGenerator::dynamicBoxedType(objectType type) {
   return Type::getInt8Ty(*TheContext)->getPointerTo();
 }
+Type *CodeGenerator::dynamicBoxedType() {
+  return Type::getInt8Ty(*TheContext)->getPointerTo();
+}
+
+
 
 Value *CodeGenerator::box(const TypedValue &value) {
   if (!value.first.isDetermined()) return value.second;

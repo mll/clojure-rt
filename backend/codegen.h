@@ -97,6 +97,7 @@ class CodeGenerator {
  
   Type *dynamicUnboxedType(objectType type);
   Type *dynamicBoxedType(objectType type);
+  Type *dynamicBoxedType();
 
 
   /* Code generation */

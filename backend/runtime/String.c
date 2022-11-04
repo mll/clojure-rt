@@ -83,7 +83,10 @@ String* String_createCompound(String *left, String *right) {
     PersistentVector *empty = PersistentVector_create();
     v = PersistentVector_conj(empty, super(left));
     release(empty);
-  } else v = getVec(left);
+  } else {
+    v = getVec(left);
+    retain(v);
+  }
   
   if(right->specialisation != compoundString) {
     PersistentVector *added = PersistentVector_conj(v, super(right));

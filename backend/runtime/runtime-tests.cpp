@@ -185,16 +185,14 @@ void testMap (bool pauses) {
   Integer *k = Integer_create(1);
   for(int i=0; i< 100000000; i++) {
     k->value = i;
-    printf("%llu %lld DOOPKA\n", hash(k), k->value); 
     Object *o = ConcurrentHashMap_get(l, super(k));
     assert(o);
-    printf("%llu %lld DOOPA\n", hash(k), k->value); 
     if(o->type != integerType) {
 
       printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
       o = ConcurrentHashMap_get(l, super(k));
       printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
-      printf("Contents: %s %s\n", String_c_str(toString(o)), String_c_str(toString(l)));
+      printf("Contents: %s %s\n", String_c_str(toString(o)), String_c_str(String_compactify(toString(l))));
     }
 
     assert(o->type == integerType);

@@ -304,14 +304,15 @@ String *ConcurrentHashMap_toString(ConcurrentHashMap *self) {
     Object *key = entry->key;
     Object *value = entry->value;
     if(key && value) {
-      if(found) retVal = String_append(retVal, comma);
+      if(found) { 
+        retVal = String_append(retVal, comma);
+      }
       found = TRUE;      
       String *ks = Object_toString(key);
       String *vs = Object_toString(value);
       retVal = String_append(retVal, ks);
-      retVal = String_append(retVal, comma);
+      retVal = String_append(retVal, space);
       retVal = String_append(retVal, vs);
-      retVal = String_append(retVal, newline);
       release(ks);
       release(vs);
     } 

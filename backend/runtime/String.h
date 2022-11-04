@@ -39,7 +39,7 @@ struct StringIterator {
 
 typedef struct StringIterator StringIterator; 
 
-String* String_createStaticOptimised(void *allocatedMemory /* sizeof(String) + sizeof(Object) */, char *string, uint64_t len, uint64_t hash);
+String* String_createStaticOptimised(char *string, uint64_t len, uint64_t hash);
 String* String_create(char *string);
 String* String_createDynamic(size_t size);
 

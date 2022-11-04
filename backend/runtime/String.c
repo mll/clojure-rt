@@ -60,8 +60,8 @@ String* String_createDynamic(size_t size) {
   return self;
 }
 
-String* String_createStaticOptimised(void *allocatedMemory, char *string, uint64_t len, uint64_t hash) {
-  Object *super = allocatedMemory; 
+String* String_createStaticOptimised(char *string, uint64_t len, uint64_t hash) {
+  Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char *)); 
   String *self = (String *)(super + 1);
   *((char **) &(self->value[0])) = string;
   self->count = len;

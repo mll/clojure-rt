@@ -27,10 +27,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     if(method.first != requiredArity) continue; 
     auto retType = method.second.first;
     if(retType.intersection(typeRestrictions).isEmpty()) continue;
-    vector<TypedValue> args;
+    vector<TypedNode> args;
     
     for(int i=0; i< subnode.args_size();i++) {
-      args.push_back(codegen(subnode.args(i), types[i]));
+      args.push_back(TypedNode(types[i], subnode.args(i)));
     }
     
     return method.second.second(this, name + " " + requiredArity, node, args);

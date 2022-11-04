@@ -44,7 +44,8 @@ class CodeGenerator;
 
 
 typedef pair<ObjectTypeSet, Value *> TypedValue;
-typedef TypedValue (*StaticCall)(CodeGenerator *, const string &, const Node&, const std::vector<TypedValue>&);
+typedef pair<ObjectTypeSet, const Node&> TypedNode;
+typedef TypedValue (*StaticCall)(CodeGenerator *, const string &, const Node&, const std::vector<TypedNode>&);
 
 class CodeGenerationException: public exception {
   string errorMessage;
@@ -79,6 +80,8 @@ class CodeGenerator {
   string typeStringForArgs(const vector<ObjectTypeSet> &args);
   vector<ObjectTypeSet> typesForArgString(const Node &node, const string &typeString); 
   ObjectTypeSet typeForArgString(const Node &node, const string &typeString);
+  uint64_t computeHash(const char *str);
+  uint64_t avalanche_64(uint64_t h);
 
   TypedValue staticFalse();
   TypedValue staticTrue();
@@ -86,8 +89,8 @@ class CodeGenerator {
 
   Value *dynamicNil();
   Value *dynamicString(const char *str);
-  Value *dynamicSymbol(const char *ns, const char *name);
-  Value *dynamicKeyword(const char *ns, const char *name);
+  Value *dynamicSymbol(const char *name);
+  Value *dynamicKeyword(const char *name);
   Value *dynamicCond(Value *cond);
   Value *box(const TypedValue &value);
   void runtimeException(const CodeGenerationException &runtimeException);  

@@ -1,19 +1,21 @@
 #include "Utils.h"  
 #include <math.h>
 
-TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
-  auto left = args[0];
-  auto right = args[1];
-  
+  auto left = gen->codegen(args[0].second, args[0].first);
+  auto right = gen->codegen(args[1].second, args[1].first);
+    
   if(left.first.isDetermined() && right.first.isDetermined()) {
     auto leftType = left.first.determinedType();
     auto rightType = right.first.determinedType();
     
     /* TODO - This is a strong assumption, probably would have to become weaker as we analyse ratios and big integers */
     if(leftType != rightType) return gen->staticFalse();
-
+    
+    cout << "ZOOOOO" <<endl;
+    
     switch(leftType) {
     case integerType:
       return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateICmpEQ(left.second, right.second, "cmp_jj_tmp"));
@@ -25,9 +27,10 @@ TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node
       break;
     }
   }
-
+  
   if((!left.first.isDetermined() && !right.first.isDetermined()) ||
      (left.first.isDetermined() && right.first.isDetermined())) {
+    
     vector<Type *> argTypes = { gen->dynamicBoxedType(), gen->dynamicBoxedType() };
     vector<Value *> argss = { left.second, right.second };
     Value *int8bool = gen->callRuntimeFun("equals", Type::getInt8Ty(*(gen->TheContext)), argTypes, argss); 

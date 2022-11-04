@@ -1,11 +1,11 @@
 #include "Numbers.h"  
 #include <math.h>
 
-TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
-  auto left = args[0];
-  auto right = args[1];
+  auto left = gen->codegen(args[0].second, args[0].first);
+  auto right = gen->codegen(args[1].second, args[1].first);
   
   if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
     return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(left.second, right.second, "add_dd_tmp"));
@@ -30,11 +30,11 @@ TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &
 }
 
 
-TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
-  auto left = args[0];
-  auto right = args[1];
+  auto left = gen->codegen(args[0].second, args[0].first);
+  auto right = gen->codegen(args[1].second, args[1].first);
   
   if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
     return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(left.second, right.second, "sub_dd_tmp"));
@@ -58,12 +58,13 @@ TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node
   throw CodeGenerationException(string("Wrong types for minus call"), node);
 }
 
-TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  
-  auto left = args[0];
-  auto right = args[1];
-  
+
+
+  auto left = gen->codegen(args[0].second, args[0].first);
+  auto right = gen->codegen(args[1].second, args[1].first);
+    
   if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
     return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(left.second, right.second, "sub_dd_tmp"));
   }
@@ -87,15 +88,15 @@ TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const N
 }
 
 
-TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
   /*TODO - naive implementation. Null denominator checks have to be performed as well as Ratio type (if both divisor and divider are ints or bigints) */
 
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
-  auto left = args[0];
-  auto right = args[1];
+  auto left = gen->codegen(args[0].second, args[0].first);
+  auto right = gen->codegen(args[1].second, args[1].first);
   
   if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
     return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(left.second, right.second, "sub_dd_tmp"));
@@ -118,7 +119,7 @@ TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Nod
   throw CodeGenerationException(string("Wrong types for minus call"), node);
 }
 
-TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   /* We assume here that all the inputs and outputs are double. Should be true for most clib math functions. If not, a fully custom variant will be employed. */
   string tmp = signature.substr(0, signature.rfind(" "));
   string fname = tmp.substr(tmp.rfind("/") + 1);  
@@ -136,7 +137,7 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
   
   vector <Value *> argsF;
   for(int i=0; i< args.size(); i++) {
-    auto left = args[0];
+    auto left = gen->codegen(args[0].second, args[0].first);
     if (left.first == doubleType) argsF.push_back(left.second);
     if (left.first == integerType) argsF.push_back(gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i"));
   }

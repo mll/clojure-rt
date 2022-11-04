@@ -23,7 +23,9 @@ CodeGenerator::CodeGenerator() {
   TheFPM->add(createGVNPass());
   // Simplify the control flow graph (deleting unreachable blocks, etc).
   TheFPM->add(createCFGSimplificationPass());
-  
+  /* dead code */
+  TheFPM->add(createAggressiveDCEPass());
+
   TheFPM->doInitialization();
 
   auto numbers = getNumbersStaticFunctions();
@@ -45,6 +47,9 @@ vector<TypedValue> CodeGenerator::codegen(const Programme &programme) {
     Builder->SetInsertPoint(BB);
     Builder->CreateRet(box(codegen(node, ObjectTypeSet::all())));
     verifyFunction(*F);
+
+    TheFPM->run(*F);
+
     //F->print(errs());
     //fprintf(stderr, "\n");
     

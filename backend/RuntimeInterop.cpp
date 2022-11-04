@@ -1,4 +1,5 @@
 #include "codegen.h"  
+#include <stdio.h>
 
 Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args) {
   Function *CalleeF = TheModule->getFunction(fname);
@@ -34,7 +35,7 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
       fname = "Boolean_create";
       break;
     case stringType:
-      fname = "String_create_copy";
+      fname = "String_createStaticOptimised";
       break;
     case persistentListType:
       fname = "PersistentList_create";
@@ -65,40 +66,56 @@ Value * CodeGenerator::dynamicNil() {
   return dynamicCreate(nilType, vector<Type *>(), vector<Value *>());
 }
 
+uint64_t CodeGenerator::avalanche_64(uint64_t h) {
+    h ^= h >> 33;
+    h *= 0xff51afd7ed558ccd;
+    h ^= h >> 33;
+    h *= 0xc4ceb9fe1a85ec53;
+    h ^= h >> 33;
+    return h;
+}
+
+
+uint64_t CodeGenerator::computeHash(const char *str) {
+    uint64_t h = 5381;
+    uint64_t c;
+
+    while ((c = *str++)) h += avalanche_64(c);
+    return h;
+}
+
+
 Value * CodeGenerator::dynamicString(const char *str) {
   vector<Type *> types;
   vector<Value *> args;
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-  args.push_back(Builder->CreateGlobalStringPtr(StringRef(str), "dynamicString"));
+  types.push_back(Type::getInt64Ty(*TheContext));
+  types.push_back(Type::getInt64Ty(*TheContext));
+  args.push_back(Builder->CreateGlobalStringPtr(StringRef(str), "staticString"));
+  args.push_back(ConstantInt::get(*TheContext, APInt(64, strlen(str))));
+  args.push_back(ConstantInt::get(*TheContext, APInt(64, computeHash(str), false)));
+  
   return dynamicCreate(stringType, types, args);
 }
 
 
-Value * CodeGenerator::dynamicSymbol(const char *ns, const char *name) {
-  auto nss = dynamicString(ns);
+Value * CodeGenerator::dynamicSymbol(const char *name) {
   auto names = dynamicString(name);
   vector<Type *> types;
   vector<Value *> args;
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-
 
   args.push_back(names);
-  args.push_back(nss);
   return dynamicCreate(symbolType, types, args);
 }
 
-Value * CodeGenerator::dynamicKeyword(const char *ns, const char *name) {
-  /* TODO: Instead of creating a new keyword, this needs to first consult the keyword table */
-  auto nss = dynamicString(ns);
+Value * CodeGenerator::dynamicKeyword(const char *name) {
   auto names = dynamicString(name);
   vector<Type *> types;
   vector<Value *> args;
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
 
   args.push_back(names);
-  args.push_back(nss);
   return dynamicCreate(keywordType, types, args);
 }
 

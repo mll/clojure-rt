@@ -1,6 +1,5 @@
 #include "Object.h"
 #include "PersistentList.h"
-#include "sds/sds.h"
 
 static PersistentList *EMPTY = NULL;
 
@@ -37,11 +36,12 @@ BOOL PersistentList_equals(PersistentList *self, PersistentList *other) {
 
 uint64_t PersistentList_hash(PersistentList *self) {
   uint64_t h = 5381;
-  h = ((h << 5) + h) + (self->first ? Object_hash(self->first) : 0);
+  h = combineHash(h, self->first ? Object_hash(self->first) : 5381);
 
   PersistentList *current = self->rest;
   while (current) {
-    h = ((h << 5) + h) + hash(current);
+    h = combineHash(h, PersistentList_hash(current));
+    current = self->rest;
   }
   return h;
 }

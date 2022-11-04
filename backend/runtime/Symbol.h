@@ -12,14 +12,13 @@ typedef struct Object Object;
 typedef struct String String; 
 
 struct Symbol {
-  String *name;
-  String *namespace;
+  String *string;
 };
 
 typedef struct Symbol Symbol; 
 
 /* Transfers ownership - symbol swallows those two strings - it does not retain but it will free */
-Symbol* Symbol_create(String *name, String *namespace);
+Symbol* Symbol_create(String *name);
 BOOL Symbol_equals(Symbol *self, Symbol *other);
 uint64_t Symbol_hash(Symbol *self);
 String *Symbol_toString(Symbol *self);

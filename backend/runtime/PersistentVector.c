@@ -2,7 +2,6 @@
 #include "PersistentVector.h"
 #include "PersistentVectorNode.h"
 #include "Object.h"
-#include "sds/sds.h"
 
 PersistentVector *EMPTY_VECTOR = NULL;
 
@@ -35,7 +34,7 @@ BOOL PersistentVector_equals(PersistentVector * restrict self, PersistentVector 
 }
 
 uint64_t PersistentVector_hash(PersistentVector * restrict self) {
-  return combineHash(5381, self->root ? hash(self->root) : 1);
+  return combineHash(5381, self->root ? hash(self->root) : 5381);
 }
 
 String *PersistentVector_toString(PersistentVector * restrict self) {

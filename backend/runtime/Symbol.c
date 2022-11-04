@@ -1,36 +1,40 @@
 #include "Object.h"
 #include "Symbol.h"
 #include "String.h"
-#include "sds/sds.h"
 
-Symbol* Symbol_create(String *name, String *namespace) {
+extern ConcurrentHashMap *keywords;
+extern Nil *UNIQUE_NIL;
+
+Symbol* Symbol_allocate(String *string) {
   Object *super = allocate(sizeof(Symbol) + sizeof(Object)); 
   Symbol *self = (Symbol *)(super + 1);
-  self->name = name;
-  self->namespace = namespace;
+  self->string = string;
+  retain(string);
   Object_create(super, symbolType);
   return self;
 }
 
+Symbol* Symbol_create(String *string) {
+  return Symbol_allocate(string);
+}
 
 BOOL Symbol_equals(Symbol *self, Symbol *other) {
-  return equals(super(self->name), super(other->name)) && equals(super(self->namespace), super(other->namespace));
+  /* because we are uniquing / interning */
+  return equals(self->string, other->string);
 }
 
 uint64_t Symbol_hash(Symbol *self) {
-  return combineHash(String_hash(self->name), String_hash(self->namespace)); 
+    return self->string->hash;
 }
 
 String *Symbol_toString(Symbol *self) {
-  sds new = sdsnew(self->namespace->value);
-  new = sdscat(new, "/");   
-  new = sdscat(new, self->name->value);
-  return String_create(new);
+  retain(self->string);
+  return self->string;
 }
 
 void Symbol_destroy(Symbol *self) {
-  release(self->name);
-  release(self->namespace);
+  release(self->string);
 }
+
 
 

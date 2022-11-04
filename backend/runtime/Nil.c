@@ -2,7 +2,6 @@
 #include "String.h"
 #include <stdio.h>
 #include "Object.h"
-#include "sds/sds.h"
 
 Nil *UNIQUE_NIL = NULL;
 
@@ -31,7 +30,7 @@ uint64_t Nil_hash(Nil *self) {
 }
 
 String *Nil_toString(Nil *self) {
-  return String_create(sdsnew("nil"));
+  return String_create("nil");
 }
 
 void Nil_destroy(Nil *self) {

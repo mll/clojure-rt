@@ -1,2 +1,5 @@
 *.o
+backend/clojure-rt
+backend/runtime/runtime.a
+backend/runtime/runtime-tests
 

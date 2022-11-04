@@ -1,7 +1,6 @@
 #include "Boolean.h"
 #include "String.h"
 #include "Object.h"
-#include "sds/sds.h"
 
 Boolean* Boolean_create(BOOL initial) {
   Object *super = allocate(sizeof(Boolean) + sizeof(Object)); 
@@ -16,7 +15,7 @@ BOOL Boolean_equals(Boolean *self, Boolean *other) {
 }
 
 uint64_t Boolean_hash(Boolean *self) {
-  return combineHash(5381, ((uint64_t) self->value) + 1); 
+  return combineHash(5381, ((uint64_t) self->value) + 5381); 
 }
 
 String *Boolean_toString(Boolean *self) {  

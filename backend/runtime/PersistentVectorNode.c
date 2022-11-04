@@ -1,7 +1,7 @@
 #include "Object.h"
 #include "PersistentVectorNode.h"
 #include "PersistentVector.h"
-#include "sds/sds.h"
+
 
 PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type) { 
   Object *super = allocate(sizeof(PersistentVectorNode)+ sizeof(Object) + count * sizeof(PersistentVectorNode *)); 

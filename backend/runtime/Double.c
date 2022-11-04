@@ -2,7 +2,7 @@
 #include "String.h"
 #include <stdio.h>
 #include "Object.h"
-#include "sds/sds.h"
+#include "Hash.h"
 
 Double* Double_create(double d) {
   Object *super = allocate(sizeof(Double) + sizeof(Object)); 
@@ -18,11 +18,14 @@ BOOL Double_equals(Double *self, Double *other) {
 
 uint64_t Double_hash(Double *self) {
   uint64_t v = *((uint64_t *) &(self->value)); 
-  return combineHash(5381, v);
+  return combineHash(5381, avalanche_64(v));
 }
 
 String *Double_toString(Double *self) {
-  return String_create(sdscatprintf(sdsempty(), "%f", self->value));
+  String *retVal = String_createDynamic(23);
+  retVal->count = snprintf(retVal->value, 22, "%.17G", self->value);
+  String_recomputeHash(retVal);
+  return retVal;
 }
 
 void Double_destroy(Double *self) {

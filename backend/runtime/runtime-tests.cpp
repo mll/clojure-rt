@@ -59,16 +59,31 @@ extern "C" {
   PersistentList* PersistentList_create(Object *first, PersistentList *rest);
   PersistentList* PersistentList_conj(PersistentList *self, Object *other);
   
+  enum specialisedString {
+    staticString,
+    dynamicString,
+    compoundString
+  };
+
+  typedef enum specialisedString specialisedString;
+  
   struct String {
-    unsigned int count;
-    char *value;
+    uint64_t count;
+    uint64_t hash;
+    specialisedString specialisation;
+    char value[]; 
   };
   
   typedef struct String String; 
 
   String *Object_toString(Object * self);
   String *toString(void * self);
+  uint64_t hash(void * self);
   
+  String *String_compactify(String *self);
+  char *String_c_str(String *self);
+
+
   Integer *Integer_create(int64_t);
   Double* Double_create(double d);
 
@@ -170,14 +185,16 @@ void testMap (bool pauses) {
   Integer *k = Integer_create(1);
   for(int i=0; i< 100000000; i++) {
     k->value = i;
+    printf("%llu %lld DOOPKA\n", hash(k), k->value); 
     Object *o = ConcurrentHashMap_get(l, super(k));
     assert(o);
-    
+    printf("%llu %lld DOOPA\n", hash(k), k->value); 
     if(o->type != integerType) {
-      printf("Unknown type %d for entry %s\n", o->type, toString(k)->value);
+
+      printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
       o = ConcurrentHashMap_get(l, super(k));
-      printf("Unknown type %d for entry %s\n", o->type, toString(k)->value);
-      printf("Contents: %s %s\n", toString(o)->value, toString(l)->value);
+      printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
+      printf("Contents: %s %s\n", String_c_str(toString(o)), String_c_str(toString(l)));
     }
 
     assert(o->type == integerType);

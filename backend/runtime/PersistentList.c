@@ -47,21 +47,28 @@ uint64_t PersistentList_hash(PersistentList *self) {
 }
 
 String *PersistentList_toString(PersistentList *self) {
-  sds retVal = sdsnew("(");
+  String *retVal = String_create("(");
+  String *space = String_create(" ");
+  String *closing = String_create(")");
 
   PersistentList *current = self;
 
   while (current) {
-    if (current != self && current->first) retVal = sdscat(retVal, " ");
+    if (current != self && current->first) {
+      retVal = String_append(retVal, space);
+    }
     if(current->first) {
       String *s = Object_toString(current->first);
-      retVal = sdscatsds(retVal, s->value);
+      retVal = String_append(retVal, s);
       release(s);
     }
     current = current->rest;
   }
-  retVal = sdscat(retVal, ")");
-  return String_create(retVal);
+  
+  retVal = String_append(retVal, closing); 
+  release(space);
+  release(closing);
+  return retVal;
 }
 
 void PersistentList_destroy(PersistentList *self, BOOL deallocateChildren) {

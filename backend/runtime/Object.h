@@ -250,8 +250,9 @@ inline BOOL Object_release(Object * restrict self) {
 }
 
 inline void Object_autorelease(Object * restrict self) {
+  /* The object could have been deallocated through direct releases in the meantime (e.g. if autoreleasing entity does not own ) */
+  if(atomic_load(&(self->refCount)) < 1) return;   
   /* TODO: add an object to autorelease pool */
-
 }
 
 inline void retain(void * restrict self) {

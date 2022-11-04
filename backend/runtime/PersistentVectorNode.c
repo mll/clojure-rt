@@ -25,14 +25,17 @@ uint64_t PersistentVectorNode_hash(PersistentVectorNode * restrict self) {
 }
 
 String *PersistentVectorNode_toString(PersistentVectorNode * restrict self) {
-  sds retVal = sdsnew("");
+  String *retVal = String_create("");
+  String *space = String_create(" ");
+
   for(int i=0; i< self->count; i++) {
-    String *s = toString(self->array[i]);
-    retVal = sdscatsds(retVal, s->value);
-    if (i < self->count - 1) retVal = sdscat(retVal, " ");
+    String *s = Object_toString(self->array[i]);
+    retVal = String_append(retVal, s);
+    if (i < self->count - 1) retVal = String_append(retVal, space);
     release(s);
   } 
-  return String_create(retVal);
+  release(space);
+  return retVal;
 }
 
 void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL deallocateChildren) {

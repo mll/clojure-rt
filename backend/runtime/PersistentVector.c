@@ -39,22 +39,26 @@ uint64_t PersistentVector_hash(PersistentVector * restrict self) {
 }
 
 String *PersistentVector_toString(PersistentVector * restrict self) {
-  sds retVal = sdsnew("[");
+  String *retVal = String_create("[");
+  String *space = String_create(" ");
+  String *closing = String_create("]");
 
   if (self->count > RRB_BRANCHING) {
     String *s = toString(self->root);
-    retVal = sdscatsds(retVal, s->value);
-    retVal = sdscat(retVal, " ");
+    retVal = String_append(retVal, s);
+    retVal = String_append(retVal, space);
     release(s);
   }
   
   String *s = toString(self->tail);
-  retVal = sdscatsds(retVal, s->value);
-  retVal = sdscat(retVal, " ");
+  retVal = String_append(retVal, s);
+  retVal = String_append(retVal, space);
   release(s);
   
-  retVal = sdscat(retVal, "]");
-  return String_create(retVal);
+  retVal = String_append(retVal, closing);
+  release(space);
+  release(closing);
+  return retVal;
 }
 void PersistentVector_destroy(PersistentVector * restrict self, BOOL deallocateChildren) {
   release(self->tail);

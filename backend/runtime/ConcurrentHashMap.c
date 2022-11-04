@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <stdatomic.h>
 #include "Nil.h"
-#include "sds/sds.h"
 #include <math.h>
 
 extern Nil *UNIQUE_NIL;
@@ -14,6 +13,23 @@ extern BOOL tryReplacingEntry(ConcurrentHashMapEntry *entry, Object *key, Object
 extern BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uint64_t keyHash);
 extern Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uint64_t keyHash);
 extern uint64_t avalanche_64(uint64_t h);
+extern unsigned char getLongLeap(unsigned int leaps);
+extern unsigned char getShortLeap(unsigned int leaps);
+extern unsigned int buildLeaps(unsigned char longLeap, unsigned char shortLeap);
+
+inline unsigned char getLongLeap(unsigned int leaps) {
+  return leaps >> 8;
+}
+
+inline unsigned char getShortLeap(unsigned int leaps) {
+  return leaps & 0xff;
+}
+
+inline unsigned int buildLeaps(unsigned char longLeap, unsigned char shortLeap) {
+  return ((unsigned short)longLeap) << 8 | ((unsigned short) shortLeap);
+}
+
+
 
 ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent) {
   size_t initialSize = 1<<initialSizeExponent;
@@ -27,18 +43,6 @@ ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent) {
   atomic_store(&(self->root), node);              
   Object_create(super, concurrentHashMapType);
   return self;
-}
-
-inline unsigned char getLongLeap(unsigned int leaps) {
-  return leaps >> 8;
-}
-
-inline unsigned char getShortLeap(unsigned int leaps) {
-  return leaps & 0xff;
-}
-
-inline unsigned int buildLeaps(unsigned char longLeap, unsigned char shortLeap) {
-  return ((unsigned short)longLeap) << 8 | ((unsigned short) shortLeap);
 }
 
 inline uint64_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, Object *key, Object *value, uint64_t keyHash) { 
@@ -258,33 +262,70 @@ uint64_t ConcurrentHashMap_hash(ConcurrentHashMap *self) {
   return 5381;
 }
 
+/* String *ConcurrentHashMap_toDebugString(ConcurrentHashMap *self) { */
+/*   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed); */
+/*   sds retVal = sdsnew("{"); */
+/*   BOOL found = FALSE; */
+/*   for(int i=0; i<= root->sizeMask; i++) { */
+/*     ConcurrentHashMapEntry *entry = &(root->array[i]); */
+/*     Object *key = entry->key; */
+/*     Object *value = entry->value; */
+/*     if(key && value) { */
+/*       if(found) retVal = sdscat(retVal, ", "); */
+/*       found = TRUE;       */
+/*       String *ks = Object_toString(key); */
+/*       String *vs = Object_toString(value); */
+/*       retVal = sdscatprintf(retVal, "Index: %d; hash %llu; Good index: %llu, leap %d:%d --> ", i, entry->keyHash ,  entry->keyHash & root->sizeMask, getLongLeap(entry->leaps), getShortLeap(entry->leaps)); */
+/*       retVal = sdscatsds(retVal, ks->value); */
+/*       retVal = sdscat(retVal, " "); */
+/*       retVal = sdscatsds(retVal, vs->value); */
+/*       retVal = sdscat(retVal, "\n"); */
+/*       release(ks); */
+/*       release(vs); */
+/*     } else { */
+/*       retVal = sdscatprintf(retVal, "Index: %d; empty\n", i); */
+/*     } */
+/*   } */
+/*   retVal = sdscat(retVal, "}"); */
+/*   return String_create(retVal); */
+/* } */
+
 String *ConcurrentHashMap_toString(ConcurrentHashMap *self) {
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
-  sds retVal = sdsnew("{");
+  String *retVal = String_create("{");
+  String *comma = String_create(", ");
+  String *space = String_create(" "); 
+  String *newline = String_create("\n"); 
+  String *closing = String_create("}"); 
+
   BOOL found = FALSE;
   for(int i=0; i<= root->sizeMask; i++) {
     ConcurrentHashMapEntry *entry = &(root->array[i]);
     Object *key = entry->key;
     Object *value = entry->value;
     if(key && value) {
-      if(found) retVal = sdscat(retVal, ", ");
+      if(found) retVal = String_append(retVal, comma);
       found = TRUE;      
       String *ks = Object_toString(key);
       String *vs = Object_toString(value);
-      retVal = sdscatprintf(retVal, "Index: %d; hash %llu; Good index: %llu, leap %d:%d --> ", i, entry->keyHash ,  entry->keyHash & root->sizeMask, getLongLeap(entry->leaps), getShortLeap(entry->leaps));
-      retVal = sdscatsds(retVal, ks->value);
-      retVal = sdscat(retVal, " ");
-      retVal = sdscatsds(retVal, vs->value);
-      retVal = sdscat(retVal, "\n");
+      retVal = String_append(retVal, ks);
+      retVal = String_append(retVal, comma);
+      retVal = String_append(retVal, vs);
+      retVal = String_append(retVal, newline);
       release(ks);
       release(vs);
-    } else {
-      retVal = sdscatprintf(retVal, "Index: %d; empty\n", i);
-    }
+    } 
   }
-  retVal = sdscat(retVal, "}");
-  return String_create(retVal);
+  retVal = String_append(retVal, closing);
+  release(comma);
+  release(space);
+  release(newline);
+  release(closing);
+  return retVal;
 }
+
+
+
 
 void ConcurrentHashMap_destroy(ConcurrentHashMap *self) {
     ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);

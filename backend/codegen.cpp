@@ -150,6 +150,25 @@ TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRes
   }
 }
 
+
+string CodeGenerator::globalNameForVar(string var) {
+  int index;
+  while((index = var.find("/")) != string::npos) {    
+      var.replace(index, string("_").length(), string("_"));
+  }
+
+  while((index = var.find("-")) != string::npos) {    
+    var.replace(index, string("-").length(), string("__")); 
+  }
+
+  while((index = var.find(".")) != string::npos) {    
+    var.replace(index, string(".").length(), string("___")); 
+  }
+
+  return string("cv_") + var;
+}
+
+
 string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
   stringstream retval;
   for (auto i: args) {

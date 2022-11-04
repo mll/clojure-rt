@@ -68,6 +68,7 @@ class CodeGenerator {
   std::unique_ptr<IRBuilder<>> Builder;
   unordered_map<string, vector<pair<string, pair<ObjectTypeSet, StaticCall>>>> StaticCallLibrary; 
   std::unordered_map<std::string, TypedValue> NamedValues;
+  std::unordered_map<std::string, TypedValue> StaticVars;
   std::unique_ptr<legacy::FunctionPassManager> TheFPM;
   std::unique_ptr<ClojureJIT> TheJIT;
 //  std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
@@ -82,6 +83,8 @@ class CodeGenerator {
   ObjectTypeSet typeForArgString(const Node &node, const string &typeString);
   uint64_t computeHash(const char *str);
   uint64_t avalanche_64(uint64_t h);
+  string globalNameForVar(string var);
+
 
   TypedValue staticFalse();
   TypedValue staticTrue();

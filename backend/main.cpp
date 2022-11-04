@@ -293,6 +293,16 @@ using namespace llvm::orc;
 //   return 0;
 // }
 
+
+extern "C" {
+  typedef struct String String; 
+  String *toString(void * self);
+  String *String_compactify(String *self);
+  char *String_c_str(String *self);
+  void initialise_memory();
+}
+
+
 // //===----------------------------------------------------------------------===//
 // // Main driver code.
 // //===----------------------------------------------------------------------===//
@@ -315,17 +325,45 @@ int main(int argc, char *argv[]) {
       cerr << "Failed to parse bytecode." << endl;
       return -1;
   }
-
+  ExitOnError ExitOnErr;
   auto gen = CodeGenerator();
-
+  initialise_memory();
   try {
     //cout << "Expressions: " << endl;
-    for (auto g : gen.codegen(astRoot)) {
+    auto expressions = gen.codegen(astRoot);
       //g.second->print(errs());
       //cout << endl << endl;
-    }
-
     gen.TheModule->print(errs(), nullptr);
+    printf("RESULTS:\n");
+    auto RT = gen.TheJIT->getMainJITDylib().createResourceTracker();
+
+    auto TSM = ThreadSafeModule(std::move(gen.TheModule), std::move(gen.TheContext));
+    ExitOnErr(gen.TheJIT->addModule(std::move(TSM), RT));
+    
+    for(int i=0; i<expressions;i++) {
+      string fname = string("__anon__") + to_string(i);
+      auto ExprSymbol = ExitOnErr(gen.TheJIT->lookup(fname));
+      void * (*FP)() = (void * (*)())(intptr_t)ExprSymbol.getAddress();
+      void * result = FP();
+      char *text = String_c_str(String_compactify(toString(result)));
+      printf("%s\n", text);
+    }
+    // Get the symbol's address and cast it to the right type (takes no
+    // arguments, returns a double) so we can call it as a native function.
+//    fprintf(stderr, "Evaluated to %f\n", FP());
+    
+    // Delete the anonymous expression module from the JIT.
+    printf("---------------------------");
+    
+    ExitOnErr(RT->remove());
+    
+
+    // Search the JIT for the __anon_expr symbol.
+
+    
+
+
+   
   } catch (CodeGenerationException e) {
     cerr << e.toString() <<endl;
     return -1;

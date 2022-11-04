@@ -34,8 +34,8 @@ CodeGenerator::CodeGenerator() {
   StaticCallLibrary.insert(utils.begin(), utils.end());
 }
 
-vector<TypedValue> CodeGenerator::codegen(const Programme &programme) {
-  vector<TypedValue> values;
+int CodeGenerator::codegen(const Programme &programme) {
+  
   for (int i=0; i< programme.nodes_size(); i++) {
     auto node = programme.nodes(i);
     /* TODO: This is all temporary. */
@@ -49,6 +49,7 @@ vector<TypedValue> CodeGenerator::codegen(const Programme &programme) {
     verifyFunction(*F);
 
     TheFPM->run(*F);
+   
 
     //F->print(errs());
     //fprintf(stderr, "\n");
@@ -56,7 +57,7 @@ vector<TypedValue> CodeGenerator::codegen(const Programme &programme) {
     // Remove the anonymous expression.
    // F->eraseFromParent();
   }
-  return values;
+  return programme.nodes_size();
 }
 
 TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRestrictions) {

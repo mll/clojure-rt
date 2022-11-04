@@ -9,7 +9,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, cons
 
   Type *t = found->second.first.isDetermined() ? dynamicUnboxedType(found->second.first.determinedType()) : dynamicBoxedType();
 
-  return TypedValue(found->second.first.intersection(typeRestrictions), Builder->CreateLoad(t, found->second.second, "load_var"));
+  LoadInst * load = Builder->CreateLoad(t, found->second.second, "load_var");
+  load->setAtomic(AtomicOrdering::Monotonic);
+
+  return TypedValue(found->second.first.intersection(typeRestrictions), load);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const VarNode &subnode, const ObjectTypeSet &typeRestrictions) {

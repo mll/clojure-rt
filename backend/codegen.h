@@ -108,7 +108,7 @@ class CodeGenerator {
 
   /* Code generation */
 
-  vector<TypedValue> codegen(const Programme &programme);
+  int codegen(const Programme &programme);
   TypedValue codegen(const Node &node, const ObjectTypeSet &typeRestrictions);
 
   TypedValue codegen(const Node &node, const BindingNode &subnode, const ObjectTypeSet &typeRestrictions);

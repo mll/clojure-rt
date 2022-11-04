@@ -38,8 +38,10 @@ uint64_t Keyword_hash(Keyword *self) {
 }
 
 String *Keyword_toString(Keyword *self) {
-  retain(self->string);
-  return self->string;
+  String *colon = String_create(":");
+  String *result = String_concat(colon, self->string);
+  release(colon);
+  return result;
 }
 
 void Keyword_destroy(Keyword *self) {

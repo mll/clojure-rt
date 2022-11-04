@@ -20,7 +20,10 @@ int factorial (int x, int y){
 }
 
 
+void *zomo;
+
 int main() {
-   
-    return fib(40) + factorial(800, 4);
+    zomo = "aa";
+    printf("%s", zomo);
+    return fib(40);
 }

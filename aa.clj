@@ -30,4 +30,5 @@
 
 ;(= 1.0 7)
 ;(= 2.0 3.0)
-(if (= (if (= 7 6.0) "zebra" :banga) nil) 1 :zonk)
+;(if (= (if (= 7 (+ 3 4)) "zebra" :banga) nil) 1 :zonk)
+(if (= (if (= 7 (+ 3 4)) "zebra" :banga) "zebra") 1 :zonk)

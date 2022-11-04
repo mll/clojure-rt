@@ -159,7 +159,7 @@ inline uint64_t hash(void * restrict self) {
 inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   if (self == other) return TRUE;
   if (self->type != other->type) return FALSE;
-  if (hash(self) != hash(other)) return FALSE;
+  if (Object_hash(self) != Object_hash(other)) return FALSE;
 
   void *selfData = Object_data(self);
   void *otherData = Object_data(other);  

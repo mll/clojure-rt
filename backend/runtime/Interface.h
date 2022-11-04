@@ -33,6 +33,26 @@ inline void logException(const char *description) {
   exit(1);
 }
 
+inline BOOL unboxedEqualsInteger(void *left, uint64_t right) {
+  Object *o = super(left);
+  if(o->type != integerType) return FALSE;
+  Integer *i = (Integer *) left;
+  return i->value == right;
+}
+
+inline BOOL unboxedEqualsDouble(void *left, double right) {
+  Object *o = super(left);
+  if(o->type != doubleType) return FALSE;
+  Double *i = (Double *) left;
+  return i->value == right;
+}
+
+inline BOOL unboxedEqualsBoolean(void *left, BOOL right) {
+  Object *o = super(left);  
+  if(o->type != booleanType) return FALSE;
+  Boolean *i = (Boolean *) left;
+  return i->value == right;
+}
 
 #endif
 

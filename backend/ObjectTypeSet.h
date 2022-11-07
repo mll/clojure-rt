@@ -103,6 +103,7 @@ class ObjectTypeSet {
     retVal.insert(symbolType);
     retVal.insert(keywordType);
     retVal.insert(concurrentHashMapType);
+    retVal.insert(functionType);
     return retVal;
   }
 

@@ -7,7 +7,7 @@
 
 (defn- read-file [f] (slurp (-> f io/resource io/file)))
 
-(defn- capitalize [in] (str (apply str (concat [(first (s/capitalize in))] (rest in)))))
+(defn- capitalize-first [in] (str (apply str (concat [(first (s/capitalize in))] (rest in)))))
 (defn- cl->pt [s] (let [n (name s)] (csk/->camelCase 
                                     (case (last n) 
                                       \? (str "is-" (apply str (drop-last n))) 
@@ -36,7 +36,7 @@
 
 
 (defn- ctor-for-op [op] 
-  (let [ctor-name (str "clojure.rt.protobuf.bytecode/new-" (capitalize (cl->pt op)) "Node")
+  (let [ctor-name (str "clojure.rt.protobuf.bytecode/new-" (capitalize-first (cl->pt op)) "Node")
         ctor (resolve (symbol ctor-name))]
     (assert ctor (str "No ctor for op: " op ", " ctor-name))
     ctor))
@@ -46,7 +46,7 @@
   (let [node (assoc n :subnode n)
         op (:op node)
         node-type (op node-key-types)
-        proto-symbol (comp keyword lower-case cl->pt)
+        proto-symbol (comp keyword cl->pt)
 
         converters {:string str
                     :int identity
@@ -61,11 +61,11 @@
                                               repeated? (sequential? t)
                                               type (if repeated? (first t) t)
                                               ;; no converter means enum
-                                              converter (or (type converters) 
-                                                            #(keyword 
-                                                              (lower-case 
+                                              converter (or (type converters)                                                            
+                                                            #(keyword
+                                                              (lower-case
                                                                (str (name (proto-symbol type))  
-                                                                    (name (proto-symbol %))))))]
+                                                                    (capitalize-first (name (proto-symbol %)))))))]
                                           (if val
                                             [(proto-symbol k) 
                                              (if repeated? (vec (map converter val)) (converter val))]))) keymap))))

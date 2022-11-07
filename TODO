@@ -35,8 +35,8 @@ LN - Nil
 
 LO - Object - moze byc czymkolwiek spakowanym, trzeba dokonac runtime introspection aby sprawdzic
 
-
 Uwaga! Zalozenie jest takie, ze nigdy nie bedzie typem podawanym do funkcji 
+  (niestety tak sie chyba nie da, beda generyczne funkcje...)
 
 LO
 
@@ -67,11 +67,6 @@ funkcja ktora przyjmuje trzy rozpakowane argumenty - Bool, int, double i produku
 
 
 
-
-
-
-
-
 Runtime:
 
 * Make decision about integer types (64 bit or 32 bit or compiler/options-dependent?)
@@ -90,7 +85,11 @@ v nil
 v Symbol 
 v Keyword 
 v ConcurrentHashMap (TODO resizing) 
-* Keyword uniquing
+* Var
+* Function (generic)
+* FunctionMethod (generic)
+
+v Keyword uniquing
 * Symbol uniquing 
 * Character
 * Ratio
@@ -125,11 +124,12 @@ Compiler:
 v StaticCall (works for simple math, framework prepared to add more functionality)
 v WithMeta (for now just ignores meta)
 v If 
---> Def and vars system
-* Loop (+ recur for loop)
+v Def and vars system
+v Dynamic Def and vars system
 * Binding  
 * Fn
 * FnMethod
+* Loop (+ recur for loop)
 * Invoke
 * Recur (for Fn)
 * Vector

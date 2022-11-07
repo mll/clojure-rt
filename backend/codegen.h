@@ -68,9 +68,12 @@ class CodeGenerator {
   std::unique_ptr<IRBuilder<>> Builder;
   unordered_map<string, vector<pair<string, pair<ObjectTypeSet, StaticCall>>>> StaticCallLibrary; 
   std::unordered_map<std::string, TypedValue> NamedValues;
+  /* Assumes the Node has FnNode */
+  std::unordered_map<std::string, Node> Functions;
   std::unordered_map<std::string, TypedValue> StaticVars;
   std::unique_ptr<legacy::FunctionPassManager> TheFPM;
   std::unique_ptr<ClojureJIT> TheJIT;
+  uint64_t lastFunctionUniqueId = 0;
 //  std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
   ExitOnError ExitOnErr;
 
@@ -84,7 +87,7 @@ class CodeGenerator {
   uint64_t computeHash(const char *str);
   uint64_t avalanche_64(uint64_t h);
   string globalNameForVar(string var);
-
+  string getMangledUniqueFunctionName();
 
   TypedValue staticFalse();
   TypedValue staticTrue();

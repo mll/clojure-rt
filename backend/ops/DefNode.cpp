@@ -43,7 +43,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
 //    gVar->setLinkage(GlobalValue::CommonLinkage);
 //    gVar->setAlignment(Align(8));
-    //gVar->setInitializer();
     gVar->setInitializer(Constant::getNullValue(gVar->getType()));
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, nil, MaybeAlign(), AtomicOrdering::Monotonic);
     StaticVars.insert({name, TypedValue(ObjectTypeSet(nilType), gVar)});
@@ -55,7 +54,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     //gVar->setLinkage(GlobalValue::CommonLinkage);
     //gVar->setAlignment(Align(8));
 
-//    gVar->setInitializer(created.second);
+
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, created.second, MaybeAlign(), AtomicOrdering::Monotonic);
     StaticVars.insert({name, TypedValue(created.first, gVar)});
   }

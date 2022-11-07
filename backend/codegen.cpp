@@ -53,7 +53,7 @@ int CodeGenerator::codegen(const Programme &programme) {
 
     //F->print(errs());
     //fprintf(stderr, "\n");
-    
+   
     // Remove the anonymous expression.
    // F->eraseFromParent();
   }
@@ -208,6 +208,9 @@ string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
       case keywordType:
         retval << "LK";
         break;
+      case functionType:
+        retval << "LF";
+        break;
     }
   }
   return retval.str();
@@ -235,6 +238,7 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
     if (typeName == "N") return ObjectTypeSet(nilType);
     if (typeName == "Y") return ObjectTypeSet(symbolType);
     if (typeName == "K") return ObjectTypeSet(keywordType);
+    if (typeName == "F") return ObjectTypeSet(functionType);
     if (typeName == "O") return ObjectTypeSet::all();
     throw CodeGenerationException(string("Unknown class: ")+ typeName, node);
   }
@@ -259,20 +263,9 @@ vector<ObjectTypeSet> CodeGenerator::typesForArgString(const Node &node, const s
   return types;
 }
 
-
- 
-CodeGenerationException::CodeGenerationException(const string &errorMessage, const Node& node) {
-  stringstream retval;
-  auto env = node.env();
-  retval << env.file() <<  ":" << env.line() << ":" << env.column() << ": error: " << errorMessage << "\n";
-  retval << node.form() << "\n";
-  retval << string(node.form().length(), '^') << "\n";
-  this->errorMessage = retval.str();
-}
-
-
-string CodeGenerationException::toString() const {
-  return errorMessage;
+string CodeGenerator::getMangledUniqueFunctionName() {
+  /* TODO - this might require threadsafe precautions, like std::Atomic */
+  return string("fn_") + to_string(lastFunctionUniqueId++);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const ObjectTypeSet &typeRestrictions) {
@@ -366,3 +359,16 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ObjectTypeSet &type
   }
 }
 
+CodeGenerationException::CodeGenerationException(const string &errorMessage, const Node& node) {
+  stringstream retval;
+  auto env = node.env();
+  retval << env.file() <<  ":" << env.line() << ":" << env.column() << ": error: " << errorMessage << "\n";
+  retval << node.form() << "\n";
+  retval << string(node.form().length(), '^') << "\n";
+  this->errorMessage = retval.str();
+}
+
+
+string CodeGenerationException::toString() const {
+  return errorMessage;
+}

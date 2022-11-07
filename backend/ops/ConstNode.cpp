@@ -46,6 +46,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   case persistentVectorType:
   case persistentVectorNodeType:
   case concurrentHashMapType:
+  case functionType:
     throw CodeGenerationException(string("Compiler does not support the following const type yet: ") + ConstNode_ConstType_Name(subnode.type()), node);
   }
   return TypedValue(types, retVal);

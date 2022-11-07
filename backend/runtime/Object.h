@@ -21,6 +21,7 @@
 #include "Keyword.h"
 #include <assert.h>
 #include <execinfo.h>
+#include "Function.h"
 
 typedef struct String String; 
 
@@ -110,6 +111,9 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
     case keywordType:
       Keyword_destroy(Object_data(self));
       break;
+    case functionType:
+      Function_destroy(Object_data(self));
+      break;
     }
     deallocate(self);
     return TRUE;
@@ -149,6 +153,9 @@ inline uint64_t Object_hash(Object * restrict self) {
         return ConcurrentHashMap_hash(Object_data(self));
       case keywordType:
         return Keyword_hash(Object_data(self));
+      case functionType:
+        return Function_hash(Object_data(self));
+        
       }
 }
 
@@ -198,6 +205,9 @@ inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   case keywordType:
     return Keyword_equals(selfData, otherData);
     break;
+  case functionType:
+    return Function_equals(selfData, otherData);
+    break;
   }
 }
 
@@ -238,6 +248,8 @@ inline String *Object_toString(Object * restrict self) {
     return ConcurrentHashMap_toString(Object_data(self));
   case keywordType:
     return Keyword_toString(Object_data(self));
+  case functionType:
+    return Function_toString(Object_data(self));
   }
 }
 

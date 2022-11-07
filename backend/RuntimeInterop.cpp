@@ -57,6 +57,9 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     case concurrentHashMapType:
       fname = "ConcurrentHashMap_create";
       break;
+    case functionType:
+      fname = "Function_create";
+      break;
   }
 
   return callRuntimeFun(fname, dynamicBoxedType(type), argTypes, args);
@@ -134,6 +137,7 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case nilType:
     case symbolType:
     case keywordType:
+    case functionType:
     case concurrentHashMapType:
       return Type::getInt8Ty(*TheContext)->getPointerTo();
   }
@@ -171,6 +175,7 @@ Value *CodeGenerator::box(const TypedValue &value) {
   case symbolType:
   case keywordType:
   case concurrentHashMapType:
+  case functionType:
     return value.second;
   }
   return dynamicCreate(value.first.determinedType(), argTypes, args);

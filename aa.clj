@@ -22,24 +22,30 @@
 
 ;'bb/aa
 ;'7
-(if true 6 7.0)
+;(if true 6 7.0)
 ;"aaa"
-"kogutóóó"
+;"kogutóóó"
 
 ;:kanga
 
 ;(= 1.0 7)
 ;(= 2.0 3.0)
-(if (= (if (= 7 (+ 3 4)) "zebra" :banga) nil) 1 :zonk)
- (if (= (if (= 7 (+ 3 4)) "zebra" :banga) "zebra") 1 :zonk)
+;(if (= (if (= 7 (+ 3 4)) "zebra" :banga) nil) 1 :zonk)
+; (if (= (if (= 7 (+ 3 4)) "zebra" :banga) "zebra") 1 :zonk)
 
 (def x 7)
 ;(str "aa" x)
 
 (* (+ (+ 1 2) x) (+ x (+ 1 2)))
 
-(def x 5)
+;(def x 5)
 
-(* (+ (+ 1 2) x) (+ x (+ 1 2)))
+;(* (+ (+ 1 2) x) (+ x (+ 1 2)))
 ;:keyworsss 
-(def x 5.0)
+;(def x 5.0)
+
+(defn maro [x & vars] (+ x 1))
+
+(/ 4195835 3145727.0)
+
+(maro 2)

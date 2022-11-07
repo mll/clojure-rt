@@ -11,7 +11,7 @@ PROFILE = -Ofast
 
 LIBS = -L/opt/homebrew/lib -lprotobuf
 
-OBJFILES =  Object.o Integer.o PersistentList.o PersistentVector.o PersistentVectorNode.o String.o Double.o Nil.o Boolean.o Symbol.o ConcurrentHashMap.o Interface.o Keyword.o 
+OBJFILES =  Object.o Integer.o PersistentList.o PersistentVector.o PersistentVectorNode.o String.o Double.o Nil.o Boolean.o Symbol.o ConcurrentHashMap.o Interface.o Keyword.o Function.o
 
 default: all
 
@@ -52,3 +52,5 @@ Interface.o: Interface.c Interface.h
 	$(CC) -c $(CFLAGS) Interface.c
 Keyword.o: Keyword.c Keyword.h  
 	$(CC) -c $(CFLAGS) Keyword.c
+Function.o: Function.c Function.h  
+	$(CC) -c $(CFLAGS) Function.c

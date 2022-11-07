@@ -17,7 +17,8 @@ enum objectType {
    booleanType,
    symbolType,
    concurrentHashMapType,
-   keywordType
+   keywordType,
+   functionType,
 };
 
 typedef enum objectType objectType;

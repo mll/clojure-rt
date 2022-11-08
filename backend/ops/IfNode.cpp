@@ -6,6 +6,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   auto elseType = subnode.has_else_() ? getType(subnode.else_(), typeRestrictions) : ObjectTypeSet(nilType);
   thenType = thenType.intersection(typeRestrictions);
   elseType = elseType.intersection(typeRestrictions);
+
+  Function *parentFunction = Builder->GetInsertBlock()->getParent();
   
   if(!testType.contains(nilType) && !testType.contains(booleanType) && !testType.isEmpty()) {
     if (thenType.isEmpty()) throw CodeGenerationException(string("Incorrect type: 'then' branch of if cannot fulfil type restrictions: ") + typeRestrictions.toString(), node);
@@ -15,11 +17,14 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   if(testType.isDetermined() && testType.determinedType() == nilType) { 
     /* Test condition is of single type, which is nil - we immediately know test fails and else branch is triggered! */
     if (elseType.isEmpty()) throw CodeGenerationException(string("Incorrect type: 'else' branch of if cannot fulfil type restrictions: ") + typeRestrictions.toString(), node);
-    return subnode.has_else_() ? codegen(subnode.else_(), typeRestrictions) : TypedValue(ObjectTypeSet(nilType), dynamicNil());
+    return subnode.has_else_() ? codegen(subnode.else_(), typeRestrictions) : TypedValue(ObjectTypeSet(nilType), dynamicNil(), false, "", true);
   }
 
+  BasicBlock *insertBlock = Builder->GetInsertBlock();
+  BasicBlock *ifcondBB = llvm::BasicBlock::Create(*TheContext, "ifcond", parentFunction);
+  Builder->SetInsertPoint(ifcondBB);  
+
   auto test = codegen(subnode.test(), ObjectTypeSet::all());
-  
   Value *condValue = nullptr;
 
   if(!test.first.isDetermined()) condValue = dynamicCond(test.second);
@@ -31,23 +36,27 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
     /* In case of a constant (which often arises from constant folding!) we can immediately make a decision on the *compiler* level! */
     if (CI->getBitWidth() < 32) {
       uint32_t constCondition = CI->getSExtValue();
+      Builder->SetInsertPoint(insertBlock);
+      ifcondBB->eraseFromParent();
       if(constCondition) {
         if (thenType.isEmpty()) throw CodeGenerationException(string("'then' branch of if expression contains a value that does not match allowed types: ") + typeRestrictions.toString(), node);
         return codegen(subnode.then(), typeRestrictions);
       } else {
         if (elseType.isEmpty()) throw CodeGenerationException(string("'else' branch of if expression contains a value that does not match allowed types: ") + typeRestrictions.toString(), node);
-        
         if(subnode.has_else_()) return codegen(subnode.else_(), typeRestrictions);
-        else return TypedValue(ObjectTypeSet(nilType), dynamicNil());
+        else return TypedValue(ObjectTypeSet(nilType), dynamicNil(), false, "", true);
       }
     }
   }
 
   /* Standard if condition */
-  Function *parentFunction = Builder->GetInsertBlock()->getParent();
-    
+  
+  Builder->SetInsertPoint(insertBlock);  
+  Builder->CreateBr(ifcondBB);
+  Builder->SetInsertPoint(ifcondBB);  
   //  create basic blocks
   BasicBlock *thenBB = llvm::BasicBlock::Create(*TheContext, "then", parentFunction);
+  
   BasicBlock *elseBB = llvm::BasicBlock::Create(*TheContext, "else");
   BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "ifcont");
     
@@ -76,34 +85,37 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
     elseWithType = TypedValue(elseType, nullptr);
   } else {
     if(subnode.has_else_()) elseWithType = codegen(subnode.else_(), typeRestrictions);
-    else elseWithType = TypedValue(ObjectTypeSet(nilType), dynamicNil());
+    else elseWithType = TypedValue(ObjectTypeSet(nilType), dynamicNil(), false, "", true);
   }
         
   // ditto reasoning to then block
   elseBB = Builder->GetInsertBlock();
 
-  ObjectTypeSet returnType;
+  TypedValue returnTypedValue;
+  
   if (!elseWithType.first.isEmpty() && !thenWithType.first.isEmpty()) {
     if (elseWithType.first == thenWithType.first) {
-      /* we just close off both blocks */
-      returnType = elseWithType.first;
+      /* we just close off both blocks, same types detected */
+      returnTypedValue.first = elseWithType.first;
+      returnTypedValue.isConst = thenWithType.isConst && elseWithType.isConst;
       Builder->CreateBr(mergeBB);  
       Builder->SetInsertPoint(thenBB);
       Builder->CreateBr(mergeBB);  
     } else {
-      /* We box any fast types (boxing leaves complex types unaffected */ 
+      /* We box any fast types (boxing leaves complex types unaffected) */ 
       elseWithType.second = box(elseWithType);
       Builder->CreateBr(mergeBB);  
       Builder->SetInsertPoint(thenBB);
       thenWithType.second = box(thenWithType);
       Builder->CreateBr(mergeBB);
-      returnType = elseWithType.first.setUnion(thenWithType.first);
+      returnTypedValue.first = elseWithType.first.setUnion(thenWithType.first);
+      returnTypedValue.isBoxed = true;
     }
   } else {
     if(elseWithType.first.isEmpty() && thenWithType.first.isEmpty()) throw CodeGenerationException(string("Both branches of if cannot fulfil restrictions: ") + typeRestrictions.toString(), node);
     /* One of the branches does not fit the requirements. We generate an exception if this branch is chosen, but take the other's type in static analysis to speed things up */
     if(elseWithType.first.isEmpty()) {
-      returnType = thenWithType.first;
+      returnTypedValue = thenWithType;
       
       runtimeException(CodeGenerationException(string("Runtime exception: 'else' branch of if expression contains a value that does not match allowed types: ") + typeRestrictions.toString(), node));
       
@@ -113,7 +125,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
     }
 
     if(thenWithType.first.isEmpty()) {
-      returnType = elseWithType.first;
+      returnTypedValue = elseWithType;
       
       Builder->CreateBr(mergeBB);  
       Builder->SetInsertPoint(thenBB);
@@ -131,7 +143,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
     llvm::PHINode *phiNode = Builder->CreatePHI(thenWithType.second->getType(), 2, "iftmp");
     phiNode->addIncoming(thenWithType.second, thenBB);
     phiNode->addIncoming(elseWithType.second, elseBB);
-    return TypedValue(returnType, phiNode); 
+    returnTypedValue.second = phiNode;
+    return returnTypedValue; 
   }
 
   if(thenWithType.second) return thenWithType;

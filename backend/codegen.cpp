@@ -1,6 +1,7 @@
 #include "codegen.h"  
 #include "static/Numbers.h"
 #include "static/Utils.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
 CodeGenerator::CodeGenerator() {
   TheContext = std::make_unique<LLVMContext>();
@@ -14,19 +15,24 @@ CodeGenerator::CodeGenerator() {
   
   // Create a new pass manager attached to it.
   TheFPM = std::make_unique<legacy::FunctionPassManager>(TheModule.get());
-  
-  // Do simple "peephole" optimizations and bit-twiddling optzns.
-  TheFPM->add(createInstructionCombiningPass());
-  // Reassociate expressions.
-  TheFPM->add(createReassociatePass());
-  // Eliminate Common SubExpressions.
-  TheFPM->add(createGVNPass());
-  // Simplify the control flow graph (deleting unreachable blocks, etc).
-  TheFPM->add(createCFGSimplificationPass());
-  /* dead code */
-  TheFPM->add(createAggressiveDCEPass());
 
-  TheFPM->doInitialization();
+  auto passBuilder = PassManagerBuilder();
+  passBuilder.OptLevel = 3;
+  
+  passBuilder.populateFunctionPassManager(*TheFPM);
+  
+  // // Do simple "peephole" optimizations and bit-twiddling optzns.
+  // TheFPM->add(createInstructionCombiningPass());
+  // // Reassociate expressions.
+  // TheFPM->add(createReassociatePass());
+  // // Eliminate Common SubExpressions.
+  // TheFPM->add(createGVNPass());
+  // // Simplify the control flow graph (deleting unreachable blocks, etc).
+  // TheFPM->add(createCFGSimplificationPass());
+  // /* dead code */
+  // TheFPM->add(createAggressiveDCEPass());
+
+  // TheFPM->doInitialization();
 
   auto numbers = getNumbersStaticFunctions();
   auto utils = getUtilsStaticFunctions();
@@ -217,11 +223,11 @@ string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
 }
 
 TypedValue CodeGenerator::staticFalse() { 
-  return TypedValue(ObjectTypeSet(booleanType), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext),0));
+  return TypedValue(ObjectTypeSet(booleanType), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext),0), false, "", true);
 }
 
 TypedValue CodeGenerator::staticTrue() { 
-  return TypedValue(ObjectTypeSet(booleanType), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext),1));
+  return TypedValue(ObjectTypeSet(booleanType), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext),1), false, "", true);
 }
 
 

@@ -6,12 +6,11 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
   auto found = StaticVars.find(name);
   auto mangled = globalNameForVar(name);
 
-  /* TODO - analyse metada for :static and if so block any redefinitions */
-
   if(!typeRestrictions.contains(nilType)) throw CodeGenerationException(string("Def cannot be used here because it returns nil: ") + name, node);
   auto nil = dynamicNil();  
 
   if(found != StaticVars.end()) {
+    /* Already processed this def somewhere earlier */
     if(!subnode.has_init()) return TypedValue(ObjectTypeSet(nilType), nil);
 
     auto foundTypes = found->second.first;
@@ -39,6 +38,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
   }
   
   if(!subnode.has_init()) {
+    /* First time declaration, empty initialiser */
     TheModule->getOrInsertGlobal(mangled, dynamicBoxedType(nilType));
     GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
 //    gVar->setLinkage(GlobalValue::CommonLinkage);
@@ -47,6 +47,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, nil, MaybeAlign(), AtomicOrdering::Monotonic);
     StaticVars.insert({name, TypedValue(ObjectTypeSet(nilType), gVar)});
   } else {
+    /* First time declaration, proper. */
+
     auto created = codegen(subnode.init(), ObjectTypeSet::all());
     TheModule->getOrInsertGlobal(mangled, created.second->getType());
     GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
@@ -56,7 +58,16 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
 
 
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, created.second, MaybeAlign(), AtomicOrdering::Monotonic);
-    StaticVars.insert({name, TypedValue(created.first, gVar)});
+    created.second = gVar;
+    StaticVars.insert({name, created});
+    if(created.first.isDetermined() && created.first.determinedType() == functionType && created.fnName.size() > 0) {
+      /* Static function declaration, we set some info for the invoke node to speed things up */
+      auto found = StaticFunctions.find(mangled);
+      cout << "OPTIM" << endl;
+      if(found != StaticFunctions.end()) throw CodeGenerationException(string("Trying to redeclare function that already has static representation, this is compiler programming error"), node);
+      StaticFunctions.insert({mangled, created.fnName});
+    }
+
   }
 
   return TypedValue(ObjectTypeSet(nilType), nil);

@@ -14,7 +14,6 @@ TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node
     /* TODO - This is a strong assumption, probably would have to become weaker as we analyse ratios and big integers */
     if(leftType != rightType) return gen->staticFalse();
     
-    
     switch(leftType) {
     case integerType:
       return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateICmpEQ(left.second, right.second, "cmp_jj_tmp"));

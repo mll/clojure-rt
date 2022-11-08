@@ -42,8 +42,19 @@ using namespace llvm::orc;
 using namespace clojure::rt::protobuf::bytecode;
 class CodeGenerator;
 
+class TypedValue {
+public:
+  ObjectTypeSet first;
+  Value *second;
+  bool isBoxed;
+  string fnName;
+  bool isConst;
+  TypedValue() {}
+  TypedValue(const ObjectTypeSet &type, Value *value, bool isBoxed = false, string fnName = "", bool isConst = false) : first(type), second(value), isBoxed(isBoxed), fnName(fnName), isConst(isConst) {}
+  TypedValue(const ObjectTypeSet &type, Value *value, const TypedValue &defaultsToCopy) : first(type), second(value), isBoxed(defaultsToCopy.isBoxed), fnName(defaultsToCopy.fnName), isConst(defaultsToCopy.isConst) {}  
+};
 
-typedef pair<ObjectTypeSet, Value *> TypedValue;
+
 typedef pair<ObjectTypeSet, const Node&> TypedNode;
 typedef TypedValue (*StaticCall)(CodeGenerator *, const string &, const Node&, const std::vector<TypedNode>&);
 
@@ -70,6 +81,7 @@ class CodeGenerator {
   std::unordered_map<std::string, TypedValue> NamedValues;
   /* Assumes the Node has FnNode */
   std::unordered_map<std::string, Node> Functions;
+  std::unordered_map<std::string, std::string> StaticFunctions;
   std::unordered_map<std::string, TypedValue> StaticVars;
   std::unique_ptr<legacy::FunctionPassManager> TheFPM;
   std::unique_ptr<ClojureJIT> TheJIT;
@@ -99,6 +111,7 @@ class CodeGenerator {
   Value *dynamicKeyword(const char *name);
   Value *dynamicCond(Value *cond);
   Value *box(const TypedValue &value);
+  Value *unbox(const TypedValue &value);
   void runtimeException(const CodeGenerationException &runtimeException);  
 
   Value *callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args);

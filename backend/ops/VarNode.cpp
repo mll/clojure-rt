@@ -12,7 +12,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, cons
   LoadInst * load = Builder->CreateLoad(t, found->second.second, "load_var");
   load->setAtomic(AtomicOrdering::Monotonic);
 
-  return TypedValue(found->second.first.intersection(typeRestrictions), load);
+  return TypedValue(found->second.first.intersection(typeRestrictions), load, found->second.first.size() > 1);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const VarNode &subnode, const ObjectTypeSet &typeRestrictions) {

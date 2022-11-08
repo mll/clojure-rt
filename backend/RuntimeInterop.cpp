@@ -151,6 +151,10 @@ Type *CodeGenerator::dynamicBoxedType() {
 }
 
 
+Value *CodeGenerator::unbox(const TypedValue &value) {
+  /* TODO */
+  return NULL;
+}
 
 Value *CodeGenerator::box(const TypedValue &value) {
   if (!value.first.isDetermined()) return value.second;

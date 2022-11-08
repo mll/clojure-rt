@@ -25,7 +25,7 @@ TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &
     auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
     return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(left.second, converted, "add_dd_tmp"));
   }
-  
+  // TODO: generic version 
   throw CodeGenerationException(string("Wrong types for add call"), node);
 }
 
@@ -54,7 +54,7 @@ TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node
     auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
     return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(left.second, converted, "sub_dd_tmp"));
   }
-  
+  // TODO: generic version
   throw CodeGenerationException(string("Wrong types for minus call"), node);
 }
 
@@ -83,7 +83,7 @@ TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const N
     auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
     return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(left.second, converted, "mul_dd_tmp"));
   }
-  
+  // TODO: generic version
   throw CodeGenerationException(string("Wrong types for minus call"), node);
 }
 
@@ -115,7 +115,7 @@ TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Nod
     auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
     return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(left.second, converted, "div_dd_tmp"));
   }
-  
+  // TODO generic version, division by zero
   throw CodeGenerationException(string("Wrong types for minus call"), node);
 }
 
@@ -138,8 +138,20 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
   vector <Value *> argsF;
   for(int i=0; i< args.size(); i++) {
     auto left = gen->codegen(args[0].second, args[0].first);
-    if (left.first == doubleType) argsF.push_back(left.second);
-    if (left.first == integerType) argsF.push_back(gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i"));
+    if (left.first.isDetermined()) {
+      switch(left.first.determinedType()) {
+        case doubleType:
+          argsF.push_back(left.second);
+          break;
+        case integerType:
+          argsF.push_back(gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i"));
+          break;
+        default:
+          // TODO - generic types 
+          break;
+      }
+
+    }
   }
 
   if (argsF.size() != args.size()) throw CodeGenerationException(string("Wrong types for calling") + fname, node);

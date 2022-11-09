@@ -60,12 +60,13 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, created.second, MaybeAlign(), AtomicOrdering::Monotonic);
     created.second = gVar;
     StaticVars.insert({name, created});
-    if(created.first.isDetermined() && created.first.determinedType() == functionType && created.fnName.size() > 0) {
+    if(created.first.isDetermined() && created.first.determinedType() == functionType && dynamic_cast<ConstantFunction *>(created.first.getConstant())) {
       /* Static function declaration, we set some info for the invoke node to speed things up */
       auto found = StaticFunctions.find(mangled);
       cout << "OPTIM" << endl;
       if(found != StaticFunctions.end()) throw CodeGenerationException(string("Trying to redeclare function that already has static representation, this is compiler programming error"), node);
-      StaticFunctions.insert({mangled, created.fnName});
+      
+      StaticFunctions.insert({mangled, dynamic_cast<ConstantFunction *>(created.first.getConstant())->value});
     }
 
   }

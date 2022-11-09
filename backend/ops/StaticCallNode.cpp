@@ -11,7 +11,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     name = c;
   }
   name = name + "/" + m;
-  ObjectTypeSet returnTypeMismatched;
 
   /* We do not want to traverse all the std library here, we should generate candidates and check each of them against the library */
   
@@ -25,13 +24,14 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
   string requiredArity = typeStringForArgs(types);
   for(auto method: arities) {
     if(method.first != requiredArity) continue; 
-    auto retType = method.second.first;
-    if(retType.intersection(typeRestrictions).isEmpty()) continue;
     vector<TypedNode> args;
     
     for(int i=0; i< subnode.args_size();i++) {
       args.push_back(TypedNode(types[i], subnode.args(i)));
     }
+    
+    auto retType = method.second.first(this, name + " " + requiredArity, node, args);
+    if(retType.restriction(typeRestrictions).isEmpty()) continue;
     
     return method.second.second(this, name + " " + requiredArity, node, args);
   }
@@ -60,7 +60,13 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
   string requiredArity = typeStringForArgs(types);
   for(auto method: arities) {
     if(method.first != requiredArity) continue; 
-    return method.second.first.intersection(typeRestrictions);
+    vector<TypedNode> args;
+    
+    for(int i=0; i< subnode.args_size();i++) {
+      args.push_back(TypedNode(types[i], subnode.args(i)));
+    }
+    
+    return method.second.first(this, name + " " + requiredArity, node, args).restriction(typeRestrictions);
   }
   return ObjectTypeSet();
 }

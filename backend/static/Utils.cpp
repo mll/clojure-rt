@@ -1,6 +1,25 @@
 #include "Utils.h"  
 #include <math.h>
 
+
+ObjectTypeSet Utils_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+  auto left = args[0].first;
+  auto right = args[1].first;
+  
+  if(left.isDetermined() && right.isDetermined()) {
+    auto leftType = left.determinedType();
+    auto rightType = right.determinedType();
+    
+    /* TODO - This is a strong assumption, probably would have to become weaker as we analyse ratios and big integers */
+    if(leftType != rightType) return ObjectTypeSet(booleanType, false, new ConstantBoolean(false));
+    
+    if(left.getConstant() && right.getConstant()) return ObjectTypeSet(booleanType, false, new ConstantBoolean(left.getConstant()->equals(right.getConstant())));
+  }
+  
+  return ObjectTypeSet(booleanType);  
+}
+
 TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
@@ -62,14 +81,14 @@ TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node
   return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateIntCast(int8bool, gen->dynamicUnboxedType(booleanType), false));
 }
 
-unordered_map<string, vector<pair<string, pair<ObjectTypeSet, StaticCall>>>> getUtilsStaticFunctions() {
-  unordered_map<string, vector<pair<string, pair<ObjectTypeSet, StaticCall>>>> vals;
-  vector<pair<string, pair<ObjectTypeSet, StaticCall>>> equiv;
+unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> getUtilsStaticFunctions() {
+  unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> vals;
+  vector<pair<string, pair<StaticCallType, StaticCall>>> equiv;
 
   vector<string> types {"J", "D", "Z", "LS", "LV", "LL", "LY", "LK", "LR", "LH", "LN", "LO"};
   for(auto type1: types)
     for(auto type2: types) {
-      equiv.push_back({type1+type2, {ObjectTypeSet(booleanType), &Utils_compare}});
+      equiv.push_back({type1+type2, {&Utils_compare_type, &Utils_compare}});
     }
   vals.insert({"clojure.lang.Util/equiv", equiv});  
 

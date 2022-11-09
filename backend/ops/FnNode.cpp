@@ -2,10 +2,18 @@
 #include <vector>
 #include <algorithm>
 
+
+
+
 TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
   ObjectTypeSet type = getType(node, typeRestrictions);
-  string newName = getMangledUniqueFunctionName();
-  Functions.insert({newName, node});
+  auto nameEntry = NodesToFunctions.find(pointerName((void *)&node));
+  string newName;
+  if(nameEntry == NodesToFunctions.end()) {
+    newName = getMangledUniqueFunctionName();  
+    NodesToFunctions.insert({pointerName((void *)&node), newName});
+    Functions.insert({newName, node});
+  } else newName = nameEntry->second;
   
   vector<Type *> types;
   vector<Value *> args;
@@ -51,9 +59,18 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
     callRuntimeFun("Function_fillMethod", Type::getVoidTy(*TheContext), types, args);
   } 
 
-  return TypedValue(typeRestrictions.intersection(ObjectTypeSet(functionType)), fun, false, newName);
+  return TypedValue(type, fun);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  return typeRestrictions.intersection(ObjectTypeSet(functionType)); 
+  auto nameEntry = NodesToFunctions.find(pointerName((void *)&node));
+  string newName;
+  if(nameEntry == NodesToFunctions.end()) {
+    newName = getMangledUniqueFunctionName();  
+    NodesToFunctions.insert({pointerName((void *)&node), newName});
+    Functions.insert({newName, node});
+  } else newName = nameEntry->second;
+  
+
+  return ObjectTypeSet(functionType, false, new ConstantFunction(newName)).restriction(typeRestrictions); 
 }

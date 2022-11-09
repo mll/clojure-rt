@@ -4,8 +4,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   auto testType = getType(subnode.test(), ObjectTypeSet::all());
   auto thenType = getType(subnode.then(), typeRestrictions);
   auto elseType = subnode.has_else_() ? getType(subnode.else_(), typeRestrictions) : ObjectTypeSet(nilType);
-  thenType = thenType.intersection(typeRestrictions);
-  elseType = elseType.intersection(typeRestrictions);
+  thenType = thenType.restriction(typeRestrictions);
+  elseType = elseType.restriction(typeRestrictions);
 
   Function *parentFunction = Builder->GetInsertBlock()->getParent();
   
@@ -17,43 +17,34 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   if(testType.isDetermined() && testType.determinedType() == nilType) { 
     /* Test condition is of single type, which is nil - we immediately know test fails and else branch is triggered! */
     if (elseType.isEmpty()) throw CodeGenerationException(string("Incorrect type: 'else' branch of if cannot fulfil type restrictions: ") + typeRestrictions.toString(), node);
-    return subnode.has_else_() ? codegen(subnode.else_(), typeRestrictions) : TypedValue(ObjectTypeSet(nilType), dynamicNil(), false, "", true);
+    return subnode.has_else_() ? codegen(subnode.else_(), typeRestrictions) : TypedValue(ObjectTypeSet(nilType, false, new ConstantNil()), dynamicNil());
   }
-
-  BasicBlock *insertBlock = Builder->GetInsertBlock();
-  BasicBlock *ifcondBB = llvm::BasicBlock::Create(*TheContext, "ifcond", parentFunction);
-  Builder->SetInsertPoint(ifcondBB);  
-
-  auto test = codegen(subnode.test(), ObjectTypeSet::all());
-  Value *condValue = nullptr;
-
-  if(!test.first.isDetermined()) condValue = dynamicCond(test.second);
-  else if(test.first.determinedType() == booleanType) condValue = test.second;
   
-  if(!condValue) throw CodeGenerationException(string("Internal error"), node);
-  
-  if (ConstantInt* CI = dyn_cast<ConstantInt>(condValue)) {
+  ConstantBoolean* CI = nullptr;
+  if (testType.getConstant() && (CI = dynamic_cast<ConstantBoolean *>(testType.getConstant()))) {
     /* In case of a constant (which often arises from constant folding!) we can immediately make a decision on the *compiler* level! */
-    if (CI->getBitWidth() < 32) {
-      uint32_t constCondition = CI->getSExtValue();
-      Builder->SetInsertPoint(insertBlock);
-      ifcondBB->eraseFromParent();
-      if(constCondition) {
-        if (thenType.isEmpty()) throw CodeGenerationException(string("'then' branch of if expression contains a value that does not match allowed types: ") + typeRestrictions.toString(), node);
-        return codegen(subnode.then(), typeRestrictions);
-      } else {
-        if (elseType.isEmpty()) throw CodeGenerationException(string("'else' branch of if expression contains a value that does not match allowed types: ") + typeRestrictions.toString(), node);
-        if(subnode.has_else_()) return codegen(subnode.else_(), typeRestrictions);
-        else return TypedValue(ObjectTypeSet(nilType), dynamicNil(), false, "", true);
-      }
+    bool constCondition = CI->value;
+    if(constCondition) {
+      if (thenType.isEmpty()) throw CodeGenerationException(string("'then' branch of if expression contains a value that does not match allowed types: ") + typeRestrictions.toString(), node);
+      return codegen(subnode.then(), typeRestrictions);
+    } else {
+      if (elseType.isEmpty()) throw CodeGenerationException(string("'else' branch of if expression contains a value that does not match allowed types: ") + typeRestrictions.toString(), node);
+      if(subnode.has_else_()) return codegen(subnode.else_(), typeRestrictions);
+      else return TypedValue(ObjectTypeSet(nilType, false, new ConstantNil()), dynamicNil());
     }
   }
 
   /* Standard if condition */
   
-  Builder->SetInsertPoint(insertBlock);  
-  Builder->CreateBr(ifcondBB);
-  Builder->SetInsertPoint(ifcondBB);  
+  auto test = codegen(subnode.test(), ObjectTypeSet::all());
+  Value *condValue = nullptr;
+
+  if(!condValue) throw CodeGenerationException(string("Internal error"), node);
+
+  if(!test.first.isDetermined()) condValue = dynamicCond(test.second);
+  else if(test.first.determinedType() == booleanType) condValue = test.second;
+  
+
   //  create basic blocks
   BasicBlock *thenBB = llvm::BasicBlock::Create(*TheContext, "then", parentFunction);
   
@@ -85,7 +76,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
     elseWithType = TypedValue(elseType, nullptr);
   } else {
     if(subnode.has_else_()) elseWithType = codegen(subnode.else_(), typeRestrictions);
-    else elseWithType = TypedValue(ObjectTypeSet(nilType), dynamicNil(), false, "", true);
+    else elseWithType = TypedValue(ObjectTypeSet(nilType), dynamicNil());
   }
         
   // ditto reasoning to then block
@@ -97,7 +88,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
     if (elseWithType.first == thenWithType.first) {
       /* we just close off both blocks, same types detected */
       returnTypedValue.first = elseWithType.first;
-      returnTypedValue.isConst = thenWithType.isConst && elseWithType.isConst;
       Builder->CreateBr(mergeBB);  
       Builder->SetInsertPoint(thenBB);
       Builder->CreateBr(mergeBB);  
@@ -108,8 +98,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
       Builder->SetInsertPoint(thenBB);
       thenWithType.second = box(thenWithType);
       Builder->CreateBr(mergeBB);
-      returnTypedValue.first = elseWithType.first.setUnion(thenWithType.first);
-      returnTypedValue.isBoxed = true;
+      returnTypedValue.first = elseWithType.first.expansion(thenWithType.first);
     }
   } else {
     if(elseWithType.first.isEmpty() && thenWithType.first.isEmpty()) throw CodeGenerationException(string("Both branches of if cannot fulfil restrictions: ") + typeRestrictions.toString(), node);
@@ -156,23 +145,28 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const IfNode &subnode, co
   auto testType = getType(subnode.test(), ObjectTypeSet::all());
   auto thenType = getType(subnode.then(), typeRestrictions);
   auto elseType = subnode.has_else_() ? getType(subnode.else_(), typeRestrictions) : ObjectTypeSet(nilType);
-  thenType = thenType.intersection(typeRestrictions);
-  elseType = elseType.intersection(typeRestrictions);
+  thenType = thenType.restriction(typeRestrictions);
+  elseType = elseType.restriction(typeRestrictions);
   
   if(!testType.contains(nilType) && !testType.contains(booleanType)) {
     if (thenType.isEmpty()) throw CodeGenerationException(string("Incorrect type: 'then' branch of if cannot fulfil type restrictions: ") + typeRestrictions.toString(), node);
     return thenType;
   }
-
+  ConstantBoolean* CI = nullptr;
   if(testType.isDetermined()) { /* Test condition is of single type */
     switch(testType.determinedType()) {
       case nilType:
         if (elseType.isEmpty()) throw CodeGenerationException(string("Incorrect type: 'else' branch of if cannot fulfil type restrictions: ") + typeRestrictions.toString(), node);
-        return elseType;        
+        return elseType;
+      case booleanType:
+        if(testType.getConstant() && (CI = dynamic_cast<ConstantBoolean *>(testType.getConstant()))) {
+          if(CI->value) return thenType;
+          return elseType;
+        }
       default:
         break;
     }
   }
 
-  return thenType.setUnion(elseType);
+  return thenType.expansion(elseType);
 }

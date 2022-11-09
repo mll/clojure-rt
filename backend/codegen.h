@@ -42,21 +42,12 @@ using namespace llvm::orc;
 using namespace clojure::rt::protobuf::bytecode;
 class CodeGenerator;
 
-class TypedValue {
-public:
-  ObjectTypeSet first;
-  Value *second;
-  bool isBoxed;
-  string fnName;
-  bool isConst;
-  TypedValue() {}
-  TypedValue(const ObjectTypeSet &type, Value *value, bool isBoxed = false, string fnName = "", bool isConst = false) : first(type), second(value), isBoxed(isBoxed), fnName(fnName), isConst(isConst) {}
-  TypedValue(const ObjectTypeSet &type, Value *value, const TypedValue &defaultsToCopy) : first(type), second(value), isBoxed(defaultsToCopy.isBoxed), fnName(defaultsToCopy.fnName), isConst(defaultsToCopy.isConst) {}  
-};
 
-
+typedef pair<ObjectTypeSet, Value *> TypedValue;
 typedef pair<ObjectTypeSet, const Node&> TypedNode;
+
 typedef TypedValue (*StaticCall)(CodeGenerator *, const string &, const Node&, const std::vector<TypedNode>&);
+typedef ObjectTypeSet (*StaticCallType)(CodeGenerator *, const string &, const Node&, const std::vector<TypedNode>&);
 
 class CodeGenerationException: public exception {
   string errorMessage;
@@ -77,12 +68,15 @@ class CodeGenerator {
   std::unique_ptr<LLVMContext> TheContext;
   std::unique_ptr<Module> TheModule;
   std::unique_ptr<IRBuilder<>> Builder;
-  unordered_map<string, vector<pair<string, pair<ObjectTypeSet, StaticCall>>>> StaticCallLibrary; 
+  unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> StaticCallLibrary; 
   std::unordered_map<std::string, TypedValue> NamedValues;
   /* Assumes the Node has FnNode */
   std::unordered_map<std::string, Node> Functions;
   std::unordered_map<std::string, std::string> StaticFunctions;
+  std::unordered_map<std::string, std::string> NodesToFunctions;
+
   std::unordered_map<std::string, TypedValue> StaticVars;
+  
   std::unique_ptr<legacy::FunctionPassManager> TheFPM;
   std::unique_ptr<ClojureJIT> TheJIT;
   uint64_t lastFunctionUniqueId = 0;
@@ -93,6 +87,7 @@ class CodeGenerator {
 
   /* Tools */
 
+  string pointerName(void *ptr);
   string typeStringForArgs(const vector<ObjectTypeSet> &args);
   vector<ObjectTypeSet> typesForArgString(const Node &node, const string &typeString); 
   ObjectTypeSet typeForArgString(const Node &node, const string &typeString);

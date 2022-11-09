@@ -2,6 +2,7 @@
 #include "static/Numbers.h"
 #include "static/Utils.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include <sstream>
 
 CodeGenerator::CodeGenerator() {
   TheContext = std::make_unique<LLVMContext>();
@@ -223,11 +224,17 @@ string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
 }
 
 TypedValue CodeGenerator::staticFalse() { 
-  return TypedValue(ObjectTypeSet(booleanType), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext),0), false, "", true);
+  return TypedValue(ObjectTypeSet(booleanType, false, new ConstantBoolean(false)), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext), 0));
 }
 
 TypedValue CodeGenerator::staticTrue() { 
-  return TypedValue(ObjectTypeSet(booleanType), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext),1), false, "", true);
+  return TypedValue(ObjectTypeSet(booleanType, false,  new ConstantBoolean(true)), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext), 1));
+}
+
+string CodeGenerator::pointerName(void *ptr) {
+  std::stringstream ss;
+  ss << ptr;  
+  return ss.str();
 }
 
 

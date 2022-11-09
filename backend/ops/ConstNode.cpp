@@ -49,7 +49,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   case functionType:
     throw CodeGenerationException(string("Compiler does not support the following const type yet: ") + ConstNode_ConstType_Name(subnode.type()), node);
   }
-  return TypedValue(types, retVal, false, "", true);
+  return TypedValue(types, retVal);
 }
 
 
@@ -57,26 +57,26 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
   switch(subnode.type()) {
   case ConstNode_ConstType_constTypeNumber:
     if (node.tag() == "long" || node.otag() == "long" || node.tag() == "class java.lang.Long") {
-      return ObjectTypeSet(integerType).intersection(typeRestrictions);
+      return ObjectTypeSet(integerType, false, new ConstantInteger(stoi(subnode.val()))).restriction(typeRestrictions);
     } 
 
     if (node.tag() == "double" || node.otag() == "double" || node.tag() == "class java.lang.Double") {
-      return ObjectTypeSet(doubleType).intersection(typeRestrictions);
+      return ObjectTypeSet(doubleType, false, new ConstantDouble(stod(subnode.val()))).restriction(typeRestrictions);
     } 
 
     throw CodeGenerationException(string("Compiler only supports 64 bit integers at this time. "), node);
 
     break;
   case ConstNode_ConstType_constTypeNil:
-    return ObjectTypeSet(nilType).intersection(typeRestrictions);
+    return ObjectTypeSet(nilType, false, new ConstantNil()).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeBool:      
-    return ObjectTypeSet(booleanType).intersection(typeRestrictions);
+    return ObjectTypeSet(booleanType, false, new ConstantBoolean(subnode.val() == "true")).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeString:
-    return ObjectTypeSet(stringType).intersection(typeRestrictions);
+    return ObjectTypeSet(stringType, false, new ConstantString(subnode.val())).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeSymbol:
-    return ObjectTypeSet(symbolType).intersection(typeRestrictions);
+    return ObjectTypeSet(symbolType, false, new ConstantSymbol(subnode.val())).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeKeyword:
-    return ObjectTypeSet(keywordType).intersection(typeRestrictions);
+    return ObjectTypeSet(keywordType, false, new ConstantKeyword(subnode.val())).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeType:
   case ConstNode_ConstType_constTypeRecord:
   case ConstNode_ConstType_constTypeMap:

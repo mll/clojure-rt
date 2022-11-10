@@ -20,6 +20,7 @@ struct PersistentVector {
 };
 
 PersistentVector* PersistentVector_create();
+PersistentVector* PersistentVector_createMany(uint64_t objCount, ...);
 
 BOOL PersistentVector_equals(PersistentVector * restrict self, PersistentVector * restrict other);
 uint64_t PersistentVector_hash(PersistentVector * restrict self);

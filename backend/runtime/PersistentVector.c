@@ -2,6 +2,7 @@
 #include "PersistentVector.h"
 #include "PersistentVectorNode.h"
 #include "Object.h"
+#include <stdarg.h>
 
 PersistentVector *EMPTY_VECTOR = NULL;
 
@@ -20,6 +21,31 @@ PersistentVector* PersistentVector_allocate() {
   Object_create(super, persistentVectorType);
   return self;
 }
+
+PersistentVector* PersistentVector_createMany(uint64_t objCount, ...) {
+  va_list args;
+  va_start(args, objCount);
+  uint64_t initialCount = MIN(objCount, 32);
+  PersistentVector *v = PersistentVector_allocate();
+  v->tail = PersistentVectorNode_allocate(initialCount, leafNode);
+  for(int i=0; i<initialCount; i++) {
+    void *obj = va_arg(args, void *);
+    v->tail->array[i] = super(obj);
+    retain(obj);
+  }
+  v->count = initialCount;
+
+  int remainingCount = objCount - initialCount;
+  for(int i=0; i<remainingCount; i++) {
+    PersistentVector *s = PersistentVector_conj(v, super(va_arg(args, void *)));
+    release(v);
+    v = s;
+  }
+  va_end(args);
+  return v;
+}
+
+
 
 void PersistentVector_initialise() {  
   EMPTY_VECTOR = PersistentVector_allocate();
@@ -51,7 +77,6 @@ String *PersistentVector_toString(PersistentVector * restrict self) {
   
   String *s = toString(self->tail);
   retVal = String_append(retVal, s);
-  retVal = String_append(retVal, space);
   release(s);
   
   retVal = String_append(retVal, closing);

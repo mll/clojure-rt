@@ -20,7 +20,7 @@ int factorial (int x, int y){
 }
 
 
-void *zomo;
+char  *zomo;
 
 int main() {
     zomo = "aa";

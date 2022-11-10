@@ -1,11 +1,11 @@
 #include "../codegen.h"  
 
 TypedValue CodeGenerator::codegen(const Node &node, const DoNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  throw CodeGenerationException(string("Compiler does not support the following op yet: ") + Op_Name(node.op()), node);
-  return TypedValue(ObjectTypeSet(), nullptr);
+  for(int i = 0; i< subnode.statements_size(); i++) codegen(subnode.statements(i), ObjectTypeSet::all());
+
+  return codegen(subnode.ret(), typeRestrictions);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const DoNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  throw CodeGenerationException(string("Compiler does not support the following op yet: ") + Op_Name(node.op()), node);
-  return ObjectTypeSet();
+  return getType(subnode.ret(), typeRestrictions);
 }

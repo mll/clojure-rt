@@ -314,6 +314,8 @@ int main(int argc, char *argv[]) {
     cout << "Please specify the filename for compilation" << endl;
     return -1;
   }
+  struct timeval asss, appp;
+  gettimeofday(&asss, NULL);      
   InitializeNativeTarget();
   InitializeNativeTargetAsmPrinter();
   InitializeNativeTargetAsmParser();
@@ -330,12 +332,21 @@ int main(int argc, char *argv[]) {
   ExitOnError ExitOnErr;
   auto gen = CodeGenerator();
   initialise_memory();
+  gettimeofday(&appp, NULL);
+  printf("Initialisation time: %f\n-------------------\n", (appp.tv_sec - asss.tv_sec) + (appp.tv_usec - asss.tv_usec)/1000000.0);
+  
   try {
     //cout << "Expressions: " << endl;
+    struct timeval ass, app;
+    gettimeofday(&ass, NULL);      
     auto expressions = gen.codegen(astRoot);
+    gettimeofday(&app, NULL);
+    gen.TheModule->print(errs(), nullptr);
+    printf("Compile time: %f\n-------------------\n", (app.tv_sec - ass.tv_sec) + (app.tv_usec - ass.tv_usec)/1000000.0);
+
       //g.second->print(errs());
       //cout << endl << endl;
-    gen.TheModule->print(errs(), nullptr);
+
     printf("RESULTS:\n");
     auto RT = gen.TheJIT->getMainJITDylib().createResourceTracker();
 

@@ -56,9 +56,11 @@
 
 (fib 40)
 
-(defn factorial [y] (if (= y 1) y (* y (factorial (- y 1)))))
+(defn factorial [y] (do (+ 3 5) (if (= y 1) y (* y (factorial (- y 1))))))
 
 (factorial 20)
+
+
 
 
 

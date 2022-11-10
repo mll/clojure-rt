@@ -10,5 +10,5 @@ mv *.cljb ../backend
 cd ../backend
 #arch -arm64 lldb ./clojure-rt 
 ./clojure-rt *.cljb
-#rm *.cljb
+rm *.cljb
 cd ..

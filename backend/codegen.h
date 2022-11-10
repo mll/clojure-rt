@@ -111,18 +111,21 @@ class CodeGenerator {
 
   TypedValue staticFalse();
   TypedValue staticTrue();
+
   /* Runtime interop */
 
   Value *dynamicNil();
   Value *dynamicString(const char *str);
   Value *dynamicSymbol(const char *name);
   Value *dynamicKeyword(const char *name);
+  Value *dynamicVector(const vector<TypedValue> &args);
+  Value *dynamicRelease(Value *what);
   Value *dynamicCond(Value *cond);
   Value *box(const TypedValue &value);
   Value *unbox(const TypedValue &value);
   void runtimeException(const CodeGenerationException &runtimeException);  
 
-  Value *callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args);
+  Value *callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args, bool isVariadic = false);
   Value *dynamicCreate(objectType type, const vector<Type *> &argTypes, const vector<Value *> &args);
  
   Type *dynamicUnboxedType(objectType type);

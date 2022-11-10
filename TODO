@@ -85,9 +85,9 @@ v nil
 v Symbol 
 v Keyword 
 v ConcurrentHashMap (TODO resizing) 
-* Var
-* Function (generic)
-* FunctionMethod (generic)
+v Var (TODO zmiany typu)
+v Function (generic) 
+v FunctionMethod (generic)
 
 v Keyword uniquing
 * Symbol uniquing 
@@ -126,11 +126,11 @@ v WithMeta (for now just ignores meta)
 v If 
 v Def and vars system
 v Dynamic Def and vars system
-* Binding  
-* Fn
-* FnMethod
+v Binding  (dziala dla funkcji)
+v Fn
+v FnMethod
 * Loop (+ recur for loop)
-* Invoke
+v Invoke (dziala dla funkcji statycznych, TODO dynamiczne, TODO variadic (na dwa sposoby, vector i natywnie), TODO domkniecia (closures))
 * Recur (for Fn)
 * Vector
 * Case (CaseTest CaseThen)

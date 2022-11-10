@@ -1,11 +1,11 @@
 #include "codegen.h"  
 #include <stdio.h>
 
-Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args) {
+Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args, bool isVariadic) {
   Function *CalleeF = TheModule->getFunction(fname);
   
   if (!CalleeF) {
-    FunctionType *FT = FunctionType::get(retValType, argTypes, false);
+    FunctionType *FT = FunctionType::get(retValType, argTypes, isVariadic);
     CalleeF = Function::Create(FT, Function::ExternalLinkage, fname, TheModule.get());
   }
 
@@ -24,6 +24,7 @@ void CodeGenerator::runtimeException(const CodeGenerationException &runtimeExcep
 
 Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTypes, const vector<Value *> &args) {
   string fname = "";
+  bool isVariadic = false;
   switch(type) {
     case integerType:
       fname = "Integer_create";
@@ -41,7 +42,8 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
       fname = "PersistentList_create";
       break;
     case persistentVectorType:
-      fname = "PersistentVector_create";
+      fname = "PersistentVector_createMany";
+      isVariadic = true;      
       break;
     case persistentVectorNodeType:
       throw InternalInconsistencyException("We never allow creation of subtypes here, only runtime can do it");
@@ -62,7 +64,7 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
       break;
   }
 
-  return callRuntimeFun(fname, dynamicBoxedType(type), argTypes, args);
+  return callRuntimeFun(fname, dynamicBoxedType(type), argTypes, args, isVariadic);
 }
 
 Value * CodeGenerator::dynamicNil() {
@@ -87,6 +89,21 @@ uint64_t CodeGenerator::computeHash(const char *str) {
     return h;
 }
 
+Value *CodeGenerator::dynamicVector(const vector<TypedValue> &args) {
+  vector<Type *> types;
+  vector<Value *> argsV;
+  types.push_back(Type::getInt64Ty(*TheContext));
+  argsV.push_back(ConstantInt::get(*TheContext, APInt(64, args.size())));
+  for(auto arg: args) {
+    argsV.push_back(box(arg));
+  }
+
+  auto retVal = dynamicCreate(persistentVectorType, types, argsV);
+  /* TODO: This remains to be discovered - depending on the refcount strategy it might be needed or not */
+  for(int i=0; i<args.size(); i++ ) dynamicRelease(argsV[i+1]); 
+  return retVal;
+}
+
 
 Value * CodeGenerator::dynamicString(const char *str) {
   vector<Type *> types;
@@ -100,6 +117,16 @@ Value * CodeGenerator::dynamicString(const char *str) {
   
   return dynamicCreate(stringType, types, args);
 }
+
+Value * CodeGenerator::dynamicRelease(Value *what) {
+  vector<Type *> types;
+  vector<Value *> args;
+  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  args.push_back(what);
+
+  return callRuntimeFun("release", Type::getVoidTy(*TheContext), types, args);
+}
+
 
 
 Value * CodeGenerator::dynamicSymbol(const char *name) {

@@ -30,6 +30,8 @@
 #include "protobuf/bytecode.pb.h"
 #include <fstream>
 #include "codegen.h"
+#include <stdio.h>
+#include <sys/time.h>
 
 using namespace std;
 using namespace llvm;
@@ -341,12 +343,21 @@ int main(int argc, char *argv[]) {
     ExitOnErr(gen.TheJIT->addModule(std::move(TSM), RT));
     
     for(int i=0; i<expressions;i++) {
+      struct timeval as, ap;
+
+      
       string fname = string("__anon__") + to_string(i);
       auto ExprSymbol = ExitOnErr(gen.TheJIT->lookup(fname));
       void * (*FP)() = (void * (*)())(intptr_t)ExprSymbol.getAddress();
+
+      gettimeofday(&as, NULL);      
       void * result = FP();
+      gettimeofday(&ap, NULL);
+     
       char *text = String_c_str(String_compactify(toString(result)));
-      printf("%s\n", text);
+      printf("Result: %s\n", text);
+      printf("Time: %f\n-------------------\n", (ap.tv_sec - as.tv_sec) + (ap.tv_usec - as.tv_usec)/1000000.0);
+
     }
     // Get the symbol's address and cast it to the right type (takes no
     // arguments, returns a double) so we can call it as a native function.

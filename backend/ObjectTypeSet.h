@@ -205,6 +205,15 @@ class ObjectTypeSet {
     return retVal;
   }
 
+  ObjectTypeSet removeConst() const {
+    /* Expansion removes all constants */
+    auto retVal = ObjectTypeSet();
+    retVal.internal = internal;
+    retVal.isBoxed = isBoxed; 
+    return retVal;
+  }
+  
+
   ObjectTypeSet restriction(const ObjectTypeSet &other) const {
     /* Restriction preserves constant type for this */
     auto retVal = ObjectTypeSet();
@@ -263,7 +272,19 @@ class ObjectTypeSet {
     retVal.insert(functionType);
     return retVal;
   }
-
+  
+  static vector<ObjectTypeSet> allGuesses() {
+    auto allTypes = ObjectTypeSet::all();
+    vector<ObjectTypeSet> guesses;
+    guesses.push_back(ObjectTypeSet(booleanType));
+    guesses.push_back(ObjectTypeSet(integerType));
+    guesses.push_back(ObjectTypeSet(doubleType));
+    for(auto it: allTypes.internal) {
+      guesses.push_back(ObjectTypeSet(it));
+    }
+    guesses.push_back(allTypes);
+    return guesses;
+  }
 };
 
 

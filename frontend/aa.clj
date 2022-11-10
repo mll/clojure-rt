@@ -24,16 +24,16 @@
 ;'7
 ;(if true 6 7.0)
 ;"aaa"
-"kogutóóó"
+;"kogutóóó"
 
-:kanga
+;:kanga
 
-(= 1.0 7)
-(= 2.0 3.0)
-(if (= (if (= 7 (+ 3 4)) "zebra" :banga) nil) 1 1.0)
-(if (= (if (= 7 (+ 3 4)) "zebra" :banga) "zebra") 1 :zonk)
+;(= 1.0 7)
+;(= 2.0 3.0)
+;(if (= (if (= 7 (+ 3 4)) "zebra" :banga) nil) 1 1.0)
+;(if (= (if (= 7 (+ 3 4)) "zebra" :banga) "zebra") 1 :zonk)
 
-(= 7 (+ 3 4))
+;(= 7 (+ 3 4))
 ;(def x 7)
 ;(str "aa" x)
 
@@ -50,4 +50,16 @@
 
 ;(/ 4195835 3145727.0)
 
-;(maro 2)
+;(maro "aa")
+
+(defn fib [x] (if (= x 1) 1 (if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2))))))
+
+(fib 40)
+
+(defn factorial [y] (if (= y 1) y (* y (factorial (- y 1)))))
+
+(factorial 20)
+
+
+
+

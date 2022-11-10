@@ -63,17 +63,27 @@ class InternalInconsistencyException: public exception {
   string toString() const { return errorMessage; } 
 };
 
+class UnaccountedRecursiveFunctionEncounteredException: public exception {
+  public:
+  string functionName;
+  UnaccountedRecursiveFunctionEncounteredException(const string &functionName): functionName(functionName) { }
+};
+
+
 class CodeGenerator {
   public:
   std::unique_ptr<LLVMContext> TheContext;
   std::unique_ptr<Module> TheModule;
   std::unique_ptr<IRBuilder<>> Builder;
   unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> StaticCallLibrary; 
-  std::unordered_map<std::string, TypedValue> NamedValues;
   /* Assumes the Node has FnNode */
   std::unordered_map<std::string, Node> Functions;
   std::unordered_map<std::string, std::string> StaticFunctions;
   std::unordered_map<std::string, std::string> NodesToFunctions;
+  std::vector<std::vector<ObjectTypeSet>> FunctionArgTypesStack;
+  std::vector<std::vector<TypedValue>> FunctionArgsStack;
+  std::unordered_map<string, ObjectTypeSet> RecursiveFunctionsRetValGuesses;
+  std::unordered_map<string, bool> RecursiveFunctionsNameMap;
 
   std::unordered_map<std::string, TypedValue> StaticVars;
   
@@ -95,6 +105,9 @@ class CodeGenerator {
   uint64_t avalanche_64(uint64_t h);
   string globalNameForVar(string var);
   string getMangledUniqueFunctionName();
+  string recursiveMethodKey(const string &name, const vector<ObjectTypeSet> &args);
+
+  TypedValue buildAndCallStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args);
 
   TypedValue staticFalse();
   TypedValue staticTrue();

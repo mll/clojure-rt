@@ -17,23 +17,24 @@ CodeGenerator::CodeGenerator() {
   // Create a new pass manager attached to it.
   TheFPM = std::make_unique<legacy::FunctionPassManager>(TheModule.get());
 
-  auto passBuilder = PassManagerBuilder();
-  passBuilder.OptLevel = 3;
+//  auto passBuilder = PassManagerBuilder();
+//  passBuilder.OptLevel = 3;
   
-  passBuilder.populateFunctionPassManager(*TheFPM);
+//  passBuilder.populateFunctionPassManager(*TheFPM);
   
-  // // Do simple "peephole" optimizations and bit-twiddling optzns.
-  // TheFPM->add(createInstructionCombiningPass());
-  // // Reassociate expressions.
-  // TheFPM->add(createReassociatePass());
-  // // Eliminate Common SubExpressions.
-  // TheFPM->add(createGVNPass());
-  // // Simplify the control flow graph (deleting unreachable blocks, etc).
-  // TheFPM->add(createCFGSimplificationPass());
-  // /* dead code */
-  // TheFPM->add(createAggressiveDCEPass());
+  // Do simple "peephole" optimizations and bit-twiddling optzns.
+  TheFPM->add(createInstructionCombiningPass());
+  // Reassociate expressions.
+  TheFPM->add(createReassociatePass());
+  // Eliminate Common SubExpressions.
+  TheFPM->add(createGVNPass());
+  // Simplify the control flow graph (deleting unreachable blocks, etc).
+  TheFPM->add(createCFGSimplificationPass());
+  /* dead code */
+  TheFPM->add(createAggressiveDCEPass());
+  TheFPM->add(createTailCallEliminationPass());
 
-  // TheFPM->doInitialization();
+  TheFPM->doInitialization();
 
   auto numbers = getNumbersStaticFunctions();
   auto utils = getUtilsStaticFunctions();
@@ -54,18 +55,62 @@ int CodeGenerator::codegen(const Programme &programme) {
     Builder->SetInsertPoint(BB);
     Builder->CreateRet(box(codegen(node, ObjectTypeSet::all())));
     verifyFunction(*F);
-
-    TheFPM->run(*F);
-   
-
-    //F->print(errs());
+//    F->print(errs());
+    TheFPM->run(*F); 
     //fprintf(stderr, "\n");
    
     // Remove the anonymous expression.
    // F->eraseFromParent();
   }
+  cout << "STATIC FUNCTIONS: " << endl;
+  for(auto kv : StaticFunctions) {
+    cout << kv.first << ":" << kv.second << endl;
+  }
   return programme.nodes_size();
 }
+
+TypedValue CodeGenerator::buildAndCallStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args) {
+  vector<Type *> argTypes;
+  vector<Value *> argVals;
+  vector<ObjectTypeSet> argT;
+  
+  for(auto arg : args) {
+    argTypes.push_back(arg.first.isDetermined() ? dynamicUnboxedType(arg.first.determinedType()) : dynamicBoxedType());
+    argVals.push_back(arg.second);
+    argT.push_back(arg.first);
+  }
+
+  string rName = recursiveMethodKey(name, argT);        
+  Type *retType = retValType.isDetermined() ? dynamicUnboxedType(retValType.determinedType()) : dynamicBoxedType();
+  
+  Function *CalleeF = TheModule->getFunction(rName); 
+  if(!CalleeF) {
+    auto insertBlock = Builder->GetInsertBlock();
+    FunctionType *FT = FunctionType::get(retType, argTypes, false);
+    CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
+    /* Build body */
+    vector<Value *> fArgs;
+    for(auto &farg: CalleeF->args()) fArgs.push_back(&farg);
+    vector<TypedValue> functionArgs;
+    for(int i=0; i<args.size(); i++) functionArgs.push_back(TypedValue(args[i].first.removeConst(), fArgs[i]));
+    FunctionArgsStack.push_back(functionArgs);
+    
+    BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
+    Builder->SetInsertPoint(BB);
+    Builder->CreateRet(codegen(method.body(), retValType).second);
+    FunctionArgsStack.pop_back();
+
+    verifyFunction(*CalleeF);
+//    CalleeF->print(errs());
+    TheFPM->run(*CalleeF);
+    Builder->SetInsertPoint(insertBlock);
+  }
+
+  return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
+}
+
+
+
 
 TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRestrictions) {
   switch (node.op()) {
@@ -235,6 +280,10 @@ string CodeGenerator::pointerName(void *ptr) {
   std::stringstream ss;
   ss << ptr;  
   return ss.str();
+}
+
+string CodeGenerator::recursiveMethodKey(const string &name, const vector<ObjectTypeSet> &args) {
+  return name + "_" + typeStringForArgs(args);
 }
 
 

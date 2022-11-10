@@ -37,9 +37,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   /* Standard if condition */
   
   auto test = codegen(subnode.test(), ObjectTypeSet::all());
-  Value *condValue = nullptr;
+  Value *condValue = test.second;
 
-  if(!condValue) throw CodeGenerationException(string("Internal error"), node);
+  if(!condValue) throw CodeGenerationException(string("Internal error 1"), node);
 
   if(!test.first.isDetermined()) condValue = dynamicCond(test.second);
   else if(test.first.determinedType() == booleanType) condValue = test.second;
@@ -137,7 +137,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   }
 
   if(thenWithType.second) return thenWithType;
-  if(!elseWithType.second) throw CodeGenerationException(string("Internal error"), node);
+  if(!elseWithType.second) throw CodeGenerationException(string("Internal error 2"), node);
   return elseWithType;
 }
 

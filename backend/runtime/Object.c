@@ -63,7 +63,6 @@ extern uint64_t Object_hash(Object * restrict self);
 extern String *Object_toString(Object * restrict self);
 
 
-
 extern uint64_t combineHash(uint64_t lhs, uint64_t rhs);
 
 

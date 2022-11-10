@@ -7,23 +7,7 @@ int64_t fib(int64_t x) {
     return fib(x-1) + fib(x-2);
 }
 
-int aaa(double a) {
-    if(a == 3.0) return 1;
-    return 2;
-}
-
-int factorial (int x, int y){
-  if (x==0)
-    return y;
-  else
-    return factorial(x-1,y*x);
-}
-
-
-char  *zomo;
-
 int main() {
-    zomo = "aa";
-    printf("%s", zomo);
-    return fib(40);
+    printf("%lld", fib(42));
+    return 0;
 }

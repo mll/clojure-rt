@@ -94,7 +94,7 @@ v Keyword uniquing
 * Character
 * Ratio
 * BigInteger
-* PersistentArrayMap
+* PersistentArrayMap <--
 * PersistentHashMap
 * PersistentSet
 
@@ -129,10 +129,17 @@ v Dynamic Def and vars system
 v Binding  (dziala dla funkcji)
 v Fn
 v FnMethod
-* Loop (+ recur for loop)
-v Invoke (dziala dla funkcji statycznych, TODO dynamiczne, TODO variadic (na dwa sposoby, vector i natywnie), TODO domkniecia (closures))
+* Let <--
+v Invoke statyczne
+ 
+* Invoke dynamiczne
+* Invoke lambda 
+* Invoke lambda once
+* Invoke variadic  
 * Recur (for Fn)
-* Vector
+
+* Loop (+ recur for loop)
+v Vector
 * Case (CaseTest CaseThen)
 * Memory management (let us start with string)
 

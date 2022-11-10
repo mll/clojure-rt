@@ -26,10 +26,15 @@
 typedef struct String String; 
 
 //#define REFCOUNT_TRACING
+//#define REFCOUNT_NONATOMIC
 
 struct Object {
   objectType type;
-  volatile atomic_uint_fast64_t refCount;
+#ifdef REFCOUNT_NONATOMIC
+  uint64_t refCount;
+#else
+  volatile atomic_uint_fast64_t atomicRefCount;
+#endif
 };
 
 typedef struct Object Object; 
@@ -64,19 +69,26 @@ inline Object *super(void * restrict self) {
 }
 
 inline void Object_retain(Object * restrict self) {
-  #ifdef REFCOUNT_TRACING
+#ifdef REFCOUNT_TRACING
   atomic_fetch_add_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
-  #endif
-  atomic_fetch_add_explicit(&(self->refCount), 1, memory_order_relaxed);
+#endif
+#ifdef REFCOUNT_NONATOMIC
+  self->refCount++;
+#else    
+  atomic_fetch_add_explicit(&(self->atomicRefCount), 1, memory_order_relaxed);
+#endif
 }
 
 inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChildren) {
-  #ifdef REFCOUNT_TRACING
+#ifdef REFCOUNT_TRACING
     atomic_fetch_sub_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
     assert(atomic_load(&(self->refCount)) > 0);
-  #endif
-
-  if (atomic_fetch_sub_explicit(&(self->refCount), 1, memory_order_relaxed) == 1) {
+#endif
+#ifdef REFCOUNT_NONATOMIC
+  if (--self->refCount == 0) {
+#else
+  if (atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_relaxed) == 1) {
+#endif
     switch((objectType)self->type) {
     case integerType:
       Integer_destroy(Object_data(self));
@@ -263,7 +275,11 @@ inline BOOL Object_release(Object * restrict self) {
 
 inline void Object_autorelease(Object * restrict self) {
   /* The object could have been deallocated through direct releases in the meantime (e.g. if autoreleasing entity does not own ) */
-  if(atomic_load(&(self->refCount)) < 1) return;   
+#ifdef REFCOUNT_NONATOMIC
+  if(self->refCount < 1) return;   
+#else
+  if(atomic_load(&(self->atomicRefCount)) < 1) return;   
+#endif
   /* TODO: add an object to autorelease pool */
 }
 
@@ -276,7 +292,11 @@ inline BOOL release(void * restrict self) {
 }
 
 inline void Object_create(Object * restrict self, objectType type) {
-  atomic_store_explicit (&(self->refCount), 1, memory_order_relaxed);
+#ifdef REFCOUNT_NONATOMIC
+  self->refCount = 1;
+#else
+  atomic_store_explicit (&(self->atomicRefCount), 1, memory_order_relaxed);
+#endif
   self->type = type;
 #ifdef REFCOUNT_TRACING
   atomic_fetch_add_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);

@@ -379,8 +379,8 @@ int main() {
 //  for(int i=0; i<30; i++) testList(false);
   //  testList(false);
 ////    ProfilerStart("xx.prof");
-  //  testVector(false);
-    testMap(false);
+    testVector(false);
+//    testMap(false);
  //   ProfilerStop();
 //    getchar();
 }

@@ -1,52 +1,32 @@
 #include "codegen.h"  
-#include "static/Numbers.h"
-#include "static/Utils.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <sstream>
 
-CodeGenerator::CodeGenerator() {
+CodeGenerator::CodeGenerator(std::shared_ptr<ProgrammeState> programme, ClojureJIT *weakJIT): TheJIT(weakJIT) {
   TheContext = std::make_unique<LLVMContext>();
   TheModule = std::make_unique<Module>("Clojure JIT", *TheContext);
-  TheJIT = std::move(ClojureJIT::Create().get());
 
   TheModule->setDataLayout(TheJIT->getDataLayout());
   
   // Create a new builder for the module.
   Builder = std::make_unique<IRBuilder<>>(*TheContext);
-  
-  // Create a new pass manager attached to it.
-  TheFPM = std::make_unique<legacy::FunctionPassManager>(TheModule.get());
+  TheProgramme = programme;
+  for(auto it : TheProgramme->StaticVarTypes) {
+    auto name = it.first;
+    auto type = it.second;
+    auto mangled = globalNameForVar(name);
 
-//  auto passBuilder = PassManagerBuilder();
-//  passBuilder.OptLevel = 3;
-  
-//  passBuilder.populateFunctionPassManager(*TheFPM);
-  
-  // Do simple "peephole" optimizations and bit-twiddling optzns.
-  TheFPM->add(createInstructionCombiningPass());
-  // Reassociate expressions.
-  TheFPM->add(createReassociatePass());
-  // Eliminate Common SubExpressions.
-  TheFPM->add(createGVNPass());
-  // Simplify the control flow graph (deleting unreachable blocks, etc).
-  TheFPM->add(createCFGSimplificationPass());
-  /* dead code */
-  TheFPM->add(createAggressiveDCEPass());
-  TheFPM->add(createTailCallEliminationPass());
+    auto llvmType = type.isDetermined() ? dynamicUnboxedType(type.determinedType()) : dynamicBoxedType();
 
-  TheFPM->doInitialization();
-
-  auto numbers = getNumbersStaticFunctions();
-  auto utils = getUtilsStaticFunctions();
-  StaticCallLibrary.insert(numbers.begin(), numbers.end());
-  StaticCallLibrary.insert(utils.begin(), utils.end());
+    TheModule->getOrInsertGlobal(mangled, llvmType);
+    GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
+    gVar->setExternallyInitialized(true);
+    StaticVars.insert({name, TypedValue(type, gVar)});
+  }
 }
 
-int CodeGenerator::codegen(const Programme &programme) {
-  
-  for (int i=0; i< programme.nodes_size(); i++) {
-    auto node = programme.nodes(i);
-    /* TODO: This is all temporary. */
+
+string CodeGenerator::codegenTopLevel(const Node &node, int i) {
     string fname = string("__anon__") + to_string(i);
     std::vector<Type*> args;
     FunctionType *FT = FunctionType::get(Type::getInt8Ty(*TheContext)->getPointerTo(), args, false);
@@ -55,21 +35,10 @@ int CodeGenerator::codegen(const Programme &programme) {
     Builder->SetInsertPoint(BB);
     Builder->CreateRet(box(codegen(node, ObjectTypeSet::all())));
     verifyFunction(*F);
-//    F->print(errs());
-    TheFPM->run(*F); 
-    //fprintf(stderr, "\n");
-   
-    // Remove the anonymous expression.
-   // F->eraseFromParent();
-  }
-  cout << "STATIC FUNCTIONS: " << endl;
-  for(auto kv : StaticFunctions) {
-    cout << kv.first << ":" << kv.second << endl;
-  }
-  return programme.nodes_size();
+    return fname;
 }
 
-TypedValue CodeGenerator::buildAndCallStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args) {
+TypedValue CodeGenerator::callStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args) {
   vector<Type *> argTypes;
   vector<Value *> argVals;
   vector<ObjectTypeSet> argT;
@@ -85,28 +54,49 @@ TypedValue CodeGenerator::buildAndCallStaticFun(const FnMethodNode &method, cons
   
   Function *CalleeF = TheModule->getFunction(rName); 
   if(!CalleeF) {
-    auto insertBlock = Builder->GetInsertBlock();
     FunctionType *FT = FunctionType::get(retType, argTypes, false);
     CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
+  }
+  
+  auto f = make_unique<FunctionJIT>();
+  f->method = method;
+  f->args = argT;
+  f->retVal = retValType;
+  f->name = rName;
+
+  ExitOnErr(TheJIT->addAST(move(f)));
+
+  return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
+}
+
+void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retVal, const vector<ObjectTypeSet> &args) {
+  vector<Type *> argTypes;
+  
+  for(auto arg : args) {
+    argTypes.push_back(arg.isDetermined() ? dynamicUnboxedType(arg.determinedType()) : dynamicBoxedType());
+  }
+  
+  Type *retType = retVal.isDetermined() ? dynamicUnboxedType(retVal.determinedType()) : dynamicBoxedType();
+  
+  Function *CalleeF = TheModule->getFunction(name); 
+  if(!CalleeF) {
+    FunctionType *FT = FunctionType::get(retType, argTypes, false);
+    CalleeF = Function::Create(FT, Function::ExternalLinkage, name, TheModule.get());
     /* Build body */
     vector<Value *> fArgs;
     for(auto &farg: CalleeF->args()) fArgs.push_back(&farg);
+    
     vector<TypedValue> functionArgs;
-    for(int i=0; i<args.size(); i++) functionArgs.push_back(TypedValue(args[i].first.removeConst(), fArgs[i]));
+    for(int i=0; i<args.size(); i++) functionArgs.push_back(TypedValue(args[i].removeConst(), fArgs[i]));
     FunctionArgsStack.push_back(functionArgs);
     
     BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
     Builder->SetInsertPoint(BB);
-    Builder->CreateRet(codegen(method.body(), retValType).second);
+    Builder->CreateRet(codegen(method.body(), retVal).second);
     FunctionArgsStack.pop_back();
-
+    
     verifyFunction(*CalleeF);
-//    CalleeF->print(errs());
-    TheFPM->run(*CalleeF);
-    Builder->SetInsertPoint(insertBlock);
   }
-
-  return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
 }
 
 
@@ -283,6 +273,7 @@ string CodeGenerator::pointerName(void *ptr) {
 }
 
 string CodeGenerator::recursiveMethodKey(const string &name, const vector<ObjectTypeSet> &args) {
+// TODO - variadic
   return name + "_" + typeStringForArgs(args);
 }
 
@@ -327,7 +318,7 @@ vector<ObjectTypeSet> CodeGenerator::typesForArgString(const Node &node, const s
 
 string CodeGenerator::getMangledUniqueFunctionName() {
   /* TODO - this might require threadsafe precautions, like std::Atomic */
-  return string("fn_") + to_string(lastFunctionUniqueId++);
+  return string("fn_") + to_string(TheProgramme->lastFunctionUniqueId++);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const ObjectTypeSet &typeRestrictions) {

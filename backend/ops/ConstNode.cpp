@@ -2,7 +2,6 @@
 
 using namespace std;
 using namespace llvm;
-using namespace llvm::orc;
 using namespace clojure::rt::protobuf::bytecode;
 
 TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, const ObjectTypeSet &typeRestrictions) {

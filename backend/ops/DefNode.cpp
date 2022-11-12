@@ -46,6 +46,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     gVar->setInitializer(Constant::getNullValue(gVar->getType()));
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, nil, MaybeAlign(), AtomicOrdering::Monotonic);
     StaticVars.insert({name, TypedValue(ObjectTypeSet(nilType), gVar)});
+    TheProgramme->StaticVarTypes.insert({name, ObjectTypeSet(nilType)});
   } else {
     /* First time declaration, proper. */
 
@@ -60,12 +61,14 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, created.second, MaybeAlign(), AtomicOrdering::Monotonic);
     created.second = gVar;
     StaticVars.insert({name, created});
+    TheProgramme->StaticVarTypes.insert({name, created.first});
     ConstantFunction *constFun = nullptr;
     if(created.first.isDetermined() && created.first.determinedType() == functionType && (constFun = dynamic_cast<ConstantFunction *>(created.first.getConstant()))) {
       /* Static function declaration, we set some info for the invoke node to speed things up */
-      auto found = StaticFunctions.find(mangled);
-      if(found != StaticFunctions.end()) throw CodeGenerationException(string("Trying to redeclare function that already has static representation, this is compiler programming error"), node);      
-      StaticFunctions.insert({mangled, constFun->value});
+      auto found = TheProgramme->StaticFunctions.find(mangled);
+      if(found != TheProgramme->StaticFunctions.end()) throw CodeGenerationException(string("Trying to redeclare function that already has static representation, this is compiler programming error"), node);      
+      TheProgramme->StaticFunctions.insert({mangled, constFun->value});
+      
     }
   }
 
@@ -73,5 +76,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const DefNode &subnode, const ObjectTypeSet &typeRestrictions) {
+/* TODO var type */
   return ObjectTypeSet(nilType);
 }

@@ -1,0 +1,60 @@
+/Applications/Xcode.app/Contents/Developer/usr/bin/make clojure-rt
+arch -arm64 clang++ -c -Wall -g  -I/opt/homebrew/include -I/opt/homebrew/Cellar/llvm/15.0.3/include -std=c++14 -stdlib=libc++   -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS jit/ASTLayer.cpp
+jit/ASTLayer.cpp:39:14: error: 'FunctionArgsStack' is a private member of 'CodeGenerator'
+    codegen->FunctionArgsStack.push_back(functionArgs);
+             ^
+jit/../codegen.h:50:40: note: implicitly declared private here
+  std::vector<std::vector<TypedValue>> FunctionArgsStack;
+                                       ^
+jit/ASTLayer.cpp:41:42: error: use of undeclared identifier 'TheContext'
+    BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
+                                         ^
+jit/ASTLayer.cpp:42:5: error: use of undeclared identifier 'Builder'; did you mean 'IRBuilder'?
+    Builder->SetInsertPoint(BB);
+    ^~~~~~~
+    IRBuilder
+/opt/homebrew/Cellar/llvm/15.0.3/include/llvm/IR/IRBuilder.h:2485:7: note: 'IRBuilder' declared here
+class IRBuilder : public IRBuilderBase {
+      ^
+jit/ASTLayer.cpp:42:5: error: use of undeclared identifier 'Builder'; did you mean 'IRBuilder'?
+    Builder->SetInsertPoint(BB);
+    ^~~~~~~
+    IRBuilder
+/opt/homebrew/Cellar/llvm/15.0.3/include/llvm/IR/IRBuilder.h:2485:7: note: 'IRBuilder' declared here
+class IRBuilder : public IRBuilderBase {
+      ^
+jit/ASTLayer.cpp:42:5: error: unknown type name 'Builder'
+    Builder->SetInsertPoint(BB);
+    ^
+jit/ASTLayer.cpp:42:12: error: cannot use arrow operator on a type
+    Builder->SetInsertPoint(BB);
+           ^
+jit/ASTLayer.cpp:43:5: error: use of undeclared identifier 'Builder'; did you mean 'IRBuilder'?
+    Builder->CreateRet(codegen->codegen(method.body(), retVal).second);
+    ^~~~~~~
+    IRBuilder
+/opt/homebrew/Cellar/llvm/15.0.3/include/llvm/IR/IRBuilder.h:2485:7: note: 'IRBuilder' declared here
+class IRBuilder : public IRBuilderBase {
+      ^
+jit/ASTLayer.cpp:43:5: error: use of undeclared identifier 'Builder'; did you mean 'IRBuilder'?
+    Builder->CreateRet(codegen->codegen(method.body(), retVal).second);
+    ^~~~~~~
+    IRBuilder
+/opt/homebrew/Cellar/llvm/15.0.3/include/llvm/IR/IRBuilder.h:2485:7: note: 'IRBuilder' declared here
+class IRBuilder : public IRBuilderBase {
+      ^
+jit/ASTLayer.cpp:43:5: error: unknown type name 'Builder'
+    Builder->CreateRet(codegen->codegen(method.body(), retVal).second);
+    ^
+jit/ASTLayer.cpp:43:12: error: cannot use arrow operator on a type
+    Builder->CreateRet(codegen->codegen(method.body(), retVal).second);
+           ^
+jit/ASTLayer.cpp:44:14: error: 'FunctionArgsStack' is a private member of 'CodeGenerator'
+    codegen->FunctionArgsStack.pop_back();
+             ^
+jit/../codegen.h:50:40: note: implicitly declared private here
+  std::vector<std::vector<TypedValue>> FunctionArgsStack;
+                                       ^
+11 errors generated.
+make[1]: *** [ASTLayer.o] Error 1
+make: *** [all] Error 2

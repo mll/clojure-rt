@@ -1,6 +1,7 @@
 #ifndef RT_CODEGEN
 #define RT_CODEGEN
 
+#include "protobuf/bytecode.pb.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
@@ -29,71 +30,35 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include "protobuf/bytecode.pb.h"
+
 #include <fstream>
 #include <sstream>
+
+
 #include "ObjectTypeSet.h"
-#include "jit.h"
 #include "runtime/defines.h"
+#include "Exceptions.h"
+#include "Programme.h"
+#include "jit/jit.h"
 
 using namespace std;
 using namespace llvm;
-using namespace llvm::orc;
 using namespace clojure::rt::protobuf::bytecode;
-class CodeGenerator;
-
-
-typedef pair<ObjectTypeSet, Value *> TypedValue;
-typedef pair<ObjectTypeSet, const Node&> TypedNode;
-
-typedef TypedValue (*StaticCall)(CodeGenerator *, const string &, const Node&, const std::vector<TypedNode>&);
-typedef ObjectTypeSet (*StaticCallType)(CodeGenerator *, const string &, const Node&, const std::vector<TypedNode>&);
-
-class CodeGenerationException: public exception {
-  string errorMessage;
-  public:
-  CodeGenerationException(const string &errorMessage, const Node& node); 
-  string toString() const; 
-};
-
-class InternalInconsistencyException: public exception {
-  string errorMessage;
-  public:
-  InternalInconsistencyException(const string &error) : errorMessage(error) {} 
-  string toString() const { return errorMessage; } 
-};
-
-class UnaccountedRecursiveFunctionEncounteredException: public exception {
-  public:
-  string functionName;
-  UnaccountedRecursiveFunctionEncounteredException(const string &functionName): functionName(functionName) { }
-};
 
 
 class CodeGenerator {
-  public:
+  std::shared_ptr<ProgrammeState> TheProgramme;
+  std::vector<std::vector<TypedValue>> FunctionArgsStack;
+  std::unordered_map<std::string, TypedValue> StaticVars;
+  std::vector<std::vector<ObjectTypeSet>> FunctionArgTypesStack;
+public:
+  std::unique_ptr<IRBuilder<>> Builder;
   std::unique_ptr<LLVMContext> TheContext;
   std::unique_ptr<Module> TheModule;
-  std::unique_ptr<IRBuilder<>> Builder;
-  unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> StaticCallLibrary; 
-  /* Assumes the Node has FnNode */
-  std::unordered_map<std::string, Node> Functions;
-  std::unordered_map<std::string, std::string> StaticFunctions;
-  std::unordered_map<std::string, std::string> NodesToFunctions;
-  std::vector<std::vector<ObjectTypeSet>> FunctionArgTypesStack;
-  std::vector<std::vector<TypedValue>> FunctionArgsStack;
-  std::unordered_map<string, ObjectTypeSet> RecursiveFunctionsRetValGuesses;
-  std::unordered_map<string, bool> RecursiveFunctionsNameMap;
-
-  std::unordered_map<std::string, TypedValue> StaticVars;
-  
-  std::unique_ptr<legacy::FunctionPassManager> TheFPM;
-  std::unique_ptr<ClojureJIT> TheJIT;
-  uint64_t lastFunctionUniqueId = 0;
-//  std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
+  ClojureJIT *TheJIT;
   ExitOnError ExitOnErr;
 
-  CodeGenerator();
+  CodeGenerator(std::shared_ptr<ProgrammeState> programme, ClojureJIT *weakJIT);
 
   /* Tools */
 
@@ -107,7 +72,9 @@ class CodeGenerator {
   string getMangledUniqueFunctionName();
   string recursiveMethodKey(const string &name, const vector<ObjectTypeSet> &args);
 
-  TypedValue buildAndCallStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args);
+  TypedValue callStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args);
+  void buildStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retVal, const vector<ObjectTypeSet> &args);
+
 
   TypedValue staticFalse();
   TypedValue staticTrue();
@@ -135,7 +102,8 @@ class CodeGenerator {
 
   /* Code generation */
 
-  int codegen(const Programme &programme);
+  string codegenTopLevel(const Node &node, int i);
+
   TypedValue codegen(const Node &node, const ObjectTypeSet &typeRestrictions);
 
   TypedValue codegen(const Node &node, const BindingNode &subnode, const ObjectTypeSet &typeRestrictions);
@@ -228,9 +196,6 @@ class CodeGenerator {
   ObjectTypeSet getType(const Node &node, const VarNode &subnode, const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const VectorNode &subnode, const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const WithMetaNode &subnode, const ObjectTypeSet &typeRestrictions);
-
-
-
 };
 
 #endif

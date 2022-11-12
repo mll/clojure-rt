@@ -2,17 +2,14 @@
 #include <vector>
 #include <algorithm>
 
-
-
-
 TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
   ObjectTypeSet type = getType(node, typeRestrictions);
-  auto nameEntry = NodesToFunctions.find(pointerName((void *)&node));
+  auto nameEntry = TheProgramme->NodesToFunctions.find(pointerName((void *)&node));
   string newName;
-  if(nameEntry == NodesToFunctions.end()) {
+  if(nameEntry == TheProgramme->NodesToFunctions.end()) {
     newName = getMangledUniqueFunctionName();  
-    NodesToFunctions.insert({pointerName((void *)&node), newName});
-    Functions.insert({newName, node});
+    TheProgramme->NodesToFunctions.insert({pointerName((void *)&node), newName});
+    TheProgramme->Functions.insert({newName, node});
   } else newName = nameEntry->second;
   
   vector<Type *> types;
@@ -63,12 +60,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  auto nameEntry = NodesToFunctions.find(pointerName((void *)&node));
+  auto nameEntry = TheProgramme->NodesToFunctions.find(pointerName((void *)&node));
   string newName;
-  if(nameEntry == NodesToFunctions.end()) {
+  if(nameEntry == TheProgramme->NodesToFunctions.end()) {
     newName = getMangledUniqueFunctionName();  
-    NodesToFunctions.insert({pointerName((void *)&node), newName});
-    Functions.insert({newName, node});
+    TheProgramme->NodesToFunctions.insert({pointerName((void *)&node), newName});
+    TheProgramme->Functions.insert({newName, node});
   } else newName = nameEntry->second;
   
 

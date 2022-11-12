@@ -11,7 +11,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
   if(funType.isType(functionType) && funType.getConstant()) {
     string name = dynamic_cast<ConstantFunction *>(funType.getConstant())->value;
 
-    FnNode functionBody = Functions.find(name)->second.subnode().fn();  
+    FnNode functionBody = TheProgramme->Functions.find(name)->second.subnode().fn();  
     vector<TypedValue> args;
     for(int i=0; i< subnode.args_size(); i++) args.push_back(codegen(subnode.args(i), ObjectTypeSet::all()));
     
@@ -29,7 +29,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     const FnMethodNode *method = nullptr;
     for(int i=0; i<nodes.size(); i++) {
       if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; break;}
-      if(nodes[i]->fixedarity() < args.size() && nodes[i]->isvariadic()) { method = nodes[i]; break;}
+      if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; break;}
     }
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
 
@@ -37,8 +37,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     for(int i=0; i<args.size(); i++) argTypes.push_back(args[i].first);
 
     string rName = recursiveMethodKey(name, argTypes);
-    RecursiveFunctionsRetValGuesses.insert({rName, type});
-    auto retVal = buildAndCallStaticFun(*method, name, type, args);
+    TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
+    auto retVal = callStaticFun(*method, name, type, args);
     /* We leave the return type cached, maybe in the future it needs to be removed here */
     return retVal;
   }
@@ -57,7 +57,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
   if(type.isType(functionType) && type.getConstant()) {
     string name = dynamic_cast<ConstantFunction *>(type.getConstant())->value;
 
-    FnNode functionBody = Functions.find(name)->second.subnode().fn();  
+    const FnNode functionBody = TheProgramme->Functions.find(name)->second.subnode().fn();  
+
     vector<ObjectTypeSet> args;
     for(int i=0; i< subnode.args_size(); i++) args.push_back(getType(subnode.args(i), ObjectTypeSet::all()));
     
@@ -75,23 +76,24 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     const FnMethodNode *method = nullptr;
     for(int i=0; i<nodes.size(); i++) {
       if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; break;}
-      if(nodes[i]->fixedarity() < args.size() && nodes[i]->isvariadic()) { method = nodes[i]; break;}
+      if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; break;}
     }
+
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
     
     
     string rName = recursiveMethodKey(name, args);
-    auto recursiveGuess = RecursiveFunctionsRetValGuesses.find(rName);
-    if(recursiveGuess != RecursiveFunctionsRetValGuesses.end()) {
+    auto recursiveGuess = TheProgramme->RecursiveFunctionsRetValGuesses.find(rName);
+    if(recursiveGuess != TheProgramme->RecursiveFunctionsRetValGuesses.end()) {
       return recursiveGuess->second;
     }
 
-    auto recursiveName = RecursiveFunctionsNameMap.find(rName);
-    if(recursiveName != RecursiveFunctionsNameMap.end()) {
+    auto recursiveName = TheProgramme->RecursiveFunctionsNameMap.find(rName);
+    if(recursiveName != TheProgramme->RecursiveFunctionsNameMap.end()) {
       throw UnaccountedRecursiveFunctionEncounteredException(rName);
     }
 
-    RecursiveFunctionsNameMap.insert({rName, true});    
+    TheProgramme->RecursiveFunctionsNameMap.insert({rName, true});    
     
     FunctionArgTypesStack.push_back(args);
     ObjectTypeSet retVal;
@@ -104,7 +106,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
       if(e.functionName != rName) throw e;
       auto guesses = ObjectTypeSet::allGuesses();
       for(auto guess : guesses) {
-        auto inserted = RecursiveFunctionsRetValGuesses.insert({rName, guess});
+        auto inserted = TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, guess});
         inserted.first->second = guess;
         try {
           retVal = getType(method->body(), typeRestrictions);
@@ -117,8 +119,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     }
     FunctionArgTypesStack.pop_back();
 
-    RecursiveFunctionsNameMap.erase(rName);
-    RecursiveFunctionsRetValGuesses.erase(rName);
+    TheProgramme->RecursiveFunctionsNameMap.erase(rName);
+    TheProgramme->RecursiveFunctionsRetValGuesses.erase(rName);
     // TODO: better error here, maybe use the exceptions vector? 
     if(!found) {
       for(auto e : exceptions) cout << e.toString() << endl;

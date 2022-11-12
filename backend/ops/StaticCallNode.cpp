@@ -14,8 +14,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
 
   /* We do not want to traverse all the std library here, we should generate candidates and check each of them against the library */
   
-  auto found = StaticCallLibrary.find(name);
-  if(found == StaticCallLibrary.end()) throw CodeGenerationException(string("Static call ") + name + string(" not implemented"), node);
+  auto found = TheProgramme->StaticCallLibrary.find(name);
+  if(found == TheProgramme->StaticCallLibrary.end()) throw CodeGenerationException(string("Static call ") + name + string(" not implemented"), node);
 
   auto arities = found->second;
 
@@ -50,8 +50,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
   }
   name = name + "/" + m;
 
-  auto found = StaticCallLibrary.find(name);
-  if(found == StaticCallLibrary.end()) return ObjectTypeSet();
+  auto found = TheProgramme->StaticCallLibrary.find(name);
+  if(found == TheProgramme->StaticCallLibrary.end()) return ObjectTypeSet();
 
   auto arities = found->second;
 

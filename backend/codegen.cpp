@@ -69,6 +69,40 @@ TypedValue CodeGenerator::callStaticFun(const FnMethodNode &method, const string
   return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
 }
 
+TypedValue CodeGenerator::callDynamicFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args) {
+  vector<Type *> argTypes;
+  vector<Value *> argVals;
+  vector<ObjectTypeSet> argT;
+  
+  for(auto arg : args) {
+    argTypes.push_back(arg.first.isDetermined() ? dynamicUnboxedType(arg.first.determinedType()) : dynamicBoxedType());
+    argVals.push_back(arg.second);
+    argT.push_back(arg.first);
+  }
+
+  string rName = recursiveMethodKey(name, argT);        
+  Type *retType = retValType.isDetermined() ? dynamicUnboxedType(retValType.determinedType()) : dynamicBoxedType();
+  
+  Function *CalleeF = TheModule->getFunction(rName); 
+  if(!CalleeF) {
+    FunctionType *FT = FunctionType::get(retType, argTypes, false);
+    CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
+  }
+  
+  auto f = make_unique<FunctionJIT>();
+  f->method = method;
+  f->args = argT;
+  f->retVal = retValType;
+  f->name = rName;
+
+  ExitOnErr(TheJIT->addAST(move(f)));
+
+  return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
+}
+
+
+
+
 void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retVal, const vector<ObjectTypeSet> &args) {
   vector<Type *> argTypes;
   
@@ -92,7 +126,8 @@ void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &nam
     
     BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
     Builder->SetInsertPoint(BB);
-    Builder->CreateRet(codegen(method.body(), retVal).second);
+    auto result = codegen(method.body(), retVal);
+    Builder->CreateRet(retVal.isBoxed ? box(result) : result.second);
     FunctionArgsStack.pop_back();
     
     verifyFunction(*CalleeF);

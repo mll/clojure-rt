@@ -1,6 +1,31 @@
 #include "codegen.h"  
 #include <stdio.h>
 
+
+TypedValue CodeGenerator::callRuntimeFun(const string &fname, const ObjectTypeSet &retVal, const vector<TypedValue> &args) {
+  Function *CalleeF = TheModule->getFunction(fname);
+  
+  vector<Type *> argTypes;
+  vector<Value *> argVals;
+  for(auto arg: args) { 
+    argTypes.push_back(dynamicType(arg.first));
+    argVals.push_back(arg.second);
+  }
+  auto retValType = dynamicType(retVal);
+  
+
+  if (!CalleeF) {
+    FunctionType *FT = FunctionType::get(retValType, argTypes, false);
+    CalleeF = Function::Create(FT, Function::ExternalLinkage, fname, TheModule.get());
+  }
+
+  if (!CalleeF) throw InternalInconsistencyException(string("Unable to find ") + fname + " - do we link runtime?");
+  
+  return  TypedValue(retVal, Builder->CreateCall(CalleeF, argVals, string("call_") + fname));
+} 
+
+
+
 Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args, bool isVariadic) {
   Function *CalleeF = TheModule->getFunction(fname);
   
@@ -173,10 +198,15 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
 Type *CodeGenerator::dynamicBoxedType(objectType type) {
   return Type::getInt8Ty(*TheContext)->getPointerTo();
 }
+
 Type *CodeGenerator::dynamicBoxedType() {
   return Type::getInt8Ty(*TheContext)->getPointerTo();
 }
 
+Type *CodeGenerator::dynamicType(const ObjectTypeSet &type) {
+  if (type.isDetermined()) return dynamicUnboxedType(type.determinedType());
+  return dynamicBoxedType();
+}
 
 Value *CodeGenerator::unbox(const TypedValue &value) {
   /* TODO */

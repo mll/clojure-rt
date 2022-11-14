@@ -16,7 +16,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     auto foundTypes = found->second.first;
     auto incomingTypes = getType(subnode.init(), ObjectTypeSet::all());
     auto created = codegen(subnode.init(), foundTypes);
-    /* TODO - redeclaration requires another global and tapping runtime */
+    /* TODO - redeclaration requires another global and / or tapping runtime */
     if(created.first.isEmpty()) throw CodeGenerationException(string("Var type change impossible at this time: ") + name + " type: " + foundTypes.toString() + " incoming types: " + incomingTypes.toString(), node);
 
     if((foundTypes.isDetermined() && created.first.isDetermined()) ||
@@ -67,8 +67,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
       /* Static function declaration, we set some info for the invoke node to speed things up */
       auto found = TheProgramme->StaticFunctions.find(mangled);
       if(found != TheProgramme->StaticFunctions.end()) throw CodeGenerationException(string("Trying to redeclare function that already has static representation, this is compiler programming error"), node);      
-      TheProgramme->StaticFunctions.insert({mangled, constFun->value});
-      
+      TheProgramme->StaticFunctions.insert({name, constFun->value});
     }
   }
 

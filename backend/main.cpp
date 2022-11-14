@@ -109,6 +109,7 @@ int main(int argc, char *argv[]) {
       gettimeofday(&ap, NULL);
       
       char *text = String_c_str(String_compactify(toString(result)));
+      printf("Computing: %s\n", topLevel.form().c_str());
       printf("Result: %s\n", text);
       printf("Time: %f\n-------------------\n", (ap.tv_sec - as.tv_sec) + (ap.tv_usec - as.tv_usec)/1000000.0);        
     }

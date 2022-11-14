@@ -92,7 +92,7 @@ extern "C" {
   
   PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other);
   PersistentVector* PersistentVector_assoc(PersistentVector *self, uint64_t index, Object *other);
-  Object* PersistentVector_nth(PersistentVector *self, uint64_t index);
+  void* PersistentVector_nth(PersistentVector *self, uint64_t index);
   PersistentVector *PersistentVector_create();
   void initialise_memory();
 
@@ -322,7 +322,7 @@ void testVector (bool pauses) {
   int64_t sum = 0;
   
   for(int i=0; i< l->count; i++) {
-    sum += ((Integer *) Object_data(PersistentVector_nth(l, i)))->value;
+    sum += ((Integer *) PersistentVector_nth(l, i))->value;
   }
     assert(sum == 4999999950000000ull && "Wrong result");
   clock_t op = clock();
@@ -359,7 +359,7 @@ void testVector (bool pauses) {
   sum = 0;
   
   for(int i=0; i< l->count; i++) {
-    sum += ((Integer *) Object_data(PersistentVector_nth(l, i)))->value;
+    sum += ((Integer *) PersistentVector_nth(l, i))->value;
   }
 
   clock_t asd = clock();

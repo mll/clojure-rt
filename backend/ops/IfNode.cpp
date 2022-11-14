@@ -86,8 +86,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   
   if (!elseWithType.first.isEmpty() && !thenWithType.first.isEmpty()) {
     if (elseWithType.first == thenWithType.first) {
-      /* we just close off both blocks, same types detected */
-      returnTypedValue.first = elseWithType.first;
+      /* we just close off both blocks, same types detected - but const needs to be removed */
+      returnTypedValue.first = elseWithType.first.removeConst();
       Builder->CreateBr(mergeBB);  
       Builder->SetInsertPoint(thenBB);
       Builder->CreateBr(mergeBB);  

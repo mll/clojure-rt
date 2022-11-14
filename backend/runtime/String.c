@@ -95,7 +95,7 @@ String* String_createCompound(String *left, String *right) {
   } else {
     PersistentVector *rvec = getVec(right);;
     for(int i=0; i< rvec->count; i++) { /* TODO - use transients here */
-      PersistentVector *added = PersistentVector_conj(v, PersistentVector_nth(rvec, i));
+      PersistentVector *added = PersistentVector_conj(v, super(PersistentVector_nth(rvec, i)));
       release(v);
       v = added;
     }
@@ -120,7 +120,7 @@ String* String_createCompound(String *left, String *right) {
   it->index++;
   it->blockIndex++;
   /* TODO - uzyc iterator vectora */
-  String *child = Object_data(PersistentVector_nth(getVec(self), it->blockIndex));
+  String *child = PersistentVector_nth(getVec(self), it->blockIndex);
   it->blockLength = child->count;
   it->block = getStatDyn(child);
   return it->block[it->inBlockIndex];
@@ -132,7 +132,7 @@ String* String_createCompound(String *left, String *right) {
   it.inBlockIndex = 0;
   it.blockIndex = 0;
   if(self->specialisation == compoundString) {
-    String *child = Object_data(PersistentVector_nth(getVec(self), 0));
+    String *child = PersistentVector_nth(getVec(self), 0);
     it.blockLength = child->count;
     it.block = getStatDyn(child);
     return it;
@@ -151,10 +151,12 @@ String *String_compactify(String *self) {
   char *output = &(out->value[0]);
   
   PersistentVector *v = getVec(self);
+
+
   int start = 0;
   for(int i=0; i<v->count;i++) {
     /* TODO - uzyc iterator vectora */
-    String *block = Object_data(PersistentVector_nth(v, i));
+    String *block = PersistentVector_nth(v, i);
     char *blockPtr = getStatDyn(block);
     memcpy(output + start, blockPtr, block->count);
     start += block->count;

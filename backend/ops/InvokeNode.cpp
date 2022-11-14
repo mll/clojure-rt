@@ -5,16 +5,30 @@
 TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto type = getType(node, typeRestrictions);
   /* TODO - variadic */
-  auto function = subnode.fn();
-  auto funType = getType(function, ObjectTypeSet::all());
+  auto functionRef = subnode.fn();
+  auto funType = getType(functionRef, ObjectTypeSet::all());
+  string fName = "";
   
-  if(funType.isType(functionType) && funType.getConstant()) {
-    string name = dynamic_cast<ConstantFunction *>(funType.getConstant())->value;
-
-    FnNode functionBody = TheProgramme->Functions.find(name)->second.subnode().fn();  
-    vector<TypedValue> args;
-    for(int i=0; i< subnode.args_size(); i++) args.push_back(codegen(subnode.args(i), ObjectTypeSet::all()));
+  vector<TypedValue> args;
+  for(int i=0; i< subnode.args_size(); i++) args.push_back(codegen(subnode.args(i), ObjectTypeSet::all()));
     
+  if(functionRef.op() == opVar) { /* Static var holding a fuction */
+    auto var = functionRef.subnode().var();
+    string name = var.var().substr(2);
+    auto nameIt = TheProgramme->StaticFunctions.find(name);
+    if(nameIt != TheProgramme->StaticFunctions.end()) {
+      fName = nameIt->second;
+    }
+  }
+  
+  if(fName == "" && funType.isType(functionType) && funType.getConstant()) {
+    /* Direct call to a constant function  */
+    fName = dynamic_cast<ConstantFunction *>(funType.getConstant())->value;
+  }
+
+  if(fName.size() > 0) {
+    FnNode functionBody = TheProgramme->Functions.find(fName)->second.subnode().fn();  
+  
     /* We need to find a correct method */
 
     vector<const FnMethodNode *> nodes;
@@ -31,18 +45,71 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
       if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; break;}
       if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; break;}
     }
-    if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
+    if(method == nullptr) throw CodeGenerationException(string("Function ") + fName + " has been called with wrong arity: " + to_string(args.size()), node);
 
     vector<ObjectTypeSet> argTypes;
     for(int i=0; i<args.size(); i++) argTypes.push_back(args[i].first);
 
-    string rName = recursiveMethodKey(name, argTypes);
+    string rName = recursiveMethodKey(fName, argTypes);
     TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
-    auto retVal = callStaticFun(*method, name, type, args);
+    auto retVal = callStaticFun(*method, fName, type, args);
     /* We leave the return type cached, maybe in the future it needs to be removed here */
     return retVal;
   }
+
+  if(funType.isDetermined()) {
+    switch(funType.determinedType()) {
+    case integerType:
+    case doubleType:
+    case booleanType:
+    case nilType:
+    case stringType:
+    case persistentListType:
+    case persistentVectorNodeType:
+    case concurrentHashMapType:
+      throw CodeGenerationException("This type cannot be invoked.", node);
+    case symbolType:
+      /* Strange clojure behaviour, we just imitate */
+      return TypedValue(ObjectTypeSet(nilType), dynamicNil());
+    case keywordType:
+      /* TODO */
+      throw CodeGenerationException("We do not support keyword invoke yet.", node);
+    case functionType:
+      /* Function without constant value must be interpreted in the runtime, just like 
+         indetermined object */
+      break;
+    case persistentVectorType:
+      { /* TODO: should we move this to a more general function or combine it with static calls?
+           we should support big integers here as well */
+        vector<TypedValue> args;
+        for(int i=0; i< subnode.args_size(); i++) args.push_back(codegen(subnode.args(i), ObjectTypeSet::all()));
+        if(args.size() != 1) throw CodeGenerationException("Wrong number of args passed to invokation", node);
+        vector<TypedValue> finalArgs;
+        string callName;
+        finalArgs.push_back(codegen(functionRef, ObjectTypeSet::all()));
+        auto argType = args[0].first;
+        /* Todo - what about big integer? */
+        if(argType.isDetermined() && !argType.isType(integerType)) throw CodeGenerationException("The argument must be an integer", node);
+        
+        if(args[0].first.isType(integerType)) {
+          finalArgs.push_back(args[0]);          
+          callName = "PersistentVector_nth";
+        } else {
+          finalArgs.push_back(TypedValue(ObjectTypeSet::dynamicType(), args[0].second));          
+          callName = "PersistentVector_dynamic_nth";
+        }
+        return callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs); 
+      break;
+      }
+    }
+  }
+  
+  
+  
+
+  
 // TODO: generic functions
+// ConstantExpr::getBitCast(MyFunction, Type::getInt8PtrTy(Ctx))
   throw CodeGenerationException("We do not support generic functions yet.", node);
 
   return TypedValue(type, nullptr);

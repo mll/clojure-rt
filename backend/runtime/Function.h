@@ -8,6 +8,7 @@ struct FunctionMethod  {
   uint64_t fixedArity;
   uint64_t isVariadic;
   char *loopId;
+  void *genericBootstrapPointer;
 };
 
 typedef struct FunctionMethod FunctionMethod;
@@ -25,7 +26,7 @@ typedef struct Function Function;
 Function* Function_create(uint64_t methodCount, char *uniqueName, uint64_t hash, uint64_t maxArity);
 
 
-void Function_fillMethod(Function *self, uint64_t position, uint64_t fixedArity,  BOOL isVariadic,  char *loopId);
+void Function_fillMethod(Function *self, uint64_t position, uint64_t fixedArity,  BOOL isVariadic,  char *loopId, void *genericBootstrapPointer);
 
 BOOL Function_equals(Function *self, Function *other);
 uint64_t Function_hash(Function *self);

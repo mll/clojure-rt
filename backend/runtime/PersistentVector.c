@@ -169,16 +169,25 @@ PersistentVector* PersistentVector_conj(PersistentVector * restrict self, Object
   return new;
 }
 
-Object* PersistentVector_nth(PersistentVector * restrict self, uint64_t index) {
+void* PersistentVector_nth(PersistentVector * restrict self, uint64_t index) {
+  /* TODO - should throw */
   if(index >= self->count) return NULL; 
   uint64_t tailOffset = self->count - self->tail->count;
-  if(index >= tailOffset) return self->tail->array[index - tailOffset];
+  if(index >= tailOffset) return Object_data(self->tail->array[index - tailOffset]);
 
   PersistentVectorNode *node = self->root;
   for(uint64_t level = self->shift; level > 0; level -= RRB_BITS) {
     node = Object_data(node->array[(index >> level) & RRB_MASK]);
   }
-  return node->array[index & RRB_MASK];
+  return Object_data(node->array[index & RRB_MASK]);
+}
+
+void* PersistentVector_dynamic_nth(PersistentVector * restrict self, void *indexObject) {
+  /* TODO: should throw */
+  /* we should support big integers here as well */
+  if(super(index)->type != integerType) return NULL;
+  uint64_t index = ((Integer *)indexObject)->value;
+  return PersistentVector_nth(self, index);
 }
 
 

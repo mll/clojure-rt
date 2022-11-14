@@ -1,14 +1,14 @@
 #!/bin/bash
 
 FILENAME="$1"
-echo "$FILENAME"
 
-cp $1 frontend
+cp $FILENAME frontend
 cd frontend
-lein run $1
+lein run $FILENAME
 mv *.cljb ../backend
+rm $FILENAME
 cd ../backend
 #arch -arm64 lldb ./clojure-rt 
 ./clojure-rt *.cljb
-#rm *.cljb
+rm *.cljb
 cd ..

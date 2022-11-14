@@ -29,7 +29,10 @@ void PersistentVector_destroy(PersistentVector * restrict self, BOOL deallocateC
 
 PersistentVector* PersistentVector_conj(PersistentVector * restrict self, Object * restrict other);
 PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint64_t index, Object * restrict other);
-Object* PersistentVector_nth(PersistentVector * restrict self, uint64_t index);
+
+void* PersistentVector_dynamic_nth(PersistentVector * restrict self, void *indexObject);
+void* PersistentVector_nth(PersistentVector * restrict self, uint64_t index);
+
 void PersistentVector_print(PersistentVector * restrict self);
 
 #endif

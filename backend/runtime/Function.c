@@ -12,11 +12,12 @@ Function* Function_create(uint64_t methodCount, char *uniqueName, uint64_t hash,
   return self;
 }
 
-void Function_fillMethod(Function *self, uint64_t position, uint64_t fixedArity,  BOOL isVariadic,  char *loopId) {
+void Function_fillMethod(Function *self, uint64_t position, uint64_t fixedArity,  BOOL isVariadic,  char *loopId, void *genericBootstrapPointer) {
   FunctionMethod * method = self->methods + position;
   method->fixedArity = fixedArity;
   method->isVariadic = isVariadic;
   method->loopId = loopId;
+  method->genericBootstrapPointer = genericBootstrapPointer;
 }
 
 BOOL Function_equals(Function *self, Function *other) {

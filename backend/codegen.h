@@ -75,6 +75,7 @@ public:
   TypedValue callStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args);
   void buildStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retVal, const vector<ObjectTypeSet> &args);
 
+TypedValue callDynamicFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args);
 
   TypedValue staticFalse();
   TypedValue staticTrue();
@@ -83,6 +84,7 @@ public:
 
   Value *dynamicNil();
   Value *dynamicString(const char *str);
+
   Value *dynamicSymbol(const char *name);
   Value *dynamicKeyword(const char *name);
   Value *dynamicVector(const vector<TypedValue> &args);
@@ -93,12 +95,14 @@ public:
   void runtimeException(const CodeGenerationException &runtimeException);  
 
   Value *callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args, bool isVariadic = false);
+  TypedValue callRuntimeFun(const string &fname, const ObjectTypeSet &retVal, const vector<TypedValue> &args);
+
   Value *dynamicCreate(objectType type, const vector<Type *> &argTypes, const vector<Value *> &args);
  
   Type *dynamicUnboxedType(objectType type);
   Type *dynamicBoxedType(objectType type);
   Type *dynamicBoxedType();
-
+  Type *dynamicType(const ObjectTypeSet &type);
 
   /* Code generation */
 

@@ -255,6 +255,12 @@ class ObjectTypeSet {
   }
 
   friend bool operator==(const ObjectTypeSet &first, const ObjectTypeSet &second);
+
+  static ObjectTypeSet dynamicType() {
+    auto all = ObjectTypeSet:: all();
+    all.isBoxed = true;
+    return all;
+  }
   
   static ObjectTypeSet all() {
     ObjectTypeSet retVal;

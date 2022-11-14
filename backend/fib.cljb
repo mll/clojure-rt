@@ -1,93 +1,0 @@
-
-¬@BÁ=:‰=Ç9B∞6⁄¨6
-ª4B∫2R∑2≤2B√0Z¿0
-˙.B™,jß,
-Å$BÑ"jÅ"
-€BÅ¢˝
-™B†	íú	
-¬Bò¢î
-áB
-≤"x__#0xJclass java.lang.Object
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user 6(078BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*class java.lang.Object
-‚B	2"11Jlong
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user 3(0:8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*longclass clojure.lang.Numbersminus $(. clojure.lang.Numbers (minus x 1))Jclass java.lang.Number:(- x 1)
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user 3(0:8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0#*class java.lang.NumberˆB 
-#'user/fibfib
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user /(028BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0(*class java.lang.Object\{:source "(fib (- x 1))", :file "fib.clj", :line 1, :column 46, :end-line 1, :end-column 59}(fib (- x 1))Jclass java.lang.Object
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user .(0;8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*class java.lang.Object
-™B†	íú	
-¬Bò¢î
-áB
-≤"x__#0xJclass java.lang.Object
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user D(0E8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*class java.lang.Object
-‚B	2"22Jlong
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user A(0H8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*longclass clojure.lang.Numbersminus $(. clojure.lang.Numbers (minus x 2))Jclass java.lang.Number:(- x 2)
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user A(0H8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0#*class java.lang.NumberˆB 
-#'user/fibfib
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user =(0@8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0(*class java.lang.Object\{:source "(fib (- x 2))", :file "fib.clj", :line 1, :column 60, :end-line 1, :end-column 73}(fib (- x 2))Jclass java.lang.Object
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user <(0I8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*class java.lang.Objectclass clojure.lang.Numbersadd :(. clojure.lang.Numbers (add (fib (- x 1)) (fib (- x 2))))Jclass java.lang.Number:(+ (fib (- x 1)) (fib (- x 2)))
-≈
-:ctx/returnN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user +(0J8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0#*class java.lang.Number©Bï¢ë
-áB
-≤"x__#0xJclass java.lang.Object
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user $(0%8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*class java.lang.Object
-‚B	2"22Jlong
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user !(0(8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*longclass clojure.lang.Utilequiv ,(. clojure.lang.Util clojure.core/equiv x 2)Jboolean:(= x 2)
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user !(0(8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0#*booleanÙB	2"11Jclass java.lang.Long
-≈
-:ctx/returnN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user (0K8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*long.(if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2))))
-≈
-:ctx/returnN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user (0K8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0©Bï¢ë
-áB
-≤"x__#0xJclass java.lang.Object
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user (08BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*class java.lang.Object
-‚B	2"11Jlong
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user (08BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*longclass clojure.lang.Utilequiv ,(. clojure.lang.Util clojure.core/equiv x 1)Jboolean:(= x 1)
-√
-	:ctx/exprN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user (08BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0#*booleanÙB	2"11Jclass java.lang.Long
-≈
-:ctx/returnN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user (0L8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*long=(if (= x 1) 1 (if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2))))):B(do (if (= x 1) 1 (if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2))))))
-≈
-:ctx/returnN[x {:form x, :name x, :variadic? false, :op :binding, :arg-id 0, :local :arg}]user (0L8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0	loop_4268"≥B	
-"x__#0xJclass java.lang.Object
-s
-	:ctx/expruser (08BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj*class java.lang.ObjectC([x] (if (= x 1) 1 (if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2))))))Jclass java.lang.Object
-s
-	:ctx/expruser (0M8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0
-*class java.lang.ObjectI(fn* ([x] (if (= x 1) 1 (if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2)))))))Jclass clojure.lang.AFunction
-s
-	:ctx/expruser (0M8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0	*class clojure.lang.AFunctionÎB2"{:rettag nil}{:rettag nil}J%class clojure.lang.PersistentArrayMap
-s
-	:ctx/expruser (0M8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*%class clojure.lang.PersistentArrayMapI(fn* ([x] (if (= x 1) 1 (if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2)))))))Jclass clojure.lang.AFunction:U(clojure.core/fn ([x] (if (= x 1) 1 (if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2)))))))
-s
-	:ctx/expruser (0M8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0**class java.lang.ObjectÀB≈2¬"ª{:source "fib", :file "/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj", :line 1, :column 1, :end-line 1, :end-column 77, :arglists (quote ([x]))}ª{:source "fib", :file "/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj", :line 1, :column 1, :end-line 1, :end-column 77, :arglists (quote ([x]))}J%class clojure.lang.PersistentArrayMap
-s
-	:ctx/expruser (0M8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*%class clojure.lang.PersistentArrayMap"fib*
-#'user/fib_(def fib (clojure.core/fn ([x] (if (= x 1) 1 (if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2))))))))Jclass clojure.lang.Var:L(defn fib [x] (if (= x 1) 1 (if (= x 2) 1 (+ (fib (- x 1)) (fib (- x 2))))))
-s
-	:ctx/expruser (0M8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.cljP0*class clojure.lang.Var
-«B©í•
-£B
-2"4242Jclass java.lang.Long
-s
-	:ctx/expruser (0	8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0*long•B 
-#'user/fibfib
-s
-	:ctx/expruser (08BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.clj0(*class java.lang.ObjectU{:source "(fib 42)", :file "fib.clj", :line 2, :column 1, :end-line 2, :end-column 9}(fib 42)
-s
-	:ctx/expruser (0	8BX/private/var/folders/86/9g_hsc515yn1g7x7pz08t2q00000gq/T/form-init103992549762484100.cljP0*class java.lang.Object

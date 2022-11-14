@@ -25,6 +25,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
   args.push_back(ConstantInt::get(*TheContext, APInt(64, computeHash(newName.c_str()), false)));
   args.push_back(ConstantInt::get(*TheContext, APInt(64, subnode.maxfixedarity())));
 
+// We need to add a function pointer for each method in its generic form
+// ConstantExpr::getBitCast(MyFunction, Type::getInt8PtrTy(Ctx))
+
   Value *fun = dynamicCreate(functionType, types, args); 
   types.clear();
 
@@ -32,6 +35,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
   types.push_back(Type::getInt64Ty(*TheContext));
   types.push_back(Type::getInt8Ty(*TheContext));
   types.push_back(Type::getInt64Ty(*TheContext));
+  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   
   vector<const FnMethodNode *> nodes;
@@ -52,6 +56,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
     args.push_back(ConstantInt::get(*TheContext, APInt(64, method->fixedarity())));
     args.push_back(ConstantInt::get(*TheContext, APInt(8, method->isvariadic())));
     args.push_back(Builder->CreateGlobalStringPtr(StringRef(method->loopid().c_str()), "staticString"));
+    
+    
+/* TODO - create pointer to function - for now null pointer */
+// args.push_back(ConstantExpr::getBitCast(MyFunction, Type::getInt8PtrTy(*TheContext)));
+    args.push_back(ConstantPointerNull::get(Type::getInt8PtrTy(*TheContext)));
+
 
     callRuntimeFun("Function_fillMethod", Type::getVoidTy(*TheContext), types, args);
   } 

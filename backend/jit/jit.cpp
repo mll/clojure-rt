@@ -82,7 +82,7 @@ Expected<JITEvaluatedSymbol> ClojureJIT::lookup(StringRef Name) {
 
 Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, const MaterializationResponsibility &R) {
   TSM.withModuleDo([](Module &M) {
-//    M.print(errs(), nullptr);
+    M.print(errs(), nullptr);
     verifyModule(M);
     // Create a function pass manager.
     auto TheFPM = std::make_unique<legacy::FunctionPassManager>(&M);

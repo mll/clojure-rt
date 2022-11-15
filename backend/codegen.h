@@ -90,8 +90,10 @@ TypedValue callDynamicFun(const FnMethodNode &method, const string &name, const 
   Value *dynamicVector(const vector<TypedValue> &args);
   Value *dynamicRelease(Value *what);
   Value *dynamicCond(Value *cond);
-  Value *box(const TypedValue &value);
-  Value *unbox(const TypedValue &value);
+
+  TypedValue box(const TypedValue &value);
+  TypedValue unbox(const TypedValue &value);
+
   void runtimeException(const CodeGenerationException &runtimeException);  
 
   Value *callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args, bool isVariadic = false);

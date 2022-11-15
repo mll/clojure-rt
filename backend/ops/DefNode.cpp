@@ -29,7 +29,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     
     if(!foundTypes.isDetermined() && created.first.isDetermined()) {
        GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
-       Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, box(created), MaybeAlign(), AtomicOrdering::Monotonic);
+       Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, box(created).second, MaybeAlign(), AtomicOrdering::Monotonic);
       return TypedValue(ObjectTypeSet(nilType), nil);
     }
 

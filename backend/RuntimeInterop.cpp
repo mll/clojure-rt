@@ -120,12 +120,12 @@ Value *CodeGenerator::dynamicVector(const vector<TypedValue> &args) {
   types.push_back(Type::getInt64Ty(*TheContext));
   argsV.push_back(ConstantInt::get(*TheContext, APInt(64, args.size())));
   for(auto arg: args) {
-    argsV.push_back(box(arg));
+    argsV.push_back(box(arg).second);
   }
 
   auto retVal = dynamicCreate(persistentVectorType, types, argsV);
-  /* TODO: This remains to be discovered - depending on the refcount strategy it might be needed or not */
-  for(int i=0; i<args.size(); i++ ) dynamicRelease(argsV[i+1]); 
+  /* TODO: RefCount - This remains to be discovered - depending on the refcount strategy it might be needed or not */
+//  for(int i=0; i<args.size(); i++ ) dynamicRelease(argsV[i+1]); 
   return retVal;
 }
 
@@ -208,18 +208,41 @@ Type *CodeGenerator::dynamicType(const ObjectTypeSet &type) {
   return dynamicBoxedType();
 }
 
-Value *CodeGenerator::unbox(const TypedValue &value) {
-  /* TODO */
-  return NULL;
-}
+TypedValue CodeGenerator::unbox(const TypedValue &value) {
+  if(!value.first.isBoxed || !value.first.isDetermined()) return value;
+  Type *type = nullptr;
+  ObjectTypeSet t = value.first;
+  t.isBoxed = false;
+  
+  switch(value.first.determinedType()) {
+  case integerType:
+    type = Type::getInt64Ty(*TheContext);
+    break;
+  case doubleType:
+    type = Type::getDoubleTy(*TheContext);
+    break;
+  case booleanType:
+    type = Type::getInt8Ty(*TheContext);
+    break;
+  default:
+    return TypedValue(t, value.second);
+  }
 
-Value *CodeGenerator::box(const TypedValue &value) {
-  if (!value.first.isDetermined()) return value.second;
+  Value *loaded = Builder->CreateLoad(type, CastInst::CreateBitOrPointerCast(value.second, type->getPointerTo(), "void_to_unboxed"), "load_var");
+  if(value.first.isType(booleanType)) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
+  dynamicRelease(value.second);
+  return TypedValue(t, loaded);
+}
+                                        
+TypedValue CodeGenerator::box(const TypedValue &value) {
+  if (!value.first.isDetermined() || value.first.isBoxed) return value;
 
   vector<Type *> argTypes;
   vector<Value *> args;
   argTypes.push_back(dynamicUnboxedType(value.first.determinedType()));
-  
+  ObjectTypeSet type = value.first;
+  type.isBoxed = true;
+
   switch(value.first.determinedType()) {
   case integerType:      
   case doubleType:
@@ -237,9 +260,9 @@ Value *CodeGenerator::box(const TypedValue &value) {
   case keywordType:
   case concurrentHashMapType:
   case functionType:
-    return value.second;
+    return TypedValue(type, value.second);
   }
-  return dynamicCreate(value.first.determinedType(), argTypes, args);
+  return TypedValue(type, dynamicCreate(value.first.determinedType(), argTypes, args));
 }
 
 Value *CodeGenerator::dynamicCond(Value *cond) {

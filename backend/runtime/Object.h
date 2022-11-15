@@ -281,6 +281,8 @@ inline void Object_autorelease(Object * restrict self) {
   if(atomic_load(&(self->atomicRefCount)) < 1) return;   
 #endif
   /* TODO: add an object to autorelease pool */
+  /* If we have no other threads working, we release immediately */
+  Object_release(self);
 }
 
 inline void retain(void * restrict self) {

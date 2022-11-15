@@ -33,7 +33,7 @@ string CodeGenerator::codegenTopLevel(const Node &node, int i) {
     Function *F = Function::Create(FT, Function::ExternalLinkage, fname, TheModule.get());
     BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", F);
     Builder->SetInsertPoint(BB);
-    Builder->CreateRet(box(codegen(node, ObjectTypeSet::all())));
+    Builder->CreateRet(box(codegen(node, ObjectTypeSet::all())).second);
     verifyFunction(*F);
     return fname;
 }
@@ -44,7 +44,7 @@ TypedValue CodeGenerator::callStaticFun(const FnMethodNode &method, const string
   vector<ObjectTypeSet> argT;
   
   for(auto arg : args) {
-    argTypes.push_back(arg.first.isDetermined() ? dynamicUnboxedType(arg.first.determinedType()) : dynamicBoxedType());
+    argTypes.push_back((arg.first.isDetermined() && !arg.first.isBoxed) ? dynamicUnboxedType(arg.first.determinedType()) : dynamicBoxedType());
     argVals.push_back(arg.second);
     argT.push_back(arg.first);
   }
@@ -107,10 +107,10 @@ void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &nam
   vector<Type *> argTypes;
   
   for(auto arg : args) {
-    argTypes.push_back(arg.isDetermined() ? dynamicUnboxedType(arg.determinedType()) : dynamicBoxedType());
+    argTypes.push_back((arg.isDetermined() && !arg.isBoxed)? dynamicUnboxedType(arg.determinedType()) : dynamicBoxedType());
   }
   
-  Type *retType = retVal.isDetermined() ? dynamicUnboxedType(retVal.determinedType()) : dynamicBoxedType();
+  Type *retType = (retVal.isDetermined() && !retVal.isBoxed) ? dynamicUnboxedType(retVal.determinedType()) : dynamicBoxedType();
   
   Function *CalleeF = TheModule->getFunction(name); 
   if(!CalleeF) {
@@ -119,15 +119,16 @@ void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &nam
     /* Build body */
     vector<Value *> fArgs;
     for(auto &farg: CalleeF->args()) fArgs.push_back(&farg);
-    
-    vector<TypedValue> functionArgs;
-    for(int i=0; i<args.size(); i++) functionArgs.push_back(TypedValue(args[i].removeConst(), fArgs[i]));
-    FunctionArgsStack.push_back(functionArgs);
-    
+
     BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
     Builder->SetInsertPoint(BB);
+    
+    vector<TypedValue> functionArgs;
+    for(int i=0; i<args.size(); i++) functionArgs.push_back(unbox(TypedValue(args[i].removeConst(), fArgs[i])));
+    FunctionArgsStack.push_back(functionArgs);
+    
     auto result = codegen(method.body(), retVal);
-    Builder->CreateRet(retVal.isBoxed ? box(result) : result.second);
+    Builder->CreateRet(retVal.isBoxed ? box(result).second : result.second);
     FunctionArgsStack.pop_back();
     
     verifyFunction(*CalleeF);
@@ -253,7 +254,7 @@ string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
     if(!i.isDetermined()) retval << "LO";
     else switch (i.determinedType()) {
       case integerType:
-        retval << "J";
+        retval << (i.isBoxed ? "LJ" : "J");
         break;
       case stringType:
         retval << "LS";
@@ -274,10 +275,10 @@ string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
         assert(false && "Concurrent hash map cannot be used as an argument");
         break;
       case doubleType:
-        retval << "D";
+        retval << (i.isBoxed ? "LD" : "D");
         break;
       case booleanType:
-        retval << "B";
+        retval << (i.isBoxed ? "LB" : "B");
         break;
       case nilType:
         retval << "LN";
@@ -320,14 +321,18 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
   if (currentChar == 'L') {
     if(s!=2) throw CodeGenerationException(string("Unknown type code: ")+ typeString, node);
     string typeName(&typeString[1]);      
+    if (typeName == "D") return ObjectTypeSet(doubleType, true);
+    if (typeName == "J") return ObjectTypeSet(integerType, true);
+    if (typeName == "Z") return ObjectTypeSet(booleanType, true);
     if (typeName == "S") return ObjectTypeSet(stringType);
+    if (typeName == "O") return ObjectTypeSet::all();
     if (typeName == "L") return ObjectTypeSet(persistentListType);
     if (typeName == "V") return ObjectTypeSet(persistentVectorType);
     if (typeName == "N") return ObjectTypeSet(nilType);
     if (typeName == "Y") return ObjectTypeSet(symbolType);
     if (typeName == "K") return ObjectTypeSet(keywordType);
     if (typeName == "F") return ObjectTypeSet(functionType);
-    if (typeName == "O") return ObjectTypeSet::all();
+
     throw CodeGenerationException(string("Unknown class: ")+ typeName, node);
   }
   if (currentChar == 'D') return ObjectTypeSet(doubleType);

@@ -56,15 +56,19 @@ So, here we go:
 
 ## Problem 1: The argument types of the function may not be known at compile time. 
 
-We had two choices here - choice one is trivial - for example we create "fn_0_LOJ" - one generic parameter and one integer as args. We can then compute the return type (which is not necessarily LO, some functions used inside the method might force a return type even if all args are LO) and use the same mechanism that was used for building specialised function but now we do not specify types of some args. 
+We had two choices here. Choice one is trivial - for example we create "fn_0_LOJ" - one generic parameter and one integer as args. We can then compute the return type (which is not necessarily LO, some functions used inside the method might force a return type even if all args are LO) and use the same mechanism that was used for building specialised function but now we do not specify types of some args. 
 
-This has the advantage of delaying unpackaging of arguments until their types are required by the nested function calls (e.g. some functions do not have all the arities because their type would end up undefined, for example there is no "+" function for a string and a list (as "+" is reserved to numerical types in clojure). So a generic implementation fo plus, "LOLO", would peek at types of generic arguments in runtime and decide if and how it can proceed or throw a runtime exception expalining that types do not match.
+This has the advantage of delaying unpackaging of arguments until their types are required by the nested function calls (e.g. some functions do not have all the arities because their type would end up undefined, for example there is no "+" function for a string and a list (as "+" is reserved to numerical types in clojure). So a generic implementation of plus, "LOLO", would peek at types of generic arguments in runtime and decide if and how it can proceed or throw a runtime exception expalining that types do not match.
+
+The problem of this approach is - very quickly the dynamic part of the programme can swallow the static one, making all the calls LO.
+All the benefits of LLVM optimisations and fast math are then lost.
 
 The other option is to create "fn_0_LOJ" only as a bootstrap. This bootstrap, once run, would determine the exact types of its first generic argument and discover what the actual function to call is, for example if the first argument is actually an integer, it will discover the function is "fn_0_JJ". The interesting part is that this function, which is being run on the "compiled programme" side of compilation can still call runtime library functions that interact directly with the compiler and JIT. So the bootstrap function can ask the jit to create a symbol for "fn_0_JJ" (without materialising it), get a function pointer to this function (which immediately exists for every symbol, JIT uses it as a stub if the function body was not yet materialised), unbox the first argument (since we are now certain it is an integer), use the pointer to call the function and possibly box end result (if generic function type does not correspond to concrete type). This way the price we pay for a dynamic call is confined to type determination (we can use a table for that), calling runtime library to give us function pointer, subsequent call to concrete implementation and boxing possible of the result. 
 
-The signature determination can be hastened by encoding it using the idea that we have at most 256 (one byte) "fast internal types". Therefore, a single 64bit integer can hold at most 8 bytes, so we can service up to 8 function arguments by simple bit shifts. 
+The signature determination can be hastened by encoding it using the idea that we have at most 256 (one byte) "fast internal types". Therefore, a single 64bit integer can hold at most 8 bytes, so we can service up to 8 function arguments by simple bit shifts. We can use up to 3 integers like this, supporting up to 24 arguments (original clojure supports up to 20). Furthermore, we can cache a few first functions as function pointers attached to the fn structure using atomic CompareAndSwap.  
 
-Cost = type_ 
+Cost when not cahced (first run) = type-determination (small, 0 function calls, a GEP and a load) + cost to unbox primitive arguments (cheap, just a GEP and load) + JIT-call (possibly large cost)
+ 
 
 
 

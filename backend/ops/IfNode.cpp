@@ -93,10 +93,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
       Builder->CreateBr(mergeBB);  
     } else {
       /* We box any fast types (boxing leaves complex types unaffected) */ 
-      elseWithType.second = box(elseWithType);
+      elseWithType = box(elseWithType);
       Builder->CreateBr(mergeBB);  
       Builder->SetInsertPoint(thenBB);
-      thenWithType.second = box(thenWithType);
+      thenWithType = box(thenWithType);
       Builder->CreateBr(mergeBB);
       returnTypedValue.first = elseWithType.first.expansion(thenWithType.first);
     }

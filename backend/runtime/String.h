@@ -42,7 +42,7 @@ typedef struct StringIterator StringIterator;
 String* String_createStaticOptimised(char *string, uint64_t len, uint64_t hash);
 String* String_create(char *string);
 String* String_createDynamic(size_t size);
-
+String* String_createStatic(char *string);
 
 StringIterator String_iterator(String *self);
 char String_iteratorGetChar(String *self, StringIterator *it);

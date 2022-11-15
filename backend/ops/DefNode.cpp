@@ -19,22 +19,50 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     /* TODO - redeclaration requires another global and / or tapping runtime */
     if(created.first.isEmpty()) throw CodeGenerationException(string("Var type change impossible at this time: ") + name + " type: " + foundTypes.toString() + " incoming types: " + incomingTypes.toString(), node);
 
+    TypedValue newValue;
+ 
     if((foundTypes.isDetermined() && created.first.isDetermined()) ||
        (!foundTypes.isDetermined() && !created.first.isDetermined())) {
-
-      GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
-      Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, created.second, MaybeAlign(), AtomicOrdering::Monotonic);
-      return TypedValue(ObjectTypeSet(nilType), nil);
+      newValue = created;
+    } else if(!foundTypes.isDetermined() && created.first.isDetermined()) {
+      newValue = box(created);
+    } else {
+      /* TODO - redeclaration requires another global and tapping runtime */
+      throw CodeGenerationException(string("Var type change impossible at this time: ") + name + " type: " + foundTypes.toString() + " incoming types: " + incomingTypes.toString(), node);
     }
     
-    if(!foundTypes.isDetermined() && created.first.isDetermined()) {
-       GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
-       Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, box(created).second, MaybeAlign(), AtomicOrdering::Monotonic);
-      return TypedValue(ObjectTypeSet(nilType), nil);
-    }
+    GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
+    Type *type = (newValue.first.isDetermined() && !newValue.first.isBoxed)  ? dynamicUnboxedType(newValue.first.determinedType()) : dynamicBoxedType();
 
-    /* TODO - redeclaration requires another global and tapping runtime */
-    throw CodeGenerationException(string("Var type change impossible at this time: ") + name + " type: " + foundTypes.toString() + " incoming types: " + incomingTypes.toString(), node);
+    LoadInst * load = Builder->CreateLoad(type, gVar, "load_var");
+    load->setAtomic(AtomicOrdering::Monotonic);
+
+    Function *TheFunction = Builder->GetInsertBlock()->getParent();
+    BasicBlock *PreheaderBB = Builder->GetInsertBlock();
+    BasicBlock *LoopBB = BasicBlock::Create(*TheContext, "loop", TheFunction);
+
+    // Insert an explicit fall through from the current block to the LoopBB.
+    Builder->CreateBr(LoopBB);
+    Builder->SetInsertPoint(LoopBB);
+
+    PHINode *Variable = Builder->CreatePHI(type, 2, "cmp_var");
+    Variable->addIncoming(load, PreheaderBB);
+
+    Value *pair = Builder->CreateAtomicCmpXchg(gVar, load, newValue.second, MaybeAlign(), AtomicOrdering::Monotonic,  AtomicOrdering::Monotonic);
+    
+    Value *success = Builder->CreateExtractValue(pair, 1, "success");
+    Value *newLoaded = Builder->CreateExtractValue(pair, 0, "newloaded");    
+    
+    BasicBlock *LoopEndBB = Builder->GetInsertBlock();
+    BasicBlock *AfterBB = BasicBlock::Create(*TheContext, "afterloop", TheFunction);
+
+    Builder->CreateCondBr(success, AfterBB, LoopBB);
+
+    Builder->SetInsertPoint(AfterBB);
+    Variable->addIncoming(newLoaded, LoopEndBB);
+    if(!newValue.first.isScalar()) dynamicRelease(Variable, true);
+
+    return TypedValue(ObjectTypeSet(nilType), nil);
   }
   
   if(!subnode.has_init()) {
@@ -57,17 +85,15 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     //gVar->setLinkage(GlobalValue::CommonLinkage);
     //gVar->setAlignment(Align(8));
 
-
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, created.second, MaybeAlign(), AtomicOrdering::Monotonic);
     created.second = gVar;
+    created.first = created.first.removeConst();
     StaticVars.insert({name, created});
     TheProgramme->StaticVarTypes.insert({name, created.first});
     ConstantFunction *constFun = nullptr;
     if(created.first.isDetermined() && created.first.determinedType() == functionType && (constFun = dynamic_cast<ConstantFunction *>(created.first.getConstant()))) {
-      /* Static function declaration, we set some info for the invoke node to speed things up */
-      auto found = TheProgramme->StaticFunctions.find(mangled);
-      if(found != TheProgramme->StaticFunctions.end()) throw CodeGenerationException(string("Trying to redeclare function that already has static representation, this is compiler programming error"), node);      
-      TheProgramme->StaticFunctions.insert({name, constFun->value});
+      /* Static function declaration, we set some info for the invoke node to speed things up. This works only the first time the function is declared under this var. */
+     TheProgramme->StaticFunctions.insert({mangled, constFun->value});
     }
   }
 

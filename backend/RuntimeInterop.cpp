@@ -143,13 +143,13 @@ Value * CodeGenerator::dynamicString(const char *str) {
   return dynamicCreate(stringType, types, args);
 }
 
-Value * CodeGenerator::dynamicRelease(Value *what) {
+Value * CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false) {
   vector<Type *> types;
   vector<Value *> args;
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   args.push_back(what);
 
-  return callRuntimeFun("release", Type::getVoidTy(*TheContext), types, args);
+  return callRuntimeFun(isAutorelease ? "autorelease" : "release", isAutorelease ? Type::getVoidTy(*TheContext) : Type::getInt8Ty(*TheContext), types, args);
 }
 
 

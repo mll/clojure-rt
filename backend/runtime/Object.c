@@ -47,6 +47,7 @@ extern void deallocate(void * restrict ptr);
 extern Object *super(void * restrict self);
 extern void retain(void * restrict self);
 extern BOOL release(void * restrict self);
+extern void autorelease(void * restrict self);
 extern BOOL release_internal(void * restrict self, BOOL deallocatesChildren);
 extern BOOL equals(void * restrict self, void * restrict other);
 extern uint64_t hash(void * restrict self);

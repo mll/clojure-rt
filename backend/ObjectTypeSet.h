@@ -90,10 +90,10 @@ class ConstantBoolean: public ObjectTypeConstant {
 
 class ConstantFunction: public ObjectTypeConstant {
   public:
-  string value;
-  ConstantFunction(string val) : ObjectTypeConstant(functionType), value(val) {}
+  uint64_t value;
+  ConstantFunction(uint64_t val) : ObjectTypeConstant(functionType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantFunction(value)); }
-  virtual string toString() { return value; }
+  virtual string toString() { return string("fn_") + to_string(value); }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantFunction *i = dynamic_cast<ConstantFunction *>(other)) {
       return i->value == value;
@@ -227,6 +227,13 @@ class ObjectTypeSet {
       retVal.constant = nullptr;
     }
     return retVal;
+  }
+
+  bool isScalar() const {
+    if(isBoxed || !isDetermined()) return false;
+    objectType type = determinedType();
+    if(type == integerType || type == doubleType || type == booleanType) return true;
+    return false;
   }
 
 

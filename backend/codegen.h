@@ -69,7 +69,8 @@ public:
   uint64_t computeHash(const char *str);
   uint64_t avalanche_64(uint64_t h);
   string globalNameForVar(string var);
-  string getMangledUniqueFunctionName();
+  string getMangledUniqueFunctionName(uint64_t num) ;
+  uint64_t getUniqueFunctionId();
   string recursiveMethodKey(const string &name, const vector<ObjectTypeSet> &args);
 
   TypedValue callStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args);
@@ -88,7 +89,7 @@ TypedValue callDynamicFun(const FnMethodNode &method, const string &name, const 
   Value *dynamicSymbol(const char *name);
   Value *dynamicKeyword(const char *name);
   Value *dynamicVector(const vector<TypedValue> &args);
-  Value *dynamicRelease(Value *what);
+  Value *dynamicRelease(Value *what, bool isAutorelease);
   Value *dynamicCond(Value *cond);
 
   TypedValue box(const TypedValue &value);

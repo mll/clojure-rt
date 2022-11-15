@@ -14,17 +14,15 @@ struct FunctionMethod  {
 typedef struct FunctionMethod FunctionMethod;
 
 struct Function {
-  char *uniqueName;
+  uint64_t uniqueId;
   uint64_t methodCount;
-  uint64_t hash;
   uint64_t maxArity;
   FunctionMethod methods[];
 };
 
 typedef struct Function Function;
 
-Function* Function_create(uint64_t methodCount, char *uniqueName, uint64_t hash, uint64_t maxArity);
-
+Function* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity);
 
 void Function_fillMethod(Function *self, uint64_t position, uint64_t fixedArity,  BOOL isVariadic,  char *loopId, void *genericBootstrapPointer);
 

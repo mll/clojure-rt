@@ -273,6 +273,7 @@ inline BOOL Object_release(Object * restrict self) {
   return Object_release_internal(self, TRUE);
 }
 
+
 inline void Object_autorelease(Object * restrict self) {
   /* The object could have been deallocated through direct releases in the meantime (e.g. if autoreleasing entity does not own ) */
 #ifdef REFCOUNT_NONATOMIC
@@ -283,6 +284,10 @@ inline void Object_autorelease(Object * restrict self) {
   /* TODO: add an object to autorelease pool */
   /* If we have no other threads working, we release immediately */
   Object_release(self);
+}
+
+inline void autorelease(void * restrict self) {
+  Object_autorelease(super(self));
 }
 
 inline void retain(void * restrict self) {

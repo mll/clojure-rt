@@ -4,26 +4,24 @@
 
 TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
   ObjectTypeSet type = getType(node, typeRestrictions);
-  auto nameEntry = TheProgramme->NodesToFunctions.find(pointerName((void *)&node));
-  string newName;
-  if(nameEntry == TheProgramme->NodesToFunctions.end()) {
-    newName = getMangledUniqueFunctionName();  
-    TheProgramme->NodesToFunctions.insert({pointerName((void *)&node), newName});
-    TheProgramme->Functions.insert({newName, node});
-  } else newName = nameEntry->second;
+  auto idEntry = TheProgramme->NodesToFunctions.find(pointerName((void *)&node));
+  uint64_t funId = 0;
+  if(idEntry == TheProgramme->NodesToFunctions.end()) {
+    funId = getUniqueFunctionId();  
+    TheProgramme->NodesToFunctions.insert({pointerName((void *)&node), funId});
+    TheProgramme->Functions.insert({funId, node});
+  } else funId = idEntry->second;
   
   vector<Type *> types;
   vector<Value *> args;
   
   types.push_back(Type::getInt64Ty(*TheContext));
-  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   types.push_back(Type::getInt64Ty(*TheContext));
   types.push_back(Type::getInt64Ty(*TheContext));
 
   args.push_back(ConstantInt::get(*TheContext, APInt(64, subnode.methods_size(), false)));  
-  args.push_back(Builder->CreateGlobalStringPtr(StringRef(newName.c_str()), "staticString"));
-  args.push_back(ConstantInt::get(*TheContext, APInt(64, computeHash(newName.c_str()), false)));
-  args.push_back(ConstantInt::get(*TheContext, APInt(64, subnode.maxfixedarity())));
+  args.push_back(ConstantInt::get(*TheContext, APInt(64, funId, false)));
+  args.push_back(ConstantInt::get(*TheContext, APInt(64, subnode.maxfixedarity(), false)));
 
 // We need to add a function pointer for each method in its generic form
 // ConstantExpr::getBitCast(MyFunction, Type::getInt8PtrTy(Ctx))
@@ -58,7 +56,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
     args.push_back(Builder->CreateGlobalStringPtr(StringRef(method->loopid().c_str()), "staticString"));
     
     
-/* TODO - create pointer to function - for now null pointer */
+/* TODO - create pointer to bootstrap function - for now null pointer */
 // args.push_back(ConstantExpr::getBitCast(MyFunction, Type::getInt8PtrTy(*TheContext)));
     args.push_back(ConstantPointerNull::get(Type::getInt8PtrTy(*TheContext)));
 
@@ -70,14 +68,15 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  auto nameEntry = TheProgramme->NodesToFunctions.find(pointerName((void *)&node));
-  string newName;
-  if(nameEntry == TheProgramme->NodesToFunctions.end()) {
-    newName = getMangledUniqueFunctionName();  
-    TheProgramme->NodesToFunctions.insert({pointerName((void *)&node), newName});
-    TheProgramme->Functions.insert({newName, node});
-  } else newName = nameEntry->second;
+/* TODO - using a pointer here will not work as we sometimes copy nodes */
+  auto idEntry = TheProgramme->NodesToFunctions.find(pointerName((void *)&node));
+  uint64_t newId;
+  if(idEntry == TheProgramme->NodesToFunctions.end()) {
+    newId = getUniqueFunctionId();  
+    TheProgramme->NodesToFunctions.insert({pointerName((void *)&node), newId});
+    TheProgramme->Functions.insert({newId, node});
+  } else newId = idEntry->second;
   
 
-  return ObjectTypeSet(functionType, false, new ConstantFunction(newName)).restriction(typeRestrictions); 
+  return ObjectTypeSet(functionType, false, new ConstantFunction(newId)).restriction(typeRestrictions); 
 }

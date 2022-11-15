@@ -46,9 +46,9 @@ typedef ObjectTypeSet (*StaticCallType)(CodeGenerator *, const string &, const N
 class ProgrammeState {
   public:
   /* TODO: thread safety? locks? */
-  std::unordered_map<std::string, Node> Functions;
-  std::unordered_map<std::string, std::string> StaticFunctions;
-  std::unordered_map<std::string, std::string> NodesToFunctions;
+  std::unordered_map<uint64_t, Node> Functions;
+  std::unordered_map<std::string, uint64_t> StaticFunctions;
+  std::unordered_map<std::string, uint64_t> NodesToFunctions;
   std::unordered_map<string, ObjectTypeSet> RecursiveFunctionsRetValGuesses;
   std::unordered_map<string, bool> RecursiveFunctionsNameMap;
   unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> StaticCallLibrary; 

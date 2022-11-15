@@ -7,7 +7,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, cons
     throw CodeGenerationException(string("Undeclared var: ") + name, node);
   }
 
-  Type *t = found->second.first.isDetermined() ? dynamicUnboxedType(found->second.first.determinedType()) : dynamicBoxedType();
+  Type *t = (found->second.first.isDetermined() && !found->second.first.isBoxed)  ? dynamicUnboxedType(found->second.first.determinedType()) : dynamicBoxedType();
 
   LoadInst * load = Builder->CreateLoad(t, found->second.second, "load_var");
   load->setAtomic(AtomicOrdering::Monotonic);

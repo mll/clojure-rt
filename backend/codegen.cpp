@@ -356,9 +356,13 @@ vector<ObjectTypeSet> CodeGenerator::typesForArgString(const Node &node, const s
   return types;
 }
 
-string CodeGenerator::getMangledUniqueFunctionName() {
+string CodeGenerator::getMangledUniqueFunctionName(uint64_t num) {
+  return string("fn_") + to_string(num);
+}
+
+uint64_t CodeGenerator::getUniqueFunctionId() {
   /* TODO - this might require threadsafe precautions, like std::Atomic */
-  return string("fn_") + to_string(TheProgramme->lastFunctionUniqueId++);
+  return ++TheProgramme->lastFunctionUniqueId;
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const ObjectTypeSet &typeRestrictions) {

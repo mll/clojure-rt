@@ -1,13 +1,15 @@
 #include "Object.h"
 #include "Function.h"
+#include "Integer.h"
+#include "Hash.h"
+#include "String.h"
 
-Function* Function_create(uint64_t methodCount, char *uniqueName, uint64_t hash, uint64_t maxArity) {
+Function* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity) {
   Object *super = allocate(sizeof(Function) + sizeof(Object) + methodCount * sizeof(FunctionMethod)); 
   Function *self = (Function *)(super + 1);
   self->methodCount = methodCount;
-  self->uniqueName = uniqueName;
-  self->hash = hash;
   self->maxArity = maxArity;
+  self->uniqueId = uniqueId;
   Object_create(super, functionType);
   return self;
 }
@@ -21,14 +23,20 @@ void Function_fillMethod(Function *self, uint64_t position, uint64_t fixedArity,
 }
 
 BOOL Function_equals(Function *self, Function *other) {
-  return strcmp(self->uniqueName, other->uniqueName) == 0;
+  return self->uniqueId == other->uniqueId;
 }
 
 uint64_t Function_hash(Function *self) {
-  return self->hash;
+  return avalanche_64(self->uniqueId);
 }
 String *Function_toString(Function *self) {
-  return String_create(self->uniqueName);
+  Integer *i = Integer_create(self->uniqueId);
+  String *rv = String_createStatic("fn_");
+  String *is = toString(i);
+  rv = String_append(rv, is);
+  release(i);
+  release(is);
+  return rv;
 } 
 
 void Function_destroy(Function *self) {

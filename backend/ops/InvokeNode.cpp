@@ -8,26 +8,30 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
   auto functionRef = subnode.fn();
   auto funType = getType(functionRef, ObjectTypeSet::all());
   string fName = "";
-  
+  uint64_t uniqueId = 0;
+
   vector<TypedValue> args;
   for(int i=0; i< subnode.args_size(); i++) args.push_back(codegen(subnode.args(i), ObjectTypeSet::all()));
     
   if(functionRef.op() == opVar) { /* Static var holding a fuction */
     auto var = functionRef.subnode().var();
     string name = var.var().substr(2);
-    auto nameIt = TheProgramme->StaticFunctions.find(name);
-    if(nameIt != TheProgramme->StaticFunctions.end()) {
-      fName = nameIt->second;
+    auto mangled = globalNameForVar(name);
+    auto idIt = TheProgramme->StaticFunctions.find(mangled);
+    if(idIt != TheProgramme->StaticFunctions.end()) {
+      uniqueId = idIt->second;
+      fName = getMangledUniqueFunctionName(uniqueId);
     }
   }
   
   if(fName == "" && funType.isType(functionType) && funType.getConstant()) {
     /* Direct call to a constant function  */
-    fName = dynamic_cast<ConstantFunction *>(funType.getConstant())->value;
+    uniqueId  = dynamic_cast<ConstantFunction *>(funType.getConstant())->value;
+    fName = getMangledUniqueFunctionName(uniqueId);
   }
 
-  if(fName.size() > 0) {
-    FnNode functionBody = TheProgramme->Functions.find(fName)->second.subnode().fn();  
+  if(uniqueId > 0) {
+    FnNode functionBody = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();  
   
     /* We need to find a correct method */
 
@@ -122,9 +126,9 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
   auto type = getType(function, ObjectTypeSet::all());
   
   if(type.isType(functionType) && type.getConstant()) {
-    string name = dynamic_cast<ConstantFunction *>(type.getConstant())->value;
-
-    const FnNode functionBody = TheProgramme->Functions.find(name)->second.subnode().fn();  
+    uint64_t uniqueId = dynamic_cast<ConstantFunction *>(type.getConstant())->value;
+    string name = getMangledUniqueFunctionName(uniqueId);
+    const FnNode functionBody = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();  
 
     vector<ObjectTypeSet> args;
     for(int i=0; i< subnode.args_size(); i++) args.push_back(getType(subnode.args(i), ObjectTypeSet::all()));

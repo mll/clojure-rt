@@ -79,11 +79,15 @@ extern "C" {
     auto f = std::make_unique<FunctionJIT>();
     std::string fName = CodeGenerator::recursiveMethodKey(name, argT);        
     f->args = argT;
+    /* TODO - Return values should be probably handled differently. e.g. if the new function returns something boxed, 
+       we should inspect it and decide if we want to use it or not for var inbvokations */ 
     f->retVal = retValT;
     f->uniqueId = fun->uniqueId;
     f->methodIndex = method->index;
     f->name = fName;
     llvm::ExitOnError eo = llvm::ExitOnError();
+
+    /* TODO - we probably need to modify TheProgramme here somehow, this needs more thinking */
     eo(jit->addAST(std::move(f)));
 
     auto ExprSymbol = eo(jit->lookup(fName));

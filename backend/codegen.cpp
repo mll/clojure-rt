@@ -167,14 +167,16 @@ Value *CodeGenerator::callDynamicFun(Value *rtFnPointer, const ObjectTypeSet &re
   }
 
   auto retVal = dynamicType(retValType);
+    /* TODO - Return values should be probably handled differently. e.g. if the new function returns something boxed, 
+       we should inspect it and decide if we want to use it or not for var inbvokations */ 
+
+  /* What if the new function returns a different type? we should probably not force the return type. It should be deduced by jit and our job should be to somehow box/unbox it. Alternatively, we can add return type to method name (like fn_1_JJ_LV) and force generation of function that returns the boxed version of needed return type. If it does not match - we should throw a runtime error */ 
+
   FunctionType *FT = FunctionType::get(retVal, argTypes, false);
   Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, FT->getPointerTo());
   
   return Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("call_dynamic"));
 }
-
-
-
 
 void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retVal, const vector<ObjectTypeSet> &args) {
   vector<Type *> argTypes;
@@ -207,9 +209,6 @@ void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &nam
     verifyFunction(*CalleeF);
   }
 }
-
-
-
 
 TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRestrictions) {
   switch (node.op()) {

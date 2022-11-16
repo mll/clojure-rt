@@ -62,11 +62,14 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     
     
     if(TheModule->getFunction(rName) == Builder->GetInsertBlock()->getParent()) {
-//      refName = ""; // This blocks dynamic entry checks - we do not want them for directly recursive functions */
+      refName = ""; // This blocks dynamic entry checks - we do not want them for directly recursive functions */
     }
 
-    auto retVal = callStaticFun(*method, fName, type, args, refName);
     /* We leave the return type cached, maybe in the future it needs to be removed here */
+    TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
+
+    auto retVal = callStaticFun(*method, fName, type, args, refName);
+    
     return retVal;
   }
 

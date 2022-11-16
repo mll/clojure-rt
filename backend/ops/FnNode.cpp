@@ -2,6 +2,9 @@
 #include <vector>
 #include <algorithm>
 
+using namespace std;
+using namespace llvm;
+
 TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
   ObjectTypeSet type = getType(node, typeRestrictions);
   auto idEntry = TheProgramme->NodesToFunctions.find(pointerName((void *)&node));
@@ -31,36 +34,31 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
 
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   types.push_back(Type::getInt64Ty(*TheContext));
+  types.push_back(Type::getInt64Ty(*TheContext));
   types.push_back(Type::getInt8Ty(*TheContext));
   types.push_back(Type::getInt64Ty(*TheContext));
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   
-  vector<const FnMethodNode *> nodes;
-  for(int i=0; i<subnode.methods_size(); i++) nodes.push_back(&(subnode.methods(i).subnode().fnmethod()));
+  vector<pair<FnMethodNode, uint64_t>> nodes;
+  for(int i=0; i<subnode.methods_size(); i++) nodes.push_back({subnode.methods(i).subnode().fnmethod(), i});
   
   std::sort(nodes.begin(), nodes.end(), [](const auto& lhs, const auto& rhs) -> bool
   {
-    if (lhs->isvariadic() && !rhs->isvariadic()) return false;
-    if (!lhs->isvariadic() && rhs->isvariadic()) return true;
-    return lhs->fixedarity() > rhs->fixedarity();
+    if (lhs.first.isvariadic() && !rhs.first.isvariadic()) return false;
+    if (!lhs.first.isvariadic() && rhs.first.isvariadic()) return true;
+    return lhs.first.fixedarity() > rhs.first.fixedarity();
   });
   
   for(int i=0; i<subnode.methods_size(); i++) {
     args.clear();
-    const FnMethodNode *method = nodes[i];
+    const FnMethodNode &method = nodes[i].first;
     args.push_back(fun);
     args.push_back(ConstantInt::get(*TheContext, APInt(64, i)));
-    args.push_back(ConstantInt::get(*TheContext, APInt(64, method->fixedarity())));
-    args.push_back(ConstantInt::get(*TheContext, APInt(8, method->isvariadic())));
-    args.push_back(Builder->CreateGlobalStringPtr(StringRef(method->loopid().c_str()), "staticString"));
-    
-    
-/* TODO - create pointer to bootstrap function - for now null pointer */
-// args.push_back(ConstantExpr::getBitCast(MyFunction, Type::getInt8PtrTy(*TheContext)));
-    args.push_back(ConstantPointerNull::get(Type::getInt8PtrTy(*TheContext)));
-
-
+    args.push_back(ConstantInt::get(*TheContext, APInt(64, nodes[i].second)));
+    args.push_back(ConstantInt::get(*TheContext, APInt(64, method.fixedarity())));
+    args.push_back(ConstantInt::get(*TheContext, APInt(8, method.isvariadic())));
+    args.push_back(Builder->CreateGlobalStringPtr(StringRef(method.loopid().c_str()), "staticString"));
+        
     callRuntimeFun("Function_fillMethod", Type::getVoidTy(*TheContext), types, args);
   } 
 

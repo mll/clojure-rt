@@ -1,5 +1,7 @@
 #include "../codegen.h"  
 
+using namespace std;
+using namespace llvm;
 
 TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, const ObjectTypeSet &typeRestrictions) {
   string name = subnode.var().substr(2);
@@ -60,6 +62,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
 
     Builder->SetInsertPoint(AfterBB);
     Variable->addIncoming(newLoaded, LoopEndBB);
+
     if(!newValue.first.isScalar()) dynamicRelease(Variable, true);
 
     return TypedValue(ObjectTypeSet(nilType), nil);
@@ -85,16 +88,18 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     //gVar->setLinkage(GlobalValue::CommonLinkage);
     //gVar->setAlignment(Align(8));
 
+    ConstantFunction *constFun = nullptr;
+    if(created.first.isDetermined() && created.first.determinedType() == functionType && (constFun = dynamic_cast<ConstantFunction *>(created.first.getConstant()))) {
+      /* Static function declaration, we set some info for the invoke node to speed things up. This works only the first time the function is declared under this var. */
+      TheProgramme->StaticFunctions.insert({mangled, constFun->value});
+    }
+
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, created.second, MaybeAlign(), AtomicOrdering::Monotonic);
     created.second = gVar;
     created.first = created.first.removeConst();
     StaticVars.insert({name, created});
     TheProgramme->StaticVarTypes.insert({name, created.first});
-    ConstantFunction *constFun = nullptr;
-    if(created.first.isDetermined() && created.first.determinedType() == functionType && (constFun = dynamic_cast<ConstantFunction *>(created.first.getConstant()))) {
-      /* Static function declaration, we set some info for the invoke node to speed things up. This works only the first time the function is declared under this var. */
-     TheProgramme->StaticFunctions.insert({mangled, constFun->value});
-    }
+
   }
 
   return TypedValue(ObjectTypeSet(nilType), nil);

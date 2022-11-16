@@ -27,38 +27,36 @@
 #include "../Programme.h"
 
 using namespace clojure::rt::protobuf::bytecode;
-using namespace llvm;
-using namespace llvm::orc;
 
 class ClojureJIT {
 private:
-  std::unique_ptr<ExecutionSession> ES;
-  std::unique_ptr<EPCIndirectionUtils> EPCIU;
+  std::unique_ptr<llvm::orc::ExecutionSession> ES;
+  std::unique_ptr<llvm::orc::EPCIndirectionUtils> EPCIU;
   
-  DataLayout DL;
-  MangleAndInterner Mangle;
+  llvm::DataLayout DL;
+  llvm::orc::MangleAndInterner Mangle;
   
-  RTDyldObjectLinkingLayer ObjectLayer;
-  IRCompileLayer CompileLayer;
+  llvm::orc::RTDyldObjectLinkingLayer ObjectLayer;
+  llvm::orc::IRCompileLayer CompileLayer;
   
-  IRTransformLayer OptimiseLayer;
+  llvm::orc::IRTransformLayer OptimiseLayer;
   ClojureASTLayer ASTLayer;
   
-  JITDylib &MainJD;
+  llvm::orc::JITDylib &MainJD;
   
-  static Expected<ThreadSafeModule> optimiseModule(ThreadSafeModule TSM, const MaterializationResponsibility &R);
+  static llvm::Expected<llvm::orc::ThreadSafeModule> optimiseModule(llvm::orc::ThreadSafeModule TSM, const llvm::orc::MaterializationResponsibility &R);
 public:
   static void handleLazyCallThroughError();
   
-  ClojureJIT(std::unique_ptr<ExecutionSession> ES, std::unique_ptr<EPCIndirectionUtils> EPCIU, JITTargetMachineBuilder JTMB, DataLayout DL, shared_ptr<ProgrammeState> TheProgramme);
+  ClojureJIT(std::unique_ptr<llvm::orc::ExecutionSession> ES, std::unique_ptr<llvm::orc::EPCIndirectionUtils> EPCIU, llvm::orc::JITTargetMachineBuilder JTMB, llvm::DataLayout DL, std::shared_ptr<ProgrammeState> TheProgramme);
   ~ClojureJIT();
-  static Expected<std::unique_ptr<ClojureJIT>> Create(shared_ptr<ProgrammeState> TheProgramme);
-  const DataLayout &getDataLayout() const;
-  JITDylib &getMainJITDylib();
+  static llvm::Expected<std::unique_ptr<ClojureJIT>> Create(std::shared_ptr<ProgrammeState> TheProgramme);
+  const llvm::DataLayout &getDataLayout() const;
+  llvm::orc::JITDylib &getMainJITDylib();
   
-  Error addModule(ThreadSafeModule TSM, ResourceTrackerSP RT = nullptr);
-  Error addAST(unique_ptr<FunctionJIT> F, ResourceTrackerSP RT = nullptr);
-  Expected<JITEvaluatedSymbol> lookup(StringRef Name);
+  llvm::Error addModule(llvm::orc::ThreadSafeModule TSM, llvm::orc::ResourceTrackerSP RT = nullptr);
+  llvm::Error addAST(std::unique_ptr<FunctionJIT> F, llvm::orc::ResourceTrackerSP RT = nullptr);
+  llvm::Expected<llvm::JITEvaluatedSymbol> lookup(llvm::StringRef Name);
 };
 
 

@@ -1,6 +1,8 @@
 #include "codegen.h"  
 #include <stdio.h>
 
+using namespace std;
+using namespace llvm;
 
 TypedValue CodeGenerator::callRuntimeFun(const string &fname, const ObjectTypeSet &retVal, const vector<TypedValue> &args) {
   Function *CalleeF = TheModule->getFunction(fname);
@@ -130,6 +132,64 @@ Value *CodeGenerator::dynamicVector(const vector<TypedValue> &args) {
 }
 
 
+/* 
+   struct Object {
+     objectType type;
+     volatile atomic_uint_fast64_t atomicRefCount;
+   };
+*/
+
+StructType *CodeGenerator::runtimeObjectType() {
+   return StructType::create(*TheContext, {
+       /* type */ Type::getInt32Ty(*TheContext),
+       /* atomicRefCount */ dynamicUnboxedType(integerType) }, "Object");
+}
+
+/* struct Function {
+   uint64_t uniqueId;
+   uint64_t methodCount;
+   uint64_t maxArity;
+   FunctionMethod methods[];
+}; */
+
+StructType *CodeGenerator::runtimeFunctionType() {
+   return StructType::create(*TheContext, {
+       /* uniqueId */ dynamicUnboxedType(integerType),
+       /* methodCount */ dynamicUnboxedType(integerType),
+       /* maxArity */ dynamicUnboxedType(integerType),
+       /* TODO : Methods */
+     }, "Function");
+}
+
+
+void CodeGenerator::dynamicRetain(Value *objectPtr) {
+  /* A trick - objSize will have sizeof(Object) */
+  Value *objDummyPtr = Builder->CreateConstGEP1_64(runtimeObjectType()->getPointerTo(), Constant::getNullValue(runtimeObjectType()->getPointerTo()), 1, "Object_size");
+  Value *objSize =  Builder->CreatePointerCast(objDummyPtr, Type::getInt64Ty(*TheContext));
+  
+  Value *funcPtr = Builder->CreateBitOrPointerCast(objectPtr, Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
+  Value *funcPtrInt = Builder->CreatePtrToInt(funcPtr,  Type::getInt64Ty(*TheContext), "ptr_to_int");
+  Value *objPtrInt = Builder->CreateSub(funcPtrInt, objSize, "sub_size");
+  Value *objPtr = Builder->CreateIntToPtr(objPtrInt, runtimeObjectType()->getPointerTo() , "sub_size");
+  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 1, "get_type");
+  
+  Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Add, gepPtr, ConstantInt::get(*TheContext, APInt(64, 1)), MaybeAlign(), AtomicOrdering::Monotonic);
+}
+
+Value *CodeGenerator::getRuntimeObjectType(Value *objectPtr) {
+  /* A trick - objSize will have sizeof(Object) */
+  Value *objDummyPtr = Builder->CreateConstGEP1_64(runtimeObjectType(), Constant::getNullValue(runtimeObjectType()->getPointerTo()), 1, "Object_size");
+  Value *objSize =  Builder->CreatePointerCast(objDummyPtr, Type::getInt64Ty(*TheContext));
+  Value *funcPtr = Builder->CreateBitOrPointerCast(objectPtr, Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
+  Value *funcPtrInt = Builder->CreatePtrToInt(funcPtr,  Type::getInt64Ty(*TheContext), "ptr_to_int");
+  Value *objPtrInt = Builder->CreateSub(funcPtrInt, objSize, "sub_size");
+  Value *objPtr = Builder->CreateIntToPtr(objPtrInt, runtimeObjectType()->getPointerTo() , "sub_size");
+  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 0, "get_type");
+  Value *retVal = Builder->CreateLoad(Type::getInt8Ty(*TheContext), gepPtr, "load_type");    
+  return retVal;
+}
+
+
 Value * CodeGenerator::dynamicString(const char *str) {
   vector<Type *> types;
   vector<Value *> args;
@@ -228,7 +288,7 @@ TypedValue CodeGenerator::unbox(const TypedValue &value) {
     return TypedValue(t, value.second);
   }
 
-  Value *loaded = Builder->CreateLoad(type, CastInst::CreateBitOrPointerCast(value.second, type->getPointerTo(), "void_to_unboxed"), "load_var");
+  Value *loaded = Builder->CreateLoad(type, Builder->CreateBitOrPointerCast(value.second, type->getPointerTo(), "void_to_unboxed"), "load_var");
   if(value.first.isType(booleanType)) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
   dynamicRelease(value.second);
   return TypedValue(t, loaded);

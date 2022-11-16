@@ -5,7 +5,9 @@
 #include "String.h"
 
 Function* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity) {
-  Object *super = allocate(sizeof(Function) + sizeof(Object) + methodCount * sizeof(FunctionMethod)); 
+  size_t size = sizeof(Function) + sizeof(Object) + methodCount * sizeof(FunctionMethod);
+  Object *super = allocate(size); 
+  memset(super, 0, size);
   Function *self = (Function *)(super + 1);
   self->methodCount = methodCount;
   self->maxArity = maxArity;
@@ -13,13 +15,12 @@ Function* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxA
   Object_create(super, functionType);
   return self;
 }
-
-void Function_fillMethod(Function *self, uint64_t position, uint64_t fixedArity,  BOOL isVariadic,  char *loopId, void *genericBootstrapPointer) {
+void Function_fillMethod(Function *self, uint64_t position, uint64_t index, uint64_t fixedArity,  BOOL isVariadic,  char *loopId) {
   FunctionMethod * method = self->methods + position;
   method->fixedArity = fixedArity;
   method->isVariadic = isVariadic;
   method->loopId = loopId;
-  method->genericBootstrapPointer = genericBootstrapPointer;
+  method->index = index;
 }
 
 BOOL Function_equals(Function *self, Function *other) {

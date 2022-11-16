@@ -9,7 +9,6 @@
 #include <string>
 #include <iostream>
 
-using namespace std;
 
 class ObjectTypeConstant {
   protected:
@@ -18,7 +17,7 @@ class ObjectTypeConstant {
   objectType constantType;
   virtual ~ObjectTypeConstant() {}
   virtual ObjectTypeConstant *copy() { return nullptr; }
-  virtual string toString() { return ""; }
+  virtual std::string toString() { return ""; }
   virtual bool equals(ObjectTypeConstant *other) {return false; }
 };
 
@@ -27,7 +26,7 @@ class ConstantInteger: public ObjectTypeConstant {
   uint64_t value;
   ConstantInteger(uint64_t val) : ObjectTypeConstant(integerType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantInteger(value)); }
-  virtual string toString() { return to_string(value); }
+  virtual std::string toString() { return std::to_string(value); }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantInteger *i = dynamic_cast<ConstantInteger *>(other)) {
       return i->value == value;
@@ -40,7 +39,7 @@ class ConstantNil: public ObjectTypeConstant {
   public:
   ConstantNil() : ObjectTypeConstant(nilType) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantNil()); }
-  virtual string toString() { return "nil"; }
+  virtual std::string toString() { return "nil"; }
   virtual bool equals(ObjectTypeConstant *other) {   
     return dynamic_cast<ConstantNil *>(other);
   }
@@ -51,7 +50,7 @@ class ConstantDouble: public ObjectTypeConstant {
   double value;
   ConstantDouble(double val) : ObjectTypeConstant(doubleType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantDouble(value)); }
-  virtual string toString() { return to_string(value); }
+  virtual std::string toString() { return std::to_string(value); }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantDouble *i = dynamic_cast<ConstantDouble *>(other)) {
       return i->value == value;
@@ -62,10 +61,10 @@ class ConstantDouble: public ObjectTypeConstant {
 
 class ConstantString: public ObjectTypeConstant {
   public:
-  string value;
-  ConstantString(string val) : ObjectTypeConstant(stringType), value(val) {}
+  std::string value;
+  ConstantString(std::string val) : ObjectTypeConstant(stringType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantString(value)); }
-  virtual string toString() { return value; }
+  virtual std::string toString() { return value; }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantString *i = dynamic_cast<ConstantString *>(other)) {
       return i->value == value;
@@ -79,7 +78,7 @@ class ConstantBoolean: public ObjectTypeConstant {
   bool value;
   ConstantBoolean(bool val) : ObjectTypeConstant(booleanType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantBoolean(value)); }
-  virtual string toString() { return to_string(value); }
+  virtual std::string toString() { return std::to_string(value); }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantBoolean *i = dynamic_cast<ConstantBoolean *>(other)) {
       return i->value == value;
@@ -93,7 +92,7 @@ class ConstantFunction: public ObjectTypeConstant {
   uint64_t value;
   ConstantFunction(uint64_t val) : ObjectTypeConstant(functionType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantFunction(value)); }
-  virtual string toString() { return string("fn_") + to_string(value); }
+  virtual std::string toString() { return std::string("fn_") + std::to_string(value); }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantFunction *i = dynamic_cast<ConstantFunction *>(other)) {
       return i->value == value;
@@ -104,10 +103,10 @@ class ConstantFunction: public ObjectTypeConstant {
 
 class ConstantKeyword: public ObjectTypeConstant {
   public:
-  string value;
-  ConstantKeyword(string val) : ObjectTypeConstant(keywordType), value(val) {}
+  std::string value;
+  ConstantKeyword(std::string val) : ObjectTypeConstant(keywordType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantKeyword(value)); }
-  virtual string toString() { return value; }
+  virtual std::string toString() { return value; }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantKeyword *i = dynamic_cast<ConstantKeyword *>(other)) {
       return i->value == value;
@@ -118,10 +117,10 @@ class ConstantKeyword: public ObjectTypeConstant {
 
 class ConstantSymbol: public ObjectTypeConstant {
   public:
-  string value;
-  ConstantSymbol(string val) : ObjectTypeConstant(symbolType), value(val) {}
+  std::string value;
+  ConstantSymbol(std::string val) : ObjectTypeConstant(symbolType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantSymbol(value)); }
-  virtual string toString() { return value; }
+  virtual std::string toString() { return value; }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantSymbol *i = dynamic_cast<ConstantSymbol *>(other)) {
       return i->value == value;
@@ -133,7 +132,7 @@ class ConstantSymbol: public ObjectTypeConstant {
 
 class ObjectTypeSet {
   private:
-  set<objectType> internal;
+  std::set<objectType> internal;
   ObjectTypeConstant *constant = nullptr;
   public:
   bool isBoxed;
@@ -246,13 +245,13 @@ class ObjectTypeSet {
     return *this;
   }
 
-  string toString() const {
-    vector<objectType> types(internal.begin(), internal.end());
-    string ss;
+  std::string toString() const {
+    std::vector<objectType> types(internal.begin(), internal.end());
+    std::string ss;
     
     for (int i=0; i < types.size(); i++) {
-      ss += to_string((int)types[i]);
-      if(i < types.size() - 1) ss += string(",");
+      ss += std::to_string((int)types[i]);
+      if(i < types.size() - 1) ss += std::string(",");
     }
     
     if(constant) ss += " constant value: " + constant->toString();
@@ -286,9 +285,9 @@ class ObjectTypeSet {
     return retVal;
   }
   
-  static vector<ObjectTypeSet> allGuesses() {
+  static std::vector<ObjectTypeSet> allGuesses() {
     auto allTypes = ObjectTypeSet::all();
-    vector<ObjectTypeSet> guesses;
+    std::vector<ObjectTypeSet> guesses;
     guesses.push_back(ObjectTypeSet(booleanType));
     guesses.push_back(ObjectTypeSet(integerType));
     guesses.push_back(ObjectTypeSet(doubleType));

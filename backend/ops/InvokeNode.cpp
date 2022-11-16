@@ -2,6 +2,10 @@
 #include <vector>
 #include <algorithm>
 
+using namespace std;
+using namespace llvm;
+
+
 TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto type = getType(node, typeRestrictions);
   /* TODO - variadic */
@@ -9,14 +13,14 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
   auto funType = getType(functionRef, ObjectTypeSet::all());
   string fName = "";
   uint64_t uniqueId = 0;
-
+  string refName;
   vector<TypedValue> args;
   for(int i=0; i< subnode.args_size(); i++) args.push_back(codegen(subnode.args(i), ObjectTypeSet::all()));
     
   if(functionRef.op() == opVar) { /* Static var holding a fuction */
     auto var = functionRef.subnode().var();
-    string name = var.var().substr(2);
-    auto mangled = globalNameForVar(name);
+    refName = var.var().substr(2);
+    auto mangled = globalNameForVar(refName);
     auto idIt = TheProgramme->StaticFunctions.find(mangled);
     if(idIt != TheProgramme->StaticFunctions.end()) {
       uniqueId = idIt->second;
@@ -49,14 +53,19 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
       if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; break;}
       if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; break;}
     }
-    if(method == nullptr) throw CodeGenerationException(string("Function ") + fName + " has been called with wrong arity: " + to_string(args.size()), node);
+    if(method == nullptr) throw CodeGenerationException(string("Function ") + (refName.size() > 0 ? refName : fName) + " has been called with wrong arity: " + to_string(args.size()), node);
 
     vector<ObjectTypeSet> argTypes;
     for(int i=0; i<args.size(); i++) argTypes.push_back(args[i].first);
 
     string rName = recursiveMethodKey(fName, argTypes);
-    TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
-    auto retVal = callStaticFun(*method, fName, type, args);
+    
+    
+    if(TheModule->getFunction(rName) == Builder->GetInsertBlock()->getParent()) {
+//      refName = ""; // This blocks dynamic entry checks - we do not want them for directly recursive functions */
+    }
+
+    auto retVal = callStaticFun(*method, fName, type, args, refName);
     /* We leave the return type cached, maybe in the future it needs to be removed here */
     return retVal;
   }
@@ -124,9 +133,23 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
   /* TODO - variadic */
   auto function = subnode.fn();
   auto type = getType(function, ObjectTypeSet::all());
+  uint64_t uniqueId = 0;
+
+    
+  if(function.op() == opVar) { /* Static var holding a fuction */
+    auto var = function.subnode().var();
+    string name = var.var().substr(2);
+    auto mangled = globalNameForVar(name);
+    auto idIt = TheProgramme->StaticFunctions.find(mangled);
+    if(idIt != TheProgramme->StaticFunctions.end()) {
+      uniqueId = idIt->second;
+    }
+  }
+
+  if(type.isType(functionType) && type.getConstant()) uniqueId = dynamic_cast<ConstantFunction *>(type.getConstant())->value;
   
-  if(type.isType(functionType) && type.getConstant()) {
-    uint64_t uniqueId = dynamic_cast<ConstantFunction *>(type.getConstant())->value;
+  if(uniqueId) {
+
     string name = getMangledUniqueFunctionName(uniqueId);
     const FnNode functionBody = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();  
 

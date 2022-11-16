@@ -6,14 +6,14 @@ ARFLAGS = rcs
 MYFLAGSOPT = -Ofast  
 MYFLAGS = -g 
 CPPFLAGS = -std=c++14  
-CFLAGS =  -Wall $(MYFLAGS) -I/opt/homebrew/include
+CFLAGS =  -Wall $(MYFLAGSOPT) -I/opt/homebrew/include
 PROFILE = -Ofast 
 LIBS = -L/opt/homebrew/lib -lprotobuf
 
 OBJFILES = main.o runtime/runtime.a bytecode.pb.o codegen.o jit.o BindingNode.o CaseNode.o CaseTestNode.o CaseThenNode.o CatchNode.o ConstNode.o DefNode.o DeftypeNode.o DoNode.o \
 FnMethodNode.o FnNode.o HostInteropNode.o IfNode.o ImportNode.o InstanceCallNode.o InstanceFieldNode.o InvokeNode.o IsInstanceNode.o KeywordInvokeNode.o LetNode.o LetfnNode.o \
 LocalNode.o LoopNode.o MapNode.o MethodNode.o MonitorEnterNode.o MonitorExitNode.o MutateSetNode.o NewNode.o PrimInvokeNode.o ProtocolInvokeNode.o QuoteNode.o RecurNode.o ReifyNode.o \
-SetNode.o StaticCallNode.o StaticFieldNode.o TheVarNode.o ThrowNode.o TryNode.o VarNode.o VectorNode.o WithMetaNode.o Numbers.o RuntimeInterop.o ObjectTypeSet.o Utils.o Materialisation.o ASTLayer.o Programme.o libtcmalloc_and_profiler.a 
+SetNode.o StaticCallNode.o StaticFieldNode.o TheVarNode.o ThrowNode.o TryNode.o VarNode.o VectorNode.o WithMetaNode.o Numbers.o RuntimeInterop.o ObjectTypeSet.o Utils.o Materialisation.o ASTLayer.o runtimecpp.o Programme.o libtcmalloc_and_profiler.a 
            
 LLVM_LINKER_FLAGS = $(shell llvm-config --cxxflags --ldflags --system-libs --libs core orcjit native)
 LLVM_COMPILE_FLAGS = $(shell llvm-config --cxxflags --system-libs)
@@ -142,3 +142,5 @@ Numbers.o: static/Numbers.cpp static/Numbers.h
 	$(CCP) -c $(CFLAGS) $(LLVM_COMPILE_FLAGS) static/Numbers.cpp
 Utils.o: static/Utils.cpp static/Utils.h
 	$(CCP) -c $(CFLAGS) $(LLVM_COMPILE_FLAGS) static/Utils.cpp
+runtimecpp.o: runtimecpp.cpp 
+	$(CCP) -c $(CFLAGS) $(LLVM_COMPILE_FLAGS) runtimecpp.cpp

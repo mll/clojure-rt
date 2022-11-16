@@ -41,8 +41,7 @@
 #include "Programme.h"
 #include "jit/jit.h"
 
-using namespace std;
-using namespace llvm;
+
 using namespace clojure::rt::protobuf::bytecode;
 
 
@@ -52,64 +51,74 @@ class CodeGenerator {
   std::unordered_map<std::string, TypedValue> StaticVars;
   std::vector<std::vector<ObjectTypeSet>> FunctionArgTypesStack;
 public:
-  std::unique_ptr<IRBuilder<>> Builder;
-  std::unique_ptr<LLVMContext> TheContext;
-  std::unique_ptr<Module> TheModule;
+  std::unique_ptr<llvm::IRBuilder<>> Builder;
+  std::unique_ptr<llvm::LLVMContext> TheContext;
+  std::unique_ptr<llvm::Module> TheModule;
   ClojureJIT *TheJIT;
-  ExitOnError ExitOnErr;
+  llvm::ExitOnError ExitOnErr;
 
   CodeGenerator(std::shared_ptr<ProgrammeState> programme, ClojureJIT *weakJIT);
 
   /* Tools */
 
-  string pointerName(void *ptr);
-  string typeStringForArgs(const vector<ObjectTypeSet> &args);
-  vector<ObjectTypeSet> typesForArgString(const Node &node, const string &typeString); 
-  ObjectTypeSet typeForArgString(const Node &node, const string &typeString);
+  void printDebugValue(llvm::Value *v);
+  uint64_t getUniqueFunctionIdFromName(std::string name);
+  std::string pointerName(void *ptr);
+  static std::string typeStringForArgs(const std::vector<ObjectTypeSet> &args);
+  std::vector<ObjectTypeSet> typesForArgString(const Node &node, const std::string &typeString); 
+  ObjectTypeSet typeForArgString(const Node &node, const std::string &typeString);
   uint64_t computeHash(const char *str);
   uint64_t avalanche_64(uint64_t h);
-  string globalNameForVar(string var);
-  string getMangledUniqueFunctionName(uint64_t num) ;
+  std::string globalNameForVar(std::string var);
+  std::string getMangledUniqueFunctionName(uint64_t num) ;
   uint64_t getUniqueFunctionId();
-  string recursiveMethodKey(const string &name, const vector<ObjectTypeSet> &args);
+  static std::string recursiveMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args);
 
-  TypedValue callStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args);
-  void buildStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retVal, const vector<ObjectTypeSet> &args);
+  TypedValue callStaticFun(const FnMethodNode &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName);
+  void buildStaticFun(const FnMethodNode &method, const std::string &name, const ObjectTypeSet &retVal, const std::vector<ObjectTypeSet> &args);
 
-TypedValue callDynamicFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args);
-
+  llvm::Value *callDynamicFun(llvm::Value *rtFnPointer, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args);
+    
   TypedValue staticFalse();
   TypedValue staticTrue();
 
+  /* Runtime types */
+
+  llvm::StructType *runtimeObjectType();
+  llvm::StructType *runtimeFunctionType(); 
+
+  llvm::Value *getRuntimeObjectType(llvm::Value *objectPtr);
+
   /* Runtime interop */
 
-  Value *dynamicNil();
-  Value *dynamicString(const char *str);
+  llvm::Value *dynamicNil();
+  llvm::Value *dynamicString(const char *str);
 
-  Value *dynamicSymbol(const char *name);
-  Value *dynamicKeyword(const char *name);
-  Value *dynamicVector(const vector<TypedValue> &args);
-  Value *dynamicRelease(Value *what, bool isAutorelease);
-  Value *dynamicCond(Value *cond);
+  llvm::Value *dynamicSymbol(const char *name);
+  llvm::Value *dynamicKeyword(const char *name);
+  llvm::Value *dynamicVector(const std::vector<TypedValue> &args);
+  void dynamicRetain(llvm::Value *objectPtr);
+  llvm::Value *dynamicRelease(llvm::Value *what, bool isAutorelease);
+  llvm::Value *dynamicCond(llvm::Value *cond);
 
   TypedValue box(const TypedValue &value);
   TypedValue unbox(const TypedValue &value);
 
   void runtimeException(const CodeGenerationException &runtimeException);  
 
-  Value *callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args, bool isVariadic = false);
-  TypedValue callRuntimeFun(const string &fname, const ObjectTypeSet &retVal, const vector<TypedValue> &args);
+  llvm::Value *callRuntimeFun(const std::string &fname, llvm::Type *retValType, const std::vector<llvm::Type *> &argTypes, const std::vector<llvm::Value *> &args, bool isVariadic = false);
+  TypedValue callRuntimeFun(const std::string &fname, const ObjectTypeSet &retVal, const std::vector<TypedValue> &args);
 
-  Value *dynamicCreate(objectType type, const vector<Type *> &argTypes, const vector<Value *> &args);
+  llvm::Value *dynamicCreate(objectType type, const std::vector<llvm::Type *> &argTypes, const std::vector<llvm::Value *> &args);
  
-  Type *dynamicUnboxedType(objectType type);
-  Type *dynamicBoxedType(objectType type);
-  Type *dynamicBoxedType();
-  Type *dynamicType(const ObjectTypeSet &type);
+  llvm::Type *dynamicUnboxedType(objectType type);
+  llvm::Type *dynamicBoxedType(objectType type);
+  llvm::Type *dynamicBoxedType();
+  llvm::Type *dynamicType(const ObjectTypeSet &type);
 
   /* Code generation */
 
-  string codegenTopLevel(const Node &node, int i);
+  std::string codegenTopLevel(const Node &node, int i);
 
   TypedValue codegen(const Node &node, const ObjectTypeSet &typeRestrictions);
 

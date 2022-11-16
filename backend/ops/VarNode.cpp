@@ -1,5 +1,8 @@
 #include "../codegen.h"  
 
+using namespace std;
+using namespace llvm;
+
 TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, const ObjectTypeSet &typeRestrictions) {
   string name = subnode.var().substr(2);
   auto found = StaticVars.find(name);

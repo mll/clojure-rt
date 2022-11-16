@@ -29,22 +29,20 @@
 class ClojureJIT;
 
 using namespace clojure::rt::protobuf::bytecode;
-using namespace llvm::orc;
-using namespace llvm;
 
 class ClojureASTLayer {
-  IRLayer &BaseLayer;
-  const DataLayout &DL;
+  llvm::orc::IRLayer &BaseLayer;
+  const llvm::DataLayout &DL;
   llvm::orc::ThreadSafeModule irgenAndTakeOwnership(FunctionJIT &FnAST, const std::string &Suffix);
-  shared_ptr<ProgrammeState> TheProgramme;
+  std::shared_ptr<ProgrammeState> TheProgramme;
   ClojureJIT *TheJIT;
-  unordered_map<string, bool> definedSymbols;
+  std::unordered_map<std::string, bool> definedSymbols;
  public:
  
- ClojureASTLayer(IRLayer &BaseLayer, const DataLayout &DL, shared_ptr<ProgrammeState> TheProgramme, ClojureJIT *TheJIT) : BaseLayer(BaseLayer), DL(DL), TheProgramme(TheProgramme), TheJIT(TheJIT) {}
-  Error add(ResourceTrackerSP RT, unique_ptr<FunctionJIT> F);  
-  void emit(std::unique_ptr<MaterializationResponsibility> MR, unique_ptr<FunctionJIT> F);  
-  MaterializationUnit::Interface getInterface(FunctionJIT &F);
+ ClojureASTLayer(llvm::orc::IRLayer &BaseLayer, const llvm::DataLayout &DL, std::shared_ptr<ProgrammeState> TheProgramme, ClojureJIT *TheJIT) : BaseLayer(BaseLayer), DL(DL), TheProgramme(TheProgramme), TheJIT(TheJIT) {}
+  llvm::Error add(llvm::orc::ResourceTrackerSP RT, std::unique_ptr<FunctionJIT> F);  
+  void emit(std::unique_ptr<llvm::orc::MaterializationResponsibility> MR, std::unique_ptr<FunctionJIT> F);  
+  llvm::orc::MaterializationUnit::Interface getInterface(FunctionJIT &F);
 };
     
     

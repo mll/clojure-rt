@@ -1,5 +1,8 @@
 #include "../codegen.h"  
 
+using namespace std;
+using namespace llvm;
+
 TypedValue CodeGenerator::codegen(const Node &node, const VectorNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto type = getType(node, typeRestrictions);
   vector<TypedValue> args;

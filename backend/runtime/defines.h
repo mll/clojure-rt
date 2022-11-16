@@ -7,7 +7,7 @@ typedef uint8_t BOOL;
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 enum objectType {
-   integerType,
+   integerType = 1,
    stringType,
    persistentListType,
    persistentVectorType,

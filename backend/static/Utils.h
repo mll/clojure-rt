@@ -2,6 +2,6 @@
 #define RT_STATIC_UTILS
 #include "../codegen.h"
 
-unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> getUtilsStaticFunctions();
+std::unordered_map<std::string, std::vector<std::pair<std::string, std::pair<StaticCallType, StaticCall>>>> getUtilsStaticFunctions();
 
 #endif

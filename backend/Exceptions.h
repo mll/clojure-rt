@@ -5,24 +5,24 @@
 
 using namespace clojure::rt::protobuf::bytecode;
 
-class CodeGenerationException: public exception {
-  string errorMessage;
+class CodeGenerationException: public std::exception {
+  std::string errorMessage;
   public:
-  CodeGenerationException(const string &errorMessage, const Node& node); 
-  string toString() const; 
+  CodeGenerationException(const std::string &errorMessage, const Node& node); 
+  std::string toString() const; 
 };
 
-class InternalInconsistencyException: public exception {
-  string errorMessage;
+class InternalInconsistencyException: public std::exception {
+  std::string errorMessage;
   public:
-  InternalInconsistencyException(const string &error) : errorMessage(error) {} 
-  string toString() const { return errorMessage; } 
+  InternalInconsistencyException(const std::string &error) : errorMessage(error) {} 
+  std::string toString() const { return errorMessage; } 
 };
 
-class UnaccountedRecursiveFunctionEncounteredException: public exception {
+class UnaccountedRecursiveFunctionEncounteredException: public std::exception {
   public:
-  string functionName;
-  UnaccountedRecursiveFunctionEncounteredException(const string &functionName): functionName(functionName) { }
+  std::string functionName;
+  UnaccountedRecursiveFunctionEncounteredException(const std::string &functionName): functionName(functionName) { }
 };
 
 #endif

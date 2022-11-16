@@ -1,5 +1,8 @@
 #include "../codegen.h"  
 
+using namespace std;
+using namespace llvm;
+
 TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto c = subnode.class_();
   auto m = subnode.method();

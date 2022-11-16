@@ -1,6 +1,8 @@
 #include "Materialisation.h"
 
 using namespace std;
+using namespace llvm;
+using namespace llvm::orc;
 
 StringRef ClojureASTMaterializationUnit::getName() const {
   return "ClojureASTMaterializationUnit";

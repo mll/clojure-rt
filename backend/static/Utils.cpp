@@ -1,6 +1,9 @@
 #include "Utils.h"  
 #include <math.h>
 
+using namespace std;
+using namespace llvm;
+
 
 ObjectTypeSet Utils_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);

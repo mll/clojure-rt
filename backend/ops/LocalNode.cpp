@@ -1,5 +1,8 @@
 #include "../codegen.h"  
 
+using namespace std;
+using namespace llvm;
+
 TypedValue CodeGenerator::codegen(const Node &node, const LocalNode &subnode, const ObjectTypeSet &typeRestrictions) {
   switch(subnode.local()) {
   case localTypeArg:

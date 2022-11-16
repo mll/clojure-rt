@@ -35,13 +35,12 @@
 
 class CodeGenerator;
 using namespace clojure::rt::protobuf::bytecode;
-using namespace llvm;
 
-typedef pair<ObjectTypeSet, Value *> TypedValue;
-typedef pair<ObjectTypeSet, const Node&> TypedNode;
+typedef std::pair<ObjectTypeSet, llvm::Value *> TypedValue;
+typedef std::pair<ObjectTypeSet, const Node&> TypedNode;
 
-typedef TypedValue (*StaticCall)(CodeGenerator *, const string &, const Node&, const std::vector<TypedNode>&);
-typedef ObjectTypeSet (*StaticCallType)(CodeGenerator *, const string &, const Node&, const std::vector<TypedNode>&);
+typedef TypedValue (*StaticCall)(CodeGenerator *, const std::string &, const Node&, const std::vector<TypedNode>&);
+typedef ObjectTypeSet (*StaticCallType)(CodeGenerator *, const std::string &, const Node&, const std::vector<TypedNode>&);
 
 class ProgrammeState {
   public:
@@ -49,9 +48,9 @@ class ProgrammeState {
   std::unordered_map<uint64_t, Node> Functions;
   std::unordered_map<std::string, uint64_t> StaticFunctions;
   std::unordered_map<std::string, uint64_t> NodesToFunctions;
-  std::unordered_map<string, ObjectTypeSet> RecursiveFunctionsRetValGuesses;
-  std::unordered_map<string, bool> RecursiveFunctionsNameMap;
-  unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> StaticCallLibrary; 
+  std::unordered_map<std::string, ObjectTypeSet> RecursiveFunctionsRetValGuesses;
+  std::unordered_map<std::string, bool> RecursiveFunctionsNameMap;
+  std::unordered_map<std::string, std::vector<std::pair<std::string, std::pair<StaticCallType, StaticCall>>>> StaticCallLibrary; 
   std::unordered_map<std::string, ObjectTypeSet> StaticVarTypes;
 
   uint64_t lastFunctionUniqueId = 0;

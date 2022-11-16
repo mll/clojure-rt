@@ -4,14 +4,17 @@
 #include "ObjectTypeSet.h"
 #include "protobuf/bytecode.pb.h"
 #include <string>
+
 using namespace clojure::rt::protobuf::bytecode;
-using namespace std;
 
 struct FunctionJIT {
   FnMethodNode method;
-  vector<ObjectTypeSet> args;
+  std::vector<ObjectTypeSet> args;
   ObjectTypeSet retVal;
-  string name;
+  std::string name;
+  /* Alternative way to select method */
+  int64_t uniqueId = 0;
+  int64_t methodIndex;
 };
 
 #endif

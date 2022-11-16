@@ -25,19 +25,17 @@
 #include "ASTLayer.h"
 
 using namespace clojure::rt::protobuf::bytecode;
-using namespace llvm::orc;
-using namespace std;
 
-class ClojureASTMaterializationUnit : public MaterializationUnit {  
+class ClojureASTMaterializationUnit : public llvm::orc::MaterializationUnit {  
   ClojureASTLayer &L;
-  unique_ptr<FunctionJIT> F;
+  std::unique_ptr<FunctionJIT> F;
 
-  void discard(const JITDylib &JD, const SymbolStringPtr &Sym) override;
+  void discard(const llvm::orc::JITDylib &JD, const llvm::orc::SymbolStringPtr &Sym) override;
  public:
 
-  ClojureASTMaterializationUnit(ClojureASTLayer &L, unique_ptr<FunctionJIT> F);      
-  StringRef getName() const override;
-  void materialize(std::unique_ptr<MaterializationResponsibility> R) override;
+  ClojureASTMaterializationUnit(ClojureASTLayer &L, std::unique_ptr<FunctionJIT> F);      
+  llvm::StringRef getName() const override;
+  void materialize(std::unique_ptr<llvm::orc::MaterializationResponsibility> R) override;
 };
 
 #endif

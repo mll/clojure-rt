@@ -57,159 +57,6 @@ string CodeGenerator::codegenTopLevel(const Node &node, int i) {
     return fname;
 }
 
-TypedValue CodeGenerator::callStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args, const string &refName) {
-  vector<Type *> argTypes;
-  vector<Value *> argVals;
-  vector<ObjectTypeSet> argT;
-  
-  for(auto arg : args) {
-    argTypes.push_back((arg.first.isDetermined() && !arg.first.isBoxed) ? dynamicUnboxedType(arg.first.determinedType()) : dynamicBoxedType());
-    argVals.push_back(arg.second);
-    argT.push_back(arg.first);
-  }
-
-  string rName = recursiveMethodKey(name, argT);        
-  Type *retType = retValType.isDetermined() ? dynamicUnboxedType(retValType.determinedType()) : dynamicBoxedType();
-  
-  Function *CalleeF = TheModule->getFunction(rName); 
-  if(!CalleeF) {
-    FunctionType *FT = FunctionType::get(retType, argTypes, false);
-    CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
-  }
-
-  auto f = make_unique<FunctionJIT>();
-  f->method = method;
-  f->args = argT;
-  f->retVal = retValType;
-  f->name = rName;
-  
-  ExitOnErr(TheJIT->addAST(move(f)));
-
-
-  auto found = StaticVars.find(refName);
-  if(found != StaticVars.end()) {
-    Function *parentFunction = Builder->GetInsertBlock()->getParent();
-    LoadInst * load = Builder->CreateLoad(dynamicBoxedType(), found->second.second, "load_var");
-    load->setAtomic(AtomicOrdering::Monotonic);
-    Value *type = getRuntimeObjectType(load);
-    Value *cond = Builder->CreateICmpEQ(type, ConstantInt::get(*TheContext, APInt(8, functionType, false)), "cmp_type");
-
-    BasicBlock *typeOkBB = llvm::BasicBlock::Create(*TheContext, "type_ok", parentFunction);
-    BasicBlock *uniqueIdOkBB = llvm::BasicBlock::Create(*TheContext, "unique_id_ok", parentFunction);
-    BasicBlock *failedBB = llvm::BasicBlock::Create(*TheContext, "failed", parentFunction);
-    BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge", parentFunction);    
-    
-    Builder->CreateCondBr(cond, typeOkBB, failedBB);
-    Builder->SetInsertPoint(typeOkBB);
-    Value *uniqueIdPtr = Builder->CreateStructGEP(runtimeFunctionType(), load, 0, "get_unique_id");
-    Value *uniqueId = Builder->CreateLoad(Type::getInt64Ty(*TheContext), uniqueIdPtr, "load_unique_id");    
-    
-    Value *cond2 = Builder->CreateICmpEQ(uniqueId, ConstantInt::get(*TheContext, APInt(64, getUniqueFunctionIdFromName(name), false)), "cmp_unique_id");
-    Builder->CreateCondBr(cond2, uniqueIdOkBB, failedBB);
-    Builder->SetInsertPoint(uniqueIdOkBB);
-    Value *retVal = Builder->CreateCall(CalleeF, argVals, string("call_") + rName);
-    Builder->CreateBr(mergeBB);
-    Builder->SetInsertPoint(failedBB);
-    Value *retValBad = callDynamicFun(load, retValType, args);
-    Builder->CreateBr(mergeBB);
-    Builder->SetInsertPoint(mergeBB);
-    PHINode *phiNode = Builder->CreatePHI(retType, 2, "phi");
-    phiNode->addIncoming(retVal, uniqueIdOkBB);
-    phiNode->addIncoming(retValBad, failedBB);
-    return TypedValue(retValType, phiNode);  
-  }
-
-  return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
-}
-
-Value *CodeGenerator::callDynamicFun(Value *rtFnPointer, const ObjectTypeSet &retValType, const vector<TypedValue> &args) {
-  Value *argSignature = ConstantInt::get(*TheContext, APInt(64, 0, false));
-  Value *packedArgSignature = ConstantInt::get(*TheContext, APInt(64, 0, false));
-  vector<TypedValue> pointerCallArgs;
-  /* TODO - more than 8 args */
-  if(args.size() > 8) throw InternalInconsistencyException("More than 8 args not yet supported"); 
-  for(int i=0; i<args.size(); i++) {
-     auto arg = args[i];
-     Value *type = nullptr;
-     Value *packed = nullptr;
-     if(arg.first.isDetermined()) {
-       type = ConstantInt::get(*TheContext, APInt(64, arg.first.determinedType(), false));
-       packed = ConstantInt::get(*TheContext, APInt(8, 0, false));
-     }
-     else {
-       type = getRuntimeObjectType(arg.second);
-       packed = ConstantInt::get(*TheContext, APInt(8, 1, false));
-     }                                   
-     argSignature = Builder->CreateShl(argSignature, 8, "shl");
-     argSignature = Builder->CreateOr(argSignature, type, "bit_or");
-     packedArgSignature = Builder->CreateShl(packedArgSignature, 1, "shl");
-     packedArgSignature = Builder->CreateOr(packedArgSignature, packed, "bit_or");
-  }
-  vector<TypedValue> specialisationArgs;
-
-  Value* jitAddressConst = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (int64_t)TheJIT, false));
-  Value* jitAddress = Builder->CreateIntToPtr(jitAddressConst, Type::getInt8Ty(*TheContext)->getPointerTo(), "int_to_ptr"); 
-
-  specialisationArgs.push_back(TypedValue(ObjectTypeSet::all(), jitAddress));
-  specialisationArgs.push_back(TypedValue(ObjectTypeSet::all(), rtFnPointer));
-  specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), ConstantInt::get(*TheContext, APInt(64, retValType.isDetermined() ? retValType.determinedType() : 0, false))));
-  specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), ConstantInt::get(*TheContext, APInt(64, args.size(), false))));
-  specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), argSignature));
-  specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), packedArgSignature));
-
-  TypedValue functionPointer = callRuntimeFun("specialiseDynamicFn", ObjectTypeSet::all(), specialisationArgs);
-
-  vector<Type *> argTypes;
-  vector<Value *> argVals;
-  for(auto arg: args) { 
-    argTypes.push_back(dynamicType(arg.first));
-    argVals.push_back(arg.second);
-  }
-
-  auto retVal = dynamicType(retValType);
-    /* TODO - Return values should be probably handled differently. e.g. if the new function returns something boxed, 
-       we should inspect it and decide if we want to use it or not for var inbvokations */ 
-
-  /* What if the new function returns a different type? we should probably not force the return type. It should be deduced by jit and our job should be to somehow box/unbox it. Alternatively, we can add return type to method name (like fn_1_JJ_LV) and force generation of function that returns the boxed version of needed return type. If it does not match - we should throw a runtime error */ 
-
-  FunctionType *FT = FunctionType::get(retVal, argTypes, false);
-  Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, FT->getPointerTo());
-  
-  return Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("call_dynamic"));
-}
-
-void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retVal, const vector<ObjectTypeSet> &args) {
-  vector<Type *> argTypes;
-  
-  for(auto arg : args) {
-    argTypes.push_back((arg.isDetermined() && !arg.isBoxed)? dynamicUnboxedType(arg.determinedType()) : dynamicBoxedType());
-  }
-  
-  Type *retType = (retVal.isDetermined() && !retVal.isBoxed) ? dynamicUnboxedType(retVal.determinedType()) : dynamicBoxedType();
-  
-  Function *CalleeF = TheModule->getFunction(name); 
-  if(!CalleeF) {
-    FunctionType *FT = FunctionType::get(retType, argTypes, false);
-    CalleeF = Function::Create(FT, Function::ExternalLinkage, name, TheModule.get());
-    /* Build body */
-    vector<Value *> fArgs;
-    for(auto &farg: CalleeF->args()) fArgs.push_back(&farg);
-
-    BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
-    Builder->SetInsertPoint(BB);
-    
-    vector<TypedValue> functionArgs;
-    for(int i=0; i<args.size(); i++) functionArgs.push_back(unbox(TypedValue(args[i].removeConst(), fArgs[i])));
-    FunctionArgsStack.push_back(functionArgs);
-    
-    auto result = codegen(method.body(), retVal);
-    Builder->CreateRet(retVal.isBoxed ? box(result).second : result.second);
-    FunctionArgsStack.pop_back();
-    
-    verifyFunction(*CalleeF);
-  }
-}
-
 TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRestrictions) {
   switch (node.op()) {
   case opBinding:
@@ -319,50 +166,40 @@ string CodeGenerator::globalNameForVar(string var) {
   return string("cv_") + var;
 }
 
+string CodeGenerator::typeStringForArg(const ObjectTypeSet &arg) {
+  if(!arg.isDetermined()) return "LO";
+  else switch (arg.determinedType()) {
+    case integerType:
+      return (arg.isBoxed ? "LJ" : "J");
+    case stringType:
+      return "LS";
+    case persistentListType:
+      return "LL";
+    case persistentVectorType:
+      return "LV";
+    case symbolType:
+      return "LY";
+    case persistentVectorNodeType:
+      assert(false && "Node cannot be used as an argument");
+    case concurrentHashMapType:
+      assert(false && "Concurrent hash map cannot be used as an argument");
+    case doubleType:
+      return (arg.isBoxed ? "LD" : "D");
+    case booleanType:
+      return (arg.isBoxed ? "LB" : "B");
+    case nilType:
+      return "LN";
+    case keywordType:
+      return "LK";
+    case functionType:
+      return "LF";
+    }
+}
+
 
 string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
   stringstream retval;
-  for (auto i: args) {
-    if(!i.isDetermined()) retval << "LO";
-    else switch (i.determinedType()) {
-      case integerType:
-        retval << (i.isBoxed ? "LJ" : "J");
-        break;
-      case stringType:
-        retval << "LS";
-        break;
-      case persistentListType:
-        retval << "LL";
-        break;
-      case persistentVectorType:
-        retval << "LV";
-        break;
-      case symbolType:
-        retval << "LY";
-        break;
-      case persistentVectorNodeType:
-        assert(false && "Node cannot be used as an argument");
-        break;
-      case concurrentHashMapType:
-        assert(false && "Concurrent hash map cannot be used as an argument");
-        break;
-      case doubleType:
-        retval << (i.isBoxed ? "LD" : "D");
-        break;
-      case booleanType:
-        retval << (i.isBoxed ? "LB" : "B");
-        break;
-      case nilType:
-        retval << "LN";
-        break;
-      case keywordType:
-        retval << "LK";
-        break;
-      case functionType:
-        retval << "LF";
-        break;
-    }
-  }
+  for (auto i: args) retval << typeStringForArg(i);    
   return retval.str();
 }
 
@@ -378,6 +215,11 @@ string CodeGenerator::pointerName(void *ptr) {
   std::stringstream ss;
   ss << ptr;  
   return ss.str();
+}
+
+
+string CodeGenerator::fullyQualifiedMethodKey(const string &name, const vector<ObjectTypeSet> &args, const ObjectTypeSet &retVal) {
+  return name + "_" + CodeGenerator::typeStringForArgs(args) + "_" + typeStringForArg(retVal);
 }
 
 string CodeGenerator::recursiveMethodKey(const string &name, const vector<ObjectTypeSet> &args) {

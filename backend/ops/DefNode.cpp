@@ -14,7 +14,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
   if(found != StaticVars.end()) {
     /* Already processed this def somewhere earlier */
     if(!subnode.has_init()) return TypedValue(ObjectTypeSet(nilType), nil);
-
+/* Hint: commenting the line below allows for easy "multithreaded" debugging of function entry shifts */
+    TheProgramme->StaticFunctions.erase(mangled);
     auto foundTypes = found->second.first;
     auto incomingTypes = getType(subnode.init(), ObjectTypeSet::all());
     auto created = codegen(subnode.init(), foundTypes);
@@ -76,12 +77,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
 //    gVar->setAlignment(Align(8));
     gVar->setInitializer(Constant::getNullValue(gVar->getType()));
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, nil, MaybeAlign(), AtomicOrdering::Monotonic);
-    StaticVars.insert({name, TypedValue(ObjectTypeSet(nilType), gVar)});
-    TheProgramme->StaticVarTypes.insert({name, ObjectTypeSet(nilType)});
+    StaticVars.insert({name, TypedValue(ObjectTypeSet::dynamicType(), gVar)});
+    TheProgramme->StaticVarTypes.insert({name, ObjectTypeSet::dynamicType()});
   } else {
     /* First time declaration, proper. */
 
-    auto created = codegen(subnode.init(), ObjectTypeSet::all());
+    auto created = box(codegen(subnode.init(), ObjectTypeSet::all()));
     TheModule->getOrInsertGlobal(mangled, created.second->getType());
     GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
     gVar->setInitializer(Constant::getNullValue(gVar->getType()));
@@ -97,8 +98,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Xchg, gVar, created.second, MaybeAlign(), AtomicOrdering::Monotonic);
     created.second = gVar;
     created.first = created.first.removeConst();
-    StaticVars.insert({name, created});
-    TheProgramme->StaticVarTypes.insert({name, created.first});
+    StaticVars.insert({name, TypedValue(ObjectTypeSet::dynamicType(), created.second)});
+    TheProgramme->StaticVarTypes.insert({name, ObjectTypeSet::dynamicType()});
 
   }
 

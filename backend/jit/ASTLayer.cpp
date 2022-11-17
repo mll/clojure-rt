@@ -19,12 +19,18 @@ void ClojureASTLayer::emit(std::unique_ptr<MaterializationResponsibility> MR, un
 
 llvm::orc::ThreadSafeModule ClojureASTLayer::irgenAndTakeOwnership(FunctionJIT &FnAST, const std::string &Suffix) {
   auto codegen = make_unique<CodeGenerator>(TheProgramme, TheJIT);
-  if(FnAST.uniqueId) {
-    const FnNode &node = TheProgramme->Functions.find(FnAST.uniqueId)->second.subnode().fn();
-    const FnMethodNode &method = node.methods(FnAST.methodIndex).subnode().fnmethod();
-    codegen->buildStaticFun(method, FnAST.name + Suffix, FnAST.retVal, FnAST.args);
-  } else codegen->buildStaticFun(FnAST.method, FnAST.name + Suffix, FnAST.retVal, FnAST.args);
-  return ThreadSafeModule(std::move(codegen->TheModule), std::move(codegen->TheContext));
+  try {
+    if(FnAST.uniqueId) {
+      const FnNode &node = TheProgramme->Functions.find(FnAST.uniqueId)->second.subnode().fn();
+      const FnMethodNode &method = node.methods(FnAST.methodIndex).subnode().fnmethod();
+      codegen->buildStaticFun(method, FnAST.name + Suffix, FnAST.retVal, FnAST.args);
+    } else codegen->buildStaticFun(FnAST.method, FnAST.name + Suffix, FnAST.retVal, FnAST.args);
+    return ThreadSafeModule(std::move(codegen->TheModule), std::move(codegen->TheContext));
+  } catch (CodeGenerationException e) {
+    cerr << e.toString() <<endl;
+    throw e;
+  }
+  
 }
 
 

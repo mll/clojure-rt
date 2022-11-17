@@ -41,12 +41,13 @@ Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, cons
   return  Builder->CreateCall(CalleeF, args, string("call_") + fname);
 } 
 
-void CodeGenerator::runtimeException(const CodeGenerationException &runtimeException) {
+Value *CodeGenerator::runtimeException(const CodeGenerationException &runtimeException) {
   vector<Type *> argTypes;
   vector<Value *> args;
   argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   args.push_back(Builder->CreateGlobalStringPtr(StringRef(runtimeException.toString().c_str()), "dynamicString"));      
   callRuntimeFun("logException", Type::getVoidTy(*TheContext), argTypes, args);
+  return ConstantPointerNull::get(dynamicBoxedType());
 }
 
 Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTypes, const vector<Value *> &args) {
@@ -259,7 +260,7 @@ Type *CodeGenerator::dynamicBoxedType(objectType type) {
   return Type::getInt8Ty(*TheContext)->getPointerTo();
 }
 
-Type *CodeGenerator::dynamicBoxedType() {
+PointerType *CodeGenerator::dynamicBoxedType() {
   return Type::getInt8Ty(*TheContext)->getPointerTo();
 }
 

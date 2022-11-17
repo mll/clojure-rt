@@ -59,16 +59,17 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     for(int i=0; i<args.size(); i++) argTypes.push_back(args[i].first);
 
     string rName = recursiveMethodKey(fName, argTypes);
+    string rqName = fullyQualifiedMethodKey(fName, argTypes, type);
     
     
-    if(TheModule->getFunction(rName) == Builder->GetInsertBlock()->getParent()) {
+    if(TheModule->getFunction(rqName) == Builder->GetInsertBlock()->getParent()) {
       refName = ""; // This blocks dynamic entry checks - we do not want them for directly recursive functions */
     }
 
     /* We leave the return type cached, maybe in the future it needs to be removed here */
     TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
 
-    auto retVal = callStaticFun(*method, fName, type, args, refName);
+    auto retVal = callStaticFun(node, *method, fName, type, args, refName);
     
     return retVal;
   }
@@ -119,16 +120,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
       }
     }
   }
-  
-  
-  
-
-  
-// TODO: generic functions
-// ConstantExpr::getBitCast(MyFunction, Type::getInt8PtrTy(Ctx))
-  throw CodeGenerationException("We do not support generic functions yet.", node);
-
-  return TypedValue(type, nullptr);
+  /* Now we know that what we have at functionRef is either packaged object or a function. We have to discern those two situations: */
+  auto callObject = codegen(functionRef, ObjectTypeSet::all());
+  return TypedValue(type, dynamicInvoke(node, callObject.second, getRuntimeObjectType(callObject.second), type, args));    
 }
 
 
@@ -225,6 +219,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     }
     return retVal;
   }
+  cout << "!!! Invoke node with restrictions: " << typeRestrictions.toString() << " - " <<  ObjectTypeSet::all().restriction(typeRestrictions).toString()  << endl;
+
   /* Unable to find function body, it has gone through generic path and type has to be resolved at runtime */
-  return ObjectTypeSet::all();
+  return ObjectTypeSet::all().restriction(typeRestrictions);
 }

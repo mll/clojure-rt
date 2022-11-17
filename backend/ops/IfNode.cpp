@@ -7,8 +7,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   auto testType = getType(subnode.test(), ObjectTypeSet::all());
   auto thenType = getType(subnode.then(), typeRestrictions);
   auto elseType = subnode.has_else_() ? getType(subnode.else_(), typeRestrictions) : ObjectTypeSet(nilType);
+
+  cout << "!!!!!!!!!!If node " << typeRestrictions.toString() << " with else: " << elseType.toString()  << endl;
   thenType = thenType.restriction(typeRestrictions);
   elseType = elseType.restriction(typeRestrictions);
+  cout << "!!!!!!!!!!If node after restricting: " << typeRestrictions.toString() << " with else: " << elseType.toString()  << endl;
+
 
   Function *parentFunction = Builder->GetInsertBlock()->getParent();
   

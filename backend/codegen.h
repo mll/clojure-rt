@@ -64,7 +64,7 @@ public:
   void printDebugValue(llvm::Value *v);
   uint64_t getUniqueFunctionIdFromName(std::string name);
   std::string pointerName(void *ptr);
-  static std::string typeStringForArgs(const std::vector<ObjectTypeSet> &args);
+
   std::vector<ObjectTypeSet> typesForArgString(const Node &node, const std::string &typeString); 
   ObjectTypeSet typeForArgString(const Node &node, const std::string &typeString);
   uint64_t computeHash(const char *str);
@@ -72,15 +72,22 @@ public:
   std::string globalNameForVar(std::string var);
   std::string getMangledUniqueFunctionName(uint64_t num) ;
   uint64_t getUniqueFunctionId();
+
+  static std::string typeStringForArg(const ObjectTypeSet &arg);
+  static std::string typeStringForArgs(const std::vector<ObjectTypeSet> &args);
   static std::string recursiveMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args);
+  static std::string fullyQualifiedMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args, const ObjectTypeSet &retVal);
 
-  TypedValue callStaticFun(const FnMethodNode &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName);
-  void buildStaticFun(const FnMethodNode &method, const std::string &name, const ObjectTypeSet &retVal, const std::vector<ObjectTypeSet> &args);
-
-  llvm::Value *callDynamicFun(llvm::Value *rtFnPointer, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args);
-    
   TypedValue staticFalse();
   TypedValue staticTrue();
+
+/* Dynamic dispatch */
+
+  TypedValue callStaticFun(const Node &node, const FnMethodNode &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName);
+  void buildStaticFun(const FnMethodNode &method, const std::string &name, const ObjectTypeSet &retVal, const std::vector<ObjectTypeSet> &args);
+
+  llvm::Value *callDynamicFun(const Node &node, llvm::Value *rtFnPointer, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args);
+  llvm::Value *dynamicInvoke(const Node &node, llvm::Value *objectToInvoke, llvm::Value* objectType, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, llvm::Value *uniqueFunctionId = nullptr, llvm::Function *staticFunctionToCall = nullptr);    
 
   /* Runtime types */
 
@@ -104,7 +111,7 @@ public:
   TypedValue box(const TypedValue &value);
   TypedValue unbox(const TypedValue &value);
 
-  void runtimeException(const CodeGenerationException &runtimeException);  
+  llvm::Value *runtimeException(const CodeGenerationException &runtimeException);  
 
   llvm::Value *callRuntimeFun(const std::string &fname, llvm::Type *retValType, const std::vector<llvm::Type *> &argTypes, const std::vector<llvm::Value *> &args, bool isVariadic = false);
   TypedValue callRuntimeFun(const std::string &fname, const ObjectTypeSet &retVal, const std::vector<TypedValue> &args);
@@ -113,7 +120,7 @@ public:
  
   llvm::Type *dynamicUnboxedType(objectType type);
   llvm::Type *dynamicBoxedType(objectType type);
-  llvm::Type *dynamicBoxedType();
+  llvm::PointerType *dynamicBoxedType();
   llvm::Type *dynamicType(const ObjectTypeSet &type);
 
   /* Code generation */
@@ -165,7 +172,6 @@ public:
   TypedValue codegen(const Node &node, const VarNode &subnode, const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const VectorNode &subnode, const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const WithMetaNode &subnode, const ObjectTypeSet &typeRestrictions);
-
 
   ObjectTypeSet getType(const Node &node, const ObjectTypeSet &typeRestrictions);
 

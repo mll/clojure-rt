@@ -71,6 +71,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
     
     return method.second.first(this, name + " " + requiredArity, node, args).restriction(typeRestrictions);
   }
+  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for args: ") + requiredArity + " return type: " + typeRestrictions.toString(), node);
   return ObjectTypeSet();
 }
 

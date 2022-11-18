@@ -10,8 +10,6 @@ ObjectTypeSet Numbers_add_type(CodeGenerator *gen, const string &signature, cons
   auto left = args[0].first;
   auto right = args[1].first;
 
-  cout << "!!! Generating + type for args: " << endl; 
-
   if(left.getConstant() && right.getConstant()) {
     if(left.getConstant()->constantType == integerType && right.getConstant()->constantType == integerType) 
       return ObjectTypeSet(integerType, false, new ConstantInteger(dynamic_cast<ConstantInteger *>(left.getConstant())->value + dynamic_cast<ConstantInteger *>(right.getConstant())->value));

@@ -93,6 +93,10 @@ public:
 
   llvm::StructType *runtimeObjectType();
   llvm::StructType *runtimeFunctionType(); 
+  llvm::StructType *runtimeBooleanType();
+  llvm::StructType *runtimeIntegerType();
+  llvm::StructType *runtimeDoubleType();
+
 
   llvm::Value *getRuntimeObjectType(llvm::Value *objectPtr);
 
@@ -110,14 +114,12 @@ public:
 
   TypedValue box(const TypedValue &value);
   TypedValue unbox(const TypedValue &value);
-
-  llvm::Value *runtimeException(const CodeGenerationException &runtimeException);  
-
+  std::pair<llvm::BasicBlock *, llvm::Value *> dynamicUnbox(const Node &node, const TypedValue &value, objectType forcedType);
+  void runtimeException(const CodeGenerationException &runtimeException);  
+  llvm::Value *dynamicZero(const ObjectTypeSet &type);
   llvm::Value *callRuntimeFun(const std::string &fname, llvm::Type *retValType, const std::vector<llvm::Type *> &argTypes, const std::vector<llvm::Value *> &args, bool isVariadic = false);
   TypedValue callRuntimeFun(const std::string &fname, const ObjectTypeSet &retVal, const std::vector<TypedValue> &args);
-
   llvm::Value *dynamicCreate(objectType type, const std::vector<llvm::Type *> &argTypes, const std::vector<llvm::Value *> &args);
- 
   llvm::Type *dynamicUnboxedType(objectType type);
   llvm::Type *dynamicBoxedType(objectType type);
   llvm::PointerType *dynamicBoxedType();

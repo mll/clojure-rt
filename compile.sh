@@ -2,14 +2,16 @@
 
 LEIN=`which lein`
 FILENAME=$1
-echo $FILENAME
+BINARY="${FILENAME%.clj}.cljb"
 cp $FILENAME frontend
 cd frontend
+echo "Compiling to AST..." 
 $LEIN run $FILENAME
-mv *.cljb ../backend
+mv $BINARY ../backend
 rm $FILENAME
 cd ../backend
 #arch -arm64 lldb ./clojure-rt 
-./clojure-rt *.cljb
-#rm *.cljb
+echo "Executing..."
+./clojure-rt $BINARY
+rm $BINARY
 cd ..

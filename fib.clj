@@ -4,6 +4,6 @@
 
 (z ([42] 0))
 
-;(+ 3 (fib 5))
-;(defn fib [x] "aa")
-;(+ 3 (fib 5))
+(+ 3 (fib 5))
+(defn fib [x] "aa")
+(+ 3 (fib 5))

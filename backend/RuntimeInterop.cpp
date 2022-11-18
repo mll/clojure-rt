@@ -38,16 +38,16 @@ Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, cons
 
   if (!CalleeF) throw InternalInconsistencyException(string("Unable to find ") + fname + " - do we link runtime?");
   
-  return  Builder->CreateCall(CalleeF, args, string("call_") + fname);
+  if(retValType == Type::getVoidTy(*TheContext)) return Builder->CreateCall(CalleeF, args);
+  return Builder->CreateCall(CalleeF, args, string("call_") + fname);
 } 
 
-Value *CodeGenerator::runtimeException(const CodeGenerationException &runtimeException) {
+void CodeGenerator::runtimeException(const CodeGenerationException &runtimeException) {
   vector<Type *> argTypes;
   vector<Value *> args;
   argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   args.push_back(Builder->CreateGlobalStringPtr(StringRef(runtimeException.toString().c_str()), "dynamicString"));      
   callRuntimeFun("logException", Type::getVoidTy(*TheContext), argTypes, args);
-  return ConstantPointerNull::get(dynamicBoxedType());
 }
 
 Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTypes, const vector<Value *> &args) {
@@ -132,6 +132,7 @@ Value *CodeGenerator::dynamicVector(const vector<TypedValue> &args) {
   return retVal;
 }
 
+/********************** TYPES *********************************/
 
 /* 
    struct Object {
@@ -160,6 +161,36 @@ StructType *CodeGenerator::runtimeFunctionType() {
        /* maxArity */ dynamicUnboxedType(integerType),
        /* TODO : Methods */
      }, "Function");
+}
+
+/* struct Integer {
+   int64_t value;
+}; */
+
+StructType *CodeGenerator::runtimeIntegerType() {
+   return StructType::create(*TheContext, {
+       /* value */ Type::getInt64Ty(*TheContext),
+     }, "Integer");
+}
+
+/* struct Double {
+  double value;
+}; */
+
+StructType *CodeGenerator::runtimeDoubleType() {
+   return StructType::create(*TheContext, {
+       /* value */ Type::getDoubleTy(*TheContext),
+     }, "Double");
+}
+
+/* struct Boolean {
+  unsigned char value;
+}; */
+
+StructType *CodeGenerator::runtimeBooleanType() {
+   return StructType::create(*TheContext, {
+       /* value */ Type::getInt8Ty(*TheContext),
+     }, "Boolean");
 }
 
 
@@ -213,8 +244,6 @@ Value * CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false) {
   return callRuntimeFun(isAutorelease ? "autorelease" : "release", isAutorelease ? Type::getVoidTy(*TheContext) : Type::getInt8Ty(*TheContext), types, args);
 }
 
-
-
 Value * CodeGenerator::dynamicSymbol(const char *name) {
   auto names = dynamicString(name);
   vector<Type *> types;
@@ -256,6 +285,22 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
   }
 }
 
+Value *CodeGenerator::dynamicZero(const ObjectTypeSet &type) {
+  if(!type.isNative()) return ConstantPointerNull::get(dynamicBoxedType());
+  switch(type.determinedType()) {
+    case integerType:
+      return ConstantInt::get(*TheContext, APInt(64, 0, false));
+    case booleanType:
+      return ConstantInt::get(*TheContext, APInt(1, 0, false));
+    case doubleType:
+      return ConstantFP::get(*TheContext, APFloat(0.0));
+    default:
+      break;
+  }
+  return ConstantPointerNull::get(dynamicBoxedType());
+}
+
+
 Type *CodeGenerator::dynamicBoxedType(objectType type) {
   return Type::getInt8Ty(*TheContext)->getPointerTo();
 }
@@ -269,27 +314,96 @@ Type *CodeGenerator::dynamicType(const ObjectTypeSet &type) {
   return dynamicBoxedType();
 }
 
+pair<BasicBlock *, Value *> CodeGenerator::dynamicUnbox(const Node &node, const TypedValue &value, objectType forcedType) {
+  if(!value.first.isBoxed && value.first.isDetermined()) {
+    if(forcedType != value.first.determinedType()) throw CodeGenerationException(string("Unable to unbox: ") + value.first.toString() + " to " + to_string(forcedType), node);
+    return {Builder->GetInsertBlock(), value.second};
+  }
+  if(value.first.isBoxed && value.first.isDetermined()) {
+    if(forcedType != value.first.determinedType()) throw CodeGenerationException(string("Unable to unbox: ") + value.first.toString() + " to " + to_string(forcedType), node);
+    return {Builder->GetInsertBlock(), unbox(value).second};
+  }
+  Type *unboxType = nullptr;
+  StructType *stype = nullptr;
+  switch(forcedType) {
+  case integerType:
+    stype = runtimeIntegerType();
+    unboxType = Type::getInt64Ty(*TheContext);
+    break;
+  case doubleType:
+    stype = runtimeDoubleType();
+    unboxType = Type::getDoubleTy(*TheContext);
+    break;
+  case booleanType:
+    stype = runtimeBooleanType();
+    unboxType = Type::getInt8Ty(*TheContext);
+    break;
+  default:
+    unboxType = Type::getInt8Ty(*TheContext)->getPointerTo();
+    break;
+  }
+
+  Value *type = getRuntimeObjectType(value.second);
+  Function *parentFunction = Builder->GetInsertBlock()->getParent();
+  
+  BasicBlock *wrongBB = llvm::BasicBlock::Create(*TheContext, "failed_dynamic_cast", parentFunction);
+  BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge", parentFunction);    
+
+  Value *cond = Builder->CreateICmpEQ(type,ConstantInt::get(*TheContext, APInt(8, forcedType, false)) , "cmp_type");
+  Builder->CreateCondBr(cond, mergeBB, wrongBB);
+      
+  Builder->SetInsertPoint(wrongBB);
+  runtimeException(CodeGenerationException("Unable to dynamically unbox " + to_string(forcedType), node));    
+  Builder->CreateBr(mergeBB);
+  
+  Builder->SetInsertPoint(mergeBB);
+  
+  Value *loaded = nullptr;
+  if(unboxType == Type::getInt8Ty(*TheContext)->getPointerTo()) loaded = value.second;
+  else {
+    Value *ptr = Builder->CreateBitOrPointerCast(value.second, stype->getPointerTo(), "void_to_struct");
+    Value *tPtr = Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
+    
+    loaded = Builder->CreateLoad(unboxType, tPtr, "load_var");
+    if(forcedType ==booleanType) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
+  }
+  
+  return pair<BasicBlock *, Value *>(mergeBB, loaded);
+}
+
+
+
 TypedValue CodeGenerator::unbox(const TypedValue &value) {
-  if(!value.first.isBoxed || !value.first.isDetermined()) return value;
-  Type *type = nullptr;
+  if(!value.first.isBoxed && value.first.isDetermined()) return value;
+  if(!value.first.isDetermined()) throw InternalInconsistencyException(string("Unable to statically unbox type: ") + value.first.toString());
   ObjectTypeSet t = value.first;
   t.isBoxed = false;
+
+
+  StructType *stype = nullptr;
+  Type *type = nullptr;
   
   switch(value.first.determinedType()) {
   case integerType:
+    stype = runtimeIntegerType();
     type = Type::getInt64Ty(*TheContext);
     break;
   case doubleType:
+    stype = runtimeDoubleType();
     type = Type::getDoubleTy(*TheContext);
     break;
   case booleanType:
+    stype = runtimeBooleanType();
     type = Type::getInt8Ty(*TheContext);
     break;
   default:
     return TypedValue(t, value.second);
   }
 
-  Value *loaded = Builder->CreateLoad(type, Builder->CreateBitOrPointerCast(value.second, type->getPointerTo(), "void_to_unboxed"), "load_var");
+  Value *ptr = Builder->CreateBitOrPointerCast(value.second, stype->getPointerTo(), "void_to_struct");
+  Value *tPtr = Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
+
+  Value *loaded = Builder->CreateLoad(type, tPtr, "load_var");
   if(value.first.isType(booleanType)) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
   dynamicRelease(value.second);
   return TypedValue(t, loaded);

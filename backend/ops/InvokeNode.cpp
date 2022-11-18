@@ -219,7 +219,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     }
     return retVal;
   }
-  cout << "!!! Invoke node with restrictions: " << typeRestrictions.toString() << " - " <<  ObjectTypeSet::all().restriction(typeRestrictions).toString()  << endl;
+  
 
   /* Unable to find function body, it has gone through generic path and type has to be resolved at runtime */
   return ObjectTypeSet::all().restriction(typeRestrictions);

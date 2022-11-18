@@ -82,13 +82,16 @@ Expected<JITEvaluatedSymbol> ClojureJIT::lookup(StringRef Name) {
 
 Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, const MaterializationResponsibility &R) {
   TSM.withModuleDo([](Module &M) {
-
-    verifyModule(M);
     // Create a function pass manager.
     auto TheFPM = std::make_unique<legacy::FunctionPassManager>(&M);
+    verifyModule(M);
+
+//    M.print(errs(), nullptr);
+
+    // The vetification pass is much stronger than just "verify" on the module 
+    TheFPM->add(createVerifierPass());    
 
     // Add some optimizations.
-
     // Do simple "peephole" optimizations and bit-twiddling optzns.
     TheFPM->add(createInstructionCombiningPass());
     // Reassociate expressions.
@@ -105,11 +108,12 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     
     // Run the optimizations over all functions in the module being added to
     // the JIT.
+
     
     for (auto &F : M) {
       TheFPM->run(F);
     }
-    M.print(errs(), nullptr);
+
   });
   
   return std::move(TSM);

@@ -9,7 +9,7 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const FnMethodNode &me
   vector<Type *> argTypes;
   vector<Value *> argVals;
   vector<ObjectTypeSet> argT;
-  
+    
   for(auto arg : args) {
     argTypes.push_back((arg.first.isDetermined() && !arg.first.isBoxed) ? dynamicUnboxedType(arg.first.determinedType()) : dynamicBoxedType());
     argVals.push_back(arg.second);
@@ -35,7 +35,6 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const FnMethodNode &me
   
   ExitOnErr(TheJIT->addAST(move(f)));
 
-
   auto found = StaticVars.find(refName);
   if(found != StaticVars.end()) {
     LoadInst * load = Builder->CreateLoad(dynamicBoxedType(), found->second.second, "load_var");
@@ -51,25 +50,28 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const FnMethodNode &me
 Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Value* objectType, const ObjectTypeSet &retValType, const vector<TypedValue> &args, Value *uniqueFunctionId, Function *staticFunctionToCall) {
   Function *parentFunction = Builder->GetInsertBlock()->getParent();
   
-  BasicBlock *failedBB = llvm::BasicBlock::Create(*TheContext, "failed", parentFunction);
-  BasicBlock *functionTypeBB = llvm::BasicBlock::Create(*TheContext, "type_function", parentFunction);
-  BasicBlock *vectorTypeBB = llvm::BasicBlock::Create(*TheContext, "type_vector", parentFunction);
+  BasicBlock *functionTypeBB = llvm::BasicBlock::Create(*TheContext, "type_function");
+  BasicBlock *vectorTypeBB = llvm::BasicBlock::Create(*TheContext, "type_vector");
+  BasicBlock *failedBB = llvm::BasicBlock::Create(*TheContext, "failed");
 
   SwitchInst *cond = Builder->CreateSwitch(objectType, failedBB, 2); 
   cond->addCase(ConstantInt::get(*TheContext, APInt(8, functionType, false)), functionTypeBB);
   cond->addCase(ConstantInt::get(*TheContext, APInt(8, persistentVectorType, false)), vectorTypeBB);
  
-  BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge", parentFunction);    
+  BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge");    
   
 /* TODO - if the type is no longer a function, we still need to check type specific invokations.
     we cannot proceed to dynamic fun call because the new value may not be a fun. This needs to be added to the phi node as well. */ 
-  
+ 
+  parentFunction->getBasicBlockList().push_back(functionTypeBB); 
   Builder->SetInsertPoint(functionTypeBB);
+
   Value *funRetVal = nullptr;
+  BasicBlock *funRetValBlock = Builder->GetInsertBlock();
   if(uniqueFunctionId) {
-    BasicBlock *uniqueIdMergeBB = llvm::BasicBlock::Create(*TheContext, "merge", parentFunction);    
-    BasicBlock *uniqueIdOkBB = llvm::BasicBlock::Create(*TheContext, "unique_id_ok", parentFunction);
-    BasicBlock *uniqueIdFailedBB = llvm::BasicBlock::Create(*TheContext, "unique_id_failed", parentFunction);
+    BasicBlock *uniqueIdMergeBB = llvm::BasicBlock::Create(*TheContext, "unique_id_merge");    
+    BasicBlock *uniqueIdOkBB = llvm::BasicBlock::Create(*TheContext, "unique_id_ok");
+    BasicBlock *uniqueIdFailedBB = llvm::BasicBlock::Create(*TheContext, "unique_id_failed");
     
     Value *uniqueIdPtr = Builder->CreateStructGEP(runtimeFunctionType(), objectToInvoke, 0, "get_unique_id");
     Value *uniqueId = Builder->CreateLoad(Type::getInt64Ty(*TheContext), uniqueIdPtr, "load_unique_id");    
@@ -77,35 +79,46 @@ Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Val
     Value *cond2 = Builder->CreateICmpEQ(uniqueId, uniqueFunctionId, "cmp_unique_id");
     Builder->CreateCondBr(cond2, uniqueIdOkBB, uniqueIdFailedBB);
     
+    parentFunction->getBasicBlockList().push_back(uniqueIdOkBB); 
     Builder->SetInsertPoint(uniqueIdOkBB);
     vector<Value *> argVals;
     for(auto v : args) argVals.push_back(v.second);
     Value *uniqueIdOkVal = Builder->CreateCall(staticFunctionToCall, argVals, string("call_dynamic"));
     Builder->CreateBr(uniqueIdMergeBB);
     
+    parentFunction->getBasicBlockList().push_back(uniqueIdFailedBB); 
     Builder->SetInsertPoint(uniqueIdFailedBB);
     Value *uniqueIdFailedVal = callDynamicFun(node, objectToInvoke, retValType, args);
     Builder->CreateBr(uniqueIdMergeBB);
     
+    parentFunction->getBasicBlockList().push_back(uniqueIdMergeBB); 
     Builder->SetInsertPoint(uniqueIdMergeBB);
     PHINode *phiNode = Builder->CreatePHI(uniqueIdOkVal->getType(), 2, "phi");
     phiNode->addIncoming(uniqueIdOkVal, uniqueIdOkBB);
     phiNode->addIncoming(uniqueIdFailedVal, uniqueIdFailedBB);  
     funRetVal = phiNode;
+    funRetValBlock = Builder->GetInsertBlock();
   } else funRetVal = callDynamicFun(node, objectToInvoke, retValType, args);
   Builder->CreateBr(mergeBB);
 
+  parentFunction->getBasicBlockList().push_back(vectorTypeBB); 
   Builder->SetInsertPoint(vectorTypeBB);
   Value *vecRetVal = nullptr; 
-  if(args.size() != 1) vecRetVal = runtimeException(CodeGenerationException("Wrong number of args passed to invokation", node)); 
+  BasicBlock *vecRetValBlock = Builder->GetInsertBlock();
+  if(args.size() != 1) {
+    runtimeException(CodeGenerationException("Wrong number of args passed to invokation", node)); 
+    vecRetVal = dynamicZero(retValType);
+  }
   else {
     vector<TypedValue> finalArgs;
     string callName;
     finalArgs.push_back(TypedValue(ObjectTypeSet(persistentVectorType), objectToInvoke));
     auto argType = args[0].first;
     /* Todo - what about big integer? */
-    if(argType.isDetermined() && !argType.isType(integerType)) vecRetVal = runtimeException(CodeGenerationException("The argument must be an integer", node)); 
-    else {
+    if(argType.isDetermined() && !argType.isType(integerType)) {
+      runtimeException(CodeGenerationException("The argument must be an integer", node)); 
+      vecRetVal = dynamicZero(retValType);
+    } else {
       if(args[0].first.isType(integerType)) {
           finalArgs.push_back(args[0]);          
           callName = "PersistentVector_nth";
@@ -114,25 +127,33 @@ Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Val
           callName = "PersistentVector_dynamic_nth";
         }
         vecRetVal = callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs).second; 
+        if(!retValType.isBoxed && retValType.isDetermined()) {
+          auto p = dynamicUnbox(node, TypedValue(ObjectTypeSet::dynamicType(), vecRetVal), retValType.determinedType());
+          vecRetValBlock = p.first;
+          vecRetVal = p.second;
+        }
     }
   }
   Builder->CreateBr(mergeBB);
-
+  parentFunction->getBasicBlockList().push_back(failedBB); 
   Builder->SetInsertPoint(failedBB);
-  Value *failedRetVal = runtimeException(CodeGenerationException("This type cannot be invoked.", node));
-  Builder->CreateBr(mergeBB);
+  runtimeException(CodeGenerationException("This type cannot be invoked.", node));
+  Value *failedRetVal = dynamicZero(retValType);
 
+  Builder->CreateBr(mergeBB);
+  parentFunction->getBasicBlockList().push_back(mergeBB); 
   Builder->SetInsertPoint(mergeBB);
   PHINode *phiNode = Builder->CreatePHI(funRetVal->getType(), 3, "phi");
-  phiNode->addIncoming(funRetVal, functionTypeBB);
-  string type_str;
-  llvm::raw_string_ostream rso(type_str);
-  funRetVal->getType()->print(rso);
-  vecRetVal->getType()->print(rso);
-  std::cout<< "Types: " << rso.str() << endl;
 
+  // string type_str;
+  // llvm::raw_string_ostream rso(type_str);
+  // failedRetVal->getType()->print(rso);
+  // vecRetVal->getType()->print(rso);
+  // funRetVal->getType()->print(rso);
+  // std::cout<< "Types: " << rso.str() << endl;
 
-  phiNode->addIncoming(vecRetVal, vectorTypeBB);  
+  phiNode->addIncoming(funRetVal, funRetValBlock);
+  phiNode->addIncoming(vecRetVal, vecRetValBlock);  
   phiNode->addIncoming(failedRetVal, failedBB);  
   return phiNode;
 }
@@ -150,14 +171,14 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
      Value *packed = nullptr;
      if(arg.first.isDetermined()) {
        type = ConstantInt::get(*TheContext, APInt(64, arg.first.determinedType(), false));
-       packed = ConstantInt::get(*TheContext, APInt(8, 0, false));
+       packed = ConstantInt::get(*TheContext, APInt(64, 0, false));
      }
      else {
        type = getRuntimeObjectType(arg.second);
-       packed = ConstantInt::get(*TheContext, APInt(8, 1, false));
+       packed = ConstantInt::get(*TheContext, APInt(64, 1, false));
      }                                   
      argSignature = Builder->CreateShl(argSignature, 8, "shl");
-     argSignature = Builder->CreateOr(argSignature, type, "bit_or");
+     argSignature = Builder->CreateOr(argSignature, Builder->CreateIntCast(type, Type::getInt64Ty(*TheContext), false), "bit_or");
      packedArgSignature = Builder->CreateShl(packedArgSignature, 1, "shl");
      packedArgSignature = Builder->CreateOr(packedArgSignature, packed, "bit_or");
   }

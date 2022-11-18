@@ -35,8 +35,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   types.push_back(Type::getInt64Ty(*TheContext));
   types.push_back(Type::getInt64Ty(*TheContext));
-  types.push_back(Type::getInt8Ty(*TheContext));
   types.push_back(Type::getInt64Ty(*TheContext));
+  types.push_back(Type::getInt8Ty(*TheContext));
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   
   vector<pair<FnMethodNode, uint64_t>> nodes;

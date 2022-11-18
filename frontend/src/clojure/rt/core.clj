@@ -32,3 +32,5 @@
               (compile (slurp infile) (str (join "." (butlast parts)) ".cljb") infile)))
   ([] (println "Generating protobuf definitions into bytecode.proto file. To compile use file name as parameter")
    (generate-protobuf-defs)))
+
+

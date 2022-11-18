@@ -183,6 +183,19 @@ class ObjectTypeSet {
     return internal.size() == 1;
   }
 
+  bool isNative() const {
+    if(isBoxed) return false;
+    if(!isDetermined()) return false;
+    switch(determinedType()) {
+      case integerType:
+      case booleanType:
+      case doubleType:
+        return true;
+    default:
+      return false;
+    }
+  }
+
   objectType determinedType() const {
     assert(isDetermined() && "Type not determined");
     return *(internal.begin());

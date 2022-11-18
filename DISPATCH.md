@@ -1,5 +1,72 @@
 # Static / dynamic dispatch algorithm explanation description
 
+
+## Notation
+
+Dynamic dispatch:
+
+1. Wszystkie argumenty sa znane na poziomie kompilacji - wywolujemy bezposrednio funkcje,
+   sygnatura jest w nazwie. Sygnatura:
+
+Z - boolean, unpacked
+C - uft8 char (uint32_t), unpacked
+J - int64_t, unpacked
+D - double, unpacked
+ 
+Lx - packed value, for example:
+
+LJ int64_t, packed
+LC uint32_t, utf8 char, packed
+LD double, packed
+LZ boolean, packed
+
+Typy ktore zawsze pozostaja spakowane:
+
+LS - String
+LV - Vector
+LL - List
+LM - Map
+LY - Symbol
+LK - Keyword
+LR - Ratio
+LH - Big Integer
+LN - Nil
+
+LO - Object - moze byc czymkolwiek spakowanym, trzeba dokonac runtime introspection aby sprawdzic
+
+Uwaga! Zalozenie jest takie, ze nigdy nie bedzie typem podawanym do funkcji 
+  (niestety tak sie chyba nie da, beda generyczne funkcje...)
+
+LO
+
+Dynamic dispatch powinien to zawsze wyrugowac. Za to jesli chodzi o wartosc zwracana, funkcje moga zwracac object. Przyklad takiej funkcji: 
+
+(defn dyn-ret [x] (if x 1 2.0))
+
+Ta funkcja bedzie zwracala Object z argumentem typu bool i jej dokladna wartosc zwracana nie bedzie znana w trakcie jej kompilacji. Zatem sygnatura bedzie albo:
+
+Z_LO
+
+albo:
+
+LZ_LO
+
+Ale juz w przypadku nil bedzie:
+
+LN_D
+
+Funkcje zawsze preferuja zwracanie typow rozpakowanych, to znaczy ze nie moga zwrocic LD tylko zawsze albo LO albo D.
+ 
+
+Przyklad zlozonej sygnatury:
+
+ZJD_D
+
+funkcja ktora przyjmuje trzy rozpakowane argumenty - Bool, int, double i produkuje double. 
+
+
+
+
 ## Static calls:
 
 Imagine each var could be created / assigned to once only and this can only be a top level expression.

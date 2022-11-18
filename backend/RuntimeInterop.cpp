@@ -414,7 +414,7 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
 
   vector<Type *> argTypes;
   vector<Value *> args;
-  argTypes.push_back(dynamicUnboxedType(value.first.determinedType()));
+  argTypes.push_back(value.first.determinedType() == booleanType ? Type::getInt8Ty(*TheContext) : dynamicUnboxedType(value.first.determinedType()));
   ObjectTypeSet type = value.first;
   type.isBoxed = true;
 

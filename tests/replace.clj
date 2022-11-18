@@ -14,4 +14,5 @@ x
 
 (defn zomo [x y] (- x y))
 (defn zomo [x y] (+ x y))
+;(def zomo 7)
 (zomo 10 7)

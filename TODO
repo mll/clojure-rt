@@ -3,70 +3,6 @@
 v - done
 <-- - in progress
 
-
-Dynamic dispatch:
-
-1. Wszystkie argumenty sa znane na poziomie kompilacji - wywolujemy bezposrednio funkcje,
-   sygnatura jest w nazwie. Sygnatura:
-
-Z - boolean, unpacked
-C - uft8 char (uint32_t), unpacked
-J - int64_t, unpacked
-D - double, unpacked
- 
-Lx - packed value, for example:
-
-LJ int64_t, packed
-LC uint32_t, utf8 char, packed
-LD double, packed
-LZ boolean, packed
-
-Typy ktore zawsze pozostaja spakowane:
-
-LS - String
-LV - Vector
-LL - List
-LM - Map
-LY - Symbol
-LK - Keyword
-LR - Ratio
-LH - Big Integer
-LN - Nil
-
-LO - Object - moze byc czymkolwiek spakowanym, trzeba dokonac runtime introspection aby sprawdzic
-
-Uwaga! Zalozenie jest takie, ze nigdy nie bedzie typem podawanym do funkcji 
-  (niestety tak sie chyba nie da, beda generyczne funkcje...)
-
-LO
-
-Dynamic dispatch powinien to zawsze wyrugowac. Za to jesli chodzi o wartosc zwracana, funkcje moga zwracac object. Przyklad takiej funkcji: 
-
-(defn dyn-ret [x] (if x 1 2.0))
-
-Ta funkcja bedzie zwracala Object z argumentem typu bool i jej dokladna wartosc zwracana nie bedzie znana w trakcie jej kompilacji. Zatem sygnatura bedzie albo:
-
-Z_LO
-
-albo:
-
-LZ_LO
-
-Ale juz w przypadku nil bedzie:
-
-LN_D
-
-Funkcje zawsze preferuja zwracanie typow rozpakowanych, to znaczy ze nie moga zwrocic LD tylko zawsze albo LO albo D.
- 
-
-Przyklad zlozonej sygnatury:
-
-ZJD_D
-
-funkcja ktora przyjmuje trzy rozpakowane argumenty - Bool, int, double i produkuje double. 
-
-
-
 Runtime:
 
 * Make decision about integer types (64 bit or 32 bit or compiler/options-dependent?)
@@ -122,17 +58,17 @@ Compiler:
   * BigInteger
 
 v StaticCall (works for simple math, framework prepared to add more functionality)
+* StaticCall with dynamic args
 v WithMeta (for now just ignores meta)
 v If 
 v Def and vars system
 v Dynamic Def and vars system
-v Binding  (dziala dla funkcji)
+v Binding (dziala dla funkcji)
 v Fn
 v FnMethod
 * Let <--
-v Invoke statyczne
- 
-* Invoke dynamiczne
+* Invoke statyczne (z dynamicznymi argumentami)
+v Invoke dynamiczne 
 * Invoke lambda 
 * Invoke lambda once
 * Invoke variadic  
@@ -141,7 +77,8 @@ v Invoke statyczne
 * Loop (+ recur for loop)
 v Vector
 * Case (CaseTest CaseThen)
-* Memory management (let us start with string)
+* HUGE Memory management ref counting (let us start with string)
+* HUGE Exception model 
 
 ....
 

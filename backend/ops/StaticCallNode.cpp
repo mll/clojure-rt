@@ -38,7 +38,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     
     return method.second.second(this, name + " " + requiredArity, node, args);
   }
-  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for args: ") + requiredArity + " return type: " + typeRestrictions.toString(), node);
+  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredArity + "_" + typeStringForArg(typeRestrictions), node);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions) {
@@ -71,7 +71,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
     
     return method.second.first(this, name + " " + requiredArity, node, args).restriction(typeRestrictions);
   }
-  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for args: ") + requiredArity + " return type: " + typeRestrictions.toString(), node);
+  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredArity + "_" + typeStringForArg(typeRestrictions), node);
   return ObjectTypeSet();
 }
 

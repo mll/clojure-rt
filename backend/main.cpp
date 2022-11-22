@@ -78,9 +78,6 @@ int main(int argc, char *argv[]) {
   auto TheState = make_shared<ProgrammeState>();
   unique_ptr<ClojureJIT> TheJIT = move(*ClojureJIT::Create(TheState));
 
-  auto RT = TheJIT->getMainJITDylib().createResourceTracker();
-
-
   gettimeofday(&appp, NULL);
   printf("Initialisation time: %f\n-------------------\n", (appp.tv_sec - asss.tv_sec) + (appp.tv_usec - asss.tv_usec)/1000000.0);
   
@@ -97,7 +94,7 @@ int main(int argc, char *argv[]) {
       printf("Compile time: %f\n-------------------\n", (app.tv_sec - ass.tv_sec) + (app.tv_usec - ass.tv_usec)/1000000.0);
 
       auto TSM = ThreadSafeModule(std::move(gen->TheModule), std::move(gen->TheContext));
-      ExitOnErr(TheJIT->addModule(std::move(TSM), RT));
+      ExitOnErr(TheJIT->addModule(std::move(TSM)));
     
       struct timeval as, ap;
       
@@ -113,16 +110,14 @@ int main(int argc, char *argv[]) {
       printf("Result: %s\n", text);
       printf("Time: %f\n-------------------\n", (ap.tv_sec - as.tv_sec) + (ap.tv_usec - as.tv_usec)/1000000.0);        
     }
-    
-    ExitOnErr(RT->remove());
-    
+
   } catch (CodeGenerationException e) {
     cerr << e.toString() <<endl;
     return -1;
   } catch (InternalInconsistencyException e) {
     cerr << e.toString() <<endl;
     return -1;
-  }
+  } 
  
   return 0;
 }

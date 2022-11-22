@@ -300,7 +300,6 @@ Value *CodeGenerator::dynamicZero(const ObjectTypeSet &type) {
   return ConstantPointerNull::get(dynamicBoxedType());
 }
 
-
 Type *CodeGenerator::dynamicBoxedType(objectType type) {
   return Type::getInt8Ty(*TheContext)->getPointerTo();
 }

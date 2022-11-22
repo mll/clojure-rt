@@ -24,7 +24,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
 
   vector<ObjectTypeSet> types;
   for(int i=0; i< subnode.args_size(); i++) types.push_back(getType(subnode.args(i), ObjectTypeSet::all()));
-  string requiredArity = typeStringForArgs(types);
+  string requiredArity = ObjectTypeSet::typeStringForArgs(types);
   for(auto method: arities) {
     if(method.first != requiredArity) continue; 
     vector<TypedNode> args;
@@ -38,7 +38,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     
     return method.second.second(this, name + " " + requiredArity, node, args);
   }
-  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredArity + "_" + typeStringForArg(typeRestrictions), node);
+  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredArity + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions) {
@@ -54,13 +54,23 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
   name = name + "/" + m;
 
   auto found = TheProgramme->StaticCallLibrary.find(name);
-  if(found == TheProgramme->StaticCallLibrary.end()) return ObjectTypeSet();
+  vector<ObjectTypeSet> types;
+  bool dynamic = false;
+  for(int i=0; i< subnode.args_size(); i++) {
+    auto t = getType(subnode.args(i), ObjectTypeSet::all());
+    types.push_back();
+    if(t.isBoxed || !t.isDetermined()) dynamic = true;
+  }
+  string requiredArity = ObjectTypeSet::typeStringForArgs(types);
+
+
+  if(found == TheProgramme->StaticCallLibrary.end()) {
+    throw CodeGenerationException(string("Static call ") + name + string(" not found."), node);
+    return ObjectTypeSet();
+  }
 
   auto arities = found->second;
 
-  vector<ObjectTypeSet> types;
-  for(int i=0; i< subnode.args_size(); i++) types.push_back(getType(subnode.args(i), ObjectTypeSet::all()));
-  string requiredArity = typeStringForArgs(types);
   for(auto method: arities) {
     if(method.first != requiredArity) continue; 
     vector<TypedNode> args;
@@ -71,7 +81,9 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
     
     return method.second.first(this, name + " " + requiredArity, node, args).restriction(typeRestrictions);
   }
-  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredArity + "_" + typeStringForArg(typeRestrictions), node);
+  if(dynamic) return ObjectTypeSet();
+
+  throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredArity + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node);
   return ObjectTypeSet();
 }
 

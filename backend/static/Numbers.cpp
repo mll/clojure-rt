@@ -29,6 +29,11 @@ ObjectTypeSet Numbers_add_type(CodeGenerator *gen, const string &signature, cons
   return ObjectTypeSet(doubleType);  
 }
 
+ObjectTypeSet Numbers_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node); 
+  return ObjectTypeSet(booleanType);  
+}
+
 
 ObjectTypeSet Numbers_minus_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
@@ -137,6 +142,68 @@ TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &
 }
 
 
+TypedValue Numbers_gte(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+  
+ 
+  auto left = gen->codegen(args[0].second, args[0].first);
+  auto right = gen->codegen(args[1].second, args[1].first);
+  
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
+    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(left.second, right.second, "ge_dd_tmp"));
+  }
+  
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first == left.first) {
+    /* TODO integer overflow or promotion to bigint */
+    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateICmpSGE(left.second, right.second, "ge_ii_tmp"));
+  }
+  
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first.isDetermined() && right.first.determinedType() == doubleType) {
+    auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
+    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(converted, right.second, "ge_ii_tmp"));
+  }
+  
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first.isDetermined() && right.first.determinedType() == integerType) {
+    auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
+    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(left.second, converted, "ge_dd_tmp"));
+  }
+  // TODO: generic version 
+  throw CodeGenerationException(string("Wrong types for add call"), node);
+}
+
+TypedValue Numbers_lt(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+  
+ 
+  auto left = gen->codegen(args[0].second, args[0].first);
+  auto right = gen->codegen(args[1].second, args[1].first);
+  
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
+    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(left.second, right.second, "ge_dd_tmp"));
+  }
+  
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first == left.first) {
+    /* TODO integer overflow or promotion to bigint */
+    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateICmpSLT(left.second, right.second, "ge_ii_tmp"));
+  }
+  
+  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first.isDetermined() && right.first.determinedType() == doubleType) {
+    auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
+    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(converted, right.second, "ge_ii_tmp"));
+  }
+  
+  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first.isDetermined() && right.first.determinedType() == integerType) {
+    auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
+    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(left.second, converted, "ge_dd_tmp"));
+  }
+  // TODO: generic version 
+  throw CodeGenerationException(string("Wrong types for add call"), node);
+}
+
+
+
+
+
 TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
@@ -230,7 +297,7 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
   /* We assume here that all the inputs and outputs are double. Should be true for most clib math functions. If not, a fully custom variant will be employed. */
   string tmp = signature.substr(0, signature.rfind(" "));
   string fname = tmp.substr(tmp.rfind("/") + 1);  
-  
+  if(fname == "abs") fname = "fabs";
   Function *CalleeF = gen->TheModule->getFunction(fname);
   if (!CalleeF) {
     std::vector<Type*> Doubles(args.size(), Type::getDoubleTy(*(gen->TheContext)));
@@ -268,7 +335,21 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
 
 unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> getNumbersStaticFunctions() {
   unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> vals;
-  vector<pair<string, pair<StaticCallType, StaticCall>>> addX, minusX, multiplyX, divideX, sinX, cosX, tanX, asinX, acosX, atanX, atan2X, expX, exp10X, powX, logX, log10X, logbX, log2X, sqrtX, cbrtX, hypotX, exp1mX, log1pX, exp2X;
+  vector<pair<string, pair<StaticCallType, StaticCall>>> addX, minusX, multiplyX, divideX, sinX, cosX, tanX, asinX, acosX, atanX, atan2X, expX, exp10X, powX, logX, log10X, logbX, log2X, sqrtX, cbrtX, hypotX, exp1mX, log1pX, exp2X, gte, abs, lt;
+
+  gte.push_back({"JJ", {&Numbers_compare_type, &Numbers_gte}});
+  gte.push_back({"DJ", {&Numbers_compare_type, &Numbers_gte}});
+  gte.push_back({"JD", {&Numbers_compare_type, &Numbers_gte}});
+  gte.push_back({"DD", {&Numbers_compare_type, &Numbers_gte}});
+
+  vals.insert({"clojure.lang.Numbers/gte", gte});
+
+  lt.push_back({"JJ", {&Numbers_compare_type, &Numbers_lt}});
+  lt.push_back({"DJ", {&Numbers_compare_type, &Numbers_lt}});
+  lt.push_back({"JD", {&Numbers_compare_type, &Numbers_lt}});
+  lt.push_back({"DD", {&Numbers_compare_type, &Numbers_lt}});
+
+  vals.insert({"clojure.lang.Numbers/lt", lt});
 
   addX.push_back({"JJ", {&Numbers_add_type, &Numbers_add}});
   addX.push_back({"DJ", {&Numbers_add_type, &Numbers_add}});
@@ -402,6 +483,12 @@ unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> ge
   log1pX.push_back({"D", {&Link_external_type, &Link_external}});
 
   vals.insert({"java.lang.Math/log1p", log1pX}); 
+
+  abs.push_back({"J", {&Link_external_type, &Link_external}});
+  abs.push_back({"D", {&Link_external_type, &Link_external}});
+
+  vals.insert({"java.lang.Math/abs", abs}); 
+
 
   return vals;
 }

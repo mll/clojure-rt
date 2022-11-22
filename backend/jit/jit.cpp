@@ -26,11 +26,15 @@ ClojureJIT::ClojureJIT(std::unique_ptr<ExecutionSession> ES, std::unique_ptr<EPC
 
 
 ClojureJIT::~ClojureJIT() {
+  ExitOnError ExitOnErr;
+  auto RT = MainJD.getDefaultResourceTracker();
+  ExitOnErr(RT->remove());
   if (auto Err = ES->endSession())
     ES->reportError(std::move(Err));
   if (auto Err = EPCIU->cleanup())
     ES->reportError(std::move(Err));
 }
+
 
 Expected<std::unique_ptr<ClojureJIT>> ClojureJIT::Create(shared_ptr<ProgrammeState> TheProgramme) {
   auto EPC = SelfExecutorProcessControl::Create();
@@ -86,7 +90,7 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     auto TheFPM = std::make_unique<legacy::FunctionPassManager>(&M);
     verifyModule(M);
 
-//    M.print(errs(), nullptr);
+    M.print(errs(), nullptr);
 
     // The vetification pass is much stronger than just "verify" on the module 
     TheFPM->add(createVerifierPass());    

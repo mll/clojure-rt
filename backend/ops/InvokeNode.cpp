@@ -14,9 +14,16 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
   string fName = "";
   uint64_t uniqueId = 0;
   string refName;
+
   vector<TypedValue> args;
-  for(int i=0; i< subnode.args_size(); i++) args.push_back(codegen(subnode.args(i), ObjectTypeSet::all()));
-    
+  for(int i=0; i< subnode.args_size(); i++) {
+    auto t = codegen(subnode.args(i), ObjectTypeSet::all());
+    args.push_back(TypedValue(t.first.removeConst(), t.second));
+  }
+
+  bool determinedArgs = true;
+  for(auto a: args) if(!a.first.isDetermined() || a.first.isBoxed) determinedArgs = false;
+      
   if(functionRef.op() == opVar) { /* Static var holding a fuction */
     auto var = functionRef.subnode().var();
     refName = var.var().substr(2);
@@ -34,7 +41,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     fName = getMangledUniqueFunctionName(uniqueId);
   }
 
-  if(uniqueId > 0) {
+  /* If at least one arg is indetermined - we need to go the dynamic route.
+     In the future we could optimise the method search as method is known when uniqueId > 0 */
+  if(uniqueId > 0 && determinedArgs) {
     FnNode functionBody = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();  
   
     /* We need to find a correct method */
@@ -58,8 +67,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     vector<ObjectTypeSet> argTypes;
     for(int i=0; i<args.size(); i++) argTypes.push_back(args[i].first);
 
-    string rName = recursiveMethodKey(fName, argTypes);
-    string rqName = fullyQualifiedMethodKey(fName, argTypes, type);
+    string rName = ObjectTypeSet::recursiveMethodKey(fName, argTypes);
+    string rqName = ObjectTypeSet::fullyQualifiedMethodKey(fName, argTypes, type);
     
     
     if(TheModule->getFunction(rqName) == Builder->GetInsertBlock()->getParent()) {
@@ -98,8 +107,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     case persistentVectorType:
       { /* TODO: should we move this to a more general function or combine it with static calls?
            we should support big integers here as well */
-        vector<TypedValue> args;
-        for(int i=0; i< subnode.args_size(); i++) args.push_back(codegen(subnode.args(i), ObjectTypeSet::all()));
         if(args.size() != 1) throw CodeGenerationException("Wrong number of args passed to invokation", node);
         vector<TypedValue> finalArgs;
         string callName;
@@ -125,14 +132,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
   return TypedValue(type, dynamicInvoke(node, callObject.second, getRuntimeObjectType(callObject.second), type, args));    
 }
 
-
 ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode, const ObjectTypeSet &typeRestrictions) {
   /* TODO - variadic */
   auto function = subnode.fn();
   auto type = getType(function, ObjectTypeSet::all());
   uint64_t uniqueId = 0;
 
-    
   if(function.op() == opVar) { /* Static var holding a fuction */
     auto var = function.subnode().var();
     string name = var.var().substr(2);
@@ -144,14 +149,21 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
   }
 
   if(type.isType(functionType) && type.getConstant()) uniqueId = dynamic_cast<ConstantFunction *>(type.getConstant())->value;
+
+  vector<ObjectTypeSet> args;
+  for(int i=0; i< subnode.args_size(); i++) {
+    auto t = getType(subnode.args(i), ObjectTypeSet::all());
+    args.push_back(t.removeConst());
+  }
   
-  if(uniqueId) {
+  bool determinedArgs = true;
+  for(auto a: args) if(!a.isDetermined() || a.isBoxed) determinedArgs = false;
+
+  if(uniqueId && determinedArgs) {
 
     string name = getMangledUniqueFunctionName(uniqueId);
     const FnNode functionBody = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();  
 
-    vector<ObjectTypeSet> args;
-    for(int i=0; i< subnode.args_size(); i++) args.push_back(getType(subnode.args(i), ObjectTypeSet::all()));
     
     /* We need to find a correct method */
 
@@ -173,8 +185,9 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
     
     
-    string rName = recursiveMethodKey(name, args);
+    string rName = ObjectTypeSet::recursiveMethodKey(name, args);
     auto recursiveGuess = TheProgramme->RecursiveFunctionsRetValGuesses.find(rName);
+
     if(recursiveGuess != TheProgramme->RecursiveFunctionsRetValGuesses.end()) {
       return recursiveGuess->second;
     }
@@ -189,6 +202,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     FunctionArgTypesStack.push_back(args);
     ObjectTypeSet retVal;
     bool found = false;
+    bool foundSpecific = false;
     vector<CodeGenerationException> exceptions;
     try {
       retVal = getType(method->body(), typeRestrictions);
@@ -202,10 +216,11 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
         try {
           retVal = getType(method->body(), typeRestrictions);
           if(!retVal.isEmpty()) found = true;
+          if(retVal.isDetermined()) foundSpecific = true;
         } catch(CodeGenerationException e) {
           exceptions.push_back(e);
         }
-        if(found) break;
+        if(foundSpecific) break;
       }
     }
     FunctionArgTypesStack.pop_back();
@@ -217,10 +232,10 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
       for(auto e : exceptions) cout << e.toString() << endl;
       throw CodeGenerationException("Unable to create function with given params", node);
     }
+
     return retVal;
   }
   
-
   /* Unable to find function body, it has gone through generic path and type has to be resolved at runtime */
   return ObjectTypeSet::all().restriction(typeRestrictions);
 }

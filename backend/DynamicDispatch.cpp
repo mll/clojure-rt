@@ -16,8 +16,8 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const FnMethodNode &me
     argT.push_back(arg.first);
   }
 
-  string rName = recursiveMethodKey(name, argT);
-  string rqName = fullyQualifiedMethodKey(name, argT, retValType);
+  string rName = ObjectTypeSet::recursiveMethodKey(name, argT);
+  string rqName = ObjectTypeSet::fullyQualifiedMethodKey(name, argT, retValType);
   
   Type *retType = retValType.isDetermined() ? dynamicUnboxedType(retValType.determinedType()) : dynamicBoxedType();
   
@@ -217,11 +217,10 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
 
 void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retVal, const vector<ObjectTypeSet> &args) {
   vector<Type *> argTypes;
-
   for(auto arg : args) {
     argTypes.push_back((arg.isDetermined() && !arg.isBoxed)? dynamicUnboxedType(arg.determinedType()) : dynamicBoxedType());
   }
-  
+ 
   Type *retType = (retVal.isDetermined() && !retVal.isBoxed) ? dynamicUnboxedType(retVal.determinedType()) : dynamicBoxedType();
   
   Function *CalleeF = TheModule->getFunction(name); 
@@ -238,11 +237,20 @@ void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &nam
     vector<TypedValue> functionArgs;
     for(int i=0; i<args.size(); i++) functionArgs.push_back(unbox(TypedValue(args[i].removeConst(), fArgs[i])));
     FunctionArgsStack.push_back(functionArgs);
-    
-    auto result = codegen(method.body(), retVal);
-    Builder->CreateRet((retVal.isBoxed || !retVal.isDetermined()) ? box(result).second : result.second);
+    try {
+      auto result = codegen(method.body(), retVal);
+      Builder->CreateRet((retVal.isBoxed || !retVal.isDetermined()) ? box(result).second : result.second);
+      verifyFunction(*CalleeF);
+    } catch (CodeGenerationException e) {
+      CalleeF->eraseFromParent();
+      FunctionType *FT = FunctionType::get(retType, argTypes, false);
+      CalleeF = Function::Create(FT, Function::ExternalLinkage, name, TheModule.get());
+      BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
+      Builder->SetInsertPoint(BB);
+      runtimeException(e);  
+      Builder->CreateRet(dynamicZero(retVal));
+      verifyFunction(*CalleeF);
+    }
     FunctionArgsStack.pop_back();
-    
-    verifyFunction(*CalleeF);
   }
 }

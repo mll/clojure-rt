@@ -40,7 +40,7 @@
 #include "Exceptions.h"
 #include "Programme.h"
 #include "jit/jit.h"
-
+#include "FunctionJIT.h"
 
 using namespace clojure::rt::protobuf::bytecode;
 
@@ -72,11 +72,6 @@ public:
   std::string globalNameForVar(std::string var);
   std::string getMangledUniqueFunctionName(uint64_t num) ;
   uint64_t getUniqueFunctionId();
-
-  static std::string typeStringForArg(const ObjectTypeSet &arg);
-  static std::string typeStringForArgs(const std::vector<ObjectTypeSet> &args);
-  static std::string recursiveMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args);
-  static std::string fullyQualifiedMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args, const ObjectTypeSet &retVal);
 
   TypedValue staticFalse();
   TypedValue staticTrue();

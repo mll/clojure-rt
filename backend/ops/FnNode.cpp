@@ -7,11 +7,11 @@ using namespace llvm;
 
 TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
   ObjectTypeSet type = getType(node, typeRestrictions);
-  auto idEntry = TheProgramme->NodesToFunctions.find(pointerName((void *)&node));
+  auto firstMethodLoopId = subnode.methods(0).subnode().fnmethod().loopid();
+  auto idEntry = TheProgramme->RecurTargets.find(firstMethodLoopId);
   uint64_t funId = 0;
-  if(idEntry == TheProgramme->NodesToFunctions.end()) {
+  if(idEntry == TheProgramme->RecurTargets.end()) {
     funId = getUniqueFunctionId();  
-    TheProgramme->NodesToFunctions.insert({pointerName((void *)&node), funId});
     TheProgramme->Functions.insert({funId, node});
   } else funId = idEntry->second;
   
@@ -40,7 +40,11 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   
   vector<pair<FnMethodNode, uint64_t>> nodes;
-  for(int i=0; i<subnode.methods_size(); i++) nodes.push_back({subnode.methods(i).subnode().fnmethod(), i});
+  for(int i=0; i<subnode.methods_size(); i++) {
+    auto &method = subnode.methods(i).subnode().fnmethod();
+    TheProgramme->RecurTargets.insert({method.loopid(), funId});
+    nodes.push_back({method, i});
+  }
   
   std::sort(nodes.begin(), nodes.end(), [](const auto& lhs, const auto& rhs) -> bool
   {
@@ -66,15 +70,15 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
-/* TODO - using a pointer here will not work as we sometimes copy nodes */
-  auto idEntry = TheProgramme->NodesToFunctions.find(pointerName((void *)&node));
-  uint64_t newId;
-  if(idEntry == TheProgramme->NodesToFunctions.end()) {
-    newId = getUniqueFunctionId();  
-    TheProgramme->NodesToFunctions.insert({pointerName((void *)&node), newId});
-    TheProgramme->Functions.insert({newId, node});
-  } else newId = idEntry->second;
-  
+  auto firstMethodLoopId = subnode.methods(0).subnode().fnmethod().loopid();
+  auto idEntry = TheProgramme->RecurTargets.find(firstMethodLoopId);
+  uint64_t funId = 0;
 
-  return ObjectTypeSet(functionType, false, new ConstantFunction(newId)).restriction(typeRestrictions); 
+  if(idEntry == TheProgramme->RecurTargets.end()) {
+    funId = getUniqueFunctionId();  
+    TheProgramme->Functions.insert({funId, node});
+    TheProgramme->RecurTargets.insert({firstMethodLoopId, funId});
+  } else funId = idEntry->second;
+
+  return ObjectTypeSet(functionType, false, new ConstantFunction(funId)).restriction(typeRestrictions); 
 }

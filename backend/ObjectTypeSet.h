@@ -8,7 +8,7 @@
 
 #include <string>
 #include <iostream>
-
+#include <sstream>
 
 class ObjectTypeConstant {
   protected:
@@ -258,21 +258,6 @@ class ObjectTypeSet {
     return *this;
   }
 
-  std::string toString() const {
-    std::vector<objectType> types(internal.begin(), internal.end());
-    std::string ss;
-    
-    for (int i=0; i < types.size(); i++) {
-      ss += std::to_string((int)types[i]);
-      if(i < types.size() - 1) ss += std::string(",");
-    }
-    
-    if(constant) ss += " constant value: " + constant->toString();
-    if(isBoxed) ss += " BOXED";
-    else ss += " UNBOXED";
-    return ss;
-  }
-
   friend bool operator==(const ObjectTypeSet &first, const ObjectTypeSet &second);
 
   static ObjectTypeSet dynamicType() {
@@ -287,13 +272,11 @@ class ObjectTypeSet {
     retVal.insert(stringType);
     retVal.insert(persistentListType);
     retVal.insert(persistentVectorType);
-    retVal.insert(persistentVectorNodeType);
     retVal.insert(doubleType);
     retVal.insert(nilType);
     retVal.insert(booleanType);
     retVal.insert(symbolType);
     retVal.insert(keywordType);
-    retVal.insert(concurrentHashMapType);
     retVal.insert(functionType);
     return retVal;
   }
@@ -309,6 +292,57 @@ class ObjectTypeSet {
     }
     guesses.push_back(allTypes);
     return guesses;
+  }
+  
+  static std::string typeStringForArg(const ObjectTypeSet &arg) {
+    if(!arg.isDetermined()) return "LO";
+    else switch (arg.determinedType()) {
+      case integerType:
+        return (arg.isBoxed ? "LJ" : "J");
+      case stringType:
+        return "LS";
+      case persistentListType:
+        return "LL";
+      case persistentVectorType:
+        return "LV";
+      case symbolType:
+        return "LY";
+      case persistentVectorNodeType:
+        assert(false && "Node cannot be used as an argument");
+      case concurrentHashMapType:
+        assert(false && "Concurrent hash map cannot be used as an argument");
+      case doubleType:
+        return (arg.isBoxed ? "LD" : "D");
+      case booleanType:
+        return (arg.isBoxed ? "LB" : "B");
+      case nilType:
+        return "LN";
+      case keywordType:
+        return "LK";
+      case functionType:
+        return "LF";
+      }
+  }
+  
+  static std::string typeStringForArgs(const std::vector<ObjectTypeSet> &args) {
+    std::stringstream retval;
+    for (auto i: args) retval << typeStringForArg(i);    
+    return retval.str();
+  }
+
+  static std::string fullyQualifiedMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args, const ObjectTypeSet &retVal) {
+    return name + "_" + typeStringForArgs(args) + "_" + typeStringForArg(retVal);
+  }
+
+  static std::string recursiveMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args) {
+    // TODO - variadic
+    return name + "_" + typeStringForArgs(args);
+  }  
+
+  std::string toString() const {
+    std::string retVal = typeStringForArg(*this);    
+    if(constant) retVal += " constant value: " + constant->toString() + " of " + std::to_string(constant->constantType);
+    return retVal;
   }
 };
 

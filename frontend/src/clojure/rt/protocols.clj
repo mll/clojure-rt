@@ -262,3 +262,9 @@
 ; IndexedSeq extends ISeq, Sequential, Counted
 (defprotocol IndexedSeq
   (index [this]))
+
+(defprotocol Sorted
+  (comparator [this])
+  (entryKey [this entry])
+  (seq [this])
+  (seqFrom [this key ascending)))

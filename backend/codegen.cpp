@@ -156,52 +156,20 @@ string CodeGenerator::globalNameForVar(string var) {
   }
 
   while((index = var.find("-")) != string::npos) {    
-    var.replace(index, string("-").length(), string("__")); 
+    var.replace(index, string("-").length(), string("__1__")); 
+  }
+
+  while((index = var.find("?")) != string::npos) {    
+    var.replace(index, string("?").length(), string("__2__")); 
   }
 
   while((index = var.find(".")) != string::npos) {    
-    var.replace(index, string(".").length(), string("___")); 
+    var.replace(index, string(".").length(), string("__3__")); 
   }
 
   return string("cv_") + var;
 }
 
-string CodeGenerator::typeStringForArg(const ObjectTypeSet &arg) {
-  if(!arg.isDetermined()) return "LO";
-  else switch (arg.determinedType()) {
-    case integerType:
-      return (arg.isBoxed ? "LJ" : "J");
-    case stringType:
-      return "LS";
-    case persistentListType:
-      return "LL";
-    case persistentVectorType:
-      return "LV";
-    case symbolType:
-      return "LY";
-    case persistentVectorNodeType:
-      assert(false && "Node cannot be used as an argument");
-    case concurrentHashMapType:
-      assert(false && "Concurrent hash map cannot be used as an argument");
-    case doubleType:
-      return (arg.isBoxed ? "LD" : "D");
-    case booleanType:
-      return (arg.isBoxed ? "LB" : "B");
-    case nilType:
-      return "LN";
-    case keywordType:
-      return "LK";
-    case functionType:
-      return "LF";
-    }
-}
-
-
-string CodeGenerator::typeStringForArgs(const vector<ObjectTypeSet> &args) {
-  stringstream retval;
-  for (auto i: args) retval << typeStringForArg(i);    
-  return retval.str();
-}
 
 TypedValue CodeGenerator::staticFalse() { 
   return TypedValue(ObjectTypeSet(booleanType, false, new ConstantBoolean(false)), ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext), 0));
@@ -216,17 +184,6 @@ string CodeGenerator::pointerName(void *ptr) {
   ss << ptr;  
   return ss.str();
 }
-
-
-string CodeGenerator::fullyQualifiedMethodKey(const string &name, const vector<ObjectTypeSet> &args, const ObjectTypeSet &retVal) {
-  return name + "_" + CodeGenerator::typeStringForArgs(args) + "_" + typeStringForArg(retVal);
-}
-
-string CodeGenerator::recursiveMethodKey(const string &name, const vector<ObjectTypeSet> &args) {
-// TODO - variadic
-  return name + "_" + CodeGenerator::typeStringForArgs(args);
-}
-
 
 ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &typeString) {
   auto s = typeString.size();

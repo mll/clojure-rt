@@ -77,7 +77,7 @@ extern "C" {
 
     std::string name = "fn_" + std::to_string(fun->uniqueId);   
     auto f = std::make_unique<FunctionJIT>();
-    std::string rqName = CodeGenerator::fullyQualifiedMethodKey(name, argT, retValT);        
+    std::string rqName = ObjectTypeSet::fullyQualifiedMethodKey(name, argT, retValT);        
     f->args = argT;
     /* TODO - Return values should be probably handled differently. e.g. if the new function returns something boxed, 
        we should inspect it and decide if we want to use it or not for var inbvokations */ 

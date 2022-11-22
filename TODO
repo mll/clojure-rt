@@ -7,9 +7,9 @@ Runtime:
 
 * Make decision about integer types (64 bit or 32 bit or compiler/options-dependent?)
 * Double / float / quad - the same
+* Double / float / quad array
 
-* UTF8 strings (library from Julia is already there)
-* 
+* UTF8 strings (library from Julia is already there) 
 
 v String
 v PersistentList
@@ -21,11 +21,11 @@ v nil
 v Symbol 
 v Keyword 
 v ConcurrentHashMap (TODO resizing) 
-v Var (TODO zmiany typu)
+v Var (TODO wartosc zwracana)
 v Function (generic) 
 v FunctionMethod (generic)
-
 v Keyword uniquing
+
 * Symbol uniquing 
 * Character
 * Ratio
@@ -52,13 +52,13 @@ Compiler:
   * Symbol uniquing 
 
   * Map
-  * Vector
-  * List
+  v Vector
+  v List
   * Ratio
   * BigInteger
 
 v StaticCall (works for simple math, framework prepared to add more functionality)
-* StaticCall with dynamic args
+* StaticCall with dynamic args <--
 v WithMeta (for now just ignores meta)
 v If 
 v Def and vars system
@@ -66,17 +66,18 @@ v Dynamic Def and vars system
 v Binding (dziala dla funkcji)
 v Fn
 v FnMethod
-* Let <--
-* Invoke statyczne (z dynamicznymi argumentami)
+* Let 
+v Invoke statyczne (z dynamicznymi argumentami) <--
 v Invoke dynamiczne 
 * Invoke lambda 
 * Invoke lambda once
 * Invoke variadic  
-* Recur (for Fn)
+v Recur (for Fn)
 
 * Loop (+ recur for loop)
 v Vector
 * Case (CaseTest CaseThen)
+
 * HUGE Memory management ref counting (let us start with string)
 * HUGE Exception model 
 

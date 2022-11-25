@@ -259,6 +259,7 @@ class ObjectTypeSet {
   }
 
   friend bool operator==(const ObjectTypeSet &first, const ObjectTypeSet &second);
+  friend bool operator<(const ObjectTypeSet &first, const ObjectTypeSet &second);
 
   static ObjectTypeSet dynamicType() {
     auto all = ObjectTypeSet:: all();

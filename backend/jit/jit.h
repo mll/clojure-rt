@@ -20,6 +20,8 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Utils.h"
+
 #include <memory>
 #include "ASTLayer.h"
 #include "../protobuf/bytecode.pb.h"

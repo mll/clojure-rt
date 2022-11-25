@@ -23,11 +23,11 @@ ObjectTypeSet Utils_compare_type(CodeGenerator *gen, const string &signature, co
   return ObjectTypeSet(booleanType);  
 }
 
-TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
-  auto left = gen->codegen(args[0].second, args[0].first);
-  auto right = gen->codegen(args[1].second, args[1].first);
+  auto left = args[0];
+  auto right = args[1];
     
   if(left.first.isDetermined() && right.first.isDetermined()) {
     auto leftType = left.first.determinedType();

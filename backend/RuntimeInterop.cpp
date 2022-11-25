@@ -50,6 +50,38 @@ void CodeGenerator::runtimeException(const CodeGenerationException &runtimeExcep
   callRuntimeFun("logException", Type::getVoidTy(*TheContext), argTypes, args);
 }
 
+void CodeGenerator::logString(const string &s) {
+  vector<Type *> argTypes;
+  vector<Value *> args;
+  argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  args.push_back(Builder->CreateGlobalStringPtr(StringRef(s.c_str()), "dynamicString"));      
+  callRuntimeFun("logText", Type::getVoidTy(*TheContext), argTypes, args);
+}
+
+void CodeGenerator::logDebugBoxed(llvm::Value *v) {
+  logType(getRuntimeObjectType(v));
+  vector<Type *> argTypes;
+  vector<Value *> args;
+  argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  args.push_back(v);      
+  Value *s = callRuntimeFun("toString", Type::getInt8Ty(*TheContext)->getPointerTo(), argTypes, args);
+  args.clear();
+  args.push_back(s);      
+  Value *ss = callRuntimeFun("String_c_str", Type::getInt8Ty(*TheContext)->getPointerTo(), argTypes, args);
+  args.clear();
+  args.push_back(ss);      
+  callRuntimeFun("logText", Type::getVoidTy(*TheContext), argTypes, args);
+}
+
+
+void CodeGenerator::logType(Value *v) {
+  vector<Type *> argTypes;
+  vector<Value *> args;
+  argTypes.push_back(Type::getInt32Ty(*TheContext));
+  args.push_back(v);      
+  callRuntimeFun("logType", Type::getVoidTy(*TheContext), argTypes, args);
+}
+
 Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTypes, const vector<Value *> &args) {
   string fname = "";
   bool isVariadic = false;
@@ -142,6 +174,8 @@ Value *CodeGenerator::dynamicVector(const vector<TypedValue> &args) {
 */
 
 StructType *CodeGenerator::runtimeObjectType() {
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Object");
+  if(retVal) return retVal;
    return StructType::create(*TheContext, {
        /* type */ Type::getInt32Ty(*TheContext),
        /* atomicRefCount */ dynamicUnboxedType(integerType) }, "Object");
@@ -155,6 +189,9 @@ StructType *CodeGenerator::runtimeObjectType() {
 }; */
 
 StructType *CodeGenerator::runtimeFunctionType() {
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Function");
+  if(retVal) return retVal;
+
    return StructType::create(*TheContext, {
        /* uniqueId */ dynamicUnboxedType(integerType),
        /* methodCount */ dynamicUnboxedType(integerType),
@@ -168,6 +205,9 @@ StructType *CodeGenerator::runtimeFunctionType() {
 }; */
 
 StructType *CodeGenerator::runtimeIntegerType() {
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Integer");
+  if(retVal) return retVal;
+
    return StructType::create(*TheContext, {
        /* value */ Type::getInt64Ty(*TheContext),
      }, "Integer");
@@ -178,6 +218,9 @@ StructType *CodeGenerator::runtimeIntegerType() {
 }; */
 
 StructType *CodeGenerator::runtimeDoubleType() {
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Double");
+  if(retVal) return retVal;
+
    return StructType::create(*TheContext, {
        /* value */ Type::getDoubleTy(*TheContext),
      }, "Double");
@@ -188,6 +231,9 @@ StructType *CodeGenerator::runtimeDoubleType() {
 }; */
 
 StructType *CodeGenerator::runtimeBooleanType() {
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Boolean");
+  if(retVal) return retVal;
+
    return StructType::create(*TheContext, {
        /* value */ Type::getInt8Ty(*TheContext),
      }, "Boolean");
@@ -217,7 +263,7 @@ Value *CodeGenerator::getRuntimeObjectType(Value *objectPtr) {
   Value *objPtrInt = Builder->CreateSub(funcPtrInt, objSize, "sub_size");
   Value *objPtr = Builder->CreateIntToPtr(objPtrInt, runtimeObjectType()->getPointerTo() , "sub_size");
   Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 0, "get_type");
-  Value *retVal = Builder->CreateLoad(Type::getInt8Ty(*TheContext), gepPtr, "load_type");    
+  Value *retVal = Builder->CreateLoad(Type::getInt32Ty(*TheContext), gepPtr, "load_type");    
   return retVal;
 }
 
@@ -346,9 +392,9 @@ pair<BasicBlock *, Value *> CodeGenerator::dynamicUnbox(const Node &node, const 
   Function *parentFunction = Builder->GetInsertBlock()->getParent();
   
   BasicBlock *wrongBB = llvm::BasicBlock::Create(*TheContext, "failed_dynamic_cast", parentFunction);
-  BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge", parentFunction);    
+  BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge_dynamic_cast", parentFunction);    
 
-  Value *cond = Builder->CreateICmpEQ(type,ConstantInt::get(*TheContext, APInt(8, forcedType, false)) , "cmp_type");
+  Value *cond = Builder->CreateICmpEQ(type,ConstantInt::get(*TheContext, APInt(32, forcedType, false)) , "cmp_type");
   Builder->CreateCondBr(cond, mergeBB, wrongBB);
       
   Builder->SetInsertPoint(wrongBB);
@@ -404,7 +450,8 @@ TypedValue CodeGenerator::unbox(const TypedValue &value) {
 
   Value *loaded = Builder->CreateLoad(type, tPtr, "load_var");
   if(value.first.isType(booleanType)) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
-  dynamicRelease(value.second);
+  // TODO: memory management
+//  dynamicRelease(value.second);
   return TypedValue(t, loaded);
 }
                                         

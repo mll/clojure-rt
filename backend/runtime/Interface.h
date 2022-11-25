@@ -33,6 +33,14 @@ inline void logException(const char *description) {
   exit(1);
 }
 
+inline void logType(const objectType ll) {
+  printf("Type: %d\n", ll);
+}
+
+inline void logText(const char *text) {
+  printf("Log: %s\n", text);
+}
+
 inline BOOL unboxedEqualsInteger(void *left, uint64_t right) {
   Object *o = super(left);
   if(o->type != integerType) return FALSE;

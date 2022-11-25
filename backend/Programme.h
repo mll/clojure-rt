@@ -39,7 +39,7 @@ using namespace clojure::rt::protobuf::bytecode;
 typedef std::pair<ObjectTypeSet, llvm::Value *> TypedValue;
 typedef std::pair<ObjectTypeSet, const Node&> TypedNode;
 
-typedef TypedValue (*StaticCall)(CodeGenerator *, const std::string &, const Node&, const std::vector<TypedNode>&);
+typedef TypedValue (*StaticCall)(CodeGenerator *, const std::string &, const Node&, const std::vector<TypedValue> &);
 typedef ObjectTypeSet (*StaticCallType)(CodeGenerator *, const std::string &, const Node&, const std::vector<TypedNode>&);
 
 class ProgrammeState {

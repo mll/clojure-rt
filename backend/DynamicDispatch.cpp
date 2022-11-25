@@ -55,8 +55,8 @@ Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Val
   BasicBlock *failedBB = llvm::BasicBlock::Create(*TheContext, "failed");
 
   SwitchInst *cond = Builder->CreateSwitch(objectType, failedBB, 2); 
-  cond->addCase(ConstantInt::get(*TheContext, APInt(8, functionType, false)), functionTypeBB);
-  cond->addCase(ConstantInt::get(*TheContext, APInt(8, persistentVectorType, false)), vectorTypeBB);
+  cond->addCase(ConstantInt::get(*TheContext, APInt(32, functionType, false)), functionTypeBB);
+  cond->addCase(ConstantInt::get(*TheContext, APInt(32, persistentVectorType, false)), vectorTypeBB);
  
   BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge");    
   

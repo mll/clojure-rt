@@ -34,7 +34,6 @@
 #include <fstream>
 #include <sstream>
 
-
 #include "ObjectTypeSet.h"
 #include "runtime/defines.h"
 #include "Exceptions.h"
@@ -111,6 +110,11 @@ public:
   TypedValue unbox(const TypedValue &value);
   std::pair<llvm::BasicBlock *, llvm::Value *> dynamicUnbox(const Node &node, const TypedValue &value, objectType forcedType);
   void runtimeException(const CodeGenerationException &runtimeException);  
+  void logType(llvm::Value *v);
+  void logDebugBoxed(llvm::Value *v);
+  void logString(const std::string &s);
+  
+
   llvm::Value *dynamicZero(const ObjectTypeSet &type);
   llvm::Value *callRuntimeFun(const std::string &fname, llvm::Type *retValType, const std::vector<llvm::Type *> &argTypes, const std::vector<llvm::Value *> &args, bool isVariadic = false);
   TypedValue callRuntimeFun(const std::string &fname, const ObjectTypeSet &retVal, const std::vector<TypedValue> &args);

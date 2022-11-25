@@ -96,7 +96,11 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     TheFPM->add(createVerifierPass());    
 
     // Add some optimizations.
+    TheFPM->add(llvm::createPromoteMemoryToRegisterPass());
+
     // Do simple "peephole" optimizations and bit-twiddling optzns.
+
+
     TheFPM->add(createInstructionCombiningPass());
     // Reassociate expressions.
     TheFPM->add(createReassociatePass());
@@ -106,6 +110,13 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     TheFPM->add(createCFGSimplificationPass());
     /* dead code */
     TheFPM->add(createAggressiveDCEPass());
+
+    TheFPM->add(createSpeculativeExecutionIfHasBranchDivergencePass());
+
+    TheFPM->add(createJumpThreadingPass());         // Thread jumps.
+    TheFPM->add(createCorrelatedValuePropagationPass()); // Propagate conditionals
+//    TheFPM->add(createAggressiveInstCombinerPass());
+
     TheFPM->add(createTailCallEliminationPass());
 
     TheFPM->doInitialization();

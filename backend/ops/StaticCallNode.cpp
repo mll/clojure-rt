@@ -26,8 +26,9 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
       }
     }
     TypedValue retValForPath = callIt->second.second(gen, name + " " + requiredTypes, node, realArgs);
-    
-    if(retValForPath.first.isScalar()) {
+
+    // TODO - memory management
+    if(retValForPath.first.isScalar() && false) {
       /* Memory optimisation reuse, as per Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. */
       Value *potentiallyReusingVar = nullptr;
       for(int i=0; i<args.size(); i++) {
@@ -73,10 +74,11 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
       }
     }
 
-    for(int i=0; i<args.size(); i++) {
-      const TypedValue &arg = args[i];
-      if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
-    }
+    // TODO - memory management
+    // for(int i=0; i<args.size(); i++) {
+    //   const TypedValue &arg = args[i];
+    //   if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
+    // }
     gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);     
     gen->Builder->CreateBr(mergeBlock);
     return;

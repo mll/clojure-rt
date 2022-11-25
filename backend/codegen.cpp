@@ -204,12 +204,12 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
     if (typeName == "K") return ObjectTypeSet(keywordType);
     if (typeName == "F") return ObjectTypeSet(functionType);
 
-    throw CodeGenerationException(string("Unknown class: ")+ typeName, node);
+    throw CodeGenerationException(string("Unknown class: ")+ typeName + string("Full string: ") + typeString, node);
   }
   if (currentChar == 'D') return ObjectTypeSet(doubleType);
   if (currentChar == 'J') return ObjectTypeSet(integerType);
   if (currentChar == 'Z') return ObjectTypeSet(booleanType);
-  throw CodeGenerationException(string("Unknown type code: ")+ currentChar, node);
+  throw CodeGenerationException(string("Unknown type code: ")+ currentChar + string("Full string: ") + typeString, node);
 }
 
 vector<ObjectTypeSet> CodeGenerator::typesForArgString(const Node &node, const string &typeString) {

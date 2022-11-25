@@ -216,13 +216,16 @@ vector<ObjectTypeSet> CodeGenerator::typesForArgString(const Node &node, const s
   int i = 0;
   vector<ObjectTypeSet> types;
   while(i < typeString.length()) {
-    auto currentChar = typeString[i++];
-    if (currentChar == 'L') {
-      string typeName(&typeString[i++]);      
+    char currentChar[2];
+    currentChar[1] = 0;
+    currentChar[0] = typeString[i++];
+    if (currentChar[0] == 'L') {
+      currentChar[0] = typeString[i++];
+      string typeName(currentChar);      
       types.push_back(typeForArgString(node, string("L") + typeName));
       continue;
     }
-    types.push_back(typeForArgString(node, string(&currentChar)));
+    types.push_back(typeForArgString(node, string(currentChar)));
   }
   return types;
 }

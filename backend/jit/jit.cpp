@@ -90,7 +90,7 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     auto TheFPM = std::make_unique<legacy::FunctionPassManager>(&M);
     verifyModule(M);
 
-    M.print(errs(), nullptr);
+  
 
     // The vetification pass is much stronger than just "verify" on the module 
     TheFPM->add(createVerifierPass());    
@@ -128,7 +128,7 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     for (auto &F : M) {
       TheFPM->run(F);
     }
-
+  M.print(errs(), nullptr);
   });
   
   return std::move(TSM);

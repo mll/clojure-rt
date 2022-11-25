@@ -5,10 +5,10 @@ using namespace std;
 using namespace llvm;
 
 
-ObjectTypeSet Numbers_add_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+ObjectTypeSet Numbers_add_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  auto left = args[0].first;
-  auto right = args[1].first;
+  auto left = args[0];
+  auto right = args[1];
 
   if(left.getConstant() && right.getConstant()) {
     if(left.getConstant()->constantType == integerType && right.getConstant()->constantType == integerType) 
@@ -29,16 +29,16 @@ ObjectTypeSet Numbers_add_type(CodeGenerator *gen, const string &signature, cons
   return ObjectTypeSet(doubleType);  
 }
 
-ObjectTypeSet Numbers_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+ObjectTypeSet Numbers_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node); 
   return ObjectTypeSet(booleanType);  
 }
 
 
-ObjectTypeSet Numbers_minus_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+ObjectTypeSet Numbers_minus_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  auto left = args[0].first;
-  auto right = args[1].first;
+  auto left = args[0];
+  auto right = args[1];
 
   if(left.getConstant() && right.getConstant()) {
     if(left.getConstant()->constantType == integerType && right.getConstant()->constantType == integerType) 
@@ -59,10 +59,10 @@ ObjectTypeSet Numbers_minus_type(CodeGenerator *gen, const string &signature, co
   return ObjectTypeSet(doubleType);  
 }
 
-ObjectTypeSet Numbers_multiply_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+ObjectTypeSet Numbers_multiply_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  auto left = args[0].first;
-  auto right = args[1].first;
+  auto left = args[0];
+  auto right = args[1];
 
   if(left.getConstant() && right.getConstant()) {
     if(left.getConstant()->constantType == integerType && right.getConstant()->constantType == integerType) 
@@ -83,10 +83,10 @@ ObjectTypeSet Numbers_multiply_type(CodeGenerator *gen, const string &signature,
   return ObjectTypeSet(doubleType);  
 }
 
-ObjectTypeSet Numbers_divide_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+ObjectTypeSet Numbers_divide_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  auto left = args[0].first;
-  auto right = args[1].first;
+  auto left = args[0];
+  auto right = args[1];
 
   if(left.getConstant() && right.getConstant()) {
     if(left.getConstant()->constantType == integerType && right.getConstant()->constantType == integerType) 
@@ -107,7 +107,7 @@ ObjectTypeSet Numbers_divide_type(CodeGenerator *gen, const string &signature, c
   return ObjectTypeSet(doubleType);  
 }
 
-ObjectTypeSet Link_external_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+ObjectTypeSet Link_external_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
   // TODO - should we apply math functions to constants and do more constant folding in the type system? */
   return ObjectTypeSet(doubleType);
 }

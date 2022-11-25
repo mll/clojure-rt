@@ -5,10 +5,10 @@ using namespace std;
 using namespace llvm;
 
 
-ObjectTypeSet Utils_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedNode> &args) {
+ObjectTypeSet Utils_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  auto left = args[0].first;
-  auto right = args[1].first;
+  auto left = args[0];
+  auto right = args[1];
   
   if(left.isDetermined() && right.isDetermined()) {
     auto leftType = left.determinedType();

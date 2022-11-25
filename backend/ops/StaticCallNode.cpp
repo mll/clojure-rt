@@ -5,7 +5,7 @@ using namespace std;
 using namespace llvm;
 
 
-void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, BasicBlock *failBlock, BasicBlock *mergeBlock, const vector<TypedValue> &args, const map<vector<ObjectTypeSet>, StaticCall> & calls, AllocaInst *retVal, const vector<set<ObjectTypeSet>> &options, Function *parentFunction, const Node &node, CodeGenerator *gen, const string &name) {
+void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, BasicBlock *failBlock, BasicBlock *mergeBlock, const vector<TypedValue> &args, const map<vector<ObjectTypeSet>, pair<StaticCallType, StaticCall>> & calls, AllocaInst *retVal, const vector<set<ObjectTypeSet>> &options, Function *parentFunction, const Node &node, CodeGenerator *gen, const string &name) {
   gen->Builder->SetInsertPoint(insertBlock);
   string pathString;
   for(auto p : path) pathString+= p.toString();
@@ -16,22 +16,68 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
     auto requiredTypes = ObjectTypeSet::typeStringForArgs(callIt->first);
     vector<TypedValue> realArgs;
     for(int i=0; i<args.size(); i++) {
-      auto boxedType = callIt->first[i];
-      boxedType.isBoxed = true;
-      realArgs.push_back(gen->unbox(TypedValue(boxedType, args[i].second)));
+      const TypedValue &arg = args[i];
+      if(arg.first.isScalar()) {
+        realArgs.push_back(arg);
+      } else {
+        auto boxedType = callIt->first[i];
+        boxedType.isBoxed = true;
+        realArgs.push_back(gen->unbox(TypedValue(boxedType, args[i].second)));
+      }
     }
-    TypedValue retValForPath = callIt->second(gen, name + " " + requiredTypes, node, realArgs);
-// TODO
-// Memory optimisation reuse - for now hardcoded for "+" operator and two "J" arguments:  
-    Value *reusingVar = args[0].second;
-    StructType * stype = gen->runtimeIntegerType();
-    Value *ptr = gen->Builder->CreateBitOrPointerCast(reusingVar, stype->getPointerTo(), "void_to_struct");
-    Value *tPtr = gen->Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
+    TypedValue retValForPath = callIt->second.second(gen, name + " " + requiredTypes, node, realArgs);
+    
+    if(retValForPath.first.isScalar()) {
+      /* Memory optimisation reuse, as per Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. */
+      Value *potentiallyReusingVar = nullptr;
+      for(int i=0; i<args.size(); i++) {
+        const TypedValue &arg = args[i];
+        const ObjectTypeSet &requiredType = callIt->first[i];        
+        if(arg.first.isScalar()) continue;
+        /* We try to reuse only potentially scalar types */
+        if(!requiredType.isScalar()) continue;
+        if(!(requiredType == retValForPath.first)) continue;
+        potentiallyReusingVar = arg.second;
+        break;
+      }
 
-    gen->Builder->CreateStore(retValForPath.second, tPtr, "store_var");
-    gen->Builder->CreateStore(reusingVar, retVal);
-// no optimisastion:
-// gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);
+      if(potentiallyReusingVar) {
+        auto condValue = gen->dynamicIsReusable(potentiallyReusingVar);
+        Function *parentFunction = gen->Builder->GetInsertBlock()->getParent();
+        BasicBlock *reuseBB = llvm::BasicBlock::Create(*gen->TheContext, "reuse", parentFunction);  
+        BasicBlock *ignoreBB = llvm::BasicBlock::Create(*gen->TheContext, "ignore");
+        gen->Builder->CreateCondBr(condValue.second, reuseBB, ignoreBB);
+        gen->Builder->SetInsertPoint(reuseBB);
+        Value *reusingVar = potentiallyReusingVar;
+        for(int i=0; i<args.size(); i++) {
+          const TypedValue &arg = args[i];
+          if(!arg.first.isScalar() && !(arg.second == reusingVar)) gen->dynamicRelease(arg.second, false);
+        }
+        StructType *stype = gen->runtimeIntegerType();        
+        Value *ptr = gen->Builder->CreateBitOrPointerCast(reusingVar, stype->getPointerTo(), "void_to_struct");
+        Value *tPtr = gen->Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
+        
+        gen->Builder->CreateStore(retValForPath.second, tPtr, "store_var");
+        gen->Builder->CreateStore(reusingVar, retVal);    
+        gen->Builder->CreateBr(mergeBlock);
+        
+        parentFunction->getBasicBlockList().push_back(ignoreBB);
+        gen->Builder->SetInsertPoint(ignoreBB);
+        for(int i=0; i<args.size(); i++) {
+          const TypedValue &arg = args[i];
+          if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
+        }
+        gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);     
+        gen->Builder->CreateBr(mergeBlock);
+        return;
+      }
+    }
+
+    for(int i=0; i<args.size(); i++) {
+      const TypedValue &arg = args[i];
+      if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
+    }
+    gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);     
     gen->Builder->CreateBr(mergeBlock);
     return;
   }
@@ -91,14 +137,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     auto methodTypes = typesForArgString(node, method.first);
     if(methodTypes.size() == types.size()) foundArity = true;
     if(method.first != requiredTypes) continue; 
-    vector<TypedNode> argTypes;
-    for(int i=0; i< subnode.args_size();i++) {
-       argTypes.push_back(TypedNode(types[i], subnode.args(i)));
-    }
 
-    auto retType = method.second.first(this, name + " " + requiredTypes, node, argTypes);
+    auto retType = method.second.first(this, name + " " + requiredTypes, node, types);
         
-   
     if(retType.restriction(typeRestrictions).isEmpty()) continue;
 
     vector<TypedValue> args;
@@ -131,12 +172,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
       options.push_back(types);
     }
     
-    map<vector<ObjectTypeSet>, StaticCall> calls;
+    map<vector<ObjectTypeSet>, pair<StaticCallType,StaticCall>> calls;
 
     for(auto method: methods) {
       auto methodTypes = typesForArgString(node, method.first);
       if (methodTypes.size() != args.size()) continue;
-      calls.insert({methodTypes, method.second.second});
+      calls.insert({methodTypes, method.second});
     }
       
     BasicBlock *failure = BasicBlock::Create(*TheContext, "failure");
@@ -200,13 +241,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
     auto methodTypes = typesForArgString(node, method.first);
     if(methodTypes.size() == types.size()) foundArity = true;
     if(method.first != requiredTypes) continue; 
-    vector<TypedNode> args;
-    
-    for(int i=0; i< subnode.args_size();i++) {
-      args.push_back(TypedNode(types[i], subnode.args(i)));
-    }
-    
-    return method.second.first(this, name + " " + requiredTypes, node, args).restriction(typeRestrictions);
+    return method.second.first(this, name + " " + requiredTypes, node, types).restriction(typeRestrictions);
   }
 
   if(dynamic && foundArity) return ObjectTypeSet::dynamicType();

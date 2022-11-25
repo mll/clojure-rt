@@ -102,8 +102,10 @@ public:
   llvm::Value *dynamicSymbol(const char *name);
   llvm::Value *dynamicKeyword(const char *name);
   llvm::Value *dynamicVector(const std::vector<TypedValue> &args);
+  TypedValue dynamicIsReusable(llvm::Value *what);
   void dynamicRetain(llvm::Value *objectPtr);
-  llvm::Value *dynamicRelease(llvm::Value *what, bool isAutorelease);
+  llvm::Value *dynamicSuper(llvm::Value *objPtr);
+  TypedValue dynamicRelease(llvm::Value *what, bool isAutorelease);
   llvm::Value *dynamicCond(llvm::Value *cond);
 
   TypedValue box(const TypedValue &value);

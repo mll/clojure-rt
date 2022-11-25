@@ -79,6 +79,49 @@ inline void Object_retain(Object * restrict self) {
 #endif
 }
 
+inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
+  switch((objectType)self->type) {
+  case integerType:
+    Integer_destroy(Object_data(self));
+    break;          
+  case stringType:
+    String_destroy(Object_data(self));
+    break;          
+  case persistentListType:
+    PersistentList_destroy(Object_data(self), deallocateChildren);
+    break;          
+  case persistentVectorType:
+    PersistentVector_destroy(Object_data(self), deallocateChildren);
+    break;
+  case persistentVectorNodeType:
+    PersistentVectorNode_destroy(Object_data(self), deallocateChildren);
+    break;
+  case doubleType:
+    Double_destroy(Object_data(self));
+    break;          
+  case booleanType:
+    Boolean_destroy(Object_data(self));
+    break;
+  case symbolType:
+    Symbol_destroy(Object_data(self));
+    break;
+  case nilType:
+    Nil_destroy(Object_data(self));
+    break;
+  case concurrentHashMapType:
+    ConcurrentHashMap_destroy(Object_data(self));
+    break;
+  case keywordType:
+    Keyword_destroy(Object_data(self));
+    break;
+  case functionType:
+    Function_destroy(Object_data(self));
+    break;
+  }
+  deallocate(self);
+}
+
+
 inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChildren) {
 #ifdef REFCOUNT_TRACING
     atomic_fetch_sub_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
@@ -89,45 +132,7 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
 #else
   if (atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_relaxed) == 1) {
 #endif
-    switch((objectType)self->type) {
-    case integerType:
-      Integer_destroy(Object_data(self));
-      break;          
-    case stringType:
-      String_destroy(Object_data(self));
-      break;          
-    case persistentListType:
-      PersistentList_destroy(Object_data(self), deallocateChildren);
-      break;          
-    case persistentVectorType:
-      PersistentVector_destroy(Object_data(self), deallocateChildren);
-      break;
-    case persistentVectorNodeType:
-      PersistentVectorNode_destroy(Object_data(self), deallocateChildren);
-      break;
-    case doubleType:
-      Double_destroy(Object_data(self));
-      break;          
-    case booleanType:
-      Boolean_destroy(Object_data(self));
-      break;
-    case symbolType:
-      Symbol_destroy(Object_data(self));
-      break;
-    case nilType:
-      Nil_destroy(Object_data(self));
-      break;
-    case concurrentHashMapType:
-      ConcurrentHashMap_destroy(Object_data(self));
-      break;
-    case keywordType:
-      Keyword_destroy(Object_data(self));
-      break;
-    case functionType:
-      Function_destroy(Object_data(self));
-      break;
-    }
-    deallocate(self);
+    Object_destroy(self, deallocateChildren);
     return TRUE;
   }
   return FALSE;

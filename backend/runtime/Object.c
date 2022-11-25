@@ -58,6 +58,7 @@ extern void Object_create(Object * restrict self, objectType type);
 extern void Object_retain(Object * restrict self);
 extern BOOL Object_release(Object * restrict self);
 extern BOOL Object_release_internal(Object * restrict self, BOOL deallocatesChildren);
+extern void Object_destroy(Object *restrict self, BOOL deallocateChildren);
 extern void Object_autorelease(Object * restrict self);
 extern BOOL Object_equals(Object * restrict self, Object * restrict other);
 extern uint64_t Object_hash(Object * restrict self);

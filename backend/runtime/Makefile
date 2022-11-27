@@ -6,12 +6,12 @@ ARFLAGS = rcs
 MYFLAGSOPT = -Ofast
 MYFLAGS = -g 
 CPPFLAGS = -std=c++17  
-CFLAGS =  $(MYFLAGSOPT) -I/opt/homebrew/include
+CFLAGS =  $(MYFLAGS) -I/opt/homebrew/include
 PROFILE = -Ofast 
 
 LIBS = -L/opt/homebrew/lib -lprotobuf
 
-OBJFILES =  Object.o Integer.o PersistentList.o PersistentVector.o PersistentVectorNode.o String.o Double.o Nil.o Boolean.o Symbol.o ConcurrentHashMap.o Interface.o Keyword.o Function.o
+OBJFILES =  Object.o Integer.o PersistentList.o PersistentVector.o PersistentVectorNode.o String.o Double.o Nil.o Boolean.o Symbol.o ConcurrentHashMap.o Interface.o Keyword.o Function.o PersistentArrayMap.o
 
 default: all
 
@@ -54,3 +54,6 @@ Keyword.o: Keyword.c Keyword.h
 	$(CC) -c $(CFLAGS) Keyword.c
 Function.o: Function.c Function.h  
 	$(CC) -c $(CFLAGS) Function.c
+PersistentArrayMap.o: PersistentArrayMap.c PersistentArrayMap.h  
+	$(CC) -c $(CFLAGS) PersistentArrayMap.c
+

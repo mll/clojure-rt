@@ -52,17 +52,18 @@ Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Val
   
   BasicBlock *functionTypeBB = llvm::BasicBlock::Create(*TheContext, "type_function");
   BasicBlock *vectorTypeBB = llvm::BasicBlock::Create(*TheContext, "type_vector");
+  BasicBlock *persistentArrayMapTypeBB = llvm::BasicBlock::Create(*TheContext, "type_persistentArrayMap");
+  BasicBlock *keywordTypeBB = llvm::BasicBlock::Create(*TheContext, "type_keyword");
   BasicBlock *failedBB = llvm::BasicBlock::Create(*TheContext, "failed");
 
   SwitchInst *cond = Builder->CreateSwitch(objectType, failedBB, 2); 
   cond->addCase(ConstantInt::get(*TheContext, APInt(32, functionType, false)), functionTypeBB);
   cond->addCase(ConstantInt::get(*TheContext, APInt(32, persistentVectorType, false)), vectorTypeBB);
+  cond->addCase(ConstantInt::get(*TheContext, APInt(32, persistentArrayMapType, false)), persistentArrayMapTypeBB);
+  cond->addCase(ConstantInt::get(*TheContext, APInt(32, keywordType, false)), keywordTypeBB);
  
   BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge");    
-  
-/* TODO - if the type is no longer a function, we still need to check type specific invokations.
-    we cannot proceed to dynamic fun call because the new value may not be a fun. This needs to be added to the phi node as well. */ 
- 
+   
   parentFunction->getBasicBlockList().push_back(functionTypeBB); 
   Builder->SetInsertPoint(functionTypeBB);
 
@@ -134,7 +135,65 @@ Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Val
         }
     }
   }
+
   Builder->CreateBr(mergeBB);
+
+  parentFunction->getBasicBlockList().push_back(persistentArrayMapTypeBB); 
+  Builder->SetInsertPoint(persistentArrayMapTypeBB);
+  Value *mapRetVal = nullptr; 
+  BasicBlock *mapRetValBlock = Builder->GetInsertBlock();
+  if(args.size() != 1) {
+    runtimeException(CodeGenerationException("Wrong number of args passed to invokation", node)); 
+    mapRetVal = dynamicZero(retValType);
+  }
+  else {
+    vector<TypedValue> finalArgs;
+    string callName;
+    finalArgs.push_back(TypedValue(ObjectTypeSet(persistentArrayMapType), objectToInvoke));
+    auto argType = args[0].first;
+
+    finalArgs.push_back(box(args[0]));          
+    callName = "PersistentArrayMap_get";
+  
+    mapRetVal = callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs).second; 
+    if(!retValType.isBoxed && retValType.isDetermined()) {
+      auto p = dynamicUnbox(node, TypedValue(ObjectTypeSet::dynamicType(), mapRetVal), retValType.determinedType());
+      mapRetValBlock = p.first;
+      mapRetVal = p.second;
+    }
+  }
+
+  Builder->CreateBr(mergeBB);
+
+  parentFunction->getBasicBlockList().push_back(keywordTypeBB); 
+  Builder->SetInsertPoint(keywordTypeBB);
+  Value *keywordRetVal = nullptr; 
+  BasicBlock *keywordRetValBlock = Builder->GetInsertBlock();
+  if(args.size() != 1) {
+    runtimeException(CodeGenerationException("Wrong number of args passed to invokation", node)); 
+    keywordRetVal = dynamicZero(retValType);
+  }
+  else {
+    vector<TypedValue> finalArgs;
+    string callName;
+    finalArgs.push_back(box(args[0]));          
+    finalArgs.push_back(TypedValue(ObjectTypeSet(keywordType), objectToInvoke));
+    auto argType = args[0].first;
+
+    callName = "PersistentArrayMap_dynamic_get";
+  
+    keywordRetVal = callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs).second; 
+    if(!retValType.isBoxed && retValType.isDetermined()) {
+      auto p = dynamicUnbox(node, TypedValue(ObjectTypeSet::dynamicType(), keywordRetVal), retValType.determinedType());
+      keywordRetValBlock = p.first;
+      keywordRetVal = p.second;
+    }
+  }
+
+  Builder->CreateBr(mergeBB);
+
+
+
   parentFunction->getBasicBlockList().push_back(failedBB); 
   Builder->SetInsertPoint(failedBB);
   runtimeException(CodeGenerationException("This type cannot be invoked.", node));
@@ -143,17 +202,12 @@ Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Val
   Builder->CreateBr(mergeBB);
   parentFunction->getBasicBlockList().push_back(mergeBB); 
   Builder->SetInsertPoint(mergeBB);
-  PHINode *phiNode = Builder->CreatePHI(funRetVal->getType(), 3, "phi");
-
-  // string type_str;
-  // llvm::raw_string_ostream rso(type_str);
-  // failedRetVal->getType()->print(rso);
-  // vecRetVal->getType()->print(rso);
-  // funRetVal->getType()->print(rso);
-  // std::cout<< "Types: " << rso.str() << endl;
+  PHINode *phiNode = Builder->CreatePHI(funRetVal->getType(), 5, "phi");
 
   phiNode->addIncoming(funRetVal, funRetValBlock);
   phiNode->addIncoming(vecRetVal, vecRetValBlock);  
+  phiNode->addIncoming(mapRetVal, mapRetValBlock);  
+  phiNode->addIncoming(keywordRetVal, keywordRetValBlock);  
   phiNode->addIncoming(failedRetVal, failedBB);  
   return phiNode;
 }
@@ -205,7 +259,7 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
 
   auto retVal = dynamicType(retValType);
     /* TODO - Return values should be probably handled differently. e.g. if the new function returns something boxed, 
-       we should inspect it and decide if we want to use it or not for var inbvokations */ 
+       we should inspect it and decide if we want to use it or not for var invokations */ 
 
   /* What if the new function returns a different type? we should probably not force the return type. It should be deduced by jit and our job should be to somehow box/unbox it. Alternatively, we can add return type to method name (like fn_1_JJ_LV) and force generation of function that returns the boxed version of needed return type. If it does not match - we should throw a runtime error */ 
 

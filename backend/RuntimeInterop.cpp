@@ -86,44 +86,48 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
   string fname = "";
   bool isVariadic = false;
   switch(type) {
-    case integerType:
-      fname = "Integer_create";
-      break;
-    case doubleType:
-      fname = "Double_create";
-      break;
-    case booleanType:
-      fname = "Boolean_create";
-      break;
-    case stringType:
-      fname = "String_createStaticOptimised";
-      break;
-    case persistentListType:
-      fname = "PersistentList_create";
-      break;
-    case persistentVectorType:
-      fname = "PersistentVector_createMany";
-      isVariadic = true;      
-      break;
-    case persistentVectorNodeType:
-      throw InternalInconsistencyException("We never allow creation of subtypes here, only runtime can do it");
-    case nilType:
-      fname = "Nil_create";
-      break;
-    case symbolType:
-      fname = "Symbol_create";
-      break;
-    case keywordType:
-      fname = "Keyword_create";
-      break;
-    case concurrentHashMapType:
-      fname = "ConcurrentHashMap_create";
-      break;
-    case functionType:
-      fname = "Function_create";
-      break;
+  case integerType:
+    fname = "Integer_create";
+    break;
+  case doubleType:
+    fname = "Double_create";
+    break;
+  case booleanType:
+    fname = "Boolean_create";
+    break;
+  case stringType:
+    fname = "String_createStaticOptimised";
+    break;
+  case persistentListType:
+    fname = "PersistentList_create";
+    break;
+  case persistentVectorType:
+    fname = "PersistentVector_createMany";
+    isVariadic = true;      
+    break;
+  case persistentVectorNodeType:
+    throw InternalInconsistencyException("We never allow creation of subtypes here, only runtime can do it");
+  case nilType:
+    fname = "Nil_create";
+    break;
+  case symbolType:
+    fname = "Symbol_create";
+    break;
+  case keywordType:
+    fname = "Keyword_create";
+    break;
+  case persistentArrayMapType:
+    fname = "PersistentArrayMap_createMany";
+    isVariadic = true;      
+    break;
+  case concurrentHashMapType:
+    fname = "ConcurrentHashMap_create";
+    break;
+  case functionType:
+    fname = "Function_create";
+    break;
   }
-
+  
   return callRuntimeFun(fname, dynamicBoxedType(type), argTypes, args, isVariadic);
 }
 
@@ -163,6 +167,24 @@ Value *CodeGenerator::dynamicVector(const vector<TypedValue> &args) {
 //  for(int i=0; i<args.size(); i++ ) dynamicRelease(argsV[i+1]); 
   return retVal;
 }
+
+Value *CodeGenerator::dynamicArrayMap(const vector<TypedValue> &args) {
+  vector<Type *> types;
+  vector<Value *> argsV;
+  /* arg count must be smaller than 33 */
+  types.push_back(Type::getInt64Ty(*TheContext));
+  argsV.push_back(ConstantInt::get(*TheContext, APInt(64, args.size() / 2)));
+  for(auto arg: args) {
+    argsV.push_back(box(arg).second);
+  }
+
+  auto retVal = dynamicCreate(persistentArrayMapType, types, argsV);
+  /* TODO: RefCount - This remains to be discovered - depending on the refcount strategy it might be needed or not */
+//  for(int i=0; i<args.size(); i++ ) dynamicRelease(argsV[i+1]); 
+  return retVal;
+}
+
+
 
 /********************** TYPES *********************************/
 
@@ -371,6 +393,7 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case nilType:
     case symbolType:
     case keywordType:
+    case persistentArrayMapType:
     case functionType:
     case concurrentHashMapType:
       return Type::getInt8Ty(*TheContext)->getPointerTo();
@@ -526,6 +549,7 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
   case symbolType:
   case keywordType:
   case concurrentHashMapType:
+  case persistentArrayMapType:
   case functionType:
     return TypedValue(type, value.second);
   }

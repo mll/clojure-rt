@@ -102,6 +102,8 @@ public:
   llvm::Value *dynamicSymbol(const char *name);
   llvm::Value *dynamicKeyword(const char *name);
   llvm::Value *dynamicVector(const std::vector<TypedValue> &args);
+  llvm::Value *dynamicArrayMap(const std::vector<TypedValue> &args);
+
   TypedValue dynamicIsReusable(llvm::Value *what);
   void dynamicRetain(llvm::Value *objectPtr);
   llvm::Value *dynamicSuper(llvm::Value *objPtr);

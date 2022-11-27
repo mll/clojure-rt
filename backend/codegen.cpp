@@ -203,13 +203,14 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
     if (typeName == "Y") return ObjectTypeSet(symbolType);
     if (typeName == "K") return ObjectTypeSet(keywordType);
     if (typeName == "F") return ObjectTypeSet(functionType);
+    if (typeName == "A") return ObjectTypeSet(persistentArrayMapType);
 
-    throw CodeGenerationException(string("Unknown class: ")+ typeName + string("Full string: ") + typeString, node);
+    throw CodeGenerationException(string("Unknown class: ")+ typeName + string(" Full string: ") + typeString, node);
   }
   if (currentChar == 'D') return ObjectTypeSet(doubleType);
   if (currentChar == 'J') return ObjectTypeSet(integerType);
   if (currentChar == 'Z') return ObjectTypeSet(booleanType);
-  throw CodeGenerationException(string("Unknown type code: ")+ currentChar + string("Full string: ") + typeString, node);
+  throw CodeGenerationException(string("Unknown type code: ")+ currentChar + string(" Full string: ") + typeString, node);
 }
 
 vector<ObjectTypeSet> CodeGenerator::typesForArgString(const Node &node, const string &typeString) {

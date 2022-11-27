@@ -97,9 +97,32 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     case symbolType:
       /* Strange clojure behaviour, we just imitate */
       return TypedValue(ObjectTypeSet(nilType), dynamicNil());
+    case persistentArrayMapType:
+      {
+        if(args.size() != 1) throw CodeGenerationException("Wrong number of args passed to invokation", node);
+        vector<TypedValue> finalArgs;
+        string callName;
+        finalArgs.push_back(codegen(functionRef, ObjectTypeSet::all()));
+        
+        finalArgs.push_back(box(args[0]));          
+        callName = "PersistentArrayMap_get";        
+        return callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs); 
+      }
     case keywordType:
-      /* TODO */
-      throw CodeGenerationException("We do not support keyword invoke yet.", node);
+      {
+        if(args.size() != 1) throw CodeGenerationException("Wrong number of args passed to invokation", node);
+        vector<TypedValue> finalArgs;
+        string callName;
+        finalArgs.push_back(box(args[0]));          
+        finalArgs.push_back(codegen(functionRef, ObjectTypeSet::all()));
+        
+        if(args[0].first.isType(persistentArrayMapType)) {          
+          callName = "PersistentArrayMap_get";
+        } else {
+          callName = "PersistentArrayMap_dynamic_get";
+        }
+        return callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs); 
+      }
     case functionType:
       /* Function without constant value must be interpreted in the runtime, just like 
          indetermined object */

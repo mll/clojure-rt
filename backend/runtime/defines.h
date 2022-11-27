@@ -5,6 +5,7 @@
 #define FALSE 0
 typedef uint8_t BOOL;
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define HASHTABLE_THRESHOLD 8
 
 enum objectType {
    integerType = 1,
@@ -19,6 +20,7 @@ enum objectType {
    concurrentHashMapType,
    keywordType,
    functionType,
+   persistentArrayMapType
 };
 
 typedef enum objectType objectType;

@@ -279,6 +279,7 @@ class ObjectTypeSet {
     retVal.insert(symbolType);
     retVal.insert(keywordType);
     retVal.insert(functionType);
+    retVal.insert(persistentArrayMapType);
     return retVal;
   }
   
@@ -322,6 +323,8 @@ class ObjectTypeSet {
         return "LK";
       case functionType:
         return "LF";
+      case persistentArrayMapType:
+        return "LA";
       }
   }
   

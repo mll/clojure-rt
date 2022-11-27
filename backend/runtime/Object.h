@@ -22,6 +22,7 @@
 #include <assert.h>
 #include <execinfo.h>
 #include "Function.h"
+#include "PersistentArrayMap.h"
 
 typedef struct String String; 
 
@@ -117,6 +118,9 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
   case functionType:
     Function_destroy(Object_data(self));
     break;
+  case persistentArrayMapType:
+    PersistentArrayMap_destroy(Object_data(self), deallocateChildren);
+    break;
   }
   deallocate(self);
 }
@@ -172,7 +176,8 @@ inline uint64_t Object_hash(Object * restrict self) {
         return Keyword_hash(Object_data(self));
       case functionType:
         return Function_hash(Object_data(self));
-        
+      case persistentArrayMapType:
+        return PersistentArrayMap_hash(Object_data(self));        
       }
 }
 
@@ -225,6 +230,9 @@ inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   case functionType:
     return Function_equals(selfData, otherData);
     break;
+  case persistentArrayMapType:
+    return PersistentArrayMap_equals(selfData, otherData);
+    break;
   }
 }
 
@@ -267,6 +275,8 @@ inline String *Object_toString(Object * restrict self) {
     return Keyword_toString(Object_data(self));
   case functionType:
     return Function_toString(Object_data(self));
+  case persistentArrayMapType:
+    return PersistentArrayMap_toString(Object_data(self));
   }
 }
 

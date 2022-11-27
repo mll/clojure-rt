@@ -15,6 +15,7 @@ enum objectType {
    concurrentHashMapType,
    keywordType,
    functionType,
+   peristsentArrayMap,
 };
 
 typedef enum objectType objectType;

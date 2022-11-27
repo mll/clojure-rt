@@ -26,6 +26,7 @@ LS - String
 LV - Vector
 LL - List
 LM - Map
+LA - Array Map   
 LY - Symbol
 LK - Keyword
 LR - Ratio

@@ -30,9 +30,15 @@ v Keyword uniquing
 * Character
 * Ratio
 * BigInteger
-* PersistentArrayMap <--
+v PersistentArrayMap 
 * PersistentHashMap
 * PersistentSet
+
+* HUGE Memory management ref counting for runtime data structures
+  * Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
+  * Improve the strategy with manually combining retains with releases
+  * Improve the strategy with reuse 
+
 
 * Implement all java methods for runtime functions (horrible)
 
@@ -58,7 +64,7 @@ Compiler:
   * BigInteger
 
 v StaticCall (works for simple math, framework prepared to add more functionality)
-* StaticCall with dynamic args <--
+v StaticCall with dynamic args 
 v WithMeta (for now just ignores meta)
 v If 
 v Def and vars system
@@ -66,20 +72,34 @@ v Dynamic Def and vars system
 v Binding (dziala dla funkcji)
 v Fn
 v FnMethod
-* Let 
-v Invoke statyczne (z dynamicznymi argumentami) <--
+* Let <-- 
+v Invoke statyczne (z dynamicznymi argumentami) 
 v Invoke dynamiczne 
 * Invoke lambda 
 * Invoke lambda once
-* Invoke variadic  
+* Invoke variadic <--
 v Recur (for Fn)
 
 * Loop (+ recur for loop)
 v Vector
 * Case (CaseTest CaseThen)
 
+* HUGE Exception model
+  * Try
+  * Throw
+  * ... 
 * HUGE Memory management ref counting (let us start with string)
-* HUGE Exception model 
+  * Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
+  * Improve the strategy with combining retains with releases
+  * Improve the strategy with reuse (already manually implemented in StaticCall)
+* HUGE Class/Object system 
+  * Deftype
+  * HostInterop
+  * InstanceCall
+  * InstanceField
+  * IsInstance
+  * StaticField
+  * ProtocolInvoke
 
 ....
 

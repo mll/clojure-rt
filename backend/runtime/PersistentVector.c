@@ -134,15 +134,15 @@ void PersistentVector_print(PersistentVector * restrict self) {
 
 PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void * restrict other) {
   PersistentVector *new = NULL;
-
+  BOOL reusable = isReusable(self);
+  if(reusable) new = self;
+  else {
+    new = PersistentVector_allocate();
+    /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
+    memcpy(new, self, sizeof(PersistentVector));    
+  }
+  
   if (self->tail->count < RRB_BRANCHING) {
-    BOOL reusable = isReusable(self);
-    if(reusable) new = self;
-    else {
-      new = PersistentVector_allocate();
-      /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
-      memcpy(new, self, sizeof(PersistentVector));    
-    }
     
     new->count++;
 
@@ -163,18 +163,21 @@ PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void *
 
   /* The tail was full if we reached this place */
   
-  new = PersistentVector_allocate();
-  /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
-  memcpy(new, self, sizeof(PersistentVector));    
-
+  PersistentVectorNode *oldTail = self->tail;
+  PersistentVectorNode *oldRoot = self->root;
   new->count++;
   new->tail = PersistentVectorNode_allocate(RRB_BRANCHING, leafNode);
   new->tail->array[0] = super(other);
   new->tail->count = 1;
   
   BOOL copied;
-  new->root = PersistentVectorNode_pushTail(NULL, self->root,  self->tail, self->shift, &copied); 
-  if(!copied && self->root) { 
+  new->root = PersistentVectorNode_pushTail(NULL, oldRoot, oldTail, self->shift, &copied); 
+  if(reusable) {
+    release(oldTail);
+    if(oldRoot) release(oldRoot);
+  }
+  
+  if(!copied && oldRoot) { 
     new->shift += RRB_BITS;
     
     /* int depth = 0; */
@@ -186,7 +189,7 @@ PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void *
     /* while(c->type != leafNode) { c = Object_data(c->array[c->count -1]); depth++; } */
     /* printf ("!!! Right depth: %d\n", depth); */
   }
-  release(self);
+  if (!reusable) release(self);
   return new;
 }
 

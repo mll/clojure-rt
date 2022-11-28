@@ -26,7 +26,7 @@
 
 typedef struct String String; 
 
-//#define REFCOUNT_TRACING
+#define REFCOUNT_TRACING
 //#define REFCOUNT_NONATOMIC
 
 struct Object {

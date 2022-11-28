@@ -295,7 +295,7 @@ void testList (bool pauses) {
 }
 
 
-void testVector (bool pauses, bool reuse = true) {
+void testVector (bool pauses, bool reuseSwitch = true) {
   // printf("Total size: %lu %lu\n", sizeof(Object), sizeof(Integer)); 
   // printf("Total size: %lu %lu\n", sizeof(PersistentVector), sizeof(PersistentVectorNode)); 
   PersistentVector *l = PersistentVector_create();
@@ -308,19 +308,18 @@ void testVector (bool pauses, bool reuse = true) {
   if(pauses) getchar();
   clock_t as = clock();
 
-  PersistentVector **rels = nullptr;
-  if(!reuse) {
-    rels = (PersistentVector ** )malloc(100000000 * sizeof(PersistentVector *));
-  }
-  
+  bool reuse = reuseSwitch ? (rand() & 1) : false;
+
   for (int i=0;i<100000000; i++) {
    // PersistentVector_print(l);
    // printf("=======*****************===========");
    // fflush(stdout);
+    reuse = reuseSwitch ? (rand() & 1) : false;
     Integer *n = Integer_create(i);
     if(!reuse) retain(l);
     PersistentVector *k = PersistentVector_conj(l, n);
     if(!reuse) release(l);
+
     l = k;
     // printf("%d\r", i);
     // fflush(stdout);
@@ -366,6 +365,7 @@ void testVector (bool pauses, bool reuse = true) {
     // PersistentVector_print(l);
     // printf("=======*****************===========");
     // fflush(stdout);
+    reuse = reuseSwitch ? (rand() & 1) : false;
     Integer *n = Integer_create(7);
     if(!reuse) retain(l);
     PersistentVector *k = PersistentVector_assoc(l, i, n);
@@ -396,13 +396,14 @@ void testVector (bool pauses, bool reuse = true) {
 
 
 int main() {
-    initialise_memory();
-//  for(int i=0; i<30; i++) testList(false);
-//    testList(false);
-////    ProfilerStart("xx.prof");
-    testVector(false, true);
-//    testMap(false);
- //   ProfilerStop();
-//    getchar();
+  srand(0);
+  initialise_memory();
+  //  for(int i=0; i<30; i++) testList(false);
+  //    testList(false);
+  ////    ProfilerStart("xx.prof");
+  testVector(false, true);
+  //    testMap(false);
+  //   ProfilerStop();
+  //    getchar();
 }
 

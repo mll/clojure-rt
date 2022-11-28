@@ -7,7 +7,7 @@ typedef struct Object Object;
 typedef struct PersistentList PersistentList;
 
 struct PersistentList {
-  Object *first;
+  void *first;
   PersistentList *rest;
   uint64_t count;
 };
@@ -19,8 +19,8 @@ uint64_t PersistentList_hash(PersistentList *self);
 String *PersistentList_toString(PersistentList *self);
 void PersistentList_destroy(PersistentList *self, BOOL deallocateChildren);
 
-PersistentList* PersistentList_create(Object *first, PersistentList *rest);
-PersistentList* PersistentList_conj(PersistentList *self, Object *other);
+PersistentList* PersistentList_create(void *first, PersistentList *rest);
+PersistentList* PersistentList_conj(PersistentList *self, void *other);
 
 
 #endif

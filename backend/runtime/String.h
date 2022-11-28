@@ -49,13 +49,10 @@ char String_iteratorGetChar(String *self, StringIterator *it);
 char String_iteratorNext(String *self, StringIterator *it);
 
 String *String_concat(String *self, String *other);
-/* Destroys self, but not other! */
-String *String_append(String *self, String *other);
-/* Creates a version of the string that has guaranteed value */
+/* Creates a version of the string that has guaranteed 'value' field */
 String *String_compactify(String *self);
 char *String_c_str(String *self);
 void String_recomputeHash(String *s);
-
 
 BOOL String_equals(String *self, String *other);
 uint64_t String_hash(String *self);

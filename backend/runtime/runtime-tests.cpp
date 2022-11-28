@@ -31,7 +31,7 @@ extern "C" {
   } Object;
   
   typedef struct PersistentList {
-    Object *first;
+    void *first;
     PersistentList *rest;
     uint64_t count;
   } PersistentList;
@@ -56,8 +56,8 @@ extern "C" {
   char release(void *);
   void retain(void *);
 
-  PersistentList* PersistentList_create(Object *first, PersistentList *rest);
-  PersistentList* PersistentList_conj(PersistentList *self, Object *other);
+  PersistentList* PersistentList_create(void *first, PersistentList *rest);
+  PersistentList* PersistentList_conj(PersistentList *self, void *other);
   
   enum specialisedString {
     staticString,
@@ -90,15 +90,15 @@ extern "C" {
   Object *super(void *);
   void *Object_data(Object *);		
   
-  PersistentVector* PersistentVector_conj(PersistentVector *self, Object *other);
-  PersistentVector* PersistentVector_assoc(PersistentVector *self, uint64_t index, Object *other);
+  PersistentVector* PersistentVector_conj(PersistentVector *self, void *other);
+  PersistentVector* PersistentVector_assoc(PersistentVector *self, uint64_t index, void *other);
   void* PersistentVector_nth(PersistentVector *self, uint64_t index);
   PersistentVector *PersistentVector_create();
   void initialise_memory();
 
   typedef struct ConcurrentHashMapEntry {
-    Object * _Atomic key;
-    Object * _Atomic value;
+    void * _Atomic key;
+    void * _Atomic value;
     _Atomic uint64_t keyHash;
     _Atomic unsigned short leaps;
   } ConcurrentHashMapEntry;
@@ -115,17 +115,18 @@ extern "C" {
 
   ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent);  
   
-  void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value);
-  void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, Object *key);
-  Object *ConcurrentHashMap_get(ConcurrentHashMap *self, Object *key);  
+  void ConcurrentHashMap_assoc(ConcurrentHashMap *self, void *key, void *value);
+  void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, void *key);
+  void *ConcurrentHashMap_get(ConcurrentHashMap *self, void *key);  
+  void PersistentVector_print(PersistentVector *self);
 }
 
 #include <gperftools/profiler.h>
 
-extern _Atomic uint64_t allocationCount[10];
+extern _Atomic uint64_t allocationCount[13];
 
 void pd() {
-    printf("Ref counters: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n", allocationCount[0], allocationCount[1], allocationCount[2], allocationCount[3], allocationCount[4], allocationCount[5], allocationCount[6], allocationCount[7], allocationCount[8], allocationCount[9]);
+    printf("Ref counters: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n", allocationCount[0], allocationCount[1], allocationCount[2], allocationCount[3], allocationCount[4], allocationCount[5], allocationCount[6], allocationCount[7], allocationCount[8], allocationCount[9], allocationCount[10], allocationCount[11], allocationCount[12]);
 }
 
 
@@ -141,8 +142,9 @@ void *startThread(void *param) {
   
   for(int i=p->start; i<p->stop; i++) {
     Integer *n = Integer_create(i);
-    ConcurrentHashMap_assoc(l, super(n), super(n));
-    release(n);
+    retain(n);
+    retain(l);
+    ConcurrentHashMap_assoc(l, n, n);
   }
  
   return NULL;
@@ -185,18 +187,25 @@ void testMap (bool pauses) {
   Integer *k = Integer_create(1);
   for(int i=0; i< 100000000; i++) {
     k->value = i;
-    Object *o = ConcurrentHashMap_get(l, super(k));
+    retain(k);
+    retain(l);
+    void *o = ConcurrentHashMap_get(l, k);
     assert(o);
-    if(o->type != integerType) {
-
-      printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
-      o = ConcurrentHashMap_get(l, super(k));
-      printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
+    if(super(o)->type != integerType) {
+      retain(k);
+      printf("Unknown type %d for entry %s\n", super(o)->type, String_c_str(toString(k)));
+      retain(k);
+      retain(l);
+      o = ConcurrentHashMap_get(l, k);
+      retain(k);
+      printf("Unknown type %d for entry %s\n", super(o)->type, String_c_str(toString(k)));
+      retain(l);
+      retain(o);
       printf("Contents: %s %s\n", String_c_str(toString(o)), String_c_str(String_compactify(toString(l))));
     }
 
-    assert(o->type == integerType);
-    Integer *res = (Integer *) Object_data(o);
+    assert(super(o)->type == integerType);
+    Integer *res = (Integer *) o;
     assert(res->value == i);
     sum += res->value;
     release(res);
@@ -257,9 +266,7 @@ void testList (bool pauses) {
 
   for (int i=0;i<100000000; i++) {
     Integer *n = Integer_create(i);
-    PersistentList *k = PersistentList_conj(l, super(n));
-    release(l);
-    release(n);
+    PersistentList *k = PersistentList_conj(l, n);
     l = k;
   }
   pd();
@@ -272,7 +279,7 @@ void testList (bool pauses) {
   PersistentList *tmp = l;
   int64_t sum = 0;
   while(tmp != NULL) {
-    if(tmp->first) sum += ((Integer *)(Object_data(tmp->first)))->value;
+    if(tmp->first) sum += ((Integer *)(tmp->first))->value;
     tmp = tmp->rest;
   }
   assert(sum == 4999999950000000ull && "Wrong result");
@@ -301,16 +308,15 @@ void testVector (bool pauses) {
   if(pauses) getchar();
   clock_t as = clock();
 
-  for (int i=0;i<100000000; i++) {
+  for (int i=0;i<63; i++) {
    // PersistentVector_print(l);
    // printf("=======*****************===========");
    // fflush(stdout);
     Integer *n = Integer_create(i);
-    PersistentVector *k = PersistentVector_conj(l, super(n));
-    release(n);
-    release(l);
+    retain(l);
+    PersistentVector *k = PersistentVector_conj(l, n);
     l = k;
-//    printf("%d\r",i);
+    PersistentVector_print(l);
   }
   pd();
   clock_t ap = clock();
@@ -322,11 +328,15 @@ void testVector (bool pauses) {
   int64_t sum = 0;
   
   for(int i=0; i< l->count; i++) {
-    sum += ((Integer *) PersistentVector_nth(l, i))->value;
+    retain(l);
+    Integer *ob = (Integer *) PersistentVector_nth(l, i);
+    sum += (ob)->value;
+    release(ob);
   }
-    assert(sum == 4999999950000000ull && "Wrong result");
+
   clock_t op = clock();
   printf("Sum: %llu\nTime: %f\n", sum, (double)(op - os) / CLOCKS_PER_SEC);
+  assert(sum == 4999999950000000ull && "Wrong result");
   if(pauses) getchar();
   int64_t sum2 = 0;
   int64_t *array = (int64_t *)malloc(100000000*sizeof(int64_t));
@@ -349,9 +359,7 @@ void testVector (bool pauses) {
     // printf("=======*****************===========");
     // fflush(stdout);
     Integer *n = Integer_create(7);
-    PersistentVector *k = PersistentVector_assoc(l, i, super(n));
-    release(n);
-    release(l);
+    PersistentVector *k = PersistentVector_assoc(l, i, n);
     l = k;
 //    printf("%d\r",i);
   }
@@ -359,7 +367,10 @@ void testVector (bool pauses) {
   sum = 0;
   
   for(int i=0; i< l->count; i++) {
-    sum += ((Integer *) PersistentVector_nth(l, i))->value;
+    retain(l);
+    Integer *ob = (Integer *) PersistentVector_nth(l, i);
+    sum += ob->value;
+    release(ob);
   }
 
   clock_t asd = clock();

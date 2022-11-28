@@ -8,10 +8,10 @@
 
 extern Nil *UNIQUE_NIL;
 
-extern uint64_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, Object *key, Object *value, uint64_t keyHash);
-extern BOOL tryReplacingEntry(ConcurrentHashMapEntry *entry, Object *key, Object *value, uint64_t keyHash, uint64_t encounteredHash);
-extern BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uint64_t keyHash);
-extern Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uint64_t keyHash);
+extern uint64_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, void *key, void *value, uint64_t keyHash);
+extern BOOL tryReplacingEntry(ConcurrentHashMapEntry *entry, void *key, void *value, uint64_t keyHash, uint64_t encounteredHash);
+extern BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, void *key, uint64_t keyHash);
+extern void *tryGettingFromEntry(ConcurrentHashMapEntry *entry, void *key, uint64_t keyHash);
 extern uint64_t avalanche_64(uint64_t h);
 extern unsigned char getLongLeap(unsigned int leaps);
 extern unsigned char getShortLeap(unsigned int leaps);
@@ -30,10 +30,10 @@ inline unsigned int buildLeaps(unsigned char longLeap, unsigned char shortLeap) 
 }
 
 
-
+/* mem done */
 ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent) {
   size_t initialSize = 1<<initialSizeExponent;
-  Object *super = allocate(sizeof(ConcurrentHashMap) + sizeof(Object)); 
+  void *super = allocate(sizeof(ConcurrentHashMap) + sizeof(void)); 
   ConcurrentHashMap *self = (ConcurrentHashMap *)(super + 1);
   size_t rootSize = sizeof(ConcurrentHashMapNode) + initialSize * sizeof(ConcurrentHashMapEntry);
   ConcurrentHashMapNode *node = allocate(rootSize);
@@ -45,16 +45,15 @@ ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent) {
   return self;
 }
 
-inline uint64_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, Object *key, Object *value, uint64_t keyHash) { 
+/* outside refcount system */
+inline uint64_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, void *key, void *value, uint64_t keyHash) { 
   /* Returns 0 if reservation is successful, otherwise the encountered hash */
   while(TRUE) {
     uint64_t encounteredHash = atomic_load_explicit(&(entry->keyHash), memory_order_relaxed);
     if(encounteredHash == 0) {
       if(atomic_compare_exchange_strong_explicit(&(entry->keyHash), &encounteredHash, keyHash, memory_order_relaxed, memory_order_relaxed)) {
         atomic_store(&(entry->key), key);
-        atomic_store(&(entry->value), value);
-        Object_retain(key);
-        Object_retain(value);
+        atomic_store(&(entry->value), value);       
         return 0;
       }
       continue;
@@ -63,17 +62,17 @@ inline uint64_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, Object *key
   }
 }
 
-inline BOOL tryReplacingEntry(ConcurrentHashMapEntry *entry, Object *key, Object *value, uint64_t keyHash, uint64_t encounteredHash) {
-  Object* encounteredKey = NULL;
+/* outside refcount system */
+inline BOOL tryReplacingEntry(ConcurrentHashMapEntry *entry, void *key, void *value, uint64_t keyHash, uint64_t encounteredHash) {
+  void* encounteredKey = NULL;
   /* Returns TRUE if successfully replaced, otherwise FALSE */
   if(encounteredHash == keyHash) {
     while((encounteredKey = atomic_load_explicit(&(entry->key), memory_order_relaxed)) == NULL);
-    if(Object_equals(encounteredKey, key)) {
+    if(equals(encounteredKey, key)) {
       while(TRUE) {
-        Object *encounteredValue = atomic_load_explicit(&(entry->value), memory_order_relaxed);
+        void *encounteredValue = atomic_load_explicit(&(entry->value), memory_order_relaxed);
         if(atomic_compare_exchange_strong_explicit(&(entry->value), &encounteredValue, value, memory_order_relaxed, memory_order_relaxed)) {
-          if(encounteredValue) Object_autorelease(encounteredValue);
-          Object_retain(value);
+          if(encounteredValue) autorelease(encounteredValue);
           return TRUE;
         } 
       }
@@ -82,10 +81,10 @@ inline BOOL tryReplacingEntry(ConcurrentHashMapEntry *entry, Object *key, Object
   return FALSE;
 }
 
-/* Memory model - swallows both */
-void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value) {
+/* mem done */
+void ConcurrentHashMap_assoc(ConcurrentHashMap *self, void *key, void *value) {
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
-  uint64_t keyHash = avalanche_64(Object_hash(key));
+  uint64_t keyHash = avalanche_64(hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
   uint64_t index = startIndex;
   ConcurrentHashMapEntry *entry = &(root->array[index]);
@@ -93,9 +92,16 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value
 //  printf("keyHash: %u, startindex: %u index: %u\n", keyHash, startIndex, index); 
   
   uint64_t encounteredHash = tryReservingEmptyNode(entry, key, value, keyHash);
-  if(encounteredHash == 0) { //printf("STORED AT: %u\n", index); 
-    return; }
-  if(tryReplacingEntry(entry, key, value, keyHash, encounteredHash)) return;
+  if(encounteredHash == 0) { 
+    //printf("STORED AT: %u\n", index); 
+    release(self);
+    return; 
+  }
+  if(tryReplacingEntry(entry, key, value, keyHash, encounteredHash)) {
+    release(key);
+    release(self);
+    return;
+  }
 
   unsigned short lastChainEntryLeaps = atomic_load_explicit(&(entry->leaps), memory_order_relaxed);
   unsigned short jump = getLongLeap(lastChainEntryLeaps);
@@ -106,7 +112,11 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value
     /* We wait until the node appears */
     while((encounteredHash = atomic_load_explicit(&(entry->keyHash), memory_order_relaxed)) == 0); 
     /* Maybe it is an existing node with the key? If so we replace the value */
-    if(tryReplacingEntry(entry, key, value, keyHash, encounteredHash)) return; 
+    if(tryReplacingEntry(entry, key, value, keyHash, encounteredHash)) {
+      release(key);
+      release(self);
+      return; 
+    }
     lastChainEntryLeaps = atomic_load_explicit(&(entry->leaps), memory_order_relaxed);
     jump = getShortLeap(lastChainEntryLeaps);    
   }
@@ -125,6 +135,7 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value
       /* We succeeded in reserving the node! We create long or short jumps. */
       unsigned short newLeaps = lastChainEntryIsFirstEntry ? buildLeaps(i, getShortLeap(lastChainEntryLeaps)) : buildLeaps(getLongLeap(lastChainEntryLeaps), i);
       if(atomic_compare_exchange_strong_explicit(&(lastChainEntry->leaps), &lastChainEntryLeaps, newLeaps, memory_order_relaxed, memory_order_relaxed)) {
+        release(self);
         return;
       } else {
         lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
@@ -156,9 +167,10 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, Object *key, Object *value
   assert(FALSE && "Overcrowded - resizing not yet supported");  
 }
 
-inline BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uint64_t keyHash) {
+/* outside refcount system */
+inline BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, void *key, uint64_t keyHash) {
   uint64_t encounteredHash = atomic_load_explicit(&(entry->keyHash), memory_order_relaxed);
-  Object *encounteredKey = NULL;
+  void *encounteredKey = NULL;
   if(encounteredHash == 0) return TRUE;  
   if(encounteredHash == keyHash) { 
     /* This is a weak dissoc, still leaves dangling key in the table */
@@ -166,48 +178,59 @@ inline BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uin
     /* sbd is in the process of insertion, but we ignore it as dissoc works only for what 
        was already present in the table */
     if(!encounteredKey) return TRUE;
-    if(Object_equals(encounteredKey, key)) {
-      Object *encounteredValue = atomic_load_explicit(&(entry->value), memory_order_relaxed);
+    if(equals(encounteredKey, key)) {
+      void *encounteredValue = atomic_load_explicit(&(entry->value), memory_order_relaxed);
       atomic_exchange(&(entry->value), NULL);
-      if(encounteredValue)  Object_autorelease(encounteredValue);
+      if(encounteredValue) autorelease(encounteredValue);
       return TRUE;
     }
   }
   return FALSE;
 }
 
-void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, Object *key) {
+/* mem done */
+void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, void *key) {
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
-  uint64_t keyHash = avalanche_64(Object_hash(key));
+  uint64_t keyHash = avalanche_64(hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
   uint64_t index = startIndex;
   ConcurrentHashMapEntry *entry = &(root->array[index]);
   
-  if(tryDeletingFromEntry(entry, key, keyHash)) return;
+  if(tryDeletingFromEntry(entry, key, keyHash)) {
+    release(key);
+    release(self);
+    return;
+  }
 
   unsigned short jump = getLongLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));
   while(jump > 0) {
     index = (index + jump) & root->sizeMask;
     entry = &(root->array[index]);
-    if(tryDeletingFromEntry(entry, key, keyHash)) return;
+    if(tryDeletingFromEntry(entry, key, keyHash)) {
+      release(key);
+      release(self);
+      return;
+    }
     jump = getShortLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  
   }
+  release(key);
+  release(self);
 }
 
-
-inline Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uint64_t keyHash) {
+/* outside refcount system */
+inline void *tryGettingFromEntry(ConcurrentHashMapEntry *entry, void *key, uint64_t keyHash) {
   /* NULL return value signifies failure */
   uint64_t encounteredHash = atomic_load_explicit(&(entry->keyHash), memory_order_relaxed);
-  Object *encounteredKey = NULL;
+  void *encounteredKey = NULL;
   
   if(encounteredHash == 0) { retain(UNIQUE_NIL); return super(UNIQUE_NIL); }
   if(encounteredHash == keyHash) {
     encounteredKey = atomic_load_explicit(&(entry->key), memory_order_relaxed);
     if(!encounteredKey) { retain(UNIQUE_NIL); return super(UNIQUE_NIL); }
-    if(Object_equals(encounteredKey, key)) {
-      Object *value = atomic_load_explicit(&(entry->value), memory_order_relaxed);
+    if(equals(encounteredKey, key)) {
+      void *value = atomic_load_explicit(&(entry->value), memory_order_relaxed);
       if(value) { 
-        Object_retain(value);        
+        retain(value);        
         return value;
       }
       retain(UNIQUE_NIL); 
@@ -217,31 +240,43 @@ inline Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, u
   return NULL;
 }
 
-
-Object *ConcurrentHashMap_get(ConcurrentHashMap *self, Object *key) {
+/* mem done */
+void *ConcurrentHashMap_get(ConcurrentHashMap *self, void *key) {
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
-  uint64_t keyHash = avalanche_64(Object_hash(key));
+  uint64_t keyHash = avalanche_64(hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
   uint64_t index = startIndex;
   ConcurrentHashMapEntry *entry = &(root->array[index]);
   
-  Object *retVal = tryGettingFromEntry(entry, key, keyHash);
+  void *retVal = tryGettingFromEntry(entry, key, keyHash);
  
-  if(retVal) return retVal;
+  if(retVal) {
+    release(key);
+    release(self);
+    return retVal;
+  }
 
   unsigned short jump = getLongLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  
   while(jump > 0) {
     index = (index + jump) & root->sizeMask;
     entry = &(root->array[index]);
     retVal = tryGettingFromEntry(entry, key, keyHash);
-    if(retVal) return retVal;
+    if(retVal) {
+      release(key);
+      release(self);      
+      return retVal;
+    }
     jump = getShortLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  
   }
   
+  release(key);
+  release(self);
+
   retain(UNIQUE_NIL); 
   return super(UNIQUE_NIL); 
 }
 
+/* outside refcount system */
 BOOL ConcurrentHashMap_equals(ConcurrentHashMap *self, ConcurrentHashMap *other) {
   assert(FALSE && "Concurrent hash map does not implement equals");
   /* Warning!!! 
@@ -252,6 +287,7 @@ BOOL ConcurrentHashMap_equals(ConcurrentHashMap *self, ConcurrentHashMap *other)
   return FALSE;
 }
 
+/* outside refcount system */
 uint64_t ConcurrentHashMap_hash(ConcurrentHashMap *self) {
   assert(FALSE && "Concurrent hash map does not implement hash");
   /* Warning!!! 
@@ -268,13 +304,13 @@ uint64_t ConcurrentHashMap_hash(ConcurrentHashMap *self) {
 /*   BOOL found = FALSE; */
 /*   for(int i=0; i<= root->sizeMask; i++) { */
 /*     ConcurrentHashMapEntry *entry = &(root->array[i]); */
-/*     Object *key = entry->key; */
-/*     Object *value = entry->value; */
+/*     void *key = entry->key; */
+/*     void *value = entry->value; */
 /*     if(key && value) { */
 /*       if(found) retVal = sdscat(retVal, ", "); */
 /*       found = TRUE;       */
-/*       String *ks = Object_toString(key); */
-/*       String *vs = Object_toString(value); */
+/*       String *ks = void_toString(key); */
+/*       String *vs = void_toString(value); */
 /*       retVal = sdscatprintf(retVal, "Index: %d; hash %llu; Good index: %llu, leap %d:%d --> ", i, entry->keyHash ,  entry->keyHash & root->sizeMask, getLongLeap(entry->leaps), getShortLeap(entry->leaps)); */
 /*       retVal = sdscatsds(retVal, ks->value); */
 /*       retVal = sdscat(retVal, " "); */
@@ -290,53 +326,53 @@ uint64_t ConcurrentHashMap_hash(ConcurrentHashMap *self) {
 /*   return String_create(retVal); */
 /* } */
 
+
+/* mem done */
 String *ConcurrentHashMap_toString(ConcurrentHashMap *self) {
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
   String *retVal = String_create("{");
   String *comma = String_create(", ");
   String *space = String_create(" "); 
-  String *newline = String_create("\n"); 
   String *closing = String_create("}"); 
 
   BOOL found = FALSE;
   for(int i=0; i<= root->sizeMask; i++) {
     ConcurrentHashMapEntry *entry = &(root->array[i]);
-    Object *key = entry->key;
-    Object *value = entry->value;
+    void *key = entry->key;
+    void *value = entry->value;
     if(key && value) {
       if(found) { 
-        retVal = String_append(retVal, comma);
+        retain(comma);
+        retVal = String_concat(retVal, comma);
       }
-      found = TRUE;      
-      String *ks = Object_toString(key);
-      String *vs = Object_toString(value);
-      retVal = String_append(retVal, ks);
-      retVal = String_append(retVal, space);
-      retVal = String_append(retVal, vs);
-      release(ks);
-      release(vs);
+      found = TRUE;
+      retain(key);
+      retain(value);
+      String *ks = toString(key);
+      String *vs = toString(value);
+      retain(space);
+      retVal = String_concat(retVal, ks);
+      retVal = String_concat(retVal, space);
+      retVal = String_concat(retVal, vs);
     } 
   }
-  retVal = String_append(retVal, closing);
+  retVal = String_concat(retVal, closing);
   release(comma);
   release(space);
-  release(newline);
-  release(closing);
+  release(self);
   return retVal;
 }
 
-
-
-
+/* outside refcount system */
 void ConcurrentHashMap_destroy(ConcurrentHashMap *self) {
     ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
     atomic_store(&(self->root), NULL);
     for(int i=0; i<= root->sizeMask; i++) {
       ConcurrentHashMapEntry *entry = &(root->array[i]);
-      Object *key = atomic_load_explicit(&(entry->key), memory_order_relaxed);
-      Object *value = atomic_load_explicit(&(entry->value), memory_order_relaxed);
-      if(key) Object_release(key);
-      if(value) Object_release(value);
+      void *key = atomic_load_explicit(&(entry->key), memory_order_relaxed);
+      void *value = atomic_load_explicit(&(entry->value), memory_order_relaxed);
+      if(key) release(key);
+      if(value) release(value);
     }
     deallocate(root);
 }

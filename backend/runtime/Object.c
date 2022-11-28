@@ -63,7 +63,8 @@ extern void Object_autorelease(Object * restrict self);
 extern BOOL Object_equals(Object * restrict self, Object * restrict other);
 extern uint64_t Object_hash(Object * restrict self);
 extern String *Object_toString(Object * restrict self);
-
+extern BOOL Object_isReusable(Object *restrict self);
+extern BOOL isReusable(void *restrict self);
 
 extern uint64_t combineHash(uint64_t lhs, uint64_t rhs);
 

@@ -3,12 +3,15 @@
 
 static PersistentList *EMPTY = NULL;
 
+/* mem done */
 PersistentList* PersistentList_empty() {
   if (EMPTY == NULL) EMPTY = PersistentList_create(NULL, NULL);
+  retain(EMPTY);
   return EMPTY;
 } 
 
-PersistentList* PersistentList_create(Object *first, PersistentList *rest) {
+/* outside refcount system */
+PersistentList* PersistentList_create(void *first, PersistentList *rest) {
   Object *super = allocate(sizeof(PersistentList) + sizeof(Object)); 
   PersistentList *self = Object_data(super);
 
@@ -20,6 +23,7 @@ PersistentList* PersistentList_create(Object *first, PersistentList *rest) {
   return self;
 }
 
+/* outside refcount system */
 BOOL PersistentList_equals(PersistentList *self, PersistentList *other) {
   if (self->count != other->count) return FALSE;
 
@@ -27,16 +31,17 @@ BOOL PersistentList_equals(PersistentList *self, PersistentList *other) {
   PersistentList* otherPtr = other;
 
   while(selfPtr) {
-    if (!(selfPtr->first == otherPtr->first || (selfPtr->first && otherPtr->first && Object_equals(selfPtr->first, otherPtr->first)))) return FALSE;
+    if (!(selfPtr->first == otherPtr->first || (selfPtr->first && otherPtr->first && equals(selfPtr->first, otherPtr->first)))) return FALSE;
     selfPtr = selfPtr->rest;
     otherPtr = otherPtr->rest;
   }
   return TRUE;
 }
 
+/* outside refcount system */
 uint64_t PersistentList_hash(PersistentList *self) {
   uint64_t h = 5381;
-  h = combineHash(h, self->first ? Object_hash(self->first) : 5381);
+  h = combineHash(h, self->first ? hash(self->first) : 5381);
 
   PersistentList *current = self->rest;
   while (current) {
@@ -46,6 +51,7 @@ uint64_t PersistentList_hash(PersistentList *self) {
   return h;
 }
 
+/* mem done */
 String *PersistentList_toString(PersistentList *self) {
   String *retVal = String_create("(");
   String *space = String_create(" ");
@@ -55,22 +61,24 @@ String *PersistentList_toString(PersistentList *self) {
 
   while (current) {
     if (current != self && current->first) {
-      retVal = String_append(retVal, space);
+      retVal = String_concat(retVal, space);
     }
     if(current->first) {
-      String *s = Object_toString(current->first);
-      retVal = String_append(retVal, s);
+      String *s = toString(current->first);
+      retVal = String_concat(retVal, s);
       release(s);
     }
     current = current->rest;
   }
   
-  retVal = String_append(retVal, closing); 
+  retVal = String_concat(retVal, closing); 
   release(space);
   release(closing);
+  release(self);
   return retVal;
 }
 
+/* outside refcount system */
 void PersistentList_destroy(PersistentList *self, BOOL deallocateChildren) {
   if (deallocateChildren) {
     PersistentList *child = self->rest;
@@ -80,12 +88,10 @@ void PersistentList_destroy(PersistentList *self, BOOL deallocateChildren) {
       child = next;
     }
   }
-  if(self->first) Object_release(self->first);  
+  if(self->first) release(self->first);  
 }
 
-
-PersistentList* PersistentList_conj(PersistentList *self, Object *other) {
-  retain(self);
-  Object_retain(other);
+/* mem done */
+PersistentList* PersistentList_conj(PersistentList *self, void *other) {
   return PersistentList_create(other, self);
 }

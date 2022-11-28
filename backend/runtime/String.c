@@ -4,6 +4,7 @@
 #include "Hash.h"
 #include "PersistentVector.h"
 
+/* outside refcount system */
 uint64_t String_computeHash(char *str) {
     uint64_t h = 5381;
     int64_t c;
@@ -12,31 +13,34 @@ uint64_t String_computeHash(char *str) {
     return h;
 }
 
-
+/* outside refcount system */
 PersistentVector *getVec(String *s) {
   return *((PersistentVector **) &(s->value[0]));
 }
 
+/* outside refcount system */
 char *getStat(String *s) {
   return *((char **) &(s->value[0]));
 }
 
+/* outside refcount system */
 char *getDyn(String *s) {
   return &(s->value[0]);
 }
 
+/* outside refcount system */
 char* getStatDyn(String *s) {
   return s->specialisation == staticString ? getStat(s) : getDyn(s);
 }
 
-
+/* outside refcount system */
 void String_recomputeHash(String *s) {
   assert(s->specialisation != compoundString);
   s->hash = String_computeHash(getStatDyn(s));
 }
 
-
- String* String_createStatic(char *string) {
+/* mem done */
+String* String_createStatic(char *string) {
   Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char *)); 
   String *self = (String *)(super + 1);
   *((char **)&(self->value[0])) = string;
@@ -47,10 +51,12 @@ void String_recomputeHash(String *s) {
   return self;
 }
 
+/* mem done */
 String* String_create(char *string) {
   return String_createStatic(string);
 }
 
+/* mem done */
 String* String_createDynamic(size_t size) {
   Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char) * (size + 1)); 
   String *self = (String *)(super + 1);
@@ -60,6 +66,7 @@ String* String_createDynamic(size_t size) {
   return self;
 }
 
+/* mem done */
 String* String_createStaticOptimised(char *string, uint64_t len, uint64_t hash) {
   Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char *)); 
   String *self = (String *)(super + 1);
@@ -81,22 +88,21 @@ String* String_createCompound(String *left, String *right) {
   
   if(left->specialisation != compoundString) {
     PersistentVector *empty = PersistentVector_create();
-    v = PersistentVector_conj(empty, super(left));
-    release(empty);
+    v = PersistentVector_conj(empty, left);
   } else {
     v = getVec(left);
     retain(v);
+    release(left);
   }
   
   if(right->specialisation != compoundString) {
-    PersistentVector *added = PersistentVector_conj(v, super(right));
-    release(v);
+    PersistentVector *added = PersistentVector_conj(v, right);
     v = added;
   } else {
-    PersistentVector *rvec = getVec(right);;
-    for(int i=0; i< rvec->count; i++) { /* TODO - use transients here */
-      PersistentVector *added = PersistentVector_conj(v, super(PersistentVector_nth(rvec, i)));
-      release(v);
+    PersistentVector *rvec = getVec(right);
+    release(right);
+    for(int i=0; i< rvec->count; i++) { /* TODO - use transients and iterators here */
+      PersistentVector *added = PersistentVector_conj(v, PersistentVector_nth(rvec, i));
       v = added;
     }
   }
@@ -105,11 +111,13 @@ String* String_createCompound(String *left, String *right) {
   return self;
 }
 
- char String_iteratorGetChar(String *self, StringIterator *it) {
+/* outside refcount system */
+char String_iteratorGetChar(String *self, StringIterator *it) {
   return it->block[it->inBlockIndex];
 }
 
- char String_iteratorNext(String *self, StringIterator *it) {
+/* outside refcount system */
+char String_iteratorNext(String *self, StringIterator *it) {
   if(self->count == it->index) return 0;
   if(it->inBlockIndex < it->blockLength - 1) {
     it->index++;
@@ -119,14 +127,15 @@ String* String_createCompound(String *left, String *right) {
   it->inBlockIndex = 0;
   it->index++;
   it->blockIndex++;
-  /* TODO - uzyc iterator vectora */
+  /* TODO - use vector iterator */
   String *child = PersistentVector_nth(getVec(self), it->blockIndex);
   it->blockLength = child->count;
   it->block = getStatDyn(child);
   return it->block[it->inBlockIndex];
 }
 
- StringIterator String_iterator(String *self) {
+/* outside refcount system */
+StringIterator String_iterator(String *self) {
   StringIterator it;
   it.index = 0;
   it.inBlockIndex = 0;
@@ -142,35 +151,39 @@ String* String_createCompound(String *left, String *right) {
   return it;
 }
 
+/* mem done */
 String *String_compactify(String *self) {
   if(self->specialisation != compoundString) { 
-    retain(self);
     return self;
   }
+
   String *out = String_createDynamic(self->count);
   char *output = &(out->value[0]);
   
   PersistentVector *v = getVec(self);
 
-
   int start = 0;
   for(int i=0; i<v->count;i++) {
-    /* TODO - uzyc iterator vectora */
+    /* TODO - use vector iterator */
+    retain(v);
     String *block = PersistentVector_nth(v, i);
     char *blockPtr = getStatDyn(block);
     memcpy(output + start, blockPtr, block->count);
     start += block->count;
+    release(block);
   }
   output[self->count] = 0;
   out->hash = String_computeHash(output);
   return out;
 }
 
+/* outside refcount system */
 char *String_c_str(String *self) {
   assert(self->specialisation != compoundString);
   return getStatDyn(self);
 }
 
+/* outside refcount system */
 BOOL String_equals(String *self, String *other) {
   if(self->count != other->count) return FALSE;
   if(self->specialisation != compoundString && other->specialisation!= compoundString) {
@@ -191,26 +204,23 @@ BOOL String_equals(String *self, String *other) {
   return TRUE;
 }
 
+/* outside refcount system */
 uint64_t String_hash(String *self) {
   return self->hash;
 }
 
+/* mem done */
 String *String_toString(String *self) {
-  retain(self);
   return self;
 }
 
+/* outside refcount system */
 void String_destroy(String *self) {
   if(self->specialisation == compoundString) release(getVec(self));
 }
 
+/* mem done */
 String *String_concat(String *self, String *other) {
   return String_createCompound(self, other);
 }
 
-/* Destroys self, but not other! */
-String *String_append(String *self, String *other) {
-  String *retVal = String_createCompound(self, other);
-  release(self);
-  return retVal;
-}

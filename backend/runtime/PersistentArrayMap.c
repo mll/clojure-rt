@@ -6,12 +6,14 @@
 
 static PersistentArrayMap *EMPTY = NULL;
 
+/* mem done */
 PersistentArrayMap* PersistentArrayMap_empty() {
   if (EMPTY == NULL) EMPTY = PersistentArrayMap_create();
   retain(EMPTY);
   return EMPTY;
 } 
 
+/* mem done */
 PersistentArrayMap* PersistentArrayMap_create() {
   size_t size = sizeof(PersistentArrayMap) + sizeof(Object);
   Object *super = allocate(size); 
@@ -21,6 +23,7 @@ PersistentArrayMap* PersistentArrayMap_create() {
   return self;
 }
 
+/* outside refcount system */
 PersistentArrayMap* PersistentArrayMap_copy(PersistentArrayMap *other) {
   size_t baseSize = sizeof(PersistentArrayMap);
   size_t size = baseSize + sizeof(Object);
@@ -31,6 +34,7 @@ PersistentArrayMap* PersistentArrayMap_copy(PersistentArrayMap *other) {
   return self;
 }
 
+/* mem done */
 PersistentArrayMap* PersistentArrayMap_createMany(uint64_t pairCount, ...) {
   va_list args;
   va_start(args, pairCount);
@@ -43,14 +47,12 @@ PersistentArrayMap* PersistentArrayMap_createMany(uint64_t pairCount, ...) {
     void *v = va_arg(args, void *);
     self->keys[i] = k;
     self->values[i] = v;
-    // TODO new memory management strategy will get rid of this: 
-    retain(k);
-    retain(v);
   }
   va_end(args);
   return self;
 }
 
+/* outside refcount system */
 BOOL PersistentArrayMap_equals(PersistentArrayMap *self, PersistentArrayMap *other) {
   if(self->count != other->count) return FALSE;
   for(int i=0; i< HASHTABLE_THRESHOLD; i++) {
@@ -63,6 +65,7 @@ BOOL PersistentArrayMap_equals(PersistentArrayMap *self, PersistentArrayMap *oth
   return TRUE;
 }
 
+/* outside refcount system */
 uint64_t PersistentArrayMap_hash(PersistentArrayMap *self) {
     uint64_t h = 5381;
     for(int i=0; i<HASHTABLE_THRESHOLD; i++) {
@@ -73,6 +76,7 @@ uint64_t PersistentArrayMap_hash(PersistentArrayMap *self) {
     return h;
 }
 
+/* mem done */
 String *PersistentArrayMap_toString(PersistentArrayMap *self) {
   String *retVal = String_create("{");
   String *space = String_create(" ");
@@ -82,23 +86,25 @@ String *PersistentArrayMap_toString(PersistentArrayMap *self) {
   for(int i=0; i<HASHTABLE_THRESHOLD; i++) {
       void *key = self->keys[i];
       if(key == NULL) continue;
-      if(hasAtLeastOne) retVal = String_append(retVal, space);
+      if(hasAtLeastOne) {
+        retain(space);
+        retVal = String_concat(retVal, space);
+      }
       hasAtLeastOne = TRUE;
-      String *s = toString(key);
-      retVal = String_append(retVal, s);
-      release(s);
-      retVal = String_append(retVal, space);
-      s = toString(self->values[i]);
-      retVal = String_append(retVal, s);
-      release(s);
+      retain(key);
+      retVal = String_concat(retVal, toString(key));
+      retain(space);
+      retVal = String_concat(retVal, space);
+      retain(self->values[i]);
+      retVal = String_concat(retVal, toString(self->values[i]));
   }
 
-  retVal = String_append(retVal, closing); 
+  retVal = String_concat(retVal, closing); 
   release(space);
-  release(closing);
   return retVal;
 }
 
+/* outside refcount system */
 void PersistentArrayMap_destroy(PersistentArrayMap *self, BOOL deallocateChildren) {
   if(deallocateChildren) {
     for(int i=0; i<HASHTABLE_THRESHOLD; i++) {
@@ -112,87 +118,130 @@ void PersistentArrayMap_destroy(PersistentArrayMap *self, BOOL deallocateChildre
   }
 }
 
-void PersistentArrayMap_retainChildren(PersistentArrayMap *self) {
+/* outside refcount system */
+void PersistentArrayMap_retainChildren(PersistentArrayMap *self, int except) {
  for(int i=0; i<HASHTABLE_THRESHOLD; i++) {
     void *foundKey = self->keys[i];
-    if(foundKey) {
+    if(foundKey && except != i) {
       retain(self->keys[i]);
       retain(self->values[i]);
     }
  }
 }
 
+/* mem done */
 PersistentArrayMap* PersistentArrayMap_assoc(PersistentArrayMap *self, void *key, void *value) {
+  retain(self);
+  retain(key);
   int64_t found = PersistentArrayMap_indexOf(self, key);
+  BOOL reusable = isReusable(self);
   if(found == -1) {
     assert(self->count < 8 && "Maps of size > 8 not suppoetrd yet");
     int64_t idx = hash(key) & (HASHTABLE_THRESHOLD - 1);
-    PersistentArrayMap *retVal = PersistentArrayMap_copy(self);
+    PersistentArrayMap *retVal = reusable ? self : PersistentArrayMap_copy(self);
     retVal->count++;
+    int foundPtr = -1;
     for(int i=0; i<HASHTABLE_THRESHOLD; i++) {
       int64_t ptr = (idx + i) & (HASHTABLE_THRESHOLD - 1);
       void *foundKey = retVal->keys[ptr];
       if(!foundKey) {
         retVal->values[ptr] = value;
         retVal->keys[ptr] = key;
+        foundPtr = ptr;
         break;
       }
     }
-    PersistentArrayMap_retainChildren(retVal);
+    if(!reusable) PersistentArrayMap_retainChildren(retVal, foundPtr);
     return retVal;
   }
   
-  PersistentArrayMap *retVal = PersistentArrayMap_copy(self);
+  PersistentArrayMap *retVal = reusable ? self : PersistentArrayMap_copy(self);
+  if(reusable) release(retVal->values[found]);
   retVal->values[found] = value;
-  PersistentArrayMap_retainChildren(retVal);
+  if(!reusable) PersistentArrayMap_retainChildren(retVal, found);
+  release(key);
   return retVal;
 }
 
+/* mem done */
 PersistentArrayMap* PersistentArrayMap_dissoc(PersistentArrayMap *self, void *key) {
+  retain(self);
+  retain(key);
   int64_t found = PersistentArrayMap_indexOf(self, key);
-  if(found == -1) { 
-    retain(self);
+  if(found == -1) {
+    release(key);
     return self;
   }
-
-  PersistentArrayMap *retVal = PersistentArrayMap_copy(self);
+  BOOL reusable = isReusable(self);
+  PersistentArrayMap *retVal = reusable ? self : PersistentArrayMap_copy(self);
+  void *k = retVal->keys[found];
+  void *v = retVal->values[found];
   retVal->keys[found] = NULL;
   retVal->values[found] = NULL;
   retVal->count--;
-  PersistentArrayMap_retainChildren(retVal);
+  if(!reusable) PersistentArrayMap_retainChildren(retVal, -1);
+  else {
+    release(k);
+    release(v);
+  }
+  release(key);
   return retVal;
 }
 
+/* mem done */
 int64_t PersistentArrayMap_indexOf(PersistentArrayMap *self, void *key) {
  int64_t idx = hash(key) & (HASHTABLE_THRESHOLD - 1);
   for(int i=0; i<HASHTABLE_THRESHOLD; i++) {
     int64_t ptr = (idx + i) & (HASHTABLE_THRESHOLD - 1);
     void *foundKey = self->keys[ptr];
-    if(!foundKey) return -1;
-    if(equals(foundKey, key)) return ptr;
+    if(!foundKey) { 
+      release(self);
+      release(key);
+      return -1;
+    }
+    if(equals(foundKey, key)) {
+      release(self);
+      release(key);
+      return ptr;
+    }
   }
+  release(self);
+  release(key);  
   return -1;
 }
 
-
+/* mem done */
 void* PersistentArrayMap_get(PersistentArrayMap *self, void *key) {
   int64_t idx = hash(key) & (HASHTABLE_THRESHOLD - 1);
   for(int i=0; i<HASHTABLE_THRESHOLD; i++) {
     int64_t ptr = (idx + i) & (HASHTABLE_THRESHOLD - 1);
     void *foundKey = self->keys[ptr];
-    if(!foundKey) return Nil_create();
-    if(equals(foundKey, key)) {
+    if(!foundKey) {
+      release(self);
+      release(key);
+      return Nil_create();
+    }
+    if(equals(foundKey, key)) {      
       void *foundValue = self->values[ptr];
       retain(foundValue);
+      release(self);
+      release(key);
       return foundValue;
     }
   }
+  release(self);
+  release(key);      
   return Nil_create();
 }
 
+/* mem done */
 void* PersistentArrayMap_dynamic_get(void *self, void *key) {
   Object *type = super(self);
-  if(type->type != persistentArrayMapType) return Nil_create();
+  if(type->type != persistentArrayMapType) { 
+    release(self);
+    release(key);    
+    return Nil_create();
+  }
   return PersistentArrayMap_get(self, key);
 }
 

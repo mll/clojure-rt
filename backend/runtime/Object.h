@@ -26,7 +26,7 @@
 
 typedef struct String String; 
 
-//#define REFCOUNT_TRACING
+#define REFCOUNT_TRACING
 //#define REFCOUNT_NONATOMIC
 
 struct Object {
@@ -71,7 +71,7 @@ inline Object *super(void * restrict self) {
 
 inline void Object_retain(Object * restrict self) {
 #ifdef REFCOUNT_TRACING
-  atomic_fetch_add_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
+  atomic_fetch_add_explicit(&(allocationCount[self->type-1]), 1, memory_order_relaxed);
 #endif
 #ifdef REFCOUNT_NONATOMIC
   self->refCount++;
@@ -81,6 +81,7 @@ inline void Object_retain(Object * restrict self) {
 }
 
 inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
+  printf("--> Deallocating type %d addres %p\n", self->type, Object_data(self));
   switch((objectType)self->type) {
   case integerType:
     Integer_destroy(Object_data(self));
@@ -125,11 +126,19 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
   deallocate(self);
 }
 
+inline BOOL Object_isReusable(Object *restrict self) {
+  uint64_t refCount = atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
+  return refCount == 1;
+}
+
+inline BOOL isReusable(void *restrict self) {
+  return Object_isReusable(super(self));
+}
 
 inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChildren) {
 #ifdef REFCOUNT_TRACING
-    atomic_fetch_sub_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
-    assert(atomic_load(&(self->refCount)) > 0);
+    atomic_fetch_sub_explicit(&(allocationCount[self->type -1 ]), 1, memory_order_relaxed);
+    assert(atomic_load(&(self->atomicRefCount)) > 0);
 #endif
 #ifdef REFCOUNT_NONATOMIC
   if (--self->refCount == 0) {
@@ -321,8 +330,9 @@ inline void Object_create(Object * restrict self, objectType type) {
 #endif
   self->type = type;
 #ifdef REFCOUNT_TRACING
-  atomic_fetch_add_explicit(&(allocationCount[self->type]), 1, memory_order_relaxed);
+  atomic_fetch_add_explicit(&(allocationCount[self->type-1]), 1, memory_order_relaxed);
 #endif
+  printf("--> Allocating type %d addres %p\n", self->type, Object_data(self));
 }
 
 

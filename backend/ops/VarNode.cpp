@@ -14,6 +14,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, cons
 
   LoadInst * load = Builder->CreateLoad(t, found->second.second, "load_var");
   load->setAtomic(AtomicOrdering::Monotonic);
+  dynamicRetain(load);
 
   return TypedValue(found->second.first.restriction(typeRestrictions), load);
 }

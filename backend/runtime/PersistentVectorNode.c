@@ -46,19 +46,26 @@ void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL dea
 }
 
 
-PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other) {
+PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other, BOOL allowsReuse) {
   uint64_t level_index = (index >> level) & RRB_MASK;
-  PersistentVectorNode *new = PersistentVectorNode_allocate(self->count, self->type);
-  memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(Object *));
+  BOOL reusable = isReusable(self) && allowsReuse;
+  PersistentVectorNode *new = NULL;
+  if(reusable) new = self;
+  else {
+    new = PersistentVectorNode_allocate(self->count, self->type);
+    memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(Object *));
+  }
+
   for(int i=0; i< self->count; i++) {
     if (i == level_index) {
       if (self->type == leafNode) {
+        if(reusable) Object_release(new->array[i]);
         new->array[i] = other;
       } else {
-        new->array[i] = super(PersistentVectorNode_replacePath(Object_data(new->array[i]), level - RRB_BITS, index, other));
+        new->array[i] = super(PersistentVectorNode_replacePath(Object_data(new->array[i]), level - RRB_BITS, index, other, reusable));
       }
     } else {
-      Object_retain(self->array[i]);
+      if(!reusable) Object_retain(self->array[i]);
     }
   }
   return new;

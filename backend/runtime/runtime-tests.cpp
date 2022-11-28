@@ -295,7 +295,7 @@ void testList (bool pauses) {
 }
 
 
-void testVector (bool pauses) {
+void testVector (bool pauses, bool reuse = true) {
   // printf("Total size: %lu %lu\n", sizeof(Object), sizeof(Integer)); 
   // printf("Total size: %lu %lu\n", sizeof(PersistentVector), sizeof(PersistentVectorNode)); 
   PersistentVector *l = PersistentVector_create();
@@ -308,12 +308,19 @@ void testVector (bool pauses) {
   if(pauses) getchar();
   clock_t as = clock();
 
+  PersistentVector **rels = nullptr;
+  if(!reuse) {
+    rels = (PersistentVector ** )malloc(100000000 * sizeof(PersistentVector *));
+  }
+  
   for (int i=0;i<100000000; i++) {
    // PersistentVector_print(l);
    // printf("=======*****************===========");
    // fflush(stdout);
     Integer *n = Integer_create(i);
+    if(!reuse) retain(l);
     PersistentVector *k = PersistentVector_conj(l, n);
+    if(!reuse) release(l);
     l = k;
     // printf("%d\r", i);
     // fflush(stdout);
@@ -360,7 +367,9 @@ void testVector (bool pauses) {
     // printf("=======*****************===========");
     // fflush(stdout);
     Integer *n = Integer_create(7);
+    if(!reuse) retain(l);
     PersistentVector *k = PersistentVector_assoc(l, i, n);
+    if(!reuse) release(l);
     l = k;
 //    printf("%d\r",i);
   }
@@ -375,7 +384,7 @@ void testVector (bool pauses) {
   }
 
   clock_t asd = clock();
-  printf("Assocs sum: %llu\nTime: %f\n", sum, (double)(asd - ass) / CLOCKS_PER_SEC);
+  printf("Assocs + sum: %llu\nTime: %f\n", sum, (double)(asd - ass) / CLOCKS_PER_SEC);
   clock_t ds = clock();
   printf("%llu\n", super(l)->refCount);
   release(l);
@@ -389,9 +398,9 @@ void testVector (bool pauses) {
 int main() {
     initialise_memory();
 //  for(int i=0; i<30; i++) testList(false);
-  //  testList(false);
+//    testList(false);
 ////    ProfilerStart("xx.prof");
-    testVector(false);
+    testVector(false, true);
 //    testMap(false);
  //   ProfilerStop();
 //    getchar();

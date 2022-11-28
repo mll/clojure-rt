@@ -92,10 +92,24 @@ PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint6
   }
   if (index == self->count) return PersistentVector_conj(self, other);
   uint64_t tailOffset = self->count - self->tail->count;
-  PersistentVector *new = PersistentVector_allocate();
-  memcpy(new, self, sizeof(PersistentVector));
-  
+
+  PersistentVector *new = NULL;
+  BOOL reusable = isReusable(self);
+  if(reusable) new = self;
+  else {
+    new = PersistentVector_allocate();
+    /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
+    memcpy(new, self, sizeof(PersistentVector));    
+  }
+
   if (index >= tailOffset) {
+    if(reusable) {
+      Object *old = new->tail->array[index - tailOffset];
+      new->tail->array[index - tailOffset] = super(other);  
+      Object_release(old);
+      return new;
+    }
+    
     if(self->root) retain(self->root); 
     new->tail = PersistentVectorNode_allocate(self->tail->count, leafNode);
     memcpy(new->tail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
@@ -106,10 +120,14 @@ PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint6
   }
 
   /* We are within tree bounds if we reached this place. Node will hold the parent node of our element */
-  retain(self->tail);
-  new->tail = self->tail;
-  new->root = PersistentVectorNode_replacePath(self->root, self->shift, index, super(other));
-  release(self);
+  if(!reusable) {
+    retain(self->tail);
+    new->tail = self->tail;
+  }
+  
+  new->root = PersistentVectorNode_replacePath(self->root, self->shift, index, super(other), reusable);
+  
+  if(!reusable) release(self);
   return new;
 }
 

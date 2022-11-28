@@ -4,7 +4,7 @@
 
 
 PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type) { 
-  Object *super = allocate(sizeof(PersistentVectorNode)+ sizeof(Object) + RRB_BRANCHING * sizeof(PersistentVectorNode *)); 
+  Object *super = allocate(sizeof(PersistentVectorNode)+ sizeof(Object) + count * sizeof(PersistentVectorNode *)); 
   PersistentVectorNode *self = (PersistentVectorNode *)(super + 1);
   self->type = type;
   self->count = count;
@@ -71,16 +71,19 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * re
   return new;
 }
 
-PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied, BOOL allowReuse) {
+PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied) {
   if (self == NULL) { 
     /* Special case, we have no root in the vector */
+    retain(tailToPush);
     *copied = FALSE;
     return tailToPush;
   }
 
   if(self->type == leafNode) {
     /* Special case, just a single leaf node */
-    PersistentVectorNode *new = PersistentVectorNode_allocate(2, internalNode);
+     PersistentVectorNode *new = PersistentVectorNode_allocate(2, internalNode);
+    retain(self);
+    retain(tailToPush);
     new->array[0] = super(self);
     new->array[1] = super(tailToPush);
     *copied = FALSE;
@@ -90,46 +93,27 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
   PersistentVectorNode *entry = level <= RRB_BITS ? NULL : Object_data(self->array[self->count - 1]);
 
   BOOL copiedInSubtree;
-  BOOL reusable = isReusable(self) && allowReuse;
-  if(entry) retain(entry);
-  PersistentVectorNode *subtree = PersistentVectorNode_pushTail(self, entry, tailToPush, level -= RRB_BITS, &copiedInSubtree, reusable);
+  PersistentVectorNode *subtree = PersistentVectorNode_pushTail(self, entry, tailToPush, level -= RRB_BITS, &copiedInSubtree);
   
   if(copiedInSubtree) {
-    if(reusable) {
-      Object_release(self->array[self->count - 1]);
-      self->array[self->count - 1] = super(subtree);
-      *copied = TRUE;
-      return self;
-    }
-    else {
-      PersistentVectorNode *new = PersistentVectorNode_allocate(self->count, internalNode);
-      memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(PersistentVectorNode *));    
-      new->array[new->count - 1] = super(subtree);
-      for (int i=0; i< new->count - 1; i++) Object_retain(new->array[i]);
-      *copied = TRUE;
-      release(self);
-      return new;
-    }
+    PersistentVectorNode *new = PersistentVectorNode_allocate(self->count, internalNode);
+    memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(PersistentVectorNode *));    
+    new->array[new->count - 1] = super(subtree);
+    for (int i=0; i< new->count - 1; i++) Object_retain(new->array[i]);
+    *copied = TRUE;
+    return new;
   }
   
   /* We have created a new node somewhere down there */
 
   if (self->count < RRB_BRANCHING) {
-    if(reusable) {
-      self->array[self->count] = super(subtree);
-      self->count++;
-      *copied = TRUE;
-      return self;      
-    } else {
-      PersistentVectorNode *new = PersistentVectorNode_allocate(self->count + 1, internalNode);
-      memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(PersistentVectorNode *));
-      new->array[self->count] = super(subtree);
-      new->count++;
-      for(int i=0; i < new->count - 1; i++) Object_retain(new->array[i]); 
-      *copied = TRUE;
-      release(self);
-      return new;
-    }    
+    PersistentVectorNode *new = PersistentVectorNode_allocate(self->count + 1, internalNode);
+    memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(PersistentVectorNode *));
+    new->array[self->count] = super(subtree);
+    new->count++;
+    for(int i=0; i < new->count - 1; i++) Object_retain(new->array[i]); 
+    *copied = TRUE;
+    return new;
   }
 
   /* We cannot attach, let us create a new node */
@@ -137,6 +121,7 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
   if(parent == NULL) { 
     /* Root node, we create a new root and merge */
     PersistentVectorNode *new = PersistentVectorNode_allocate(2, internalNode);
+    retain(self);
     new->array[0] = super(self);
     PersistentVectorNode *newDown = PersistentVectorNode_allocate(1, internalNode);
     new->array[1] = super(newDown);
@@ -148,7 +133,6 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
   PersistentVectorNode *new = PersistentVectorNode_allocate(1, internalNode);
   new->array[0] = super(subtree);
   *copied = FALSE;
-  release(self);
   return new;
 } 
 

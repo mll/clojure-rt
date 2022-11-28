@@ -2,7 +2,7 @@
 #include "PersistentVectorNode.h"
 #include "PersistentVector.h"
 
-
+/* mem done */
 PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type) { 
   Object *super = allocate(sizeof(PersistentVectorNode)+ sizeof(Object) + count * sizeof(PersistentVectorNode *)); 
   PersistentVectorNode *self = (PersistentVectorNode *)(super + 1);
@@ -12,18 +12,21 @@ PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType typ
   return self;
 }
 
+/* outside refcount system */
 BOOL PersistentVectorNode_equals(PersistentVectorNode * restrict self, PersistentVectorNode * restrict other) {
   if (self->count != other->count) return FALSE;
   for(int i=0; i < self->count; i++) if (!Object_equals(self->array[i], other->array[i])) return FALSE;
   return TRUE;
 }
 
+/* outside refcount system */
 uint64_t PersistentVectorNode_hash(PersistentVectorNode * restrict self) {
   uint64_t h = 5381;  
   for(int i=0; i< self->count; i++) h = combineHash(h, Object_hash(self->array[i])); 
   return h;
 }
 
+/* mem done */
 String *PersistentVectorNode_toString(PersistentVectorNode * restrict self) {
   String *retVal = String_create("");
   String *space = String_create(" ");
@@ -38,14 +41,16 @@ String *PersistentVectorNode_toString(PersistentVectorNode * restrict self) {
     }
   } 
   release(space);
+  release(self);
   return retVal;
 }
 
+/* outside refcount system */
 void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL deallocateChildren) {
   for(int i=0; i<self->count; i++) Object_release(self->array[i]);
 }
 
-
+/* mem done */
 PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other, BOOL allowsReuse) {
   uint64_t level_index = (index >> level) & RRB_MASK;
   BOOL reusable = isReusable(self) && allowsReuse;
@@ -71,6 +76,7 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * re
   return new;
 }
 
+/* outside refcount system */
 PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied) {
   if (self == NULL) { 
     /* Special case, we have no root in the vector */

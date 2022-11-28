@@ -78,6 +78,7 @@ String* String_createStaticOptimised(char *string, uint64_t len, uint64_t hash) 
   return self;
 }
 
+/* mem done */
 String* String_createCompound(String *left, String *right) {
   Object *sup = allocate(sizeof(String) + sizeof(Object) + sizeof(PersistentVector *)); 
   String *self = (String *)(sup + 1);

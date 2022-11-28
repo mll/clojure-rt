@@ -13,7 +13,7 @@ Runtime:
 
 v String
 v PersistentList
-v PersistentVector
+v PersistentVector (we do not reuse nodes as this seems to be slower than just reusing tails)
 v Integer
 v Double
 v Boolean   

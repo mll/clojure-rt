@@ -133,14 +133,26 @@ void PersistentVector_print(PersistentVector * restrict self) {
 
 
 PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void * restrict other) {
-  PersistentVector *new = PersistentVector_allocate();
-  /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
-  memcpy(new, self, sizeof(PersistentVector));
-  new->count++;
+  PersistentVector *new = NULL;
 
   if (self->tail->count < RRB_BRANCHING) {
+    BOOL reusable = isReusable(self);
+    if(reusable) new = self;
+    else {
+      new = PersistentVector_allocate();
+      /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
+      memcpy(new, self, sizeof(PersistentVector));    
+    }
+    
+    new->count++;
+
+    if(reusable) {
+      new->tail->array[self->tail->count] = super(other);
+      new->tail->count++;    
+      return new;
+    }
     if(self->root) retain(self->root); 
-    new->tail = PersistentVectorNode_allocate(self->tail->count + 1, leafNode);
+    new->tail = PersistentVectorNode_allocate(RRB_BRANCHING, leafNode);
     memcpy(new->tail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
     new->tail->array[self->tail->count] = super(other);
     new->tail->count++;
@@ -148,10 +160,17 @@ PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void *
     release(self);
     return new;
   }
+
   /* The tail was full if we reached this place */
   
-  new->tail = PersistentVectorNode_allocate(1, leafNode);
+  new = PersistentVector_allocate();
+  /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
+  memcpy(new, self, sizeof(PersistentVector));    
+
+  new->count++;
+  new->tail = PersistentVectorNode_allocate(RRB_BRANCHING, leafNode);
   new->tail->array[0] = super(other);
+  new->tail->count = 1;
   
   BOOL copied;
   new->root = PersistentVectorNode_pushTail(NULL, self->root,  self->tail, self->shift, &copied); 

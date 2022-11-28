@@ -53,7 +53,6 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * re
   for(int i=0; i< self->count; i++) {
     if (i == level_index) {
       if (self->type == leafNode) {
-        Object_retain(other);
         new->array[i] = other;
       } else {
         new->array[i] = super(PersistentVectorNode_replacePath(Object_data(new->array[i]), level - RRB_BITS, index, other));

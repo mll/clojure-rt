@@ -100,7 +100,7 @@ PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint6
     new->tail = PersistentVectorNode_allocate(self->tail->count, leafNode);
     memcpy(new->tail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
     new->tail->array[index - tailOffset] = super(other);  
-    for(int i=0; i < new->tail->count; i++) if(i != index - tailOffset) Object_retain(self->tail->array[i]);
+    for(int i=0; i < new->tail->count; i++) if(i != (index - tailOffset)) Object_retain(self->tail->array[i]);
     release(self);
     return new;
   }
@@ -108,10 +108,8 @@ PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint6
   /* We are within tree bounds if we reached this place. Node will hold the parent node of our element */
   retain(self->tail);
   new->tail = self->tail;
-  retain(self->root);
   new->root = PersistentVectorNode_replacePath(self->root, self->shift, index, super(other));
   release(self);
-  release(other);
   return new;
 }
 

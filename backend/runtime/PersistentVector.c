@@ -200,12 +200,13 @@ PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void *
   new->tail->count = 1;
   
   BOOL copied;
-  /* push tail does not reuse as this has proven itself to be performing worse than with reusal */
-  new->root = PersistentVectorNode_pushTail(NULL, oldRoot, oldTail, self->shift, &copied); 
-  if(reusable) {
-    release(oldTail);
-    if(oldRoot) release(oldRoot);
+
+  if(!reusable) {
+    retain(oldTail);
+    if(oldRoot) retain(oldRoot);
   }
+  
+  new->root = PersistentVectorNode_pushTail(NULL, oldRoot, oldTail, self->shift, &copied, reusable); 
   
   if(!copied && oldRoot) { 
     new->shift += RRB_BITS;

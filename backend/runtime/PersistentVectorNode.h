@@ -18,6 +18,6 @@ uint64_t PersistentVectorNode_hash(PersistentVectorNode * restrict self);
 String *PersistentVectorNode_toString(PersistentVectorNode * restrict self);
 void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL deallocateChildren);
 
-PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied);
+PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied, BOOL allowsReuse);
 PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other, BOOL allowsReuse);
 #endif

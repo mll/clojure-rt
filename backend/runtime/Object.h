@@ -26,7 +26,7 @@
 
 typedef struct String String; 
 
-#define REFCOUNT_TRACING
+//#define REFCOUNT_TRACING
 //#define REFCOUNT_NONATOMIC
 
 struct Object {
@@ -81,7 +81,7 @@ inline void Object_retain(Object * restrict self) {
 }
 
 inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
-  printf("--> Deallocating type %d addres %p\n", self->type, Object_data(self));
+//  printf("--> Deallocating type %d addres %p\n", self->type, Object_data(self));
   switch((objectType)self->type) {
   case integerType:
     Integer_destroy(Object_data(self));
@@ -332,7 +332,7 @@ inline void Object_create(Object * restrict self, objectType type) {
 #ifdef REFCOUNT_TRACING
   atomic_fetch_add_explicit(&(allocationCount[self->type-1]), 1, memory_order_relaxed);
 #endif
-  printf("--> Allocating type %d addres %p\n", self->type, Object_data(self));
+//  printf("--> Allocating type %d addres %p\n", self->type, Object_data(self));
 }
 
 

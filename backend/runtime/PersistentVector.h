@@ -3,7 +3,7 @@
 
 #include "String.h"
 
-#define RRB_BITS 2
+#define RRB_BITS 5
 #define RRB_MAX_HEIGHT 7
 
 #define RRB_BRANCHING (1 << RRB_BITS)

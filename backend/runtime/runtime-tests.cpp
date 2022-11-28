@@ -308,20 +308,21 @@ void testVector (bool pauses) {
   if(pauses) getchar();
   clock_t as = clock();
 
-  for (int i=0;i<63; i++) {
+  for (int i=0;i<100000000; i++) {
    // PersistentVector_print(l);
    // printf("=======*****************===========");
    // fflush(stdout);
     Integer *n = Integer_create(i);
-    retain(l);
     PersistentVector *k = PersistentVector_conj(l, n);
     l = k;
-    PersistentVector_print(l);
+    // printf("%d\r", i);
+    // fflush(stdout);
+//    PersistentVector_print(l);
   }
   pd();
   clock_t ap = clock();
   printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, super(l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
-   
+
   if (pauses) getchar();
   clock_t os = clock();
   
@@ -354,7 +355,7 @@ void testVector (bool pauses) {
   printf("Sum2: %llu\nTime: %f\n", sum2, (double)(opp - oss) / CLOCKS_PER_SEC);
 
   clock_t ass = clock();
-  for (int i=0;i<10000000; i++) {
+  for (int i=0;i<100000000; i++) {
     // PersistentVector_print(l);
     // printf("=======*****************===========");
     // fflush(stdout);

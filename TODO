@@ -13,39 +13,42 @@ Runtime:
 
 v String
 v PersistentList
-v PersistentVector (we do not reuse nodes as this seems to be slower than just reusing tails)
+v PersistentVector 
 v Integer
 v Double
 v Boolean   
 v nil 
 v Symbol 
 v Keyword 
-v ConcurrentHashMap (TODO resizing, TODO new memory model (now it crashes)) 
+v ConcurrentHashMap  
+* ConcurrentHashMap resizing
+* ConcurrentHashMap new memory model (now it crashes)
 v Var (TODO wartosc zwracana)
 v Function (generic) 
 v FunctionMethod (generic)
 v Keyword uniquing
+v PersistentArrayMap 
 
 * Iteratory (vector, string, map, list)
 * Symbol uniquing 
 * Character
 * Ratio
 * BigInteger
-v PersistentArrayMap 
+
 * PersistentHashMap
 * PersistentSet
 
-* HUGE Memory management ref counting for runtime data structures
-  * Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
-  * Improve the strategy with manually combining retains with releases
-  * Improve the strategy with reuse 
+v HUGE Memory management ref counting for runtime data structures
+  v Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
+  v Improve the strategy with manually combining retains with releases
+  v Improve the strategy with reuse 
 
 
 * Implement all java methods for runtime functions (horrible)
 
 Compiler:
 
-* JIT infrastructure + arg type deduction
+v JIT infrastructure + arg type deduction
 
 * Const 
   v Integer
@@ -75,10 +78,12 @@ v Fn
 v FnMethod
 * Let <-- 
 v Invoke statyczne (z dynamicznymi argumentami) 
-v Invoke dynamiczne 
+v Invoke dynamiczne
+* Invoke dynamiczne rekurencyjne przyspieszone <-- (jit recurrence before casting return value to LO, have a stub function to do that)
 * Invoke lambda 
 * Invoke lambda once
-* Invoke variadic <--
+* Invoke variadic with Vector <--
+* Invoke variadic with Seq 
 v Recur (for Fn)
 
 * Loop (+ recur for loop)

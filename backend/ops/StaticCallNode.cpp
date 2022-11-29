@@ -28,7 +28,7 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
     TypedValue retValForPath = callIt->second.second(gen, name + " " + requiredTypes, node, realArgs);
 
     // TODO - memory management
-    if(retValForPath.first.isScalar() && false) {
+    if(retValForPath.first.isScalar()) {
       /* Memory optimisation reuse, as per Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. */
       Value *potentiallyReusingVar = nullptr;
       for(int i=0; i<args.size(); i++) {

@@ -20,12 +20,13 @@ v Boolean
 v nil 
 v Symbol 
 v Keyword 
-v ConcurrentHashMap (TODO resizing) 
+v ConcurrentHashMap (TODO resizing, TODO new memory model (now it crashes)) 
 v Var (TODO wartosc zwracana)
 v Function (generic) 
 v FunctionMethod (generic)
 v Keyword uniquing
 
+* Iteratory (vector, string, map, list)
 * Symbol uniquing 
 * Character
 * Ratio

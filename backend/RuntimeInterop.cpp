@@ -424,7 +424,7 @@ PointerType *CodeGenerator::dynamicBoxedType() {
 }
 
 Type *CodeGenerator::dynamicType(const ObjectTypeSet &type) {
-  if (type.isDetermined()) return dynamicUnboxedType(type.determinedType());
+  if (type.isDetermined() && !type.isBoxed) return dynamicUnboxedType(type.determinedType());
   return dynamicBoxedType();
 }
 

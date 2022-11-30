@@ -81,10 +81,10 @@ v Binding (dziala dla funkcji)
 v Fn
 v FnMethod
 * Let <- 
-v Invoke statyczne (z dynamicznymi argumentami) <- 
+v Invoke static (with dynamic args) 
 * Invoke static with :static in metadata
 v Invoke dynamiczne
-* Invoke dynamiczne rekurencyjne przyspieszone <- (jit recurrence before casting return value to LO, have a stub function to do that)
+* Invoke dynamic recurrent speedup <- (jit recurrence before casting return value to LO, have a stub function to do that)
 * Invoke lambda 
 * Invoke lambda once
 * Invoke variadic with Vector <-

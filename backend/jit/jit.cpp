@@ -128,7 +128,7 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     for (auto &F : M) {
       TheFPM->run(F);
     }
-//  M.print(errs(), nullptr);
+  M.print(errs(), nullptr);
   });
   
   return std::move(TSM);

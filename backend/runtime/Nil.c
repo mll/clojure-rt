@@ -25,7 +25,7 @@ void Nil_initialise() {
 
 /* outside refcount system */
 BOOL Nil_equals(Nil *self, Nil *other) {
-  return TRUE;
+  return FALSE;
 }
 
 /* outside refcount system */

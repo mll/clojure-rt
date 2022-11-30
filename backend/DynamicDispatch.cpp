@@ -5,6 +5,11 @@
 using namespace std;
 using namespace llvm;
 
+extern "C" {
+  #include "runtime/Keyword.h"
+}
+
+
 TypedValue CodeGenerator::callStaticFun(const Node &node, const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args, const string &refName) {
   vector<Type *> argTypes;
   vector<Value *> argVals;

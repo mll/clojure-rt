@@ -45,8 +45,7 @@ PersistentArrayMap* PersistentArrayMap_createMany(uint64_t pairCount, ...) {
   for(int i=0; i<pairCount; i++) {
     void *k = va_arg(args, void *);
     void *v = va_arg(args, void *);
-    self->keys[i] = k;
-    self->values[i] = v;
+    self = PersistentArrayMap_assoc(self, k, v);
   }
   va_end(args);
   return self;
@@ -92,13 +91,15 @@ String *PersistentArrayMap_toString(PersistentArrayMap *self) {
       }
       hasAtLeastOne = TRUE;
       retain(key);
-      retVal = String_concat(retVal, toString(key));
+      String *ks = toString(key);
+      retVal = String_concat(retVal, ks);
       retain(space);
       retVal = String_concat(retVal, space);
       retain(self->values[i]);
-      retVal = String_concat(retVal, toString(self->values[i]));
+      String *vs = toString(self->values[i]);
+      retVal = String_concat(retVal, vs);
   }
-
+  
   retVal = String_concat(retVal, closing); 
   release(space);
   return retVal;
@@ -136,7 +137,7 @@ PersistentArrayMap* PersistentArrayMap_assoc(PersistentArrayMap *self, void *key
   int64_t found = PersistentArrayMap_indexOf(self, key);
   BOOL reusable = isReusable(self);
   if(found == -1) {
-    assert(self->count < 8 && "Maps of size > 8 not suppoetrd yet");
+    assert(self->count < 8 && "Maps of size > 8 not supported yet");
     int64_t idx = hash(key) & (HASHTABLE_THRESHOLD - 1);
     PersistentArrayMap *retVal = reusable ? self : PersistentArrayMap_copy(self);
     retVal->count++;
@@ -216,7 +217,7 @@ void* PersistentArrayMap_get(PersistentArrayMap *self, void *key) {
   for(int i=0; i<HASHTABLE_THRESHOLD; i++) {
     int64_t ptr = (idx + i) & (HASHTABLE_THRESHOLD - 1);
     void *foundKey = self->keys[ptr];
-    if(!foundKey) {
+    if(!foundKey) {      
       release(self);
       release(key);
       return Nil_create();

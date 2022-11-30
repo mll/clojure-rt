@@ -17,28 +17,30 @@ Keyword* Keyword_allocate(String *string) {
 
 /* mem done */
 Keyword* Keyword_create(String *string) {
-  /* TODO ConcurrentHashMap mem */
-  retain(keywords);
   retain(string);
-  Object *retVal = ConcurrentHashMap_get(keywords, super(string));
+  void *retVal = ConcurrentHashMap_get(keywords, string);
 
-  if(Object_data(retVal) == UNIQUE_NIL) { /* interning */
-    Object_release(retVal);
+  if(retVal == UNIQUE_NIL) { /* interning */
+    release(retVal);
     retain(string);
     Keyword *new = Keyword_allocate(string);
-    retain(keywords);
-    ConcurrentHashMap_assoc(keywords, super(string), super(new));
-    /* TODO mem */
-    release(new); /* Hash map should not be an owner of the keyword, so we reverse its retain */
+    /* TODO - what if another thread has interned first? */
+    ConcurrentHashMap_assoc(keywords, string, new);
+    retain(new);
+//    printf("Keyword: %llu %llu\n", (uint64_t)new, super(new)->atomicRefCount);
+    fflush(stdout);
     return new;
   }
-  return Object_data(retVal);
+  release(string);
+//  printf("Keyword: %llu %llu\n", (uint64_t)retVal, super(retVal)->atomicRefCount);
+  fflush(stdout);
+  return retVal;
 }
 
 /* outside refcount system */
 BOOL Keyword_equals(Keyword *self, Keyword *other) {
-  /* because we are uniquing / interning */
-  return self == other;
+  /* What if another thread interns? */
+  return FALSE; //equals(self->string, other->string);
 }
 
 /* outside refcount system */
@@ -57,7 +59,8 @@ String *Keyword_toString(Keyword *self) {
 
 /* outside refcount system */
 void Keyword_destroy(Keyword *self) {
-  ConcurrentHashMap_dissoc(keywords, super(self->string));
+//  printf("DESTROY!!!!!!! %llu\n", (uint64_t) self);
+  fflush(stdout);
   release(self->string);
 }
 

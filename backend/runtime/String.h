@@ -39,6 +39,7 @@ struct StringIterator {
 
 typedef struct StringIterator StringIterator; 
 
+String* String_createDynamicStr(char *str);
 String* String_createStaticOptimised(char *string, uint64_t len, uint64_t hash);
 String* String_create(char *string);
 String* String_createDynamic(size_t size);

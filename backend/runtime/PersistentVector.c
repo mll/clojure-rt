@@ -30,7 +30,7 @@ PersistentVector* PersistentVector_createMany(uint64_t objCount, ...) {
   va_start(args, objCount);
   uint64_t initialCount = MIN(objCount, RRB_BRANCHING);
   PersistentVector *v = PersistentVector_allocate();
-  v->tail = PersistentVectorNode_allocate(RRB_BRANCHING, leafNode);
+  v->tail = PersistentVectorNode_allocate(initialCount, leafNode);
   for(int i=0; i<initialCount; i++) {
     void *obj = va_arg(args, void *);
     v->tail->array[i] = super(obj);
@@ -181,7 +181,7 @@ PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void *
       return new;
     }
     if(self->root) retain(self->root); 
-    new->tail = PersistentVectorNode_allocate(RRB_BRANCHING, leafNode);
+    new->tail = PersistentVectorNode_allocate(self->tail->count + 1, leafNode);
     memcpy(new->tail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
     new->tail->array[self->tail->count] = super(other);
     new->tail->count++;
@@ -195,9 +195,8 @@ PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void *
   PersistentVectorNode *oldTail = self->tail;
   PersistentVectorNode *oldRoot = self->root;
   new->count++;
-  new->tail = PersistentVectorNode_allocate(RRB_BRANCHING, leafNode);
+  new->tail = PersistentVectorNode_allocate(1, leafNode);
   new->tail->array[0] = super(other);
-  new->tail->count = 1;
   
   BOOL copied;
 

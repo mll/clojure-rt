@@ -13,17 +13,10 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <assert.h>
+
 extern "C" {
   typedef struct PersistentVectorNode PersistentVectorNode;
-  enum objectType {
-    integerType,
-    stringType,
-    persistentListType,
-    persistentVectorType,
-    persistentVectorNodeType
-  };
-  
-  typedef enum objectType objectType;
+  #include "defines.h"
   
   typedef struct Object {
     objectType type;
@@ -143,7 +136,6 @@ void *startThread(void *param) {
   for(int i=p->start; i<p->stop; i++) {
     Integer *n = Integer_create(i);
     retain(n);
-    retain(l);
     ConcurrentHashMap_assoc(l, n, n);
   }
  
@@ -188,14 +180,12 @@ void testMap (bool pauses) {
   for(int i=0; i< 100000000; i++) {
     k->value = i;
     retain(k);
-    retain(l);
     void *o = ConcurrentHashMap_get(l, k);
     assert(o);
     if(super(o)->type != integerType) {
       retain(k);
       printf("Unknown type %d for entry %s\n", super(o)->type, String_c_str(toString(k)));
       retain(k);
-      retain(l);
       o = ConcurrentHashMap_get(l, k);
       retain(k);
       printf("Unknown type %d for entry %s\n", super(o)->type, String_c_str(toString(k)));
@@ -210,12 +200,14 @@ void testMap (bool pauses) {
     sum += res->value;
     release(res);
   }
-  assert(sum == 4999999950000000ULL && "Wrong result");
+  
+  
   release(k);
   gettimeofday(&sp, NULL);
-
+//  retain(l);
+//  printf("Contents: %s \n", String_c_str(String_compactify(toString(l))));
   printf("Sum: %llu, Time: %f\n", sum, (sp.tv_sec - ss.tv_sec) + (sp.tv_usec - ss.tv_usec)/1000000.0);
-
+  assert(sum == 4999999950000000ULL && "Wrong result");
 
   clock_t ds = clock();
   release(l);
@@ -401,8 +393,8 @@ int main() {
   //  for(int i=0; i<30; i++) testList(false);
   //    testList(false);
   ////    ProfilerStart("xx.prof");
-  testVector(false, true);
-  //    testMap(false);
+//  testVector(false, true);
+      testMap(false);
   //   ProfilerStop();
   //    getchar();
 }

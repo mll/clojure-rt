@@ -66,6 +66,19 @@ String* String_createDynamic(size_t size) {
   return self;
 }
 
+String* String_createDynamicStr(char *str) {
+  size_t len = strlen(str);
+  Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char) * (len + 1)); 
+  String *self = (String *)(super + 1);
+  self->count = len;
+  self->specialisation = dynamicString;
+  self->hash = String_computeHash(str);
+  strcpy(getDyn(self), str);
+  Object_create(super, stringType);
+  return self;
+}
+
+
 /* mem done */
 String* String_createStaticOptimised(char *string, uint64_t len, uint64_t hash) {
   Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char *)); 
@@ -101,11 +114,11 @@ String* String_createCompound(String *left, String *right) {
     v = added;
   } else {
     PersistentVector *rvec = getVec(right);
-    release(right);
     for(int i=0; i< rvec->count; i++) { /* TODO - use transients and iterators here */
-      PersistentVector *added = PersistentVector_conj(v, PersistentVector_nth(rvec, i));
-      v = added;
+      retain(rvec);
+      v = PersistentVector_conj(v, PersistentVector_nth(rvec, i));
     }
+    release(right);
   }
   *((PersistentVector **)&(self->value[0])) = v;
   Object_create(sup, stringType);

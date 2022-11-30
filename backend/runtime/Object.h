@@ -26,7 +26,7 @@
 
 typedef struct String String; 
 
-#define REFCOUNT_TRACING
+//#define REFCOUNT_TRACING
 //#define REFCOUNT_NONATOMIC
 
 struct Object {
@@ -49,6 +49,7 @@ inline void *allocate(size_t size) {
   /* if (size <= 64) return poolMalloc(&globalPool3);    */
   /* if (size <= 128) return poolMalloc(&globalPool2);  */
   /* if (size > 64 && size <= BLOCK_SIZE) return poolMalloc(&globalPool1);    */
+  assert(size > 0 && "Size = 0");
   void * retVal = malloc(size);  
   assert(retVal && "Could not aloocate that much! ");
   return retVal;
@@ -143,7 +144,9 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
 #ifdef REFCOUNT_NONATOMIC
   if (--self->refCount == 0) {
 #else
-  if (atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_relaxed) == 1) {
+  uint64_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_relaxed);  
+  assert(relVal >= 1 && "Memory corruption!");
+  if (relVal == 1) {
 #endif
     Object_destroy(self, deallocateChildren);
     return TRUE;

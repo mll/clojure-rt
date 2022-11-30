@@ -74,11 +74,10 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
       }
     }
 
-    // TODO - memory management
-    // for(int i=0; i<args.size(); i++) {
-    //   const TypedValue &arg = args[i];
-    //   if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
-    // }
+    for(int i=0; i<args.size(); i++) {
+       const TypedValue &arg = args[i];
+       if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
+    }
     gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);     
     gen->Builder->CreateBr(mergeBlock);
     return;
@@ -92,7 +91,7 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
   if(arg.first.isDetermined() && !arg.first.isBoxed) {
     computedType = ConstantInt::get(*(gen->TheContext), APInt(32, arg.first.determinedType(), false));
   } else computedType = gen->getRuntimeObjectType(arg.second);
-  
+
   SwitchInst *swInst = gen->Builder->CreateSwitch(computedType, failBlock, conds.size());
   vector<pair<BasicBlock *, ObjectTypeSet>> successes;
   assert(conds.size() > 0);
@@ -203,7 +202,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     Value *v = Builder->CreateLoad(dynamicBoxedType(), retVal);
     return TypedValue(ObjectTypeSet::dynamicType(), v);
   }
- 
+  cout << "Whassup2" <<endl; 
   throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node);
 }
 
@@ -247,7 +246,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
   }
 
   if(dynamic && foundArity) return ObjectTypeSet::dynamicType();
-
+  cout << "Whassup" <<endl;
   throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node);
   return ObjectTypeSet();
 }

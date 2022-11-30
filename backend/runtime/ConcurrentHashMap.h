@@ -8,8 +8,8 @@
 typedef struct Object Object;
 
 typedef struct ConcurrentHashMapEntry {
-  void * _Atomic key;
-  void * _Atomic value;
+  Object * _Atomic key;
+  Object * _Atomic value;
   _Atomic uint64_t keyHash;
   _Atomic unsigned short leaps;
 } ConcurrentHashMapEntry;

@@ -22,14 +22,15 @@ v Symbol
 v Keyword 
 v ConcurrentHashMap  
 * ConcurrentHashMap resizing
-* ConcurrentHashMap new memory model (now it crashes) <--
-v Var (TODO wartosc zwracana)
+v ConcurrentHashMap new memory model (now it crashes) 
+v Var 
+* Var return type and value 
 v Function (generic) 
 v FunctionMethod (generic)
 v Keyword uniquing
 v PersistentArrayMap 
 
-* Iteratory (vector, string, map, list)
+* Iterators (vector, string, map, list)
 * Symbol uniquing 
 * Character
 * Ratio
@@ -38,13 +39,16 @@ v PersistentArrayMap
 * PersistentHashMap
 * PersistentSet
 
+* Merge Object into all objects, trivialise super and Object_data
+
 v HUGE Memory management ref counting for runtime data structures
   v Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
   v Improve the strategy with manually combining retains with releases
   v Improve the strategy with reuse 
 
+* HUGE Implement all java methods for runtime functions 
+   * ...
 
-* Implement all java methods for runtime functions (horrible)
 
 Compiler:
 

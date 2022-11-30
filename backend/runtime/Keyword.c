@@ -59,8 +59,7 @@ String *Keyword_toString(Keyword *self) {
 
 /* outside refcount system */
 void Keyword_destroy(Keyword *self) {
-//  printf("DESTROY!!!!!!! %llu\n", (uint64_t) self);
-  fflush(stdout);
+  /* In practice this will never happen for keywords allocated within the compiler, because each time a keyword is used, it is retained. */
   release(self->string);
 }
 

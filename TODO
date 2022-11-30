@@ -22,14 +22,16 @@ v Symbol
 v Keyword 
 v ConcurrentHashMap  
 * ConcurrentHashMap resizing
-v ConcurrentHashMap new memory model (now it crashes) 
+* ConcurrentHashMap new memory model (now it crashes) <------
 v Var 
-* Var return type and value 
 v Function (generic) 
 v FunctionMethod (generic)
 v Keyword uniquing
 v PersistentArrayMap 
 
+* Merge Object into all objects, trivialise super and Object_data <--
+* Var return type and value 
+* Optimise hash computations (caching for all collections, conj/disj should just modify it a bit (use a commutative operator, e.g. +)
 * Iterators (vector, string, map, list)
 * Symbol uniquing 
 * Character
@@ -39,7 +41,7 @@ v PersistentArrayMap
 * PersistentHashMap
 * PersistentSet
 
-* Merge Object into all objects, trivialise super and Object_data
+
 
 v HUGE Memory management ref counting for runtime data structures
   v Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
@@ -65,12 +67,14 @@ v JIT infrastructure + arg type deduction
   * Keyword uniquing
   * Symbol uniquing 
 
-  * Map
+  v Map (PersistentArrayMap)
+  * Map (PersistentHashMap)
   v Vector
   v List
   * Ratio
   * BigInteger
 
+v Add pd() at start and end of each anonymous computation.
 v StaticCall (works for simple math, framework prepared to add more functionality)
 v StaticCall with dynamic args 
 v WithMeta (for now just ignores meta)
@@ -100,10 +104,12 @@ v Vector
   * Try
   * Throw
   * ... 
+
 * HUGE Memory management ref counting (let us start with string)
   * Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
   * Improve the strategy with combining retains with releases
   * Improve the strategy with reuse (already manually implemented in StaticCall)
+
 * HUGE Class/Object system 
   * Deftype
   * HostInterop

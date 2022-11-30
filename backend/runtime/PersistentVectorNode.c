@@ -5,7 +5,7 @@
 /* mem done */
 PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type) { 
   size_t allocs = type == leafNode ? RRB_BRANCHING : count;
-  Object *super = allocate(sizeof(PersistentVectorNode)+ sizeof(Object) + count * sizeof(PersistentVectorNode *)); 
+  Object *super = allocate(sizeof(PersistentVectorNode)+ sizeof(Object) + allocs * sizeof(PersistentVectorNode *)); 
   
   PersistentVectorNode *self = (PersistentVectorNode *)(super + 1);
   self->type = type;

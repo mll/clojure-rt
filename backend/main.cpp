@@ -43,6 +43,8 @@ extern "C" {
   String *String_compactify(String *self);
   char *String_c_str(String *self);
   void initialise_memory();
+  void printReferenceCounts();
+  void release(void *self);
 }
 
 
@@ -100,14 +102,18 @@ int main(int argc, char *argv[]) {
       
       auto ExprSymbol = ExitOnErr(TheJIT->lookup(fname));
       void * (*FP)() = (void * (*)())(intptr_t)ExprSymbol.getAddress();
-      
+
+      printReferenceCounts();
+      printf("Computing: %s\n", topLevel.form().c_str());      
       gettimeofday(&as, NULL);      
       void * result = FP();
       gettimeofday(&ap, NULL);
-      
-      char *text = String_c_str(String_compactify(toString(result)));
-      printf("Computing: %s\n", topLevel.form().c_str());
+      printf("Printing...\n");      
+      String *s = String_compactify(toString(result));
+      char *text = String_c_str(s);
       printf("Result: %s\n", text);
+      release(s);
+      printReferenceCounts();
       printf("Time: %f\n-------------------\n", (ap.tv_sec - as.tv_sec) + (ap.tv_usec - as.tv_usec)/1000000.0);        
     }
 

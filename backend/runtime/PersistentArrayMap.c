@@ -102,6 +102,7 @@ String *PersistentArrayMap_toString(PersistentArrayMap *self) {
   
   retVal = String_concat(retVal, closing); 
   release(space);
+  release(self);
   return retVal;
 }
 

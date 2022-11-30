@@ -4,6 +4,7 @@
 
 void Interface_initialise();
 
+
 inline BOOL logicalValue(void * restrict self) {
   Object *o = super(self);
   objectType type = o->type;
@@ -61,6 +62,8 @@ inline BOOL unboxedEqualsBoolean(void *left, BOOL right) {
   Boolean *i = (Boolean *) left;
   return i->value == right;
 }
+
+void printReferenceCounts();
 
 #endif
 

@@ -15,7 +15,9 @@ uint64_t String_computeHash(char *str) {
 
 /* outside refcount system */
 PersistentVector *getVec(String *s) {
-  return *((PersistentVector **) &(s->value[0]));
+  PersistentVector *vec = *((PersistentVector **) &(s->value[0]));
+  assert(super(vec)->type == persistentVectorType && "Wrong type");
+  return vec;
 }
 
 /* outside refcount system */
@@ -99,22 +101,23 @@ String* String_createCompound(String *left, String *right) {
   self->specialisation = compoundString;
   self->hash = left->hash + right->hash - String_computeHash("");
   PersistentVector *v = NULL;
-  
+
   if(left->specialisation != compoundString) {
     PersistentVector *empty = PersistentVector_create();
     v = PersistentVector_conj(empty, left);
   } else {
     v = getVec(left);
+    assert(super(getVec(left))->type == persistentVectorType && "Wrong type");
     retain(v);
     release(left);
   }
   
   if(right->specialisation != compoundString) {
-    PersistentVector *added = PersistentVector_conj(v, right);
-    v = added;
+    v = PersistentVector_conj(v, right);
   } else {
+    assert(super(getVec(right))->type == persistentVectorType && "Wrong type");
     PersistentVector *rvec = getVec(right);
-    for(int i=0; i< rvec->count; i++) { /* TODO - use transients and iterators here */
+    for(int i=0; i< rvec->count; i++) { /* TODO - use iterators instead of nth here */
       retain(rvec);
       v = PersistentVector_conj(v, PersistentVector_nth(rvec, i));
     }
@@ -122,6 +125,7 @@ String* String_createCompound(String *left, String *right) {
   }
   *((PersistentVector **)&(self->value[0])) = v;
   Object_create(sup, stringType);
+  assert(super(getVec(self))->type == persistentVectorType && "Wrong type");
   return self;
 }
 

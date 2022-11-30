@@ -26,8 +26,11 @@
 
 typedef struct String String; 
 
-//#define REFCOUNT_TRACING
+#define REFCOUNT_TRACING
 //#define REFCOUNT_NONATOMIC
+
+
+void printReferenceCounts();
 
 struct Object {
   objectType type;
@@ -40,7 +43,7 @@ struct Object {
 
 typedef struct Object Object; 
 
-extern _Atomic uint64_t allocationCount[10]; 
+extern _Atomic uint64_t allocationCount[14]; 
 
 void initialise_memory();
 
@@ -82,7 +85,8 @@ inline void Object_retain(Object * restrict self) {
 }
 
 inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
-//  printf("--> Deallocating type %d addres %p\n", self->type, Object_data(self));
+  printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t)Object_data(self));
+  printReferenceCounts();
   switch((objectType)self->type) {
   case integerType:
     Integer_destroy(Object_data(self));
@@ -125,6 +129,9 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
     break;
   }
   deallocate(self);
+  printf("dealloc end %lld\n", (uint64_t)Object_data(self));
+  printReferenceCounts();
+  printf("=========================\n");
 }
 
 inline BOOL Object_isReusable(Object *restrict self) {

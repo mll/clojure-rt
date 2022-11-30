@@ -27,13 +27,9 @@ Keyword* Keyword_create(String *string) {
     /* TODO - what if another thread has interned first? */
     ConcurrentHashMap_assoc(keywords, string, new);
     retain(new);
-//    printf("Keyword: %llu %llu\n", (uint64_t)new, super(new)->atomicRefCount);
-    fflush(stdout);
     return new;
   }
   release(string);
-//  printf("Keyword: %llu %llu\n", (uint64_t)retVal, super(retVal)->atomicRefCount);
-  fflush(stdout);
   return retVal;
 }
 

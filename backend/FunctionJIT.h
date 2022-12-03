@@ -8,13 +8,16 @@
 using namespace clojure::rt::protobuf::bytecode;
 
 struct FunctionJIT {
-  FnMethodNode method;
   std::vector<ObjectTypeSet> args;
   ObjectTypeSet retVal;
-  std::string name;
-  /* Alternative way to select method */
   int64_t uniqueId = 0;
   int64_t methodIndex;
+  
+  std::string uniqueName() {
+    auto retVall = "fn_" + std::to_string(uniqueId) + "_" + ObjectTypeSet::typeStringForArgs(args) + "_"+ ObjectTypeSet::typeStringForArg(retVal);
+//    std::cout << "uniqueName: " << retVall << std::endl;
+    return retVall;
+  }
 };
 
 #endif

@@ -34,12 +34,11 @@ class ClojureASTLayer {
   llvm::orc::IRLayer &BaseLayer;
   const llvm::DataLayout &DL;
   llvm::orc::ThreadSafeModule irgenAndTakeOwnership(FunctionJIT &FnAST, const std::string &Suffix);
-  std::shared_ptr<ProgrammeState> TheProgramme;
   ClojureJIT *TheJIT;
   std::unordered_map<std::string, bool> definedSymbols;
  public:
- 
- ClojureASTLayer(llvm::orc::IRLayer &BaseLayer, const llvm::DataLayout &DL, std::shared_ptr<ProgrammeState> TheProgramme, ClojureJIT *TheJIT) : BaseLayer(BaseLayer), DL(DL), TheProgramme(TheProgramme), TheJIT(TheJIT) {}
+  std::shared_ptr<ProgrammeState> TheProgramme;
+ ClojureASTLayer(llvm::orc::IRLayer &BaseLayer, const llvm::DataLayout &DL, std::shared_ptr<ProgrammeState> TheProgramme, ClojureJIT *TheJIT) : BaseLayer(BaseLayer), DL(DL), TheJIT(TheJIT), TheProgramme(TheProgramme) {}
   llvm::Error add(llvm::orc::ResourceTrackerSP RT, std::unique_ptr<FunctionJIT> F);  
   void emit(std::unique_ptr<llvm::orc::MaterializationResponsibility> MR, std::unique_ptr<FunctionJIT> F);  
   llvm::orc::MaterializationUnit::Interface getInterface(FunctionJIT &F);

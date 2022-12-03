@@ -10,7 +10,7 @@ extern "C" {
 }
 
 
-TypedValue CodeGenerator::callStaticFun(const Node &node, const FnMethodNode &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args, const string &refName) {
+TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNode, uint64_t> &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args, const string &refName) {
   vector<Type *> argTypes;
   vector<Value *> argVals;
   vector<ObjectTypeSet> argT;
@@ -33,10 +33,10 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const FnMethodNode &me
   }
 
   auto f = make_unique<FunctionJIT>();
-  f->method = method;
+  f->methodIndex = method.second;
   f->args = argT;
   f->retVal = retValType;
-  f->name = rqName;
+  f->uniqueId = getUniqueFunctionIdFromName(name);
   
   ExitOnErr(TheJIT->addAST(move(f)));
 
@@ -274,18 +274,79 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
   return Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("call_dynamic"));
 }
 
-void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &name, const ObjectTypeSet &retVal, const vector<ObjectTypeSet> &args) {
+
+ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const vector<ObjectTypeSet> &args, const ObjectTypeSet &typeRestrictions) {
+    string name = getMangledUniqueFunctionName(uniqueId);
+    string rName = ObjectTypeSet::recursiveMethodKey(name, args);
+    auto recursiveGuess = TheProgramme->RecursiveFunctionsRetValGuesses.find(rName);
+
+    if(recursiveGuess != TheProgramme->RecursiveFunctionsRetValGuesses.end()) {
+      return recursiveGuess->second;
+    }
+
+    auto recursiveName = TheProgramme->RecursiveFunctionsNameMap.find(rName);
+    if(recursiveName != TheProgramme->RecursiveFunctionsNameMap.end()) {
+      throw UnaccountedRecursiveFunctionEncounteredException(rName);
+    }
+
+    TheProgramme->RecursiveFunctionsNameMap.insert({rName, true});    
+    
+    FunctionArgTypesStack.push_back(args);
+    ObjectTypeSet retVal;
+    bool found = false;
+    bool foundSpecific = false;
+    vector<CodeGenerationException> exceptions;
+    try {
+      retVal = getType(method.body(), typeRestrictions);
+      if(!retVal.isEmpty()) found = true;
+    } catch(UnaccountedRecursiveFunctionEncounteredException e) {
+      if(e.functionName != rName) throw e;
+      auto guesses = ObjectTypeSet::allGuesses();
+      for(auto guess : guesses) {
+        auto inserted = TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, guess});
+        inserted.first->second = guess;
+        try {
+          retVal = getType(method.body(), typeRestrictions);
+          if(!retVal.isEmpty()) found = true;
+          if(retVal.isDetermined()) foundSpecific = true;
+        } catch(CodeGenerationException e) {
+          exceptions.push_back(e);
+        }
+        if(foundSpecific) break;
+      }
+    }
+    FunctionArgTypesStack.pop_back();
+
+    TheProgramme->RecursiveFunctionsNameMap.erase(rName);
+    TheProgramme->RecursiveFunctionsRetValGuesses.erase(rName);
+    // TODO: better error here, maybe use the exceptions vector? 
+    if(!found) {
+      for(auto e : exceptions) cout << e.toString() << endl;
+      throw CodeGenerationException("Unable to create function with given params", method.body());
+    }
+    return retVal;
+} 
+
+
+void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t methodIndex, const string &name, const ObjectTypeSet &retType, const vector<ObjectTypeSet> &args) {
+
+  const FnNode &node = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();
+  const FnMethodNode &method = node.methods(methodIndex).subnode().fnmethod();
+  
+  string rName = ObjectTypeSet::fullyQualifiedMethodKey(name, args, retType);
+  const ObjectTypeSet realRetType = determineMethodReturn(method, uniqueId, args, ObjectTypeSet::all());
+  
   vector<Type *> argTypes;
   for(auto arg : args) {
     argTypes.push_back((arg.isDetermined() && !arg.isBoxed)? dynamicUnboxedType(arg.determinedType()) : dynamicBoxedType());
   }
  
-  Type *retType = (retVal.isDetermined() && !retVal.isBoxed) ? dynamicUnboxedType(retVal.determinedType()) : dynamicBoxedType();
-  
-  Function *CalleeF = TheModule->getFunction(name); 
+  Type *retFunType = (retType.isDetermined() && !retType.isBoxed) ? dynamicUnboxedType(retType.determinedType()) : dynamicBoxedType();
+
+  Function *CalleeF = TheModule->getFunction(rName); 
   if(!CalleeF) {
-    FunctionType *FT = FunctionType::get(retType, argTypes, false);
-    CalleeF = Function::Create(FT, Function::ExternalLinkage, name, TheModule.get());
+    FunctionType *FT = FunctionType::get(retFunType, argTypes, false);
+    CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
     /* Build body */
     vector<Value *> fArgs;
     for(auto &farg: CalleeF->args()) fArgs.push_back(&farg);
@@ -295,19 +356,43 @@ void CodeGenerator::buildStaticFun(const FnMethodNode &method, const string &nam
     
     vector<TypedValue> functionArgs;
     for(int i=0; i<args.size(); i++) functionArgs.push_back(unbox(TypedValue(args[i].removeConst(), fArgs[i])));
+    
     FunctionArgsStack.push_back(functionArgs);
     try {
-      auto result = codegen(method.body(), retVal);
-      Builder->CreateRet((retVal.isBoxed || !retVal.isDetermined()) ? box(result).second : result.second);
+      if((realRetType == retType && realRetType.isBoxed == retType.isBoxed) || (!retType.isDetermined() && !realRetType.isDetermined())) {
+        auto result = codegen(method.body(), retType);
+        Builder->CreateRet((retType.isBoxed || !retType.isDetermined()) ? box(result).second : result.second);
+      } else {
+        auto f = make_unique<FunctionJIT>();
+        f->methodIndex = methodIndex;
+        f->args = args;
+        f->retVal = realRetType;
+        f->uniqueId = uniqueId;
+        ExitOnErr(TheJIT->addAST(move(f)));
+        
+        TypedValue realRet = callRuntimeFun(ObjectTypeSet::fullyQualifiedMethodKey(name, args, realRetType), realRetType, functionArgs);
+        Value *finalRet = nullptr;
+        if((!realRetType.isDetermined() || realRetType.isBoxed) && (retType.isDetermined() && !retType.isBoxed)) finalRet = dynamicUnbox(method.body(), realRet, retType.determinedType()).second;
+        if((realRetType.isDetermined() && !realRetType.isBoxed) && (!retType.isDetermined() || retType.isBoxed)) finalRet = box(realRet).second;
+        
+        if(realRetType.isDetermined() && retType.isDetermined()) {
+          if(!(realRetType == retType)) throw CodeGenerationException("Types mismatch for function call: " + ObjectTypeSet::typeStringForArg(retType) + " " + ObjectTypeSet::typeStringForArg(realRetType), method.body());
+          
+          if(realRetType.isBoxed) finalRet = dynamicUnbox(method.body(), realRet, retType.determinedType()).second;
+          if(retType.isBoxed) finalRet = box(realRet).second;
+        }
+        if(finalRet == nullptr) finalRet = realRet.second;
+        Builder->CreateRet(finalRet);
+      }
       verifyFunction(*CalleeF);
     } catch (CodeGenerationException e) {
       CalleeF->eraseFromParent();
-      FunctionType *FT = FunctionType::get(retType, argTypes, false);
-      CalleeF = Function::Create(FT, Function::ExternalLinkage, name, TheModule.get());
+      FunctionType *FT = FunctionType::get(retFunType, argTypes, false);
+      CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
       BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
       Builder->SetInsertPoint(BB);
       runtimeException(e);  
-      Builder->CreateRet(dynamicZero(retVal));
+      Builder->CreateRet(dynamicZero(retType));
       verifyFunction(*CalleeF);
     }
     FunctionArgsStack.pop_back();

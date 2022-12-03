@@ -68,8 +68,8 @@ public:
   ObjectTypeSet typeForArgString(const Node &node, const std::string &typeString);
   uint64_t computeHash(const char *str);
   uint64_t avalanche_64(uint64_t h);
-  std::string globalNameForVar(std::string var);
-  std::string getMangledUniqueFunctionName(uint64_t num) ;
+  static std::string globalNameForVar(std::string var);
+  static std::string getMangledUniqueFunctionName(uint64_t num) ;
   uint64_t getUniqueFunctionId();
 
   TypedValue staticFalse();
@@ -77,11 +77,15 @@ public:
 
 /* Dynamic dispatch */
 
-  TypedValue callStaticFun(const Node &node, const FnMethodNode &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName);
-  void buildStaticFun(const FnMethodNode &method, const std::string &name, const ObjectTypeSet &retVal, const std::vector<ObjectTypeSet> &args);
+
+TypedValue callStaticFun(const Node &node, const std::pair<FnMethodNode, uint64_t> &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName);
+
+  void buildStaticFun(const int64_t uniqueId, const uint64_t methodIndex, const std::string &name, const ObjectTypeSet &retVal, const std::vector<ObjectTypeSet> &args);
 
   llvm::Value *callDynamicFun(const Node &node, llvm::Value *rtFnPointer, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args);
   llvm::Value *dynamicInvoke(const Node &node, llvm::Value *objectToInvoke, llvm::Value* objectType, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, llvm::Value *uniqueFunctionId = nullptr, llvm::Function *staticFunctionToCall = nullptr);    
+ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const std::vector<ObjectTypeSet> &args, const ObjectTypeSet &typeRestrictions);
+
 
   /* Runtime types */
 

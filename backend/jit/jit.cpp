@@ -35,6 +35,9 @@ ClojureJIT::~ClojureJIT() {
     ES->reportError(std::move(Err));
 }
 
+shared_ptr<ProgrammeState> ClojureJIT::getProgramme() {
+  return ASTLayer.TheProgramme;
+}
 
 Expected<std::unique_ptr<ClojureJIT>> ClojureJIT::Create(shared_ptr<ProgrammeState> TheProgramme) {
   auto EPC = SelfExecutorProcessControl::Create();
@@ -128,7 +131,7 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     for (auto &F : M) {
       TheFPM->run(F);
     }
- // M.print(errs(), nullptr);
+//  M.print(errs(), nullptr);
   });
   
   return std::move(TSM);

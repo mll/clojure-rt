@@ -48,21 +48,27 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
   
     /* We need to find a correct method */
 
-    vector<const FnMethodNode *> nodes;
-    for(int i=0; i<functionBody.methods_size(); i++) nodes.push_back(&(functionBody.methods(i).subnode().fnmethod()));
+    vector<pair<FnMethodNode, uint64_t>> nodes;
+    for(int i=0; i<functionBody.methods_size(); i++) {
+      auto &method = functionBody.methods(i).subnode().fnmethod();
+      nodes.push_back({method, i});
+    }
+    
     std::sort(nodes.begin(), nodes.end(), [](const auto& lhs, const auto& rhs) -> bool
     {
-      if (lhs->isvariadic() && !rhs->isvariadic()) return false;
-      if (!lhs->isvariadic() && rhs->isvariadic()) return true;
-      return lhs->fixedarity() > rhs->fixedarity();
+      if (lhs.first.isvariadic() && !rhs.first.isvariadic()) return false;
+      if (!lhs.first.isvariadic() && rhs.first.isvariadic()) return true;
+      return lhs.first.fixedarity() > rhs.first.fixedarity();
     });
 
-    const FnMethodNode *method = nullptr;
+    int foundIdx = -1;
     for(int i=0; i<nodes.size(); i++) {
-      if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; break;}
-      if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; break;}
+      if(nodes[i].first.fixedarity() == args.size()) { foundIdx = i; break;}
+      if(nodes[i].first.fixedarity() <= args.size() && nodes[i].first.isvariadic()) { foundIdx = i; break;}
     }
-    if(method == nullptr) throw CodeGenerationException(string("Function ") + (refName.size() > 0 ? refName : fName) + " has been called with wrong arity: " + to_string(args.size()), node);
+    if(foundIdx == -1) throw CodeGenerationException(string("Function ") + (refName.size() > 0 ? refName : fName) + " has been called with wrong arity: " + to_string(args.size()), node);
+
+    pair<FnMethodNode, uint64_t> method = nodes[foundIdx];
 
     vector<ObjectTypeSet> argTypes;
     for(int i=0; i<args.size(); i++) argTypes.push_back(args[i].first);
@@ -78,7 +84,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     /* We leave the return type cached, maybe in the future it needs to be removed here */
     TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
 
-    auto retVal = callStaticFun(node, *method, fName, type, args, refName);
+    auto retVal = callStaticFun(node, method, fName, type, args, refName);
     
     return retVal;
   }
@@ -207,56 +213,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
 
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
     
-    
-    string rName = ObjectTypeSet::recursiveMethodKey(name, args);
-    auto recursiveGuess = TheProgramme->RecursiveFunctionsRetValGuesses.find(rName);
-
-    if(recursiveGuess != TheProgramme->RecursiveFunctionsRetValGuesses.end()) {
-      return recursiveGuess->second;
-    }
-
-    auto recursiveName = TheProgramme->RecursiveFunctionsNameMap.find(rName);
-    if(recursiveName != TheProgramme->RecursiveFunctionsNameMap.end()) {
-      throw UnaccountedRecursiveFunctionEncounteredException(rName);
-    }
-
-    TheProgramme->RecursiveFunctionsNameMap.insert({rName, true});    
-    
-    FunctionArgTypesStack.push_back(args);
-    ObjectTypeSet retVal;
-    bool found = false;
-    bool foundSpecific = false;
-    vector<CodeGenerationException> exceptions;
-    try {
-      retVal = getType(method->body(), typeRestrictions);
-      if(!retVal.isEmpty()) found = true;
-    } catch(UnaccountedRecursiveFunctionEncounteredException e) {
-      if(e.functionName != rName) throw e;
-      auto guesses = ObjectTypeSet::allGuesses();
-      for(auto guess : guesses) {
-        auto inserted = TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, guess});
-        inserted.first->second = guess;
-        try {
-          retVal = getType(method->body(), typeRestrictions);
-          if(!retVal.isEmpty()) found = true;
-          if(retVal.isDetermined()) foundSpecific = true;
-        } catch(CodeGenerationException e) {
-          exceptions.push_back(e);
-        }
-        if(foundSpecific) break;
-      }
-    }
-    FunctionArgTypesStack.pop_back();
-
-    TheProgramme->RecursiveFunctionsNameMap.erase(rName);
-    TheProgramme->RecursiveFunctionsRetValGuesses.erase(rName);
-    // TODO: better error here, maybe use the exceptions vector? 
-    if(!found) {
-      for(auto e : exceptions) cout << e.toString() << endl;
-      throw CodeGenerationException("Unable to create function with given params", node);
-    }
-
-    return retVal;
+    return determineMethodReturn(*method, uniqueId, args, typeRestrictions);
   }
   
   /* Unable to find function body, it has gone through generic path and type has to be resolved at runtime */

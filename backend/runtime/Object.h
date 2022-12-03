@@ -70,7 +70,7 @@ inline void *Object_data(Object * restrict self) {
 }
 
 inline Object *super(void * restrict self) {
-  return (Object *)(self - sizeof(Object));
+  return (Object *)(self - sizeof(Object));  
 }
 
 inline void Object_retain(Object * restrict self) {
@@ -85,8 +85,8 @@ inline void Object_retain(Object * restrict self) {
 }
 
 inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
-  printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t)Object_data(self));
-  printReferenceCounts();
+  //printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t)Object_data(self));
+ // printReferenceCounts();
   switch((objectType)self->type) {
   case integerType:
     Integer_destroy(Object_data(self));
@@ -129,9 +129,9 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
     break;
   }
   deallocate(self);
-  printf("dealloc end %lld\n", (uint64_t)Object_data(self));
-  printReferenceCounts();
-  printf("=========================\n");
+ // printf("dealloc end %lld\n", (uint64_t)Object_data(self));
+ // printReferenceCounts();
+ // printf("=========================\n");
 }
 
 inline BOOL Object_isReusable(Object *restrict self) {
@@ -307,6 +307,9 @@ inline BOOL Object_release(Object * restrict self) {
   return Object_release_internal(self, TRUE);
 }
 
+inline objectType getType(void *obj) {
+  return super(obj)->type;
+}
 
 inline void Object_autorelease(Object * restrict self) {
   /* The object could have been deallocated through direct releases in the meantime (e.g. if autoreleasing entity does not own ) */

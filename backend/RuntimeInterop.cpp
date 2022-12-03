@@ -269,39 +269,68 @@ StructType *CodeGenerator::runtimeBooleanType() {
 
 
 void CodeGenerator::dynamicRetain(Value *objectPtr) {
-  Value *objPtr = dynamicSuper(objectPtr);
-  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 1, "get_type");
-  
-  Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Add, gepPtr, ConstantInt::get(*TheContext, APInt(64, 1)), MaybeAlign(), AtomicOrdering::Monotonic);
+  vector<Type *> t;
+  vector<Value * > v;
+  //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
+  t.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  v.push_back(objectPtr);
+  callRuntimeFun("retain", Type::getVoidTy(*TheContext),t, v);
+ // t.clear();
+//  v.clear();
+  // Value *objPtr = dynamicSuper(objectPtr);
+  // Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 1, "get_type");  
+  // Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Add, gepPtr, ConstantInt::get(*TheContext, APInt(64, 1)), MaybeAlign(), AtomicOrdering::Monotonic);
+  //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
 }
 
 
 Value *CodeGenerator::dynamicSuper(Value *objectPtr) {
  /* A trick - objSize will have sizeof(Object) */
-  Value *objDummyPtr = Builder->CreateConstGEP1_64(runtimeObjectType(), Constant::getNullValue(runtimeObjectType()->getPointerTo()), 1, "Object_size");
-  Value *objSize =  Builder->CreatePointerCast(objDummyPtr, Type::getInt64Ty(*TheContext));
-  Value *funcPtr = Builder->CreateBitOrPointerCast(objectPtr, Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
-  Value *funcPtrInt = Builder->CreatePtrToInt(funcPtr,  Type::getInt64Ty(*TheContext), "ptr_to_int");
-  Value *objPtrInt = Builder->CreateSub(funcPtrInt, objSize, "sub_size");
-  Value *objPtr = Builder->CreateIntToPtr(objPtrInt, runtimeObjectType()->getPointerTo() , "sub_size");  
-  return objPtr;
+  vector<Type *> t;
+  vector<Value * > v;
+  //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
+  t.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  v.push_back(objectPtr);
+  return callRuntimeFun("super", Type::getInt8Ty(*TheContext)->getPointerTo(),t, v);
+  
+  // Value *objDummyPtr = Builder->CreateConstGEP1_64(runtimeObjectType(), Constant::getNullValue(runtimeObjectType()->getPointerTo()), 1, "Object_size");
+  // Value *objSize =  Builder->CreatePointerCast(objDummyPtr, Type::getInt64Ty(*TheContext));
+  // Value *funcPtr = Builder->CreateBitOrPointerCast(objectPtr, Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
+  // Value *funcPtrInt = Builder->CreatePtrToInt(funcPtr,  Type::getInt64Ty(*TheContext), "ptr_to_int");
+  // Value *objPtrInt = Builder->CreateSub(funcPtrInt, objSize, "sub_size");
+  // Value *objPtr = Builder->CreateIntToPtr(objPtrInt, runtimeObjectType()->getPointerTo() , "sub_size");  
+  // return objPtr;
 }
 
 Value *CodeGenerator::getRuntimeObjectType(Value *objectPtr) {
-  Value *objPtr = dynamicSuper(objectPtr);
-  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 0, "get_type");
-  Value *retVal = Builder->CreateLoad(Type::getInt32Ty(*TheContext), gepPtr, "load_type");    
-  return retVal;
+  vector<Type *> t;
+  vector<Value * > v;
+  //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
+  t.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  v.push_back(objectPtr);
+  return callRuntimeFun("getType", Type::getInt32Ty(*TheContext),t, v);
+
+  // Value *objPtr = dynamicSuper(objectPtr);
+  // Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 0, "get_type");
+  // Value *retVal = Builder->CreateLoad(Type::getInt32Ty(*TheContext), gepPtr, "load_type");    
+  // return retVal;
 }
 
 TypedValue CodeGenerator::dynamicIsReusable(Value *what) {
   assert(what->getType() == Type::getInt8Ty(*TheContext)->getPointerTo() && "Not a pointer!");
-  Value *objPtr = dynamicSuper(what);
-  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 1, "get_type");
-  LoadInst *load = Builder->CreateLoad(Type::getInt64Ty(*TheContext), gepPtr, "load_type");    
-  load->setAtomic(AtomicOrdering::Monotonic);
-  Value *retVal = Builder->CreateICmpEQ(load, ConstantInt::get(*TheContext, APInt(64, 1, false)), "cmp_jj");
-  return TypedValue(ObjectTypeSet(booleanType), retVal);
+  vector<Type *> t;
+  vector<Value * > v;
+  //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
+  t.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  v.push_back(what);
+  return TypedValue(ObjectTypeSet(booleanType), Builder->CreateIntCast(callRuntimeFun("isReusable", Type::getInt8Ty(*TheContext),t, v), dynamicUnboxedType(booleanType), false));
+ 
+  // Value *objPtr = dynamicSuper(what);
+  // Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 1, "get_type");
+  // LoadInst *load = Builder->CreateLoad(Type::getInt64Ty(*TheContext), gepPtr, "load_type");    
+  // load->setAtomic(AtomicOrdering::Monotonic);
+  // Value *retVal = Builder->CreateICmpEQ(load, ConstantInt::get(*TheContext, APInt(64, 1, false)), "cmp_jj");
+  // return TypedValue(ObjectTypeSet(booleanType), retVal);
 }
 
 Value * CodeGenerator::dynamicString(const char *str) {
@@ -320,50 +349,48 @@ Value * CodeGenerator::dynamicString(const char *str) {
 }
 
 TypedValue CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false) {
-  if(isAutorelease) {
-    vector<Type *> types;
-    vector<Value *> args;
-    types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-    args.push_back(what);    
-    callRuntimeFun("autorelease", Type::getVoidTy(*TheContext), types, args); 
-    return TypedValue(ObjectTypeSet(booleanType), ConstantInt::get(*TheContext, APInt(1, 0, false)));
-  }
-  
-  Function *parentFunction = Builder->GetInsertBlock()->getParent();
-  Value *object = dynamicSuper(what);
-
-  Value *oldValue = Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Sub, object, ConstantInt::get(*TheContext, APInt(64, 1, false)), MaybeAlign(), AtomicOrdering::Monotonic);
-  Value *condValue = Builder->CreateICmpEQ(oldValue, ConstantInt::get(*TheContext, APInt(64, 1, false)), "cmp_jj");
-  
-  BasicBlock *destroyBB = llvm::BasicBlock::Create(*TheContext, "destroy", parentFunction);  
-  BasicBlock *ignoreBB = llvm::BasicBlock::Create(*TheContext, "ignore");
-  BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "release_cont");
-  
-  Builder->CreateCondBr(condValue, destroyBB, ignoreBB);
-
-  Builder->SetInsertPoint(destroyBB);
   vector<Type *> types;
   vector<Value *> args;
   types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-  args.push_back(object);
+  args.push_back(what);    
+  callRuntimeFun(isAutorelease ? "autorelease" : "release", Type::getVoidTy(*TheContext), types, args); 
+  return TypedValue(ObjectTypeSet(booleanType), ConstantInt::get(*TheContext, APInt(1, 0, false)));
+  
+  // Function *parentFunction = Builder->GetInsertBlock()->getParent();
+  // Value *object = dynamicSuper(what);
 
-  types.push_back(Type::getInt8Ty(*TheContext));
-  args.push_back(ConstantInt::get(*TheContext, APInt(8, 1, false)));
+  // Value *oldValue = Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Sub, object, ConstantInt::get(*TheContext, APInt(64, 1, false)), MaybeAlign(), AtomicOrdering::Monotonic);
+  // Value *condValue = Builder->CreateICmpEQ(oldValue, ConstantInt::get(*TheContext, APInt(64, 1, false)), "cmp_jj");
+  
+  // BasicBlock *destroyBB = llvm::BasicBlock::Create(*TheContext, "destroy", parentFunction);  
+  // BasicBlock *ignoreBB = llvm::BasicBlock::Create(*TheContext, "ignore");
+  // BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "release_cont");
+  
+  // Builder->CreateCondBr(condValue, destroyBB, ignoreBB);
+
+  // Builder->SetInsertPoint(destroyBB);
+  // vector<Type *> types;
+  // vector<Value *> args;
+  // types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  // args.push_back(object);
+
+  // types.push_back(Type::getInt8Ty(*TheContext));
+  // args.push_back(ConstantInt::get(*TheContext, APInt(8, 1, false)));
     
-  callRuntimeFun("Object_destroy", Type::getVoidTy(*TheContext), types, args); 
-  Builder->CreateBr(mergeBB);
+  // callRuntimeFun("Object_destroy", Type::getVoidTy(*TheContext), types, args); 
+  // Builder->CreateBr(mergeBB);
 
-  parentFunction->getBasicBlockList().push_back(ignoreBB);
-  Builder->SetInsertPoint(ignoreBB);
-  Builder->CreateBr(mergeBB);
+  // parentFunction->getBasicBlockList().push_back(ignoreBB);
+  // Builder->SetInsertPoint(ignoreBB);
+  // Builder->CreateBr(mergeBB);
   
-  parentFunction->getBasicBlockList().push_back(mergeBB);
-  Builder->SetInsertPoint(mergeBB);
+  // parentFunction->getBasicBlockList().push_back(mergeBB);
+  // Builder->SetInsertPoint(mergeBB);
   
-  llvm::PHINode *phiNode = Builder->CreatePHI(Type::getInt1Ty(*TheContext), 2, "release_phi");
-  phiNode->addIncoming(ConstantInt::get(*TheContext, APInt(1, 1, false)), destroyBB);
-  phiNode->addIncoming(ConstantInt::get(*TheContext, APInt(1, 0, false)), ignoreBB);
-  return TypedValue(ObjectTypeSet(booleanType), phiNode);
+  // llvm::PHINode *phiNode = Builder->CreatePHI(Type::getInt1Ty(*TheContext), 2, "release_phi");
+  // phiNode->addIncoming(ConstantInt::get(*TheContext, APInt(1, 1, false)), destroyBB);
+  // phiNode->addIncoming(ConstantInt::get(*TheContext, APInt(1, 0, false)), ignoreBB);
+  // return TypedValue(ObjectTypeSet(booleanType), phiNode);
 }
 
 Value * CodeGenerator::dynamicSymbol(const char *name) {

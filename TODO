@@ -2,6 +2,7 @@
 * - not done
 v - done
 <-- - in progress
+x - wont/cant be done
 
 Runtime:
 
@@ -22,14 +23,15 @@ v Symbol
 v Keyword 
 v ConcurrentHashMap  
 * ConcurrentHashMap resizing
-* ConcurrentHashMap new memory model (now it crashes) <------
+v ConcurrentHashMap new memory model (now it crashes) 
 v Var 
 v Function (generic) 
 v FunctionMethod (generic)
 v Keyword uniquing
 v PersistentArrayMap 
 
-* Merge Object into all objects, trivialise super and Object_data <--
+  (This cannot be done, for some reason atomic operations fail here)
+x Merge Object into all objects, trivialise super and Object_data 
 * Var return type and value 
 * Optimise hash computations (caching for all collections, conj/disj should just modify it a bit (use a commutative operator, e.g. +)
 * Iterators (vector, string, map, list)
@@ -40,8 +42,6 @@ v PersistentArrayMap
 
 * PersistentHashMap
 * PersistentSet
-
-
 
 v HUGE Memory management ref counting for runtime data structures
   v Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
@@ -88,7 +88,7 @@ v FnMethod
 v Invoke static (with dynamic args) 
 * Invoke static with :static in metadata
 v Invoke dynamiczne
-* Invoke dynamic recurrent speedup <- (jit recurrence before casting return value to LO, have a stub function to do that)
+v Invoke dynamic recurrent speedup <---- (jit recurrence before casting return value to LO, have a stub function to do that)
 * Invoke lambda 
 * Invoke lambda once
 * Invoke variadic with Vector <-

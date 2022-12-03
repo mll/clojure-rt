@@ -36,6 +36,14 @@ extern "C" {
     std::cout << "---> Char value: '" << (int64_t)i << "'" << std::endl;
   }
 
+  void setFunForVar(void *jitPtr, void *funPtr, const char *varName) {
+    ClojureJIT *jit = (ClojureJIT *)jitPtr;
+    struct Function *fun = (struct Function *)funPtr;
+    auto mangled = CodeGenerator::globalNameForVar(varName);
+    auto programme = jit->getProgramme();
+    programme->StaticFunctions.erase(mangled);
+    programme->StaticFunctions.insert({mangled, fun->uniqueId});
+  }
 
   void *specialiseDynamicFn(void *jitPtr, void *funPtr, uint64_t retValType, uint64_t argCount, uint64_t argSignature, uint64_t packedArg) {    
     ClojureJIT *jit = (ClojureJIT *)jitPtr;
@@ -79,12 +87,9 @@ extern "C" {
     auto f = std::make_unique<FunctionJIT>();
     std::string rqName = ObjectTypeSet::fullyQualifiedMethodKey(name, argT, retValT);        
     f->args = argT;
-    /* TODO - Return values should be probably handled differently. e.g. if the new function returns something boxed, 
-       we should inspect it and decide if we want to use it or not for var inbvokations */ 
     f->retVal = retValT;
     f->uniqueId = fun->uniqueId;
     f->methodIndex = method->index;
-    f->name = rqName;
     llvm::ExitOnError eo = llvm::ExitOnError();
 
     /* TODO - we probably need to modify TheProgramme here somehow, this needs more thinking */

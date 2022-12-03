@@ -195,14 +195,14 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     parentFunction->getBasicBlockList().push_back(failure);
     parentFunction->getBasicBlockList().push_back(merge);
     Builder->SetInsertPoint(failure);
-    Builder->CreateStore(dynamicZero(ObjectTypeSet::dynamicType()), retVal);    
     runtimeException(CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node));
-    Builder->CreateBr(merge);
+//    Builder->CreateStore(dynamicZero(ObjectTypeSet::dynamicType()), retVal);    
+    Builder->CreateUnreachable();    
+//    Builder->CreateBr(merge);
     Builder->SetInsertPoint(merge);                 
     Value *v = Builder->CreateLoad(dynamicBoxedType(), retVal);
     return TypedValue(ObjectTypeSet::dynamicType(), v);
   }
-  cout << "Whassup2" <<endl; 
   throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node);
 }
 
@@ -246,7 +246,6 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
   }
 
   if(dynamic && foundArity) return ObjectTypeSet::dynamicType();
-  cout << "Whassup" <<endl;
   throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node);
   return ObjectTypeSet();
 }

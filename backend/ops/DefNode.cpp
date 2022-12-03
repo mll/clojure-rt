@@ -13,6 +13,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
 
   if(found != StaticVars.end()) {
     /* Already processed this def somewhere earlier */
+    /* TODO - undefing */
     if(!subnode.has_init()) return TypedValue(ObjectTypeSet(nilType), nil);
 /* Hint: commenting the line below allows for easy "multithreaded" debugging of function entry shifts */
     TheProgramme->StaticFunctions.erase(mangled);
@@ -65,6 +66,22 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     Variable->addIncoming(newLoaded, LoopEndBB);
 
     if(!newValue.first.isScalar()) dynamicRelease(Variable, true);
+    
+    vector<Value *> rtArgs;
+    vector<Type *> rtArgTs;
+
+    Value* jitAddressConst = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (int64_t)TheJIT, false));
+    Value* jitAddress = Builder->CreateIntToPtr(jitAddressConst, Type::getInt8Ty(*TheContext)->getPointerTo(), "int_to_ptr"); 
+
+    rtArgs.push_back(jitAddress);
+    rtArgs.push_back(newValue.second);
+    rtArgs.push_back(Builder->CreateGlobalStringPtr(StringRef(name), "staticString"));
+    
+    rtArgTs.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+    rtArgTs.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+    rtArgTs.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+
+    callRuntimeFun("setFunForVar", Type::getVoidTy(*TheContext), rtArgTs, rtArgs, false);
 
     return TypedValue(ObjectTypeSet(nilType), nil);
   }

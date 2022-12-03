@@ -59,6 +59,7 @@ public:
   llvm::Error addModule(llvm::orc::ThreadSafeModule TSM, llvm::orc::ResourceTrackerSP RT = nullptr);
   llvm::Error addAST(std::unique_ptr<FunctionJIT> F, llvm::orc::ResourceTrackerSP RT = nullptr);
   llvm::Expected<llvm::JITEvaluatedSymbol> lookup(llvm::StringRef Name);
+  std::shared_ptr<ProgrammeState> getProgramme();
 };
 
 

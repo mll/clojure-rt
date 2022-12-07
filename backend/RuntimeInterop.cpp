@@ -334,17 +334,9 @@ TypedValue CodeGenerator::dynamicIsReusable(Value *what) {
 }
 
 Value * CodeGenerator::dynamicString(const char *str) {
-  // vector<Type *> types;
-  // vector<Value *> args;
-  // types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-  // types.push_back(Type::getInt64Ty(*TheContext));
-  // types.push_back(Type::getInt64Ty(*TheContext));
-  // args.push_back(Builder->CreateGlobalStringPtr(StringRef(str), "staticString"));
-  // args.push_back(ConstantInt::get(*TheContext, APInt(64, strlen(str))));
-  // args.push_back(ConstantInt::get(*TheContext, APInt(64, computeHash(str), false)));
   String * retVal = String_createDynamicStr((char *)str);
+  /* TODO: uniquing? */
   Value *strPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
-  dynamicRetain(strPointer);
   return strPointer;
 }
 
@@ -408,15 +400,7 @@ Value * CodeGenerator::dynamicKeyword(const char *name) {
   
   Keyword * retVal = Keyword_create(names);
   Value *ptrKeyword =  Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
-  dynamicRetain(ptrKeyword);
   return ptrKeyword;
-
-  // vector<Type *> types;
-  // vector<Value *> args;
-  // types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-
-  // args.push_back(names);
-  // return dynamicCreate(keywordType, types, args);
 }
 
 Type *CodeGenerator::dynamicUnboxedType(objectType type) {

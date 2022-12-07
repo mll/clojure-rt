@@ -7,16 +7,70 @@
             [clojure.rt.protobuf.encoder :as enc]
             [protojure.protobuf :as protojure]
             [clojure.string :refer [join split]]
-            [clojure.tools.reader.reader-types :as t]))
+            [clojure.tools.reader.reader-types :as t]
+            
+            [clojure.tools.analyzer
+             [utils :refer [ctx resolve-sym -source-info resolve-ns obj? dissoc-env butlast+last mmerge]]
+             [ast :refer [walk prewalk postwalk] :as ast]
+             [env :as env :refer [*env*]]
+             [passes :refer [schedule]]]
+
+            [clojure.tools.analyzer.jvm.utils :refer :all :as u :exclude [box specials]]
+
+            [clojure.tools.analyzer.passes
+             [source-info :refer [source-info]]
+             [trim :refer [trim]]
+             [elide-meta :refer [elide-meta elides]]
+             [warn-earmuff :refer [warn-earmuff]]
+             [uniquify :refer [uniquify-locals]]]
+
+            [clojure.tools.analyzer.passes.jvm
+             [analyze-host-expr :refer [analyze-host-expr]]
+             [box :refer [box]]
+             [constant-lifter :refer [constant-lift]]
+             [classify-invoke :refer [classify-invoke]]
+             [validate :refer [validate]]
+             [infer-tag :refer [infer-tag]]
+             [validate-loop-locals :refer [validate-loop-locals]]
+             [warn-on-reflection :refer [warn-on-reflection]]
+             [emit-form :refer [emit-form]]]))
+
+
+(def rt-passes
+  "Set of passes that will be run on the AST by #'run-passes"
+  #{#'warn-on-reflection
+    #'warn-earmuff
+
+    #'uniquify-locals
+
+    #'source-info
+    #'elide-meta
+   ;; #'constant-lift
+
+    #'trim
+
+    #'box
+
+    #'analyze-host-expr
+    #'validate-loop-locals
+    #'validate
+    #'infer-tag
+
+    #'classify-invoke})
+
+(def scheduled-rt-passes
+  (schedule rt-passes))
+
 
 (defn analyze [s filename] 
-  (let [reader (t/source-logging-push-back-reader s 1 filename)]
-    (loop [form (r/read {:eof :eof} reader) ret-val []]
-      (if (= :eof form) ret-val
-          (do
-            (eval form)
-            (recur (r/read {:eof :eof} reader)
-                   (conj ret-val (a/analyze form))))))))
+  (with-bindings {#'a/run-passes scheduled-rt-passes}
+    (let [reader (t/source-logging-push-back-reader s 1 filename)]
+      (loop [form (r/read {:eof :eof} reader) ret-val []]
+        (if (= :eof form) ret-val
+            (do
+              (eval form)
+              (recur (r/read {:eof :eof} reader)
+                     (conj ret-val (a/analyze form)))))))))
 
 
 (defn generate-protobuf-defs [] (sch/generate-protobuf-defs "bytecode.proto"))

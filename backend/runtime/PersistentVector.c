@@ -79,6 +79,7 @@ String *PersistentVector_toString(PersistentVector * restrict self) {
   retVal = String_concat(retVal, toString(self->tail));   
   retVal = String_concat(retVal, closing);
   release(self);
+  release(space);
   return retVal;
 }
 

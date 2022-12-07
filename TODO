@@ -84,31 +84,37 @@ v Dynamic Def and vars system
 v Binding (dziala dla funkcji)
 v Fn
 v FnMethod
-* Let <- 
 v Invoke static (with dynamic args) 
-* Invoke static with :static in metadata
+
 v Invoke dynamiczne
-v Invoke dynamic recurrent speedup <---- (jit recurrence before casting return value to LO, have a stub function to do that)
+v Invoke dynamic recurrent speedup (jit recurrence before casting return value to LO, have a stub function to do that)
+v Recur (for Fn)
+v Vector
+* Let <- 
+* Memory management for args (currently each managed var can be used at most once)
+* Invoke static with :static in metadata
 * Invoke lambda 
 * Invoke lambda once
-* Invoke variadic with Vector <-
+* Invoke variadic with Vector
 * Invoke variadic with Seq 
 * A way to run tests and meaningfully observe their results 
-v Recur (for Fn)
-
 * Loop (+ recur for loop)
-v Vector
+
 * Case (CaseTest CaseThen)
+
+* HUGE Memory management ref counting (let us start with string)
+  * Unify type system to have boxed/unboxed trump isDetermined() (new fields on ObjectTypeSet)
+  * Write new passes in analyzer frontend to help with memory management
+  * Use stack-like system for bindings instead the current vector based (to enable let) <--
+  * Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
+  * Improve the strategy with combining retains with releases
+  * Improve the strategy with reuse (already manually implemented in StaticCall)
 
 * HUGE Exception model
   * Try
   * Throw
   * ... 
 
-* HUGE Memory management ref counting (let us start with string)
-  * Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
-  * Improve the strategy with combining retains with releases
-  * Improve the strategy with reuse (already manually implemented in StaticCall)
 
 * HUGE Class/Object system 
   * Deftype

@@ -20,8 +20,26 @@ void bar()
   throw new Exception("Exception requested by caller");
 }
 
+void foo() {
+    bar();
+}
+
+
+void coo() {
+    printf("aaa");
+}
+
+void doo() {
+    coo();
+}
+
 int main(int argc, const char* argv[])
 {
-  bar();
+  try {
+    doo();
+    foo();
+  } catch (Exception e) {
+    printf("xxx %s", e.GetText());
+  }
   return 0;
 }

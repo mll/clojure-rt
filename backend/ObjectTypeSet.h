@@ -134,9 +134,9 @@ class ObjectTypeSet {
   private:
   std::set<objectType> internal;
   ObjectTypeConstant *constant = nullptr;
-  public:
   bool isBoxed;
-  
+  public:
+
   ObjectTypeConstant * getConstant() const {
     return constant;
   }
@@ -146,6 +146,7 @@ class ObjectTypeSet {
     if(!constant && type == nilType) { 
       constant = static_cast<ObjectTypeConstant *>(new ConstantNil()); 
     } 
+    if(!isScalar()) isBoxed = true;
   }
   ObjectTypeSet() {
   }
@@ -163,11 +164,11 @@ class ObjectTypeSet {
     internal.emplace(type);
   }
 
-  bool isEmpty() {
+  bool isEmpty() const {
     return internal.size() == 0;
   }
 
-  int size() {
+  int size() const {
     return internal.size();
   }
 
@@ -175,16 +176,55 @@ class ObjectTypeSet {
     return internal.find(type) != internal.end();
   }
 
-  bool isType(objectType type) const {
-    return contains(type) && internal.size() == 1;
+  bool isBoxedType(objectType type) const {
+    return contains(type) && internal.size() == 1 && isBoxed;
+  }
+
+  bool isUnboxedType(objectType type) const {
+    return contains(type) && internal.size() == 1 && !isBoxed;
   }
 
   bool isDetermined() const {
     return internal.size() == 1;
   }
 
-  bool isNative() const {
+  bool isDynamic() const {
+    if(internal.size() > 1) {
+      assert(isBoxed == true && "Internal error");
+      return true;
+    }
+    return false;
+  }
+
+  ObjectTypeSet unboxed() const {
+    ObjectTypeSet retVal = *this;
+    if(retVal.isBoxedScalar()) retVal.isBoxed = false;
+    return retVal;
+  }
+
+  ObjectTypeSet boxed() const {
+    ObjectTypeSet retVal = *this;
+    retVal.isBoxed = true;
+    return retVal;
+  }
+
+
+
+  bool isScalar() const {
     if(isBoxed) return false;
+    if(!isDetermined()) return false;
+    switch(determinedType()) {
+      case integerType:
+      case booleanType:
+      case doubleType:
+        return true;
+    default:
+      return false;
+    }
+  }
+
+  bool isBoxedScalar() const {
+    if(!isBoxed) return false;
     if(!isDetermined()) return false;
     switch(determinedType()) {
       case integerType:
@@ -241,14 +281,6 @@ class ObjectTypeSet {
     return retVal;
   }
 
-  bool isScalar() const {
-    if(isBoxed || !isDetermined()) return false;
-    objectType type = determinedType();
-    if(type == integerType || type == doubleType || type == booleanType) return true;
-    return false;
-  }
-
-
   ObjectTypeSet& operator=(const ObjectTypeSet &other) {
     isBoxed = other.isBoxed;
     internal = other.internal;
@@ -280,6 +312,7 @@ class ObjectTypeSet {
     retVal.insert(keywordType);
     retVal.insert(functionType);
     retVal.insert(persistentArrayMapType);
+    retVal.isBoxed = true;
     return retVal;
   }
   

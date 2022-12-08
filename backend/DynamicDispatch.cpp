@@ -16,7 +16,7 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNod
   vector<ObjectTypeSet> argT;
     
   for(auto arg : args) {
-    argTypes.push_back((arg.first.isDetermined() && !arg.first.isBoxed) ? dynamicUnboxedType(arg.first.determinedType()) : dynamicBoxedType());
+    argTypes.push_back(dynamicType(arg.first));
     argVals.push_back(arg.second);
     argT.push_back(arg.first);
   }
@@ -24,7 +24,7 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNod
   string rName = ObjectTypeSet::recursiveMethodKey(name, argT);
   string rqName = ObjectTypeSet::fullyQualifiedMethodKey(name, argT, retValType);
   
-  Type *retType = retValType.isDetermined() ? dynamicUnboxedType(retValType.determinedType()) : dynamicBoxedType();
+  Type *retType = dynamicType(retValType);
   
   Function *CalleeF = TheModule->getFunction(rqName); 
   if(!CalleeF) {
@@ -52,7 +52,13 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNod
   return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
 }
 
-Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Value* objectType, const ObjectTypeSet &retValType, const vector<TypedValue> &args, Value *uniqueFunctionId, Function *staticFunctionToCall) {
+Value *CodeGenerator::dynamicInvoke(const Node &node, 
+                                    Value *objectToInvoke, 
+                                    Value* objectType, 
+                                    const ObjectTypeSet &retValType, 
+                                    const vector<TypedValue> &args, 
+                                    Value *uniqueFunctionId, 
+                                    Function *staticFunctionToCall) {
   Function *parentFunction = Builder->GetInsertBlock()->getParent();
   
   BasicBlock *functionTypeBB = llvm::BasicBlock::Create(*TheContext, "type_function");
@@ -120,24 +126,30 @@ Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Val
     string callName;
     finalArgs.push_back(TypedValue(ObjectTypeSet(persistentVectorType), objectToInvoke));
     auto argType = args[0].first;
-    /* Todo - what about big integer? */
-    if(argType.isDetermined() && !argType.isType(integerType)) {
+    bool matched = false;
+
+    if(args[0].first.isUnboxedType(integerType)) {
+      finalArgs.push_back(args[0]);          
+      callName = "PersistentVector_nth";
+      matched = true;
+    } 
+    /* TODO - what about big integer? */
+    if(args[0].first.isDynamic() || args[0].first.isBoxedType(integerType)) {
+      finalArgs.push_back(TypedValue(ObjectTypeSet::dynamicType(), args[0].second));          
+      callName = "PersistentVector_dynamic_nth";
+      matched = true;
+    }
+    
+    if(!matched) {
       runtimeException(CodeGenerationException("The argument must be an integer", node)); 
       vecRetVal = dynamicZero(retValType);
     } else {
-      if(args[0].first.isType(integerType)) {
-          finalArgs.push_back(args[0]);          
-          callName = "PersistentVector_nth";
-        } else {
-          finalArgs.push_back(TypedValue(ObjectTypeSet::dynamicType(), args[0].second));          
-          callName = "PersistentVector_dynamic_nth";
-        }
-        vecRetVal = callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs).second; 
-        if(!retValType.isBoxed && retValType.isDetermined()) {
-          auto p = dynamicUnbox(node, TypedValue(ObjectTypeSet::dynamicType(), vecRetVal), retValType.determinedType());
-          vecRetValBlock = p.first;
-          vecRetVal = p.second;
-        }
+      vecRetVal = callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs).second;       
+      if(retValType.isScalar()) {
+        auto p = dynamicUnbox(node, TypedValue(ObjectTypeSet::dynamicType(), vecRetVal), retValType.determinedType());
+        vecRetValBlock = p.first;
+        vecRetVal = p.second;
+      }
     }
   }
 
@@ -161,7 +173,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Val
     callName = "PersistentArrayMap_get";
   
     mapRetVal = callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs).second; 
-    if(!retValType.isBoxed && retValType.isDetermined()) {
+    if(retValType.isScalar()) {
       auto p = dynamicUnbox(node, TypedValue(ObjectTypeSet::dynamicType(), mapRetVal), retValType.determinedType());
       mapRetValBlock = p.first;
       mapRetVal = p.second;
@@ -188,7 +200,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke, Val
     callName = "PersistentArrayMap_dynamic_get";
   
     keywordRetVal = callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs).second; 
-    if(!retValType.isBoxed && retValType.isDetermined()) {
+    if(retValType.isScalar()) {
       auto p = dynamicUnbox(node, TypedValue(ObjectTypeSet::dynamicType(), keywordRetVal), retValType.determinedType());
       keywordRetValBlock = p.first;
       keywordRetVal = p.second;
@@ -276,6 +288,7 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
 
 
 ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const vector<ObjectTypeSet> &args, const ObjectTypeSet &typeRestrictions) {
+
     string name = getMangledUniqueFunctionName(uniqueId);
     string rName = ObjectTypeSet::recursiveMethodKey(name, args);
     auto recursiveGuess = TheProgramme->RecursiveFunctionsRetValGuesses.find(rName);
@@ -306,7 +319,7 @@ ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, c
         auto inserted = TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, guess});
         inserted.first->second = guess;
         try {
-          retVal = getType(method.body(), typeRestrictions);
+          retVal = getType(method.body(), typeRestrictions).unboxed();
           if(!retVal.isEmpty()) found = true;
           if(retVal.isDetermined()) foundSpecific = true;
         } catch(CodeGenerationException e) {
@@ -338,10 +351,10 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
   
   vector<Type *> argTypes;
   for(auto arg : args) {
-    argTypes.push_back((arg.isDetermined() && !arg.isBoxed)? dynamicUnboxedType(arg.determinedType()) : dynamicBoxedType());
+    argTypes.push_back(dynamicType(arg));
   }
  
-  Type *retFunType = (retType.isDetermined() && !retType.isBoxed) ? dynamicUnboxedType(retType.determinedType()) : dynamicBoxedType();
+  Type *retFunType = dynamicType(retType);
 
   Function *CalleeF = TheModule->getFunction(rName); 
   if(!CalleeF) {
@@ -359,9 +372,9 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
     
     FunctionArgsStack.push_back(functionArgs);
     try {
-      if((realRetType == retType && realRetType.isBoxed == retType.isBoxed) || (!retType.isDetermined() && !realRetType.isDetermined())) {
+      if(realRetType == retType || (!retType.isDetermined() && !realRetType.isDetermined())) {
         auto result = codegen(method.body(), retType);
-        Builder->CreateRet((retType.isBoxed || !retType.isDetermined()) ? box(result).second : result.second);
+        Builder->CreateRet(retType.isBoxedScalar() ? box(result).second : result.second);
       } else {
         auto f = make_unique<FunctionJIT>();
         f->methodIndex = methodIndex;
@@ -372,15 +385,18 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
         
         TypedValue realRet = callRuntimeFun(ObjectTypeSet::fullyQualifiedMethodKey(name, args, realRetType), realRetType, functionArgs);
         Value *finalRet = nullptr;
-        if((!realRetType.isDetermined() || realRetType.isBoxed) && (retType.isDetermined() && !retType.isBoxed)) finalRet = dynamicUnbox(method.body(), realRet, retType.determinedType()).second;
-        if((realRetType.isDetermined() && !realRetType.isBoxed) && (!retType.isDetermined() || retType.isBoxed)) finalRet = box(realRet).second;
+        if(realRetType.isDynamic() && retType.isScalar()) 
+          finalRet = dynamicUnbox(method.body(), realRet, retType.determinedType()).second;
+        if(realRetType.isScalar() && retType.isDynamic()) 
+          finalRet = box(realRet).second;
         
         if(realRetType.isDetermined() && retType.isDetermined()) {
-          if(!(realRetType == retType)) throw CodeGenerationException("Types mismatch for function call: " + ObjectTypeSet::typeStringForArg(retType) + " " + ObjectTypeSet::typeStringForArg(realRetType), method.body());
+          if(realRetType.determinedType() != retType.determinedType()) throw CodeGenerationException("Types mismatch for function call: " + ObjectTypeSet::typeStringForArg(retType) + " " + ObjectTypeSet::typeStringForArg(realRetType), method.body());
           
-          if(realRetType.isBoxed) finalRet = dynamicUnbox(method.body(), realRet, retType.determinedType()).second;
-          if(retType.isBoxed) finalRet = box(realRet).second;
+          if(realRetType.isBoxedScalar()) finalRet = dynamicUnbox(method.body(), realRet, retType.determinedType()).second;
+          if(retType.isBoxedScalar()) finalRet = box(realRet).second;
         }
+
         if(finalRet == nullptr) finalRet = realRet.second;
         Builder->CreateRet(finalRet);
       }

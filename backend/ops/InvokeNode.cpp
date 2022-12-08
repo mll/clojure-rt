@@ -22,7 +22,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
   }
 
   bool determinedArgs = true;
-  for(auto a: args) if(!a.first.isDetermined() || a.first.isBoxed) determinedArgs = false;
+  for(auto a: args) if(!a.first.isDetermined()) determinedArgs = false;
       
   if(functionRef.op() == opVar) { /* Static var holding a fuction */
     auto var = functionRef.subnode().var();
@@ -35,7 +35,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     }
   }
   
-  if(fName == "" && funType.isType(functionType) && funType.getConstant()) {
+  if(fName == "" && funType.isBoxedType(functionType) && funType.getConstant()) {
     /* Direct call to a constant function  */
     uniqueId  = dynamic_cast<ConstantFunction *>(funType.getConstant())->value;
     fName = getMangledUniqueFunctionName(uniqueId);
@@ -122,7 +122,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
         finalArgs.push_back(box(args[0]));          
         finalArgs.push_back(codegen(functionRef, ObjectTypeSet::all()));
         
-        if(args[0].first.isType(persistentArrayMapType)) {          
+        if(args[0].first.isBoxedType(persistentArrayMapType)) {          
           callName = "PersistentArrayMap_get";
         } else {
           callName = "PersistentArrayMap_dynamic_get";
@@ -142,12 +142,13 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
         finalArgs.push_back(codegen(functionRef, ObjectTypeSet::all()));
         auto argType = args[0].first;
         /* Todo - what about big integer? */
-        if(argType.isDetermined() && !argType.isType(integerType)) throw CodeGenerationException("The argument must be an integer", node);
+
         
-        if(args[0].first.isType(integerType)) {
+        if(args[0].first.isUnboxedType(integerType)) {
           finalArgs.push_back(args[0]);          
           callName = "PersistentVector_nth";
         } else {
+          if(!argType.isBoxedType(integerType)) throw CodeGenerationException("The argument must be an integer", node);
           finalArgs.push_back(TypedValue(ObjectTypeSet::dynamicType(), args[0].second));          
           callName = "PersistentVector_dynamic_nth";
         }
@@ -177,7 +178,9 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     }
   }
 
-  if(type.isType(functionType) && type.getConstant()) uniqueId = dynamic_cast<ConstantFunction *>(type.getConstant())->value;
+  if(type.isBoxedType(functionType) && type.getConstant()) {
+    uniqueId = dynamic_cast<ConstantFunction *>(type.getConstant())->value;
+  }
 
   vector<ObjectTypeSet> args;
   for(int i=0; i< subnode.args_size(); i++) {
@@ -186,14 +189,13 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
   }
   
   bool determinedArgs = true;
-  for(auto a: args) if(!a.isDetermined() || a.isBoxed) determinedArgs = false;
+  for(auto a: args) if(!a.isDetermined()) determinedArgs = false;
 
   if(uniqueId && determinedArgs) {
 
     string name = getMangledUniqueFunctionName(uniqueId);
     const FnNode functionBody = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();  
 
-    
     /* We need to find a correct method */
 
     vector<const FnMethodNode *> nodes;
@@ -213,6 +215,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
 
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
     
+
     return determineMethodReturn(*method, uniqueId, args, typeRestrictions);
   }
   

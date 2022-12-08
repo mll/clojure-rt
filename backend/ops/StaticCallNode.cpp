@@ -5,10 +5,21 @@ using namespace std;
 using namespace llvm;
 
 
-void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, BasicBlock *failBlock, BasicBlock *mergeBlock, const vector<TypedValue> &args, const map<vector<ObjectTypeSet>, pair<StaticCallType, StaticCall>> & calls, AllocaInst *retVal, const vector<set<ObjectTypeSet>> &options, Function *parentFunction, const Node &node, CodeGenerator *gen, const string &name) {
+void visitPath(const vector<ObjectTypeSet> &path, 
+               BasicBlock *insertBlock, 
+               BasicBlock *failBlock, 
+               BasicBlock *mergeBlock, 
+               const vector<TypedValue> &args, 
+               const map<vector<ObjectTypeSet>, pair<StaticCallType, StaticCall>> & calls, 
+               AllocaInst *retVal, 
+               const vector<set<ObjectTypeSet>> &options, 
+               Function *parentFunction, 
+               const Node &node, 
+               CodeGenerator *gen, 
+               const string &name) {
   gen->Builder->SetInsertPoint(insertBlock);
   string pathString;
-  for(auto p : path) pathString+= p.toString();
+  for(auto p : path) pathString+= p.unboxed().toString();
 
   if(path.size() == args.size()) {
     auto callIt = calls.find(path);
@@ -20,8 +31,7 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
       if(arg.first.isScalar()) {
         realArgs.push_back(arg);
       } else {
-        auto boxedType = callIt->first[i];
-        boxedType.isBoxed = true;
+        auto boxedType = callIt->first[i].boxed();
         realArgs.push_back(gen->unbox(TypedValue(boxedType, args[i].second)));
       }
     }
@@ -54,6 +64,7 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
           const TypedValue &arg = args[i];
           if(!arg.first.isScalar() && !(arg.second == reusingVar)) gen->dynamicRelease(arg.second, false);
         }
+        /* TODO - why integer here? */
         StructType *stype = gen->runtimeIntegerType();        
         Value *ptr = gen->Builder->CreateBitOrPointerCast(reusingVar, stype->getPointerTo(), "void_to_struct");
         Value *tPtr = gen->Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
@@ -64,10 +75,6 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
         
         parentFunction->getBasicBlockList().push_back(ignoreBB);
         gen->Builder->SetInsertPoint(ignoreBB);
-        for(int i=0; i<args.size(); i++) {
-          const TypedValue &arg = args[i];
-          if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
-        }
         gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);     
         gen->Builder->CreateBr(mergeBlock);
         return;
@@ -88,7 +95,7 @@ void visitPath(const vector<ObjectTypeSet> &path, BasicBlock *insertBlock, Basic
   auto arg = args[i];
   
   Value *computedType = nullptr;
-  if(arg.first.isDetermined() && !arg.first.isBoxed) {
+  if(arg.first.isDetermined()) {
     computedType = ConstantInt::get(*(gen->TheContext), APInt(32, arg.first.determinedType(), false));
   } else computedType = gen->getRuntimeObjectType(arg.second);
 
@@ -132,7 +139,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
   for(int i=0; i< subnode.args_size(); i++) types.push_back(getType(subnode.args(i), ObjectTypeSet::all()));
 
   string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
-  for(auto t: types) if(t.isBoxed || !t.isDetermined()) dynamic = true;
+  for(auto t: types) if(!t.isDetermined()) dynamic = true;
 
   for(auto method: methods) {
     auto methodTypes = typesForArgString(node, method.first);
@@ -226,7 +233,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
   for(int i=0; i< subnode.args_size(); i++) {
     auto t = getType(subnode.args(i), ObjectTypeSet::all());
     types.push_back(t);
-    if(t.isBoxed || !t.isDetermined()) dynamic = true;
+    if(!t.isDetermined()) dynamic = true;
   }
 
   string requiredTypes = ObjectTypeSet::typeStringForArgs(types);

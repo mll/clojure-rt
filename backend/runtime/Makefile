@@ -6,7 +6,7 @@ ARFLAGS = rcs
 MYFLAGSOPT = -Ofast
 MYFLAGS = -g 
 CPPFLAGS = -std=c++17  
-CFLAGS =  $(MYFLAGSOPT) -I/opt/homebrew/include
+CFLAGS =  $(MYFLAGS) -I/opt/homebrew/include
 PROFILE = -Ofast 
 
 LIBS = -L/opt/homebrew/lib -lprotobuf

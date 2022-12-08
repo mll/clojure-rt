@@ -80,5 +80,5 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const FnNode &subnode, co
     TheProgramme->RecurTargets.insert({firstMethodLoopId, funId});
   } else funId = idEntry->second;
 
-  return ObjectTypeSet(functionType, false, new ConstantFunction(funId)).restriction(typeRestrictions); 
+  return ObjectTypeSet(functionType, true, new ConstantFunction(funId)).restriction(typeRestrictions); 
 }

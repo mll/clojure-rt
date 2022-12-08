@@ -426,7 +426,7 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
 }
 
 Value *CodeGenerator::dynamicZero(const ObjectTypeSet &type) {
-  if(!type.isNative()) return ConstantPointerNull::get(dynamicBoxedType());
+  if(!type.isScalar()) return ConstantPointerNull::get(dynamicBoxedType());
   switch(type.determinedType()) {
     case integerType:
       return ConstantInt::get(*TheContext, APInt(64, 0, false));
@@ -449,19 +449,17 @@ PointerType *CodeGenerator::dynamicBoxedType() {
 }
 
 Type *CodeGenerator::dynamicType(const ObjectTypeSet &type) {
-  if (type.isDetermined() && !type.isBoxed) return dynamicUnboxedType(type.determinedType());
+  if (type.isScalar()) return dynamicUnboxedType(type.determinedType());
   return dynamicBoxedType();
 }
 
 pair<BasicBlock *, Value *> CodeGenerator::dynamicUnbox(const Node &node, const TypedValue &value, objectType forcedType) {
-  if(!value.first.isBoxed && value.first.isDetermined()) {
-    if(forcedType != value.first.determinedType()) throw CodeGenerationException(string("Unable to unbox: ") + value.first.toString() + " to " + to_string(forcedType), node);
-    return {Builder->GetInsertBlock(), value.second};
-  }
-  if(value.first.isBoxed && value.first.isDetermined()) {
-    if(forcedType != value.first.determinedType()) throw CodeGenerationException(string("Unable to unbox: ") + value.first.toString() + " to " + to_string(forcedType), node);
+  const ObjectTypeSet &dynType = value.first;
+  if(dynType.isScalar() || dynType.isDetermined()) {
+    if(forcedType != dynType.determinedType()) throw CodeGenerationException(string("Unable to unbox: ") + dynType.toString() + " to " + to_string(forcedType), node);
     return {Builder->GetInsertBlock(), unbox(value).second};
   }
+
   Type *unboxType = nullptr;
   StructType *stype = nullptr;
   switch(forcedType) {
@@ -488,7 +486,7 @@ pair<BasicBlock *, Value *> CodeGenerator::dynamicUnbox(const Node &node, const 
   BasicBlock *wrongBB = llvm::BasicBlock::Create(*TheContext, "failed_dynamic_cast", parentFunction);
   BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge_dynamic_cast", parentFunction);    
 
-  Value *cond = Builder->CreateICmpEQ(type,ConstantInt::get(*TheContext, APInt(32, forcedType, false)) , "cmp_type");
+  Value *cond = Builder->CreateICmpEQ(type, ConstantInt::get(*TheContext, APInt(32, forcedType, false)) , "cmp_type");
   Builder->CreateCondBr(cond, mergeBB, wrongBB);
       
   Builder->SetInsertPoint(wrongBB);
@@ -510,14 +508,11 @@ pair<BasicBlock *, Value *> CodeGenerator::dynamicUnbox(const Node &node, const 
   return pair<BasicBlock *, Value *>(mergeBB, loaded);
 }
 
-
-
 TypedValue CodeGenerator::unbox(const TypedValue &value) {
-  if(!value.first.isBoxed && value.first.isDetermined()) return value;
-  if(!value.first.isDetermined()) throw InternalInconsistencyException(string("Unable to statically unbox type: ") + value.first.toString());
-  ObjectTypeSet t = value.first;
-  t.isBoxed = false;
-
+  const ObjectTypeSet &dynType = value.first;
+  if(dynType.isScalar()) return value;
+  if(!dynType.isDetermined()) throw InternalInconsistencyException(string("Unable to statically unbox type: ") + dynType.toString());
+  ObjectTypeSet t = dynType.unboxed();
 
   StructType *stype = nullptr;
   Type *type = nullptr;
@@ -543,22 +538,22 @@ TypedValue CodeGenerator::unbox(const TypedValue &value) {
   Value *tPtr = Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
 
   Value *loaded = Builder->CreateLoad(type, tPtr, "load_var");
-  if(value.first.isType(booleanType)) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
+  if(dynType.isBoxedType(booleanType)) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
   // TODO: memory management
 //  dynamicRelease(value.second);
   return TypedValue(t, loaded);
 }
                                         
 TypedValue CodeGenerator::box(const TypedValue &value) {
-  if (!value.first.isDetermined() || value.first.isBoxed) return value;
+  const ObjectTypeSet &type = value.first;
+  if (!type.isScalar()) return value;
 
   vector<Type *> argTypes;
   vector<Value *> args;
   argTypes.push_back(value.first.determinedType() == booleanType ? Type::getInt8Ty(*TheContext) : dynamicUnboxedType(value.first.determinedType()));
-  ObjectTypeSet type = value.first;
-  type.isBoxed = true;
+  ObjectTypeSet retType = type.boxed();
 
-  switch(value.first.determinedType()) {
+  switch(type.determinedType()) {
   case integerType:      
   case doubleType:
     args.push_back(value.second);
@@ -576,9 +571,9 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
   case concurrentHashMapType:
   case persistentArrayMapType:
   case functionType:
-    return TypedValue(type, value.second);
+    return TypedValue(retType, value.second);
   }
-  return TypedValue(type, dynamicCreate(value.first.determinedType(), argTypes, args));
+  return TypedValue(retType, dynamicCreate(type.determinedType(), argTypes, args));
 }
 
 Value *CodeGenerator::dynamicCond(Value *cond) {

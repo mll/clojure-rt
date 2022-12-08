@@ -10,7 +10,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, cons
     throw CodeGenerationException(string("Undeclared var: ") + name, node);
   }
 
-  Type *t = (found->second.first.isDetermined() && !found->second.first.isBoxed)  ? dynamicUnboxedType(found->second.first.determinedType()) : dynamicBoxedType();
+  Type *t = dynamicType(found->second.first);
 
   LoadInst * load = Builder->CreateLoad(t, found->second.second, "load_var");
   load->setAtomic(AtomicOrdering::Monotonic);
@@ -22,8 +22,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, cons
 ObjectTypeSet CodeGenerator::getType(const Node &node, const VarNode &subnode, const ObjectTypeSet &typeRestrictions) {
   string name = subnode.var().substr(2);
   auto found = StaticVars.find(name);
+  cout << "Getting var: " << name << endl;
   if(found != StaticVars.end()) {
-    return found->second.first.restriction(typeRestrictions);
+    auto t = found->second.first.restriction(typeRestrictions);
+    return t;
   }
   throw CodeGenerationException(string("Undeclared var: ") + name, node);
   return ObjectTypeSet();

@@ -36,7 +36,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
     }
     
     GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
-    Type *type = (newValue.first.isDetermined() && !newValue.first.isBoxed)  ? dynamicUnboxedType(newValue.first.determinedType()) : dynamicBoxedType();
+    Type *type = dynamicType(newValue.first);
 
     LoadInst * load = Builder->CreateLoad(type, gVar, "load_var");
     load->setAtomic(AtomicOrdering::Monotonic);

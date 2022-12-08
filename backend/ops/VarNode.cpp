@@ -22,7 +22,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, cons
 ObjectTypeSet CodeGenerator::getType(const Node &node, const VarNode &subnode, const ObjectTypeSet &typeRestrictions) {
   string name = subnode.var().substr(2);
   auto found = StaticVars.find(name);
-  cout << "Getting var: " << name << endl;
   if(found != StaticVars.end()) {
     auto t = found->second.first.restriction(typeRestrictions);
     return t;

@@ -6,11 +6,18 @@ using namespace llvm;
 TypedValue CodeGenerator::codegen(const Node &node, const LocalNode &subnode, const ObjectTypeSet &typeRestrictions) {
   switch(subnode.local()) {
   case localTypeArg:
-    {      
-      auto args = FunctionArgsStack.back();
-      return args[subnode.argid()];
+  case localTypeLet:
+    {
+      auto name = subnode.name();
+      for(int i=VariableBindingStack.size() - 1; i >= 0; i--) {
+        auto args = VariableBindingStack[i];
+        auto it = args.find(name);
+        if(it == args.end()) continue;
+        return it->second;
+      }
+      throw CodeGenerationException(string("Unknown variable: ") + name, node);         
     }
-    break;
+    break;    
   default:
     // TODO: cases other than args      
       throw CodeGenerationException(string("Compiler does not fully support the following op yet: ") + Op_Name(node.op()), node);   
@@ -19,17 +26,21 @@ TypedValue CodeGenerator::codegen(const Node &node, const LocalNode &subnode, co
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const LocalNode &subnode, const ObjectTypeSet &typeRestrictions) {
   switch(subnode.local()) {
-    case localTypeArg:      
-      if(FunctionArgTypesStack.empty()) {
-        auto args = FunctionArgsStack.back();
-        return args[subnode.argid()].first;        
-      } else {
-        auto args = FunctionArgTypesStack.back();
-        return args[subnode.argid()];          
-      }              
-      break;
-    default:
-      // TODO: cases other than args      
+  case localTypeArg:      
+  case localTypeLet:
+    {
+      auto name = subnode.name();
+      for(int i=VariableBindingTypesStack.size() - 1; i >= 0; i--) {
+        auto args = VariableBindingTypesStack[i];
+        auto it = args.find(name);
+        if(it == args.end()) continue;
+        return it->second;
+      }
+      throw CodeGenerationException(string("Unknown variable: ") + name, node);   
+    }
+    break;
+  default:
+    // TODO: cases other than args      
       throw CodeGenerationException(string("Compiler does not fully support the following op yet: ") + Op_Name(node.op()), node);   
   }
 }

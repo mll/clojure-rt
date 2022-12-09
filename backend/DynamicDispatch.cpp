@@ -304,7 +304,15 @@ ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, c
 
     TheProgramme->RecursiveFunctionsNameMap.insert({rName, true});    
     
-    FunctionArgTypesStack.push_back(args);
+    unordered_map<string, ObjectTypeSet> namedArgs;
+
+    // TODO: Variadic
+    for(int i=0; i<method.params_size(); i++) {
+      auto name = method.params(i).subnode().binding().name();
+      namedArgs.insert({name, args[i]});
+    }
+
+    VariableBindingTypesStack.push_back(namedArgs);
     ObjectTypeSet retVal;
     bool found = false;
     bool foundSpecific = false;
@@ -328,7 +336,7 @@ ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, c
         if(foundSpecific) break;
       }
     }
-    FunctionArgTypesStack.pop_back();
+    VariableBindingTypesStack.pop_back();
 
     TheProgramme->RecursiveFunctionsNameMap.erase(rName);
     TheProgramme->RecursiveFunctionsRetValGuesses.erase(rName);
@@ -366,11 +374,21 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
 
     BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
     Builder->SetInsertPoint(BB);
-    
+
+    unordered_map<string, ObjectTypeSet> functionArgTypes;
+    unordered_map<string, TypedValue> namedFunctionArgs;
     vector<TypedValue> functionArgs;
-    for(int i=0; i<args.size(); i++) functionArgs.push_back(unbox(TypedValue(args[i].removeConst(), fArgs[i])));
+    // TODO: Variadic
+    for(int i=0; i<method.params_size(); i++) {
+      auto name = method.params(i).subnode().binding().name();
+      auto value = TypedValue(args[i].removeConst(), fArgs[i]);
+      functionArgTypes.insert({name, args[i].removeConst()});      
+      namedFunctionArgs.insert({name, value});
+      functionArgs.push_back(value);
+    }
     
-    FunctionArgsStack.push_back(functionArgs);
+    VariableBindingTypesStack.push_back(functionArgTypes);
+    VariableBindingStack.push_back(namedFunctionArgs);
     try {
       if(realRetType == retType || (!retType.isDetermined() && !realRetType.isDetermined())) {
         auto result = codegen(method.body(), retType);
@@ -411,6 +429,7 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
       Builder->CreateRet(dynamicZero(retType));
       verifyFunction(*CalleeF);
     }
-    FunctionArgsStack.pop_back();
+    VariableBindingStack.pop_back();
+    VariableBindingTypesStack.pop_back();
   }
 }

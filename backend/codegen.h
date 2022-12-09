@@ -46,9 +46,12 @@ using namespace clojure::rt::protobuf::bytecode;
 
 class CodeGenerator {
   std::shared_ptr<ProgrammeState> TheProgramme;
-  std::vector<std::vector<TypedValue>> FunctionArgsStack;
+
+  std::vector<std::unordered_map<std::string, TypedValue>> VariableBindingStack;
+  std::vector<std::unordered_map<std::string, ObjectTypeSet>> VariableBindingTypesStack;
+
   std::unordered_map<std::string, TypedValue> StaticVars;
-  std::vector<std::vector<ObjectTypeSet>> FunctionArgTypesStack;
+
 public:
   std::unique_ptr<llvm::IRBuilder<>> Builder;
   std::unique_ptr<llvm::LLVMContext> TheContext;

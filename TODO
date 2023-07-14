@@ -93,7 +93,6 @@ v Vector
 v Let
 
 * Namespaces
-* Memory management for args and let (currently each managed var can be used at most once)
 * Invoke static with :static in metadata
 * Invoke lambda 
 * Invoke lambda once
@@ -105,12 +104,14 @@ v Let
 
 * HUGE Memory management ref counting (let us start with string)
   v Unify type system to have boxed/unboxed trump isDetermined() (new fields on ObjectTypeSet)
-  * Write new passes in analyzer frontend to help with memory management
-  v Use stack-like system for bindings instead the current vector based (to enable let)
+  v Use stack-like system for bindings instead the current vector based (to enable let)       
+  * Write new passes in analyzer frontend to help with memory management  
+  * Memory management for args and let (currently each managed var can be used at most once)                      
   * Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
   * Improve the strategy with combining retains with releases
   * Reuse pools for object types (especially boxed ones and collections)
   * Improve the strategy with reuse (already manually implemented in StaticCall, but this needs improvement)
+
 
 * HUGE Exception model
   * Try
@@ -130,7 +131,52 @@ v Let
 ....
 
 
+//
 
+Additional fields on every node:
+
+:vars-to-retain [string] - a list of variables that need to be retained before executing the node.
+:vars-cleanup-on-exit [string] - a list of variables that need to be released if the long jump out of context (a throw) is needed.
+:vars-to-release [string] - a list of variables that need to be released before executing the node (e.g. unused variables).
+
+
+1. postwalk - create a list of all bindings that have been used *after* the node at hand.
+
+2. prewalk - create a list of all bindings relevant to each node. For each binding count number of times it has been used (:local) in a branch *before* the node on hand. 
+   a) Use results from 1 to populate vars-to-release at the start of each body of a method (the ones that have never been used afterwards).
+   b) Use results from 1 to populate vars-to-retain for each var that has been used more than zero times after the current consumption node.
+   c) Use results from 1 to populate :vars-to-cleanup-on-exit (add for each not yet fully consumed var).
+
+Nodes that create bindings
+     * BindingNode
+Nodes that signify a usage of a variable
+     * LocalNode
+Nodes that consume variables
+     * InvokeNode
+     * KeywordInvokeNode     
+     * StaticCallNode
+     * DefNode
+     * ImportNode
+     * InstanceCallNode
+     * InstanceFieldNode
+     * IsInstanceNode
+     * MonitorEnterNode
+     * MonitorExitNode
+     * NewNode
+     * PrimInvokeNode
+     * ProtocolInvokeNode
+     * QuoteNode
+     * RecurNode      
+     * SetNode                       
+     * MutateSetNode
+     * StaticFieldNode
+     * ThrowNode     
+     * VectorNode
+     * WithMetaNode 
+     * MapNode           
+
+     * Returning from a function
+     * Non-ret forms of DoNode 
 
 // Hashers:
 

@@ -69,7 +69,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   //Builder->CreateBr(mergeBB);
     
   // else block
-  parentFunction->getBasicBlockList().push_back(elseBB);
+  parentFunction->insert(parentFunction->end(), elseBB);
+
   Builder->SetInsertPoint(elseBB);
 
   // else val is that of last value in block
@@ -130,7 +131,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   }
 
   // merge block
-  parentFunction->getBasicBlockList().push_back(mergeBB);
+  parentFunction->insert(parentFunction->end(), mergeBB);
+
   Builder->SetInsertPoint(mergeBB);
   if(thenWithType.second && elseWithType.second) {        
     llvm::PHINode *phiNode = Builder->CreatePHI(thenWithType.second->getType(), 2, "iftmp");

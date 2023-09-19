@@ -73,7 +73,7 @@ void visitPath(const vector<ObjectTypeSet> &path,
         gen->Builder->CreateStore(reusingVar, retVal);    
         gen->Builder->CreateBr(mergeBlock);
         
-        parentFunction->getBasicBlockList().push_back(ignoreBB);
+        parentFunction->insert(parentFunction->end(), ignoreBB);
         gen->Builder->SetInsertPoint(ignoreBB);
         gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);     
         gen->Builder->CreateBr(mergeBlock);
@@ -199,8 +199,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     vector<ObjectTypeSet> path;
 
     visitPath(path, Builder->GetInsertBlock(), failure, merge, args, calls, retVal, options, parentFunction, node, this, name);
-    parentFunction->getBasicBlockList().push_back(failure);
-    parentFunction->getBasicBlockList().push_back(merge);
+    parentFunction->insert(parentFunction->end(), failure);
+    parentFunction->insert(parentFunction->end(), merge);
     Builder->SetInsertPoint(failure);
     runtimeException(CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node));
 //    Builder->CreateStore(dynamicZero(ObjectTypeSet::dynamicType()), retVal);    

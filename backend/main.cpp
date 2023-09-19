@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
   ExitOnError ExitOnErr;
 
   auto TheState = make_shared<ProgrammeState>();
-  unique_ptr<ClojureJIT> TheJIT = move(*ClojureJIT::Create(TheState));
+  unique_ptr<ClojureJIT> TheJIT = std::move(*ClojureJIT::Create(TheState));
 
   gettimeofday(&appp, NULL);
   printf("Initialisation time: %f\n-------------------\n", (appp.tv_sec - asss.tv_sec) + (appp.tv_usec - asss.tv_usec)/1000000.0);

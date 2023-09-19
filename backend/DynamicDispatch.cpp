@@ -38,7 +38,7 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNod
   f->retVal = retValType;
   f->uniqueId = getUniqueFunctionIdFromName(name);
   
-  ExitOnErr(TheJIT->addAST(move(f)));
+  ExitOnErr(TheJIT->addAST(std::move(f)));
 
   auto found = StaticVars.find(refName);
   if(found != StaticVars.end()) {
@@ -75,7 +75,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
  
   BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "merge");    
    
-  parentFunction->getBasicBlockList().push_back(functionTypeBB); 
+  parentFunction->insert(parentFunction->end(), functionTypeBB); 
   Builder->SetInsertPoint(functionTypeBB);
 
   Value *funRetVal = nullptr;
@@ -91,19 +91,19 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
     Value *cond2 = Builder->CreateICmpEQ(uniqueId, uniqueFunctionId, "cmp_unique_id");
     Builder->CreateCondBr(cond2, uniqueIdOkBB, uniqueIdFailedBB);
     
-    parentFunction->getBasicBlockList().push_back(uniqueIdOkBB); 
+    parentFunction->insert(parentFunction->end(), uniqueIdOkBB); 
     Builder->SetInsertPoint(uniqueIdOkBB);
     vector<Value *> argVals;
     for(auto v : args) argVals.push_back(v.second);
     Value *uniqueIdOkVal = Builder->CreateCall(staticFunctionToCall, argVals, string("call_dynamic"));
     Builder->CreateBr(uniqueIdMergeBB);
     
-    parentFunction->getBasicBlockList().push_back(uniqueIdFailedBB); 
+    parentFunction->insert(parentFunction->end(), uniqueIdFailedBB); 
     Builder->SetInsertPoint(uniqueIdFailedBB);
     Value *uniqueIdFailedVal = callDynamicFun(node, objectToInvoke, retValType, args);
     Builder->CreateBr(uniqueIdMergeBB);
     
-    parentFunction->getBasicBlockList().push_back(uniqueIdMergeBB); 
+    parentFunction->insert(parentFunction->end(), uniqueIdMergeBB); 
     Builder->SetInsertPoint(uniqueIdMergeBB);
     PHINode *phiNode = Builder->CreatePHI(uniqueIdOkVal->getType(), 2, "phi");
     phiNode->addIncoming(uniqueIdOkVal, uniqueIdOkBB);
@@ -113,7 +113,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
   } else funRetVal = callDynamicFun(node, objectToInvoke, retValType, args);
   Builder->CreateBr(mergeBB);
 
-  parentFunction->getBasicBlockList().push_back(vectorTypeBB); 
+  parentFunction->insert(parentFunction->end(), vectorTypeBB); 
   Builder->SetInsertPoint(vectorTypeBB);
   Value *vecRetVal = nullptr; 
   BasicBlock *vecRetValBlock = Builder->GetInsertBlock();
@@ -155,7 +155,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
 
   Builder->CreateBr(mergeBB);
 
-  parentFunction->getBasicBlockList().push_back(persistentArrayMapTypeBB); 
+  parentFunction->insert(parentFunction->end(), persistentArrayMapTypeBB); 
   Builder->SetInsertPoint(persistentArrayMapTypeBB);
   Value *mapRetVal = nullptr; 
   BasicBlock *mapRetValBlock = Builder->GetInsertBlock();
@@ -182,7 +182,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
 
   Builder->CreateBr(mergeBB);
 
-  parentFunction->getBasicBlockList().push_back(keywordTypeBB); 
+  parentFunction->insert(parentFunction->end(), keywordTypeBB); 
   Builder->SetInsertPoint(keywordTypeBB);
   Value *keywordRetVal = nullptr; 
   BasicBlock *keywordRetValBlock = Builder->GetInsertBlock();
@@ -211,13 +211,13 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
 
 
 
-  parentFunction->getBasicBlockList().push_back(failedBB); 
+  parentFunction->insert(parentFunction->end(), failedBB); 
   Builder->SetInsertPoint(failedBB);
   runtimeException(CodeGenerationException("This type cannot be invoked.", node));
   Value *failedRetVal = dynamicZero(retValType);
 
   Builder->CreateBr(mergeBB);
-  parentFunction->getBasicBlockList().push_back(mergeBB); 
+  parentFunction->insert(parentFunction->end(), mergeBB); 
   Builder->SetInsertPoint(mergeBB);
   PHINode *phiNode = Builder->CreatePHI(funRetVal->getType(), 5, "phi");
 
@@ -399,7 +399,7 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
         f->args = args;
         f->retVal = realRetType;
         f->uniqueId = uniqueId;
-        ExitOnErr(TheJIT->addAST(move(f)));
+        ExitOnErr(TheJIT->addAST(std::move(f)));
         
         TypedValue realRet = callRuntimeFun(ObjectTypeSet::fullyQualifiedMethodKey(name, args, realRetType), realRetType, functionArgs);
         Value *finalRet = nullptr;

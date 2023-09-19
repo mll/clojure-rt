@@ -5,7 +5,7 @@ AR = arch -arm64 ar
 ARFLAGS = rcs
 MYFLAGSOPT = -Ofast
 MYFLAGS = -g 
-CPPFLAGS = -std=c++17  
+CPPFLAGS = -std=c++14  
 CFLAGS =  $(MYFLAGS) -I/opt/homebrew/include
 PROFILE = -Ofast 
 

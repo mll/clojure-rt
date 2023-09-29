@@ -8,6 +8,7 @@
             [protojure.protobuf :as protojure]
             [clojure.string :refer [join split]]
             [clojure.tools.reader.reader-types :as t]
+            [clojure.rt.passes :as passes]
             
             [clojure.tools.analyzer
              [utils :refer [ctx resolve-sym -source-info resolve-ns obj? dissoc-env butlast+last mmerge]]
@@ -22,7 +23,8 @@
              [trim :refer [trim]]
              [elide-meta :refer [elide-meta elides]]
              [warn-earmuff :refer [warn-earmuff]]
-             [uniquify :refer [uniquify-locals]]]
+             [uniquify :refer [uniquify-locals]]
+             [collect-closed-overs :refer [collect-closed-overs]]]
 
             [clojure.tools.analyzer.passes.jvm
              [analyze-host-expr :refer [analyze-host-expr]]
@@ -45,6 +47,7 @@
 
     #'source-info
     #'elide-meta
+   ;; we do not want constant lifting as it is not compatible with protobuf definitions
    ;; #'constant-lift
 
     #'trim
@@ -56,7 +59,9 @@
     #'validate
     #'infer-tag
 
-    #'classify-invoke})
+    #'classify-invoke
+    #'collect-closed-overs
+    #'passes/mm-pass-one})
 
 (def scheduled-rt-passes
   (schedule rt-passes))

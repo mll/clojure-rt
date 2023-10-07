@@ -2,7 +2,7 @@
 #define RT_FUNCTION_JIT
 
 #include "ObjectTypeSet.h"
-#include "protobuf/bytecode.pb.h"
+#include "bytecode.pb.h"
 #include <string>
 
 using namespace clojure::rt::protobuf::bytecode;

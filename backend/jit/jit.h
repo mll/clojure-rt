@@ -24,7 +24,7 @@
 
 #include <memory>
 #include "ASTLayer.h"
-#include "../protobuf/bytecode.pb.h"
+#include "../bytecode.pb.h"
 #include "../FunctionJIT.h"
 #include "../Programme.h"
 

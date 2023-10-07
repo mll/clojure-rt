@@ -19,7 +19,8 @@ analysis. To archieve the above result, a dynamic dispatch technique, modelled i
 Currently the compiler is set up in bootstrap mode and consists of two separate parts
 
 1. Compiler frontend written in Clojure itself, to be executed using leiningen / java clojure
-   Based on org.clojure/tools.reader and 
+   Based on org.clojure/tools.reader and org.clojure/tools.analyzer.
+   
    The frontend therefore is very simple, it only adds some additional passes to compute memory management annotations.
 
 2. Compiler backend written in C++ (llvm part) and C (runtime + basic standard library).
@@ -32,11 +33,13 @@ using the two-part bootstrap compiler, a self-hosted compiler will be developed.
 
 ## Compilation
 
-The compilation process is tested on OS X only.
+The compilation process is tested on OS X only, but due to cmake it should work everywhere if you manage to install dependencies from begin_development 
+using your system's package manager.
 
 1. ./begin_development.sh
 2. cd backend
-3. make -j
+3. cmake . -DCMAKE_PREFIX_PATH=/opt/homebrew
+4. make -j
 
 This should build the c/c++ compiler backend.
 

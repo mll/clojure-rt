@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include "protobuf/bytecode.pb.h"
+#include "bytecode.pb.h"
 #include <fstream>
 #include <sstream>
 #include "llvm/ADT/APFloat.h"

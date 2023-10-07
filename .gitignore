@@ -1,7 +1,14 @@
 *.o
 backend/clojure-rt
-backend/runtime/runtime.a
+backend/runtime/libruntime.a
 backend/runtime/runtime-tests
 *.clj
 backend/*.clj
 backend/*.cljb
+backend/CMakeFiles/*
+backend/runtime/CMakeFiles/*
+backend/bytecode*
+backend/CMakeCache*
+backend/runtime/CMakeCache*
+backend/cmake_install*
+backend/runtime/cmake_install*

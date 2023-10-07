@@ -1,7 +1,7 @@
 #ifndef RT_CODEGEN
 #define RT_CODEGEN
 
-#include "protobuf/bytecode.pb.h"
+#include "bytecode.pb.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"

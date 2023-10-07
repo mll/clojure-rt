@@ -1,7 +1,7 @@
 #ifndef RT_EXCEPTIONS
 #define RT_EXCEPTIONS
 
-#include "protobuf/bytecode.pb.h"
+#include "bytecode.pb.h"
 
 using namespace clojure::rt::protobuf::bytecode;
 

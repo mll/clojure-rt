@@ -21,7 +21,7 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include <memory>
-#include "../protobuf/bytecode.pb.h"
+#include "../bytecode.pb.h"
 #include "ASTLayer.h"
 
 using namespace clojure::rt::protobuf::bytecode;

@@ -114,7 +114,7 @@ extern "C" {
   void PersistentVector_print(PersistentVector *self);
 }
 
-#include <gperftools/profiler.h>
+//#include <gperftools/profiler.h>
 
 extern _Atomic uint64_t allocationCount[13];
 

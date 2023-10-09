@@ -2,11 +2,13 @@ cmake_minimum_required(VERSION 3.26)
 project(clojure-rt)
 
 set(CMAKE_OSX_ARCHITECTURES "arm64")
+#set(CMAKE_OPTIMIZE_DEPENDENCIES TRUE)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")

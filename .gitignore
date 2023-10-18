@@ -2,7 +2,6 @@
 backend/clojure-rt
 backend/runtime/libruntime.a
 backend/runtime/runtime-tests
-*.clj
 backend/*.clj
 backend/*.cljb
 backend/CMakeFiles/*

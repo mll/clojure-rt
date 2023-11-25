@@ -10,6 +10,14 @@ extern "C" {
 }
 
 
+/* Used by InvokeNode to compile a function during compile time:
+
+     ExitOnErr(TheJIT->addAST(std::move(f)));
+     
+     and then insert just a direct call code to materialise it without any need of 
+     dynamic arg discovery.
+*/
+
 TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNode, uint64_t> &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args, const string &refName) {
   vector<Type *> argTypes;
   vector<Value *> argVals;
@@ -51,6 +59,13 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNod
 
   return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
 }
+
+/* 
+   Builds code that dynamically determines what kind of action should be taken as 
+   an invokation. It is possible we have some info on what should be called (acquired during compilation) - 
+   in this case uniqueFunctionId and staticFunctionToCall are filled, and we use this info to simplify matters. 
+
+*/
 
 Value *CodeGenerator::dynamicInvoke(const Node &node, 
                                     Value *objectToInvoke, 
@@ -208,8 +223,6 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
   }
 
   Builder->CreateBr(mergeBB);
-
-
 
   parentFunction->insert(parentFunction->end(), failedBB); 
   Builder->SetInsertPoint(failedBB);

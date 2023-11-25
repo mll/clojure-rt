@@ -11,3 +11,5 @@ backend/CMakeCache*
 backend/runtime/CMakeCache*
 backend/cmake_install*
 backend/runtime/cmake_install*
+backend/Makefile
+backend/runtime/Makefile

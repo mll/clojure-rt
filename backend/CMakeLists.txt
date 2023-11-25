@@ -74,7 +74,7 @@ set(SOURCES
      static/Utils.cpp
      jit/Materialisation.cpp
      jit/ASTLayer.cpp
-     DynamicDispatchRuntime.cpp
+     DynamicRuntime.cpp
      DynamicDispatch.cpp
      Programme.cpp) 
 

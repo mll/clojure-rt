@@ -5,7 +5,16 @@
 extern "C" {
 #include "runtime/Function.h"
 #include <execinfo.h>
-  
+
+/* Functions in this group represent some additional runtime functions that feed back directly to 
+   JIT compiler. This is the basis of dynamic dispatch. 
+
+   We do not them in the actual runtime library because we want it to be small, 
+   standalone and not link against LLVM (which is huge).
+*/ 
+
+
+  /* Logs exceptions that arise during runtime. It is temporary - the proper exception throwing function will be introduced here once exception handling is done. */
   void logExceptionD(const char *description) {
     void *array[1000];
     char **strings;
@@ -28,6 +37,7 @@ extern "C" {
   }
   
 
+/* These functions are used for debugging by CodeGenerator::printDebugValue */
   void printInt(int64_t i) {
     std::cout << "---> Int value: " << i << std::endl;
   }
@@ -36,6 +46,8 @@ extern "C" {
     std::cout << "---> Char value: '" << (int64_t)i << "'" << std::endl;
   }
 
+
+/* Used in DefNode to assign a function to a var during runtime */
   void setFunForVar(void *jitPtr, void *funPtr, const char *varName) {
     ClojureJIT *jit = (ClojureJIT *)jitPtr;
     struct Function *fun = (struct Function *)funPtr;
@@ -45,6 +57,12 @@ extern "C" {
     programme->StaticFunctions.insert({mangled, fun->uniqueId});
   }
 
+
+/* Used in CodeGenerator::callDynamicFun to allow for runtime dynamic dispatch.
+   The function receives argument types determined at runtime and therefore can 
+   produce JIT body of a called function much more accurately and performantly than relying on 
+   dynamic variables. */
+ 
   void *specialiseDynamicFn(void *jitPtr, void *funPtr, uint64_t retValType, uint64_t argCount, uint64_t argSignature, uint64_t packedArg) {    
     ClojureJIT *jit = (ClojureJIT *)jitPtr;
     struct Function *fun = (struct Function *)funPtr;

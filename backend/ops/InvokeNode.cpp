@@ -41,7 +41,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     fName = getMangledUniqueFunctionName(uniqueId);
   }
 
-  /* If at least one arg is indetermined - we need to go the dynamic route.
+  /* All args are determined on compile time, we go static route. This means we build the function 
+     with appropriate input types during compile time and just put a call into the node implementation.
+       
      In the future we could optimise the method search as method is known when uniqueId > 0 */
   if(uniqueId > 0 && determinedArgs) {
     FnNode functionBody = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();  
@@ -89,6 +91,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     return retVal;
   }
 
+/* 
+  If at least one arg is indetermined - we need to go the dynamic route.
+  First, we try to check if we can establish the type of callee during compilation. If so, we can generate much simpler and more taylored code.
+*/
   if(funType.isDetermined()) {
     switch(funType.determinedType()) {
     case integerType:
@@ -157,7 +163,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
       }
     }
   }
-  /* Now we know that what we have at functionRef is either packaged object or a function. We have to discern those two situations: */
+  /* Now we know that what we have at functionRef is either packaged object or a packaged function. 
+     we need to go full dynamic here, building dynamic call code with all the complexities.  */
   auto callObject = codegen(functionRef, ObjectTypeSet::all());
   return TypedValue(type, dynamicInvoke(node, callObject.second, getRuntimeObjectType(callObject.second), type, args));    
 }

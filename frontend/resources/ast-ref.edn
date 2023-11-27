@@ -14,7 +14,9 @@
   ^:optional
   [:ignore-tag "`true` if this node returns a statement rather than an expression"]
   ^:optional
-  [:loops "A set of the loop-ids that might cause this node to recur"]]
+  [:loops "A set of the loop-ids that might cause this node to recur"]
+  [:drop-memory "A list of variables that are to have dups (+) or drops (-) performed *before* this node executes."]
+  [:unwind-memory "A list of variables that are to have dups (+) or drops (-) performed if an exception was caught in the code executed *inside* this node."]]
 
  :node-keys
  [{:op   :binding

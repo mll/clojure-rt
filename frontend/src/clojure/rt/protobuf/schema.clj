@@ -13,10 +13,11 @@
                                       n))))
 
 (def types {:string "string"
-            :int "uint32"
+            :int "int32"
             :bool "bool"
             :node "Node"
-            :environment "Environment"})
+            :environment "Environment"
+            :memory "MemoryManagementGuidance"})
 
 
 (def all-keys-types {:op :op
@@ -28,6 +29,8 @@
                      :o-tag :string
                      :ignore-tag :bool 
                      :loops [:string]
+                     :drop-memory [:memory]
+                     :unwind-memory [:memory]
                      :subnode :subnode})
 
 (def environment-keys {:context :string
@@ -81,13 +84,12 @@
                           (map :op)
                           (map gen-subnode)
                           (map-indexed #(str "  " %2 " = " (inc %1) ";"))))
-                    "\n  }\n}\n\n")
-        
-        types {:string "string"
-               :int "uint32"
-               :bool "bool"
-               :node "Node"}
-        
+                    "\n  }\n}\n"
+
+                    "message MemoryManagementGuidance {\n  string variableName = 1;\n  int32 requiredRefCountChange = 2;\n}\n\n"
+
+                    )
+                
         node-keys-types (-> "ast-types.edn" (read-file) (edn/read-string))
         gentype (fn [[op t]]
                   (let [ast (if (= op :node) {:keys (:all-keys data)

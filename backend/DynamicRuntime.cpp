@@ -7,14 +7,18 @@ extern "C" {
 #include <execinfo.h>
 
 /* Functions in this group represent some additional runtime functions that feed back directly to 
-   JIT compiler. This is the basis of dynamic dispatch. 
+   JIT compiler. This is the basis of dynamic dispatch. They are never called directly. 
+   Instead, compiled llvm code calls them when needed.
+   
 
    We do not them in the actual runtime library because we want it to be small, 
    standalone and not link against LLVM (which is huge).
 */ 
 
 
-  /* Logs exceptions that arise during runtime. It is temporary - the proper exception throwing function will be introduced here once exception handling is done. */
+  /* Logs exceptions that arise during runtime. It is temporary - the proper exception throwing 
+     function will be introduced here once exception handling is done. */
+
   void logExceptionD(const char *description) {
     void *array[1000];
     char **strings;
@@ -62,6 +66,10 @@ extern "C" {
    The function receives argument types determined at runtime and therefore can 
    produce JIT body of a called function much more accurately and performantly than relying on 
    dynamic variables. */
+
+  /* We pass argument types as 64 bit integers. Since type information is 8 bits, 
+     this form of call can handle up to 8 arguments. Original clojure can handle up to 20 arguments before going vararg, 
+     so we will need to extend this code to include 3 argSignature args. packedArg uses one bit per variable, so it is enough to hold 20 args. */
  
   void *specialiseDynamicFn(void *jitPtr, void *funPtr, uint64_t retValType, uint64_t argCount, uint64_t argSignature, uint64_t packedArg) {    
     ClojureJIT *jit = (ClojureJIT *)jitPtr;

@@ -99,6 +99,9 @@
 (declare cis->InvokeNode)
 (declare ecis->InvokeNode)
 (declare new-InvokeNode)
+(declare cis->MemoryManagementGuidance)
+(declare ecis->MemoryManagementGuidance)
+(declare new-MemoryManagementGuidance)
 (declare cis->TryNode)
 (declare ecis->TryNode)
 (declare new-TryNode)
@@ -467,7 +470,7 @@
 (defrecord CaseThenNode-record [hash then]
   pb/Writer
   (serialize [this os]
-    (serdes.core/write-UInt32 1  {:optimize true} (:hash this) os)
+    (serdes.core/write-Int32 1  {:optimize true} (:hash this) os)
     (serdes.core/write-embedded 2 (:then this) os))
   pb/TypeReflection
   (gettype [this]
@@ -484,7 +487,7 @@
   (->> (tag-map CaseThenNode-defaults
          (fn [tag index]
              (case index
-               1 [:hash (serdes.core/cis->UInt32 is)]
+               1 [:hash (serdes.core/cis->Int32 is)]
                2 [:then (ecis->Node is)]
 
                [index (serdes.core/cis->undefined tag is)]))
@@ -737,7 +740,7 @@
   pb/Writer
   (serialize [this os]
     (serdes.core/write-embedded 1 (:body this) os)
-    (serdes.core/write-UInt32 2  {:optimize true} (:fixedArity this) os)
+    (serdes.core/write-Int32 2  {:optimize true} (:fixedArity this) os)
     (serdes.core/write-String 3  {:optimize true} (:loopId this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 4 (:params this) os)
     (serdes.core/write-Bool 5  {:optimize true} (:isVariadic this) os))
@@ -759,7 +762,7 @@
          (fn [tag index]
              (case index
                1 [:body (ecis->Node is)]
-               2 [:fixedArity (serdes.core/cis->UInt32 is)]
+               2 [:fixedArity (serdes.core/cis->Int32 is)]
                3 [:loopId (serdes.core/cis->String is)]
                4 [:params (serdes.complex/cis->repeated ecis->Node is)]
                5 [:isVariadic (serdes.core/cis->Bool is)]
@@ -1425,13 +1428,13 @@
     (serdes.core/write-String 3  {:optimize true} (:low this) os)
     (write-CaseNode-TestType 9  {:optimize true} (:testType this) os)
     (serdes.core/write-String 2  {:optimize true} (:high this) os)
-    (serdes.core/write-UInt32 5  {:optimize true} (:shift this) os)
+    (serdes.core/write-Int32 5  {:optimize true} (:shift this) os)
     (write-CaseNode-SwitchType 7  {:optimize true} (:switchType this) os)
     (serdes.core/write-String 6  {:optimize true} (:isSkipCheck this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 10 (:tests this) os)
     (serdes.core/write-embedded 1 (:default this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 11 (:thens this) os)
-    (serdes.core/write-UInt32 4  {:optimize true} (:mask this) os)
+    (serdes.core/write-Int32 4  {:optimize true} (:mask this) os)
     (serdes.core/write-embedded 8 (:test this) os))
   pb/TypeReflection
   (gettype [this]
@@ -1460,13 +1463,13 @@
                3 [:low (serdes.core/cis->String is)]
                9 [:testType (cis->CaseNode-TestType is)]
                2 [:high (serdes.core/cis->String is)]
-               5 [:shift (serdes.core/cis->UInt32 is)]
+               5 [:shift (serdes.core/cis->Int32 is)]
                7 [:switchType (cis->CaseNode-SwitchType is)]
                6 [:isSkipCheck (serdes.core/cis->String is)]
                10 [:tests (serdes.complex/cis->repeated ecis->Node is)]
                1 [:default (ecis->Node is)]
                11 [:thens (serdes.complex/cis->repeated ecis->Node is)]
-               4 [:mask (serdes.core/cis->UInt32 is)]
+               4 [:mask (serdes.core/cis->Int32 is)]
                8 [:test (ecis->Node is)]
 
                [index (serdes.core/cis->undefined tag is)]))
@@ -1504,7 +1507,7 @@
 (defrecord CaseTestNode-record [hash test]
   pb/Writer
   (serialize [this os]
-    (serdes.core/write-UInt32 1  {:optimize true} (:hash this) os)
+    (serdes.core/write-Int32 1  {:optimize true} (:hash this) os)
     (serdes.core/write-embedded 2 (:test this) os))
   pb/TypeReflection
   (gettype [this]
@@ -1521,7 +1524,7 @@
   (->> (tag-map CaseTestNode-defaults
          (fn [tag index]
              (case index
-               1 [:hash (serdes.core/cis->UInt32 is)]
+               1 [:hash (serdes.core/cis->Int32 is)]
                2 [:test (ecis->Node is)]
 
                [index (serdes.core/cis->undefined tag is)]))
@@ -1773,10 +1776,10 @@
     (serdes.core/write-String 1  {:optimize true} (:context this) os)
     (serdes.complex/write-repeated serdes.core/write-String 2 (:locals this) os)
     (serdes.core/write-String 3  {:optimize true} (:ns this) os)
-    (serdes.core/write-UInt32 4  {:optimize true} (:column this) os)
-    (serdes.core/write-UInt32 5  {:optimize true} (:line this) os)
-    (serdes.core/write-UInt32 6  {:optimize true} (:endColumn this) os)
-    (serdes.core/write-UInt32 7  {:optimize true} (:endLine this) os)
+    (serdes.core/write-Int32 4  {:optimize true} (:column this) os)
+    (serdes.core/write-Int32 5  {:optimize true} (:line this) os)
+    (serdes.core/write-Int32 6  {:optimize true} (:endColumn this) os)
+    (serdes.core/write-Int32 7  {:optimize true} (:endLine this) os)
     (serdes.core/write-String 8  {:optimize true} (:file this) os))
   pb/TypeReflection
   (gettype [this]
@@ -1802,10 +1805,10 @@
                1 [:context (serdes.core/cis->String is)]
                2 [:locals (serdes.complex/cis->repeated serdes.core/cis->String is)]
                3 [:ns (serdes.core/cis->String is)]
-               4 [:column (serdes.core/cis->UInt32 is)]
-               5 [:line (serdes.core/cis->UInt32 is)]
-               6 [:endColumn (serdes.core/cis->UInt32 is)]
-               7 [:endLine (serdes.core/cis->UInt32 is)]
+               4 [:column (serdes.core/cis->Int32 is)]
+               5 [:line (serdes.core/cis->Int32 is)]
+               6 [:endColumn (serdes.core/cis->Int32 is)]
+               7 [:endLine (serdes.core/cis->Int32 is)]
                8 [:file (serdes.core/cis->String is)]
 
                [index (serdes.core/cis->undefined tag is)]))
@@ -1940,6 +1943,57 @@
   (cis->InvokeNode (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record InvokeNode-meta {:type "clojure.rt.protobuf.bytecode.InvokeNode" :decoder pb->InvokeNode})
+
+;-----------------------------------------------------------------------------
+; MemoryManagementGuidance
+;-----------------------------------------------------------------------------
+(defrecord MemoryManagementGuidance-record [variableName requiredRefCountChange]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:variableName this) os)
+    (serdes.core/write-Int32 2  {:optimize true} (:requiredRefCountChange this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "clojure.rt.protobuf.bytecode.MemoryManagementGuidance"))
+
+(s/def :clojure.rt.protobuf.bytecode.MemoryManagementGuidance/variableName string?)
+(s/def :clojure.rt.protobuf.bytecode.MemoryManagementGuidance/requiredRefCountChange int?)
+(s/def ::MemoryManagementGuidance-spec (s/keys :opt-un [:clojure.rt.protobuf.bytecode.MemoryManagementGuidance/variableName :clojure.rt.protobuf.bytecode.MemoryManagementGuidance/requiredRefCountChange ]))
+(def MemoryManagementGuidance-defaults {:variableName "" :requiredRefCountChange 0 })
+
+(defn cis->MemoryManagementGuidance
+  "CodedInputStream to MemoryManagementGuidance"
+  [is]
+  (->> (tag-map MemoryManagementGuidance-defaults
+         (fn [tag index]
+             (case index
+               1 [:variableName (serdes.core/cis->String is)]
+               2 [:requiredRefCountChange (serdes.core/cis->Int32 is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->MemoryManagementGuidance-record)))
+
+(defn ecis->MemoryManagementGuidance
+  "Embedded CodedInputStream to MemoryManagementGuidance"
+  [is]
+  (serdes.core/cis->embedded cis->MemoryManagementGuidance is))
+
+(defn new-MemoryManagementGuidance
+  "Creates a new instance from a map, similar to map->MemoryManagementGuidance except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::MemoryManagementGuidance-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::MemoryManagementGuidance-spec init))))]}
+  (-> (merge MemoryManagementGuidance-defaults init)
+      (map->MemoryManagementGuidance-record)))
+
+(defn pb->MemoryManagementGuidance
+  "Protobuf to MemoryManagementGuidance"
+  [input]
+  (cis->MemoryManagementGuidance (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record MemoryManagementGuidance-meta {:type "clojure.rt.protobuf.bytecode.MemoryManagementGuidance" :decoder pb->MemoryManagementGuidance})
 
 ;-----------------------------------------------------------------------------
 ; TryNode
@@ -2487,7 +2541,7 @@
   (serialize [this os]
     (serdes.core/write-embedded 1 (:body this) os)
     (serdes.complex/write-repeated serdes.core/write-String 2 (:bridges this) os)
-    (serdes.core/write-UInt32 3  {:optimize true} (:fixedArity this) os)
+    (serdes.core/write-Int32 3  {:optimize true} (:fixedArity this) os)
     (serdes.core/write-String 4  {:optimize true} (:interface this) os)
     (serdes.core/write-String 5  {:optimize true} (:loopId this) os)
     (serdes.core/write-String 6  {:optimize true} (:name this) os)
@@ -2515,7 +2569,7 @@
              (case index
                1 [:body (ecis->Node is)]
                2 [:bridges (serdes.complex/cis->repeated serdes.core/cis->String is)]
-               3 [:fixedArity (serdes.core/cis->UInt32 is)]
+               3 [:fixedArity (serdes.core/cis->Int32 is)]
                4 [:interface (serdes.core/cis->String is)]
                5 [:loopId (serdes.core/cis->String is)]
                6 [:name (serdes.core/cis->String is)]
@@ -2607,7 +2661,7 @@
 (defrecord BindingNode-record [argId init local name isVariadic]
   pb/Writer
   (serialize [this os]
-    (serdes.core/write-UInt32 1  {:optimize true} (:argId this) os)
+    (serdes.core/write-Int32 1  {:optimize true} (:argId this) os)
     (serdes.core/write-embedded 2 (:init this) os)
     (write-LocalType 3  {:optimize true} (:local this) os)
     (serdes.core/write-String 4  {:optimize true} (:name this) os)
@@ -2630,7 +2684,7 @@
   (->> (tag-map BindingNode-defaults
          (fn [tag index]
              (case index
-               1 [:argId (serdes.core/cis->UInt32 is)]
+               1 [:argId (serdes.core/cis->Int32 is)]
                2 [:init (ecis->Node is)]
                3 [:local (cis->LocalType is)]
                4 [:name (serdes.core/cis->String is)]
@@ -2764,19 +2818,21 @@
 ;-----------------------------------------------------------------------------
 ; Node
 ;-----------------------------------------------------------------------------
-(defrecord Node-record [subnode form loops tag rawForms env topLevel op oTag ignoreTag]
+(defrecord Node-record [subnode form loops tag unwindMemory rawForms dropMemory env topLevel op oTag ignoreTag]
   pb/Writer
   (serialize [this os]
-    (serdes.core/write-embedded 8 (:subnode this) os)
-    (serdes.core/write-String 2  {:optimize true} (:form this) os)
-    (serdes.complex/write-repeated serdes.core/write-String 4 (:loops this) os)
-    (serdes.core/write-String 9  {:optimize true} (:tag this) os)
-    (serdes.complex/write-repeated serdes.core/write-String 7 (:rawForms this) os)
-    (serdes.core/write-embedded 1 (:env this) os)
-    (serdes.core/write-Bool 10  {:optimize true} (:topLevel this) os)
-    (write-Op 6  {:optimize true} (:op this) os)
-    (serdes.core/write-String 5  {:optimize true} (:oTag this) os)
-    (serdes.core/write-Bool 3  {:optimize true} (:ignoreTag this) os))
+    (serdes.core/write-embedded 9 (:subnode this) os)
+    (serdes.core/write-String 3  {:optimize true} (:form this) os)
+    (serdes.complex/write-repeated serdes.core/write-String 5 (:loops this) os)
+    (serdes.core/write-String 10  {:optimize true} (:tag this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 12 (:unwindMemory this) os)
+    (serdes.complex/write-repeated serdes.core/write-String 8 (:rawForms this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 1 (:dropMemory this) os)
+    (serdes.core/write-embedded 2 (:env this) os)
+    (serdes.core/write-Bool 11  {:optimize true} (:topLevel this) os)
+    (write-Op 7  {:optimize true} (:op this) os)
+    (serdes.core/write-String 6  {:optimize true} (:oTag this) os)
+    (serdes.core/write-Bool 4  {:optimize true} (:ignoreTag this) os))
   pb/TypeReflection
   (gettype [this]
     "clojure.rt.protobuf.bytecode.Node"))
@@ -2784,14 +2840,16 @@
 (s/def :clojure.rt.protobuf.bytecode.Node/form string?)
 (s/def :clojure.rt.protobuf.bytecode.Node/loops (s/every string?))
 (s/def :clojure.rt.protobuf.bytecode.Node/tag string?)
+
 (s/def :clojure.rt.protobuf.bytecode.Node/rawForms (s/every string?))
+
 
 (s/def :clojure.rt.protobuf.bytecode.Node/topLevel boolean?)
 (s/def :clojure.rt.protobuf.bytecode.Node/op (s/or :keyword keyword? :int int?))
 (s/def :clojure.rt.protobuf.bytecode.Node/oTag string?)
 (s/def :clojure.rt.protobuf.bytecode.Node/ignoreTag boolean?)
 (s/def ::Node-spec (s/keys :opt-un [:clojure.rt.protobuf.bytecode.Node/form :clojure.rt.protobuf.bytecode.Node/loops :clojure.rt.protobuf.bytecode.Node/tag :clojure.rt.protobuf.bytecode.Node/rawForms :clojure.rt.protobuf.bytecode.Node/topLevel :clojure.rt.protobuf.bytecode.Node/op :clojure.rt.protobuf.bytecode.Node/oTag :clojure.rt.protobuf.bytecode.Node/ignoreTag ]))
-(def Node-defaults {:form "" :loops [] :tag "" :rawForms [] :topLevel false :op Op-default :oTag "" :ignoreTag false })
+(def Node-defaults {:form "" :loops [] :tag "" :unwindMemory [] :rawForms [] :dropMemory [] :topLevel false :op Op-default :oTag "" :ignoreTag false })
 
 (defn cis->Node
   "CodedInputStream to Node"
@@ -2799,16 +2857,18 @@
   (->> (tag-map Node-defaults
          (fn [tag index]
              (case index
-               8 [:subnode (ecis->Subnode is)]
-               2 [:form (serdes.core/cis->String is)]
-               4 [:loops (serdes.complex/cis->repeated serdes.core/cis->String is)]
-               9 [:tag (serdes.core/cis->String is)]
-               7 [:rawForms (serdes.complex/cis->repeated serdes.core/cis->String is)]
-               1 [:env (ecis->Environment is)]
-               10 [:topLevel (serdes.core/cis->Bool is)]
-               6 [:op (cis->Op is)]
-               5 [:oTag (serdes.core/cis->String is)]
-               3 [:ignoreTag (serdes.core/cis->Bool is)]
+               9 [:subnode (ecis->Subnode is)]
+               3 [:form (serdes.core/cis->String is)]
+               5 [:loops (serdes.complex/cis->repeated serdes.core/cis->String is)]
+               10 [:tag (serdes.core/cis->String is)]
+               12 [:unwindMemory (serdes.complex/cis->repeated ecis->MemoryManagementGuidance is)]
+               8 [:rawForms (serdes.complex/cis->repeated serdes.core/cis->String is)]
+               1 [:dropMemory (serdes.complex/cis->repeated ecis->MemoryManagementGuidance is)]
+               2 [:env (ecis->Environment is)]
+               11 [:topLevel (serdes.core/cis->Bool is)]
+               7 [:op (cis->Op is)]
+               6 [:oTag (serdes.core/cis->String is)]
+               4 [:ignoreTag (serdes.core/cis->Bool is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -2826,8 +2886,10 @@
   [init]
   {:pre [(if (s/valid? ::Node-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::Node-spec init))))]}
   (-> (merge Node-defaults init)
+      (cond-> (some? (get init :dropMemory)) (update :dropMemory #(map new-MemoryManagementGuidance %)))
       (cond-> (some? (get init :env)) (update :env new-Environment))
       (cond-> (some? (get init :subnode)) (update :subnode new-Subnode))
+      (cond-> (some? (get init :unwindMemory)) (update :unwindMemory #(map new-MemoryManagementGuidance %)))
       (map->Node-record)))
 
 (defn pb->Node
@@ -2844,7 +2906,7 @@
   pb/Writer
   (serialize [this os]
     (serdes.core/write-embedded 1 (:local this) os)
-    (serdes.core/write-UInt32 2  {:optimize true} (:maxFixedArity this) os)
+    (serdes.core/write-Int32 2  {:optimize true} (:maxFixedArity this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 3 (:methods this) os)
     (serdes.core/write-Bool 4  {:optimize true} (:once this) os)
     (serdes.core/write-Bool 5  {:optimize true} (:isVariadic this) os))
@@ -2866,7 +2928,7 @@
          (fn [tag index]
              (case index
                1 [:local (ecis->Node is)]
-               2 [:maxFixedArity (serdes.core/cis->UInt32 is)]
+               2 [:maxFixedArity (serdes.core/cis->Int32 is)]
                3 [:methods (serdes.complex/cis->repeated ecis->Node is)]
                4 [:once (serdes.core/cis->Bool is)]
                5 [:isVariadic (serdes.core/cis->Bool is)]
@@ -2904,7 +2966,7 @@
 (defrecord LocalNode-record [argId isAssignable local name isVariadic]
   pb/Writer
   (serialize [this os]
-    (serdes.core/write-UInt32 1  {:optimize true} (:argId this) os)
+    (serdes.core/write-Int32 1  {:optimize true} (:argId this) os)
     (serdes.core/write-Bool 2  {:optimize true} (:isAssignable this) os)
     (write-LocalType 3  {:optimize true} (:local this) os)
     (serdes.core/write-String 4  {:optimize true} (:name this) os)
@@ -2927,7 +2989,7 @@
   (->> (tag-map LocalNode-defaults
          (fn [tag index]
              (case index
-               1 [:argId (serdes.core/cis->UInt32 is)]
+               1 [:argId (serdes.core/cis->Int32 is)]
                2 [:isAssignable (serdes.core/cis->Bool is)]
                3 [:local (cis->LocalType is)]
                4 [:name (serdes.core/cis->String is)]

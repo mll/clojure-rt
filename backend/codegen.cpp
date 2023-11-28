@@ -58,6 +58,11 @@ string CodeGenerator::codegenTopLevel(const Node &node, int i) {
 }
 
 TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRestrictions) {
+  for(int i=0; i<node.dropmemory_size(); i++) {
+    auto guidance = node.dropmemory(i);
+    dynamicMemoryGuidance(guidance);
+  }
+
   switch (node.op()) {
   case opBinding:
     return codegen(node, node.subnode().binding(), typeRestrictions);    

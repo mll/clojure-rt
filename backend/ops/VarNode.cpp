@@ -10,11 +10,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, cons
     throw CodeGenerationException(string("Undeclared var: ") + name, node);
   }
 
+  auto type = found->second.first;
   Type *t = dynamicType(found->second.first);
 
   LoadInst * load = Builder->CreateLoad(t, found->second.second, "load_var");
   load->setAtomic(AtomicOrdering::Monotonic);
-  dynamicRetain(load);
+  if(type.isDynamic()) dynamicRetain(load);
 
   return TypedValue(found->second.first.restriction(typeRestrictions), load);
 }

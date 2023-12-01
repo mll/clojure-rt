@@ -595,7 +595,7 @@ void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidan
   
   if(found != StaticVars.end()) {      
     auto type = found->second.first;
-    if(!type.isDynamic()) continue;
+    if(!type.isDynamic()) return;
     
     Type *t = dynamicType(found->second.first);
     
@@ -605,7 +605,7 @@ void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidan
       if(change > 0) { dynamicRetain(load); change--; }
       else { dynamicRelease(load, false); change++; }
     }
-    continue;
+    return;
   }
   
   for(int j=VariableBindingStack.size() - 1; j >= 0; j--) {

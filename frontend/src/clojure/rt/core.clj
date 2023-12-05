@@ -9,7 +9,7 @@
             [clojure.string :refer [join split]]
             [clojure.tools.reader.reader-types :as t]
             [clojure.rt.passes :as passes]
-            
+
             [clojure.tools.analyzer
              [utils :refer [ctx resolve-sym -source-info resolve-ns obj? dissoc-env butlast+last mmerge]]
              [ast :refer [walk prewalk postwalk] :as ast]
@@ -61,21 +61,24 @@
 
     #'classify-invoke
     #'collect-closed-overs
+
+    ;; #'passes/fresh-and-let-bound-vars
     #'passes/mm-pass-one})
 
 (def scheduled-rt-passes
   (schedule rt-passes))
 
 
-(defn analyze [s filename] 
+(defn analyze [s filename]
   (with-bindings {#'a/run-passes scheduled-rt-passes}
     (let [reader (t/source-logging-push-back-reader s 1 filename)]
       (loop [form (r/read {:eof :eof} reader) ret-val []]
-        (if (= :eof form) ret-val
+        (if (= :eof form) (do #_(clojure.pprint/pprint (passes/clean-tree ret-val)) ;; uncomment to see simple tree
+                              ret-val)
             (do
               (eval form)
               (recur (r/read {:eof :eof} reader)
-                     (conj ret-val (a/analyze form)))))))))
+                     (conj ret-val (passes/fresh-and-let-bound-vars (a/analyze form))))))))))
 
 
 (defn generate-protobuf-defs [] (sch/generate-protobuf-defs "bytecode.proto"))
@@ -86,8 +89,8 @@
    (protojure/->pb (enc/encode-ast (analyze form infile-name)))
    (java.io.File. outfile)))
 
-(defn -main 
-  ([infile] (let [parts (split infile #"\.")] 
+(defn -main
+  ([infile] (let [parts (split infile #"\.")]
               (compile (slurp infile) (str (join "." (butlast parts)) ".cljb") infile)))
   ([] (println "Generating protobuf definitions into bytecode.proto file. To compile use file name as parameter")
    (generate-protobuf-defs)))

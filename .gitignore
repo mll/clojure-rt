@@ -13,3 +13,11 @@ backend/cmake_install*
 backend/runtime/cmake_install*
 backend/Makefile
 backend/runtime/Makefile
+/.clj-kondo/babashka
+/.clj-kondo/.cache
+/.lsp
+/.calva
+frontend/.clj-kondo/babashka
+frontend/.clj-kondo/.cache
+frontend/.lsp
+frontend/.calva

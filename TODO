@@ -3,6 +3,8 @@
 v - done
 <-- - in progress
 x - wont/cant be done
+*#686868* - transferred to pivotaltracker
+
 
 Runtime:
 
@@ -10,7 +12,7 @@ Runtime:
 * Double / float / quad - the same
 * Double / float / quad array
 
-* UTF8 strings (library from Julia is already there) 
+*#186758540* UTF8 strings (library from Julia is already there) 
 
 v String
 v PersistentList
@@ -33,7 +35,8 @@ v PersistentArrayMap
   (This cannot be done, for some reason atomic operations fail here)
 x Merge Object into all objects, trivialise super and Object_data 
 * Var return type and value 
-* Optimise hash computations (caching for all collections, conj/disj should just modify it a bit (use a commutative operator, e.g. +)
+
+*#186758549* Optimise hash computations (caching for all collections, conj/disj should just modify it a bit (use a commutative operator, e.g. +)
 * Iterators (vector, string, map, list)
 * Dynamic sequence (that retains a list, vector, map etc.)
 * Symbol uniquing 
@@ -41,8 +44,9 @@ x Merge Object into all objects, trivialise super and Object_data
 * Ratio
 * BigInteger
 
-* PersistentHashMap
-* PersistentSet
+*#186758558* PersistentHashMap
+*#186758570* PersistentSet
+*#186758575,#186758576* Transients for vectors and maps.
 
 v HUGE Memory management ref counting for runtime data structures
   v Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
@@ -92,11 +96,14 @@ v Recur (for Fn)
 v Vector
 v Let
 
+
 * Namespaces
 * Invoke static with :static in metadata
-* Invoke lambda 
+*#186758640* Invoke lambda 
 * Invoke lambda once
-* Invoke variadic with Seq 
+*#186758639* Invoke variadic with Seq 
+*#186758641* Invoke with up to 20 args (8 currently supported)
+
 * A way to run tests and meaningfully observe their results 
 * Loop (+ recur for loop)
 * dynamic vars
@@ -105,9 +112,9 @@ v Let
 * HUGE Memory management ref counting (let us start with string)
   v Unify type system to have boxed/unboxed trump isDetermined() (new fields on ObjectTypeSet)
   v Use stack-like system for bindings instead the current vector based (to enable let)       
-  * Write new passes in analyzer frontend to help with memory management  
-  * Memory management for args and let (currently each managed var can be used at most once)                      
-  * Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
+  --> (Alek) Write new passes in analyzer frontend to help with memory management  
+  v Memory management for args and let (currently each managed var can be used at most once)                      
+  --> (Alek) Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
   * Improve the strategy with combining retains with releases
   * Reuse pools for object types (especially boxed ones and collections)
   * Improve the strategy with reuse (already manually implemented in StaticCall, but this needs improvement)
@@ -134,18 +141,6 @@ v Let
 //
 
 Additional fields on every node:
-
-:vars-to-retain [string] - a list of variables that need to be retained before executing the node.
-:vars-cleanup-on-exit [string] - a list of variables that need to be released if the long jump out of context (a throw) is needed.
-:vars-to-release [string] - a list of variables that need to be released before executing the node (e.g. unused variables).
-
-
-1. postwalk - create a list of all bindings that have been used *after* the node at hand.
-
-2. prewalk - create a list of all bindings relevant to each node. For each binding count number of times it has been used (:local) in a branch *before* the node on hand. 
-   a) Use results from 1 to populate vars-to-release at the start of each body of a method (the ones that have never been used afterwards).
-   b) Use results from 1 to populate vars-to-retain for each var that has been used more than zero times after the current consumption node.
-   c) Use results from 1 to populate :vars-to-cleanup-on-exit (add for each not yet fully consumed var).
 
 Nodes that create bindings
      * BindingNode

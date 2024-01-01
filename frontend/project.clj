@@ -9,7 +9,9 @@
                  [org.clojure/tools.emitter.jvm "0.1.0-beta5"]
                  [camel-snake-kebab "0.4.3"]
                  [io.github.protojure/core "2.0.1"]
-                 [io.github.protojure/google.protobuf "2.0.0"]]
+                 [io.github.protojure/google.protobuf "2.0.0"]
+                 [criterium "0.4.6"]
+                 [com.clojure-goes-fast/clj-memory-meter "0.1.0"]]
   :repl-options {:init-ns clojure.rt.core}
   :main clojure.rt.core
   :java-source-paths []

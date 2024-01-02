@@ -11,11 +11,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const LetNode &subnode, cons
     auto bindingNode = subnode.bindings(i);
     auto binding = bindingNode.subnode().binding();
 
-    codegenDynamicMemoryGuidance(bindingNode);
-
     VariableBindingTypesStack.push_back(bindingTypes);
     VariableBindingStack.push_back(bindings);
+
+    codegenDynamicMemoryGuidance(bindingNode);
     auto init = codegen(binding.init(), ObjectTypeSet::all());
+
     VariableBindingStack.pop_back();
     VariableBindingTypesStack.pop_back();
 
@@ -26,7 +27,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const LetNode &subnode, cons
   // TODO: memory management
   VariableBindingStack.push_back(bindings);
   VariableBindingTypesStack.push_back(bindingTypes);
+
   auto retVal = codegen(subnode.body(), typeRestrictions);
+
   VariableBindingStack.pop_back();
   VariableBindingTypesStack.pop_back();
   return retVal;

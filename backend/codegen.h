@@ -108,6 +108,7 @@ ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t u
   llvm::Value *dynamicKeyword(const char *name);
   llvm::Value *dynamicVector(const std::vector<TypedValue> &args);
   llvm::Value *dynamicArrayMap(const std::vector<TypedValue> &args);
+  void codegenDynamicMemoryGuidance(const Node &node);
   void dynamicMemoryGuidance(const MemoryManagementGuidance &guidance);
 
   TypedValue dynamicIsReusable(llvm::Value *what);

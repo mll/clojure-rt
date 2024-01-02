@@ -11,6 +11,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const LetNode &subnode, cons
     auto bindingNode = subnode.bindings(i);
     auto binding = bindingNode.subnode().binding();
 
+    codegenDynamicMemoryGuidance(bindingNode);
+
     VariableBindingTypesStack.push_back(bindingTypes);
     VariableBindingStack.push_back(bindings);
     auto init = codegen(binding.init(), ObjectTypeSet::all());

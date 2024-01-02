@@ -62,7 +62,6 @@
     #'classify-invoke
     #'collect-closed-overs
 
-    ;; #'passes/fresh-and-let-bound-vars
     #'passes/mm-pass-one})
 
 (def scheduled-rt-passes
@@ -78,7 +77,11 @@
             (do
               (eval form)
               (recur (r/read {:eof :eof} reader)
-                     (conj ret-val (passes/fresh-and-let-bound-vars (a/analyze form))))))))))
+                     (->> form
+                          a/analyze
+                          passes/fresh-vars
+                          passes/memory-management-pass
+                          (conj ret-val)))))))))
 
 
 (defn generate-protobuf-defs [] (sch/generate-protobuf-defs "bytecode.proto"))

@@ -15,17 +15,22 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   
   if(!testType.contains(nilType) && !testType.contains(booleanType) && !testType.isEmpty()) {
     if (thenType.isEmpty()) throw CodeGenerationException(string("Incorrect type: 'then' branch of if cannot fulfil type restrictions: ") + typeRestrictions.toString(), node);
+    dynamicRelease(codegen(subnode.test(), ObjectTypeSet::all()).second, false);
+        
     return codegen(subnode.then(), typeRestrictions);
   }
 
   if(testType.isDetermined() && testType.determinedType() == nilType) { 
     /* Test condition is of single type, which is nil - we immediately know test fails and else branch is triggered! */
     if (elseType.isEmpty()) throw CodeGenerationException(string("Incorrect type: 'else' branch of if cannot fulfil type restrictions: ") + typeRestrictions.toString(), node);
+    dynamicRelease(codegen(subnode.test(), ObjectTypeSet::all()).second, false);
+
     return subnode.has_else_() ? codegen(subnode.else_(), typeRestrictions) : TypedValue(ObjectTypeSet(nilType, false, new ConstantNil()), dynamicNil());
   }
   
   ConstantBoolean* CI = nullptr;
   if (testType.getConstant() && (CI = dynamic_cast<ConstantBoolean *>(testType.getConstant()))) {
+    dynamicRelease(codegen(subnode.test(), ObjectTypeSet::all()).second, false);
     /* In case of a constant (which often arises from constant folding!) we can immediately make a decision on the *compiler* level! */
     bool constCondition = CI->value;
     if(constCondition) {

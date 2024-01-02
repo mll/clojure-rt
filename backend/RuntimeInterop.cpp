@@ -595,7 +595,7 @@ void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidan
   
   if(found != StaticVars.end()) {      
     auto type = found->second.first;
-    if(!type.isDynamic()) return;
+    if(type.isScalar()) return;
     
     Type *t = dynamicType(found->second.first);
     
@@ -613,7 +613,7 @@ void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidan
     auto found = stack.find(name);
     if(found!=stack.end()) {
       auto typedValue = found->second;
-      if(!typedValue.first.isDynamic()) break;
+      if(typedValue.first.isScalar()) break;
       while(change != 0) {
         if(change > 0) { dynamicRetain(typedValue.second); change--; }
         else { dynamicRelease(typedValue.second, false); change++; }

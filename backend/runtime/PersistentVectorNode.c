@@ -4,6 +4,16 @@
 
 /* mem done */
 PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type) { 
+  /* Why do we allocate full RRB_BRANCHING elements for leaf nodes? 
+     Should we optimise and keep only as much as is needed if 
+     we copy them when adding new items anyway? 
+     
+     Is this an optimisation to allow easier reuse with isReusable? Probably yes. 
+
+     If so, is it an acceptable tradeoff to have some size overhead but then 
+     faster execution because allocations are not that often needed?
+
+  */
   size_t allocs = type == leafNode ? RRB_BRANCHING : count;
   Object *super = allocate(sizeof(PersistentVectorNode)+ sizeof(Object) + allocs * sizeof(PersistentVectorNode *)); 
   

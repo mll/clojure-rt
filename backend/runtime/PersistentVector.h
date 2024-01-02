@@ -9,6 +9,14 @@
 #define RRB_BRANCHING (1 << RRB_BITS)
 #define RRB_MASK (RRB_BRANCHING - 1)
 
+/* 
+ * The persistent vector's update performance is generally between 5-8x slower than an ArrayList.
+ * The transient vector's update performance is comparable to the ArrayList, usually less than 1.5 times slower.
+ * Iteration is about 3 times slower, and lookups take no more than 2 times more time 
+ * (unless the vector contains less than 1000 elements, in which case it is about just as fast).
+ */
+
+
 typedef struct PersistentVector PersistentVector;
 typedef struct PersistentVectorNode PersistentVectorNode;
 

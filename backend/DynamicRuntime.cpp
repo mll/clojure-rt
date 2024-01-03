@@ -75,6 +75,14 @@ extern "C" {
     ClojureJIT *jit = (ClojureJIT *)jitPtr;
     struct Function *fun = (struct Function *)funPtr;
     struct FunctionMethod *method = NULL;
+/* It will be cool to understand why do we need all the info inside the function object whereas 
+   it could have been located somewhere inside TheProgramme inside the jit to which we 
+   have a handle here... 
+   
+   Removing all the data from the function object could actually speed everything up a bit, 
+   so maybe it is worth trying? The invokation cache certainly has its place here, but arities 
+   could be sucked from JIT for sure */
+
     for(int i=0; i<fun->methodCount; i++) {
       struct FunctionMethod *candidate = &(fun->methods[i]);
       if(argCount == candidate->fixedArity || (argCount > candidate->fixedArity && method->isVariadic)) {

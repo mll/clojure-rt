@@ -71,10 +71,11 @@ extern "C" {
      this form of call can handle up to 8 arguments. Original clojure can handle up to 20 arguments before going vararg, 
      so we will need to extend this code to include 3 argSignature args. packedArg uses one bit per variable, so it is enough to hold 20 args. */
  
-  void *specialiseDynamicFn(void *jitPtr, void *funPtr, uint64_t retValType, uint64_t argCount, uint64_t argSignature, uint64_t packedArg) {    
+  void *specialiseDynamicFn(void *jitPtr, void *funPtr, uint64_t retValType, uint64_t argCount, uint64_t argSignature1, uint64_t argSignature2, uint64_t argSignature3, uint64_t packedArg) {    
     ClojureJIT *jit = (ClojureJIT *)jitPtr;
     struct Function *fun = (struct Function *)funPtr;
     struct FunctionMethod *method = NULL;
+    uint64_t argSignature[3] = { argSignature1, argSignature2, argSignature3 };
 /* It will be cool to understand why do we need all the info inside the function object whereas 
    it could have been located somewhere inside TheProgramme inside the jit to which we 
    have a handle here... 
@@ -101,8 +102,12 @@ extern "C" {
     for(int i=0; i<INVOKATION_CACHE_SIZE; i++) { 
       /* Fast cache access */
       entry = &(method->invokations[i]);
-      if(entry->signature == argSignature && entry->packed == packedArg && entry->returnType == retValType) return entry->fptr;
-      if(entry->signature != 0) entry = NULL;
+      if(entry->signature[0] == argSignature[0] && 
+         entry->signature[1] == argSignature[1] && 
+         entry->signature[2] == argSignature[2] && 
+         entry->packed == packedArg &&
+         entry->returnType == retValType) return entry->fptr;
+      if(entry->signature[0] != 0) entry = NULL;
     } 
 
     std::vector<ObjectTypeSet> argT;
@@ -110,7 +115,9 @@ extern "C" {
     uint64_t mask = 0xff;
 
     for(int i=0; i < argCount; i++) {
-      uint64_t type = (argSignature >> (8 * i)) & mask;
+      int group = i / 8;
+      int index = i % 8;
+      uint64_t type = (argSignature[group] >> (8 * index)) & mask;
       unsigned char isBoxed = (packedArg >> i) & 1;
       argT.insert(argT.begin(), ObjectTypeSet((objectType)type, isBoxed));
     }
@@ -133,7 +140,9 @@ extern "C" {
     void *retVal = (void *)ExprSymbol.getAddress();
       
     if(entry) { /* Store in cache if free entries available */
-      entry->signature = argSignature;
+      entry->signature[0] = argSignature[0];
+      entry->signature[1] = argSignature[1];
+      entry->signature[2] = argSignature[2];
       entry->packed = packedArg;
       entry->returnType = retValType;
       entry->fptr = retVal;

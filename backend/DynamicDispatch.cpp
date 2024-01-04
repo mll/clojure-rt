@@ -244,13 +244,19 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
 
 
 Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const ObjectTypeSet &retValType, const vector<TypedValue> &args) {
-  Value *argSignature = ConstantInt::get(*TheContext, APInt(64, 0, false));
+  Value *argSignature[3] = { ConstantInt::get(*TheContext, APInt(64, 0, false)),
+                             ConstantInt::get(*TheContext, APInt(64, 0, false)),
+                             ConstantInt::get(*TheContext, APInt(64, 0, false)) } ;
+  
   Value *packedArgSignature = ConstantInt::get(*TheContext, APInt(64, 0, false));
+
   vector<TypedValue> pointerCallArgs;
-  /* TODO - more than 8 args */
-  if(args.size() > 8) throw CodeGenerationException("More than 8 args not yet supported", node); 
+
+  if(args.size() > 20) throw CodeGenerationException("More than 20 args not yet supported", node); 
   for(int i=0; i<args.size(); i++) {
      auto arg = args[i];
+     auto group = i / 8;
+     auto index = i % 8;
      Value *type = nullptr;
      Value *packed = nullptr;
      if(arg.first.isDetermined()) {
@@ -261,8 +267,8 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
        type = getRuntimeObjectType(arg.second);
        packed = ConstantInt::get(*TheContext, APInt(64, 1, false));
      }                                   
-     argSignature = Builder->CreateShl(argSignature, 8, "shl");
-     argSignature = Builder->CreateOr(argSignature, Builder->CreateIntCast(type, Type::getInt64Ty(*TheContext), false), "bit_or");
+     argSignature[group] = Builder->CreateShl(argSignature[group], 8, "shl");
+     argSignature[group] = Builder->CreateOr(argSignature[group], Builder->CreateIntCast(type, Type::getInt64Ty(*TheContext), false), "bit_or");
      packedArgSignature = Builder->CreateShl(packedArgSignature, 1, "shl");
      packedArgSignature = Builder->CreateOr(packedArgSignature, packed, "bit_or");
   }
@@ -275,9 +281,10 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
   specialisationArgs.push_back(TypedValue(ObjectTypeSet::all(), rtFnPointer));
   specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), ConstantInt::get(*TheContext, APInt(64, retValType.isDetermined() ? retValType.determinedType() : 0, false))));
   specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), ConstantInt::get(*TheContext, APInt(64, args.size(), false))));
-  specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), argSignature));
+  for (int i=0; i<3; i++) {
+    specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), argSignature[i]));    
+  }
   specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), packedArgSignature));
-
   TypedValue functionPointer = callRuntimeFun("specialiseDynamicFn", ObjectTypeSet::all(), specialisationArgs);
 
   vector<Type *> argTypes;

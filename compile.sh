@@ -1,14 +1,15 @@
 #!/bin/bash
 
 LEIN=`which lein`
-FILENAME=$1
+TOCOPY=$1
+FILENAME=$(basename $TOCOPY)
 BINARY="${FILENAME%.clj}.cljb"
 cd backend
 if [ -f "$BINARY" ]; then
     rm $BINARY
 fi
 cd ..
-cp $FILENAME frontend
+cp $TOCOPY frontend
 cd frontend
 echo "Compiling to AST..." 
 time $LEIN run $FILENAME

@@ -3,6 +3,8 @@
   (:require [clojure.string :refer [join split]]
             [clojure.tools.reader.reader-types :as t]))
 
+;; clojure.lang 
+
 (defprotocol IAtom
   (swap 
     [this f] 
@@ -83,7 +85,7 @@
 
 ; IFN extends Callable and Runnable
 
-(defprotocol IFN
+(defprotocol IFn
   (invoke 
     [this] 
     [this arg1] 
@@ -107,7 +109,7 @@
     [this arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19]
     [this arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12 arg13 arg14 arg15 arg16 arg17 arg18 arg19 arg20])
   ; variadic?
-  (apply-to [this arglist]))
+  (applyTo [this arglist]))
 
 (defprotocol IHashEq
   (hasheq [this]))

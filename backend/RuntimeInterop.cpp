@@ -169,8 +169,6 @@ Value *CodeGenerator::dynamicVector(const vector<TypedValue> &args) {
   }
 
   auto retVal = dynamicCreate(persistentVectorType, types, argsV);
-  /* TODO: RefCount - This remains to be discovered - depending on the refcount strategy it might be needed or not */
-//  for(int i=0; i<args.size(); i++ ) dynamicRelease(argsV[i+1]); 
   return retVal;
 }
 

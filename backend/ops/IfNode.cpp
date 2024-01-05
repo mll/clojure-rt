@@ -48,7 +48,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
 
   /* Standard if condition */
   
-  auto test = codegen(subnode.test(), ObjectTypeSet::all()); // TODO: In standard case, when is this value released?
+  auto test = codegen(subnode.test(), ObjectTypeSet::all());
   Value *condValue = test.second;
 
   if(!condValue) throw CodeGenerationException(string("Internal error 1"), node);
@@ -67,6 +67,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
     
   // then basic block
   Builder->SetInsertPoint(thenBB);
+  // release test value
+  if (!test.first.isScalar()) dynamicRelease(test.second, false);
   // then val is that of last value in block
   auto thenWithType = thenType.isEmpty() ? TypedValue(thenType, nullptr) : codegen(subnode.then(), typeRestrictions);
  
@@ -80,6 +82,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   parentFunction->insert(parentFunction->end(), elseBB);
 
   Builder->SetInsertPoint(elseBB);
+  // release test value
+  if (!test.first.isScalar()) dynamicRelease(test.second, false);
 
   // else val is that of last value in block
     

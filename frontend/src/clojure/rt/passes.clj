@@ -21,6 +21,14 @@
   ;;  (println "AAAAAAAA" (:op ast) " - " state)
    (assoc ast :mm-refs @state)))
 
+(defn remove-env
+  ^{:pass-info {:walk :pre :depends #{}}}
+  [ast]
+  (if (and (map? ast)
+           (contains? ast :env))
+    (dissoc ast :env)
+    ast))
+
 
 (defmulti -fresh-vars :op)
 

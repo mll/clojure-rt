@@ -62,7 +62,8 @@
     #'classify-invoke
     #'collect-closed-overs
 
-    #'passes/mm-pass-one})
+    #'passes/mm-pass-one
+    #'passes/remove-env})
 
 (def scheduled-rt-passes
   (schedule rt-passes))

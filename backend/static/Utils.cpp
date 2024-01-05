@@ -34,7 +34,11 @@ TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node
     auto rightType = right.first.determinedType();
     
     /* TODO - This is a strong assumption, probably would have to become weaker as we analyse ratios and big integers */
-    if(leftType != rightType) return gen->staticFalse();
+    if(leftType != rightType) {
+      if(!left.first.isScalar()) gen->dynamicRelease(left.second, false);
+      if(!right.first.isScalar()) gen->dynamicRelease(right.second, false);
+      return gen->staticFalse();
+    }
     
     switch(leftType) {
     case integerType:
@@ -54,7 +58,10 @@ TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node
     vector<Type *> argTypes = { gen->dynamicBoxedType(), gen->dynamicBoxedType() };
     vector<Value *> argss = { left.second, right.second };
     Value *int8bool = gen->callRuntimeFun("equals", Type::getInt8Ty(*(gen->TheContext)), argTypes, argss); 
-    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateIntCast(int8bool, gen->dynamicUnboxedType(booleanType), false));
+    auto retVal = TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateIntCast(int8bool, gen->dynamicUnboxedType(booleanType), false));
+    gen->dynamicRelease(left.second, false);
+    gen->dynamicRelease(right.second, false);    
+    return retVal;
   }
   
   auto determinedType = left.first.isDetermined() ? left.first.determinedType() : right.first.determinedType();
@@ -81,7 +88,11 @@ TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node
   vector<Type *> argTypes = { gen->dynamicBoxedType(), determinedLLVMType };
   vector<Value *> argss = { otherValue, determinedValue };
   Value *int8bool = gen->callRuntimeFun(cmpName, Type::getInt8Ty(*(gen->TheContext)), argTypes, argss); 
-  return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateIntCast(int8bool, gen->dynamicUnboxedType(booleanType), false));
+  auto retVal = TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateIntCast(int8bool, gen->dynamicUnboxedType(booleanType), false));
+  if(left.first.isScalar()) gen->dynamicRelease(left.second, false);
+  if(right.first.isScalar()) gen->dynamicRelease(right.second, false);
+
+  return retVal;
 }
 
 unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> getUtilsStaticFunctions() {

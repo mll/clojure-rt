@@ -65,8 +65,6 @@ void visitPath(const vector<ObjectTypeSet> &path,
         Value *reusingVar = potentiallyReusingVar;
         for(int i=0; i<args.size(); i++) {
           const TypedValue &arg = args[i];
-          /* TODO - We have a series of potential releases here (in reuse) but ignore branch 
-             has none. Why? */
           if(!arg.first.isScalar() && !(arg.second == reusingVar)) gen->dynamicRelease(arg.second, false);
         }
         /* TODO - why integer here? - it probably doesnt matter as all scalar types have their data stored in the first 8 bytes. But this seems like a hack... */
@@ -80,7 +78,11 @@ void visitPath(const vector<ObjectTypeSet> &path,
         
         parentFunction->insert(parentFunction->end(), ignoreBB);
         gen->Builder->SetInsertPoint(ignoreBB);
-        gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);     
+        gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);
+        for(int i=0; i<args.size(); i++) {
+          const TypedValue &arg = args[i];
+          if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
+        }
         gen->Builder->CreateBr(mergeBlock);
         return;
       }

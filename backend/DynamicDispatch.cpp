@@ -256,7 +256,6 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
   for(int i=0; i<args.size(); i++) {
      auto arg = args[i];
      auto group = i / 8;
-     auto index = i % 8;
      Value *type = nullptr;
      Value *packed = nullptr;
      if(arg.first.isDetermined()) {

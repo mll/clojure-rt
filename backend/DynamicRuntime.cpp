@@ -68,8 +68,8 @@ extern "C" {
    dynamic variables. */
 
   /* We pass argument types as 64 bit integers. Since type information is 8 bits, 
-     this form of call can handle up to 8 arguments. Original clojure can handle up to 20 arguments before going vararg, 
-     so we will need to extend this code to include 3 argSignature args. packedArg uses one bit per variable, so it is enough to hold 20 args. */
+     this form of call can handle up to 24 arguments (three values). Original clojure can handle up to 20 arguments before going vararg, so this should be enough.
+      */
  
   void *specialiseDynamicFn(void *jitPtr, void *funPtr, uint64_t retValType, uint64_t argCount, uint64_t argSignature1, uint64_t argSignature2, uint64_t argSignature3, uint64_t packedArg) {    
     ClojureJIT *jit = (ClojureJIT *)jitPtr;

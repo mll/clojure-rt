@@ -5,6 +5,9 @@
 using namespace std;
 using namespace llvm;
 
+// Unwind notes: if an exception is thrown during evaluation of fn arguments, previously evaluated values should be dropped
+// Example: (f arg1 arg2 arg3) - evaluation LTR - arg2 throws an exception - f and arg1 should be released (by value)
+
 TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const ObjectTypeSet &typeRestrictions) {
   ObjectTypeSet type = getType(node, typeRestrictions);
   auto firstMethodLoopId = subnode.methods(0).subnode().fnmethod().loopid();

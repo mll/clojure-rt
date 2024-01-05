@@ -63,10 +63,10 @@ message Environment {
   string context = 1;
   repeated string locals = 2;
   string ns = 3;
-  uint32 column = 4;
-  uint32 line = 5;
-  uint32 endColumn = 6;
-  uint32 endLine = 7;
+  int32 column = 4;
+  int32 line = 5;
+  int32 endColumn = 6;
+  int32 endLine = 7;
   string file = 8;
 }
 
@@ -117,11 +117,15 @@ message Subnode {
     WithMetaNode withMeta = 43;
   }
 }
+message MemoryManagementGuidance {
+  string variableName = 1;
+  int32 requiredRefCountChange = 2;
+}
 
 /* Node for a binding symbol */
 message BindingNode {
   /* OPTIONAL: When :local is :arg, the parameter index */
-  uint32 argId = 1;
+  int32 argId = 1;
 
   /* OPTIONAL: When :local is :let, :letfn or :loop, an AST node representing the bound value */
   Node init = 2;
@@ -156,9 +160,9 @@ message CaseNode {
 
   string low = 3;
 
-  uint32 mask = 4;
+  int32 mask = 4;
 
-  uint32 shift = 5;
+  int32 shift = 5;
 
   /* A set of case ints for which equivalence checking should not be done */
   string isSkipCheck = 6;
@@ -181,7 +185,7 @@ message CaseNode {
 
 /* Node for a test value in a case* expression */
 message CaseTestNode {
-  uint32 hash = 1;
+  int32 hash = 1;
 
   /* A :const AST node representing the test value */
   Node test = 2;
@@ -189,7 +193,7 @@ message CaseTestNode {
 
 /* Node for a then expression in a case* expression */
 message CaseThenNode {
-  uint32 hash = 1;
+  int32 hash = 1;
 
   /* An AST node representing the expression the case will evaluate to when the :test expression matches this node's corresponding :case-test value */
   Node then = 2;
@@ -296,7 +300,7 @@ message FnNode {
   Node local = 1;
 
   /* The number of arguments taken by the fixed-arity method taking the most arguments */
-  uint32 maxFixedArity = 2;
+  int32 maxFixedArity = 2;
 
   /* A vector of :fn-method AST nodes representing the fn method arities */
   repeated Node methods = 3;
@@ -314,7 +318,7 @@ message FnMethodNode {
   Node body = 1;
 
   /* The number of non-variadic args this fn-method takes */
-  uint32 fixedArity = 2;
+  int32 fixedArity = 2;
 
   /* Unique symbol identifying this method as a target for recursion */
   string loopId = 3;
@@ -440,7 +444,7 @@ message LetfnNode {
 /* Node for a local symbol */
 message LocalNode {
   /* OPTIONAL: When :local is :arg, the parameter index */
-  uint32 argId = 1;
+  int32 argId = 1;
 
   /* `true` if the corresponding :binding AST node is :local :field and is declared either ^:volatile-mutable or ^:unsynchronized-mutable */
   bool isAssignable = 2;
@@ -485,7 +489,7 @@ message MethodNode {
   repeated string bridges = 2;
 
   /* The number of args this method takes */
-  uint32 fixedArity = 3;
+  int32 fixedArity = 3;
 
   /* The interface (or Object) this method belongs to */
   string interface = 4;
@@ -676,34 +680,40 @@ message WithMetaNode {
 
 /* Universal node containing common fields */
 message Node {
+  /* A list of variables that are to have dups (+) or drops (-) performed *before* this node executes. */
+  repeated MemoryManagementGuidance dropMemory = 1;
+
   /* The environment map */
-  Environment env = 1;
+  Environment env = 2;
 
   /* The clojure form from which the node originated */
-  string form = 2;
+  string form = 3;
 
   /* OPTIONAL: `true` if this node returns a statement rather than an expression */
-  bool ignoreTag = 3;
+  bool ignoreTag = 4;
 
   /* A set of the loop-ids that might cause this node to recur */
-  repeated string loops = 4;
+  repeated string loops = 5;
 
   /* The tag of this expression, based on the node's children */
-  string oTag = 5;
+  string oTag = 6;
 
   /* The node op */
-  Op op = 6;
+  Op op = 7;
 
   /* If this node's :form has been macroexpanded, a sequence of all the intermediate forms from the original form to the macroexpanded form */
-  repeated string rawForms = 7;
+  repeated string rawForms = 8;
 
-  Subnode subnode = 8;
+  Subnode subnode = 9;
 
   /* The tag this expression is required to have */
-  string tag = 9;
+  string tag = 10;
 
   /* OPTIONAL: `true` if this is the root node */
-  bool topLevel = 10;
+  bool topLevel = 11;
+
+  /* A list of variables that are to have dups (+) or drops (-) performed if an exception was caught in the code executed *inside* this node. */
+  repeated MemoryManagementGuidance unwindMemory = 12;
 }
 
 message Programme {

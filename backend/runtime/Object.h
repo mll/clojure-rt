@@ -136,6 +136,13 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
 
 inline BOOL Object_isReusable(Object *restrict self) {
   uint64_t refCount = atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
+  // Multithreading - is it really safe to assume it is reusable if refcount is 1? 
+  /*  The reasoning here is that passing object to another thread is an operation that by 
+      itself increases its reference count. Therefore it is assumed that if recount is 1 at 
+      a point in time this means other threads have no knowledge of this object's existence 
+      at this particular moment. Therefore, if only our thread knows of it, it can pass it to another 
+      but only after it completes current operation.
+      */
   return refCount == 1;
 }
 

@@ -5,7 +5,11 @@ using namespace llvm;
 
 TypedValue CodeGenerator::codegen(const Node &node, const KeywordInvokeNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto &functionBody = subnode.target();
-  
+ /* Using the already implemented InvokeKeyword looks tempting, but some functions
+    going over AST might feel upset (recursive type guesser?) 
+
+    
+   */  
   InvokeNode *invoke = new InvokeNode();
   Node *bodyCopy = new Node(functionBody);
   invoke->set_allocated_fn(bodyCopy);

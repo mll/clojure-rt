@@ -3,6 +3,11 @@
 
 #include "String.h"
 
+// http://blog.higher-order.net/2009/09/08/understanding-clojures-persistenthashmap-deftwice
+// https://groups.google.com/g/clojure/c/o12kFA-j1HA
+// https://gist.github.com/mrange/d6e7415113ebfa52ccb660f4ce534dd4
+// https://www.infoq.com/articles/in-depth-look-clojure-collections/
+
 typedef struct Object Object;
 typedef struct PersistentArrayMap PersistentArrayMap;
 

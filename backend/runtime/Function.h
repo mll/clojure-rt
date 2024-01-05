@@ -6,8 +6,9 @@
 #define INVOKATION_CACHE_SIZE 3
 
 struct InvokationCache {
-  uint64_t signature;
-  unsigned char packed;
+  uint64_t signature[3];
+  uint64_t packed;
+
   unsigned char returnType;
   void *fptr;
 };

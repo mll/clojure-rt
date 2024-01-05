@@ -89,7 +89,6 @@ TypedValue callStaticFun(const Node &node, const std::pair<FnMethodNode, uint64_
   llvm::Value *dynamicInvoke(const Node &node, llvm::Value *objectToInvoke, llvm::Value* objectType, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, llvm::Value *uniqueFunctionId = nullptr, llvm::Function *staticFunctionToCall = nullptr);    
 ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const std::vector<ObjectTypeSet> &args, const ObjectTypeSet &typeRestrictions);
 
-
   /* Runtime types */
 
   llvm::StructType *runtimeObjectType();
@@ -97,7 +96,6 @@ ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t u
   llvm::StructType *runtimeBooleanType();
   llvm::StructType *runtimeIntegerType();
   llvm::StructType *runtimeDoubleType();
-
 
   llvm::Value *getRuntimeObjectType(llvm::Value *objectPtr);
 
@@ -110,6 +108,8 @@ ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t u
   llvm::Value *dynamicKeyword(const char *name);
   llvm::Value *dynamicVector(const std::vector<TypedValue> &args);
   llvm::Value *dynamicArrayMap(const std::vector<TypedValue> &args);
+  void codegenDynamicMemoryGuidance(const Node &node);
+  void dynamicMemoryGuidance(const MemoryManagementGuidance &guidance);
 
   TypedValue dynamicIsReusable(llvm::Value *what);
   void dynamicRetain(llvm::Value *objectPtr);

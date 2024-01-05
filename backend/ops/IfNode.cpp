@@ -15,17 +15,25 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   
   if(!testType.contains(nilType) && !testType.contains(booleanType) && !testType.isEmpty()) {
     if (thenType.isEmpty()) throw CodeGenerationException(string("Incorrect type: 'then' branch of if cannot fulfil type restrictions: ") + typeRestrictions.toString(), node);
+    auto test = codegen(subnode.test(), ObjectTypeSet::all());
+    if (!test.first.isScalar()) dynamicRelease(test.second, false);
+        
     return codegen(subnode.then(), typeRestrictions);
   }
 
   if(testType.isDetermined() && testType.determinedType() == nilType) { 
     /* Test condition is of single type, which is nil - we immediately know test fails and else branch is triggered! */
     if (elseType.isEmpty()) throw CodeGenerationException(string("Incorrect type: 'else' branch of if cannot fulfil type restrictions: ") + typeRestrictions.toString(), node);
+    auto test = codegen(subnode.test(), ObjectTypeSet::all());
+    if (!test.first.isScalar()) dynamicRelease(test.second, false);
+
     return subnode.has_else_() ? codegen(subnode.else_(), typeRestrictions) : TypedValue(ObjectTypeSet(nilType, false, new ConstantNil()), dynamicNil());
   }
   
   ConstantBoolean* CI = nullptr;
   if (testType.getConstant() && (CI = dynamic_cast<ConstantBoolean *>(testType.getConstant()))) {
+    auto test = codegen(subnode.test(), ObjectTypeSet::all());
+    if (!test.first.isScalar()) dynamicRelease(test.second, false);
     /* In case of a constant (which often arises from constant folding!) we can immediately make a decision on the *compiler* level! */
     bool constCondition = CI->value;
     if(constCondition) {
@@ -59,6 +67,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
     
   // then basic block
   Builder->SetInsertPoint(thenBB);
+  // release test value
+  if (!test.first.isScalar()) dynamicRelease(test.second, false);
   // then val is that of last value in block
   auto thenWithType = thenType.isEmpty() ? TypedValue(thenType, nullptr) : codegen(subnode.then(), typeRestrictions);
  
@@ -72,6 +82,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   parentFunction->insert(parentFunction->end(), elseBB);
 
   Builder->SetInsertPoint(elseBB);
+  // release test value
+  if (!test.first.isScalar()) dynamicRelease(test.second, false);
 
   // else val is that of last value in block
     

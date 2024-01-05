@@ -23,7 +23,9 @@
                      :o-tag :string
                      :ignore-tag :bool 
                      :loops [:string]
-                     :subnode :subnode})
+                     :subnode :subnode
+                     :drop-memory [:memory]
+                     :unwind-memory [:memory]})
 
 (def environment-keys {:context :string
                        :locals [:string]
@@ -51,24 +53,24 @@
         converters {:string str
                     :int identity
                     :bool identity
-                    :node (partial encode-node node-key-types)}
+                    :node (partial encode-node node-key-types)
+                    :memory #(bc/new-MemoryManagementGuidance {:variableName (first %) :requiredRefCountChange (second %)})}
 
         map-node (fn [keymap converters in-node] 
-                   (into {} 
-                         (filter identity 
-                                 (map (fn [[k t]]
-                                        (let [val (k in-node)
-                                              repeated? (sequential? t)
-                                              type (if repeated? (first t) t)
-                                              ;; no converter means enum
-                                              converter (or (type converters)                                                            
-                                                            #(keyword
-                                                              (lower-case
-                                                               (str (name (proto-symbol type))  
-                                                                    (capitalize-first (name (proto-symbol %)))))))]
-                                          (if val
-                                            [(proto-symbol k) 
-                                             (if repeated? (vec (map converter val)) (converter val))]))) keymap))))
+                   (into {}                           
+                         (keep (fn [[k t]]
+                                 (let [val (k in-node)
+                                       repeated? (sequential? t)
+                                       type (if repeated? (first t) t)
+                                       ;; no converter means enum
+                                       converter (or (type converters)                                                            
+                                                     #(keyword
+                                                       (lower-case
+                                                        (str (name (proto-symbol type))  
+                                                             (capitalize-first (name (proto-symbol %)))))))]
+                                   (if val
+                                     [(proto-symbol k) 
+                                      (if repeated? (vec (map converter val)) (converter val))]))) keymap)))
         create-subnode (fn [subnode] 
                          (bc/new-Subnode  
                           {:types {(keyword (cl->pt op)) ((ctor-for-op op) (map-node node-type converters subnode))}}))

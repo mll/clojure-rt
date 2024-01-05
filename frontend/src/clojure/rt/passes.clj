@@ -7,20 +7,6 @@
              [collect-closed-overs :refer [collect-closed-overs]]]
             [clojure.walk :refer [postwalk]]))
 
-(defn mm-pass-one
-  ^{:pass-info {:walk :none :depends #{#'uniquify-locals #'collect-closed-overs} :state (fn [] (atom {}))}}
-  ([ast] (mm-pass-one (atom {}) ast))
-  ([state ast]
-   (case (:op ast)
-     :binding (swap! state (fn [old-state]
-                           (let [name (:name ast)]
-                             (if (get old-state name)
-                               (update old-state name inc)
-                               (assoc old-state name 1)))))
-     nil)
-  ;;  (println "AAAAAAAA" (:op ast) " - " state)
-   (assoc ast :mm-refs @state)))
-
 (defn remove-env
   ^{:pass-info {:walk :pre :depends #{}}}
   [ast]

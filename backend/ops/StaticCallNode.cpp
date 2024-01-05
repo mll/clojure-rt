@@ -5,6 +5,9 @@ using namespace std;
 using namespace llvm;
 
 
+/* This is deep magic - but its purpose is simple - it tries to reuse 
+   existing scalar type box in static invokation, such as +, - , etc. */
+
 void visitPath(const vector<ObjectTypeSet> &path, 
                BasicBlock *insertBlock, 
                BasicBlock *failBlock, 
@@ -62,9 +65,11 @@ void visitPath(const vector<ObjectTypeSet> &path,
         Value *reusingVar = potentiallyReusingVar;
         for(int i=0; i<args.size(); i++) {
           const TypedValue &arg = args[i];
+          /* TODO - We have a series of potential releases here (in reuse) but ignore branch 
+             has none. Why? */
           if(!arg.first.isScalar() && !(arg.second == reusingVar)) gen->dynamicRelease(arg.second, false);
         }
-        /* TODO - why integer here? */
+        /* TODO - why integer here? - it probably doesnt matter as all scalar types have their data stored in the first 8 bytes. But this seems like a hack... */
         StructType *stype = gen->runtimeIntegerType();        
         Value *ptr = gen->Builder->CreateBitOrPointerCast(reusingVar, stype->getPointerTo(), "void_to_struct");
         Value *tPtr = gen->Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");

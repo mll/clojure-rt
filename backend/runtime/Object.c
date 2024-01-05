@@ -6,7 +6,7 @@
 #include <stdatomic.h>
 #include "Interface.h"
 
-_Atomic uint64_t allocationCount[14]; 
+_Atomic uint64_t allocationCount[256]; 
 /* pool globalPool1; */
 /* pool globalPool2; */
 /* pool globalPool3; */

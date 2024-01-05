@@ -15,8 +15,8 @@ extern void logText(const char *text);
 extern void printReferenceCounts();
 
 void Interface_initialise() {
-  keywords = ConcurrentHashMap_create(10);
-  vars = ConcurrentHashMap_create(10);
+  keywords = ConcurrentHashMap_create(10); // 2^10
+  vars = ConcurrentHashMap_create(10); // 2^10
 }
 
 void printReferenceCounts() {

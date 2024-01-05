@@ -93,8 +93,6 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     auto TheFPM = std::make_unique<legacy::FunctionPassManager>(&M);
     verifyModule(M);
 
-  
-
     // The vetification pass is much stronger than just "verify" on the module 
     TheFPM->add(createVerifierPass());    
 
@@ -102,7 +100,6 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     TheFPM->add(llvm::createPromoteMemoryToRegisterPass());
 
     // Do simple "peephole" optimizations and bit-twiddling optzns.
-
 
     TheFPM->add(createInstructionCombiningPass());
     // Reassociate expressions.
@@ -119,6 +116,13 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
     TheFPM->add(createJumpThreadingPass());         // Thread jumps.
     TheFPM->add(createCorrelatedValuePropagationPass()); // Propagate conditionals
 //    TheFPM->add(createAggressiveInstCombinerPass());
+
+/* Vectorization */
+                
+    TheFPM->add(createLoopVectorizePass());
+    TheFPM->add(createSLPVectorizerPass());
+    TheFPM->add(createLoadStoreVectorizerPass());
+    TheFPM->add(createVectorCombinePass());
 
     TheFPM->add(createTailCallEliminationPass());
 

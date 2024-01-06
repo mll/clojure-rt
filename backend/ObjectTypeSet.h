@@ -373,7 +373,6 @@ class ObjectTypeSet {
   }
 
   static std::string recursiveMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args) {
-    // TODO - variadic
     return name + "_" + typeStringForArgs(args);
   }  
 

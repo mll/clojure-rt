@@ -171,7 +171,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  /* TODO - variadic */
   auto function = subnode.fn();
   auto type = getType(function, ObjectTypeSet::all());
   uint64_t uniqueId = 0;

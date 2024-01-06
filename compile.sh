@@ -9,9 +9,16 @@ if [ -f "$BINARY" ]; then
     rm $BINARY
 fi
 cd ..
+if [ -f "$TOCOPY" ]; then
+    echo "Compiling to AST..." 
+else
+    echo "No such file: $TOCOPY"    
+    exit 1
+fi
+
 cp $TOCOPY frontend
 cd frontend
-echo "Compiling to AST..." 
+
 time $LEIN run $FILENAME
 rm "$FILENAME"
 if [ -f "$BINARY" ]; then

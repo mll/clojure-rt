@@ -35,7 +35,9 @@ V. Go to compiler and modify
       2. Add your type to 'static ObjectTypeSet all()'
       3. Invent a two-letter signature (starting with "L" if it is packed, without "L" if native)
          and add it to typeStringForArg
-   b) RuntimeInterop.cpp
+   b) codegen.cpp
+      1. typeForArgString
+   c) RuntimeInterop.cpp
       1. Add your type to dynamicCreate. Then, the type can be created directly from the nodes using 
          this function.
       2. You may need to introspect your type in LLVM generated code. If so, add the appropriate 

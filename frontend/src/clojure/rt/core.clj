@@ -9,7 +9,7 @@
             [clojure.string :refer [join split]]
             [clojure.tools.reader.reader-types :as t]
             [clojure.rt.passes :as passes]
-
+            [clojure.pprint :refer [pprint]]
             [clojure.tools.analyzer
              [utils :refer [ctx resolve-sym -source-info resolve-ns obj? dissoc-env butlast+last mmerge]]
              [ast :refer [walk prewalk postwalk] :as ast]
@@ -61,15 +61,28 @@
 
     #'classify-invoke
     #'collect-closed-overs
+    #'passes/simplify-closed-overs
+    #'passes/remove-env
+    #'passes/fresh-vars
+    #'passes/memory-management-pass
+    })
 
-    #'passes/remove-env})
+(def run-passes
+  ((fn [] 
+     ;; Uncomment to see the sequence of scheduled passes 
+     ;(pprint (schedule rt-passes {:debug? true}))
+     (schedule rt-passes))))
 
-(def scheduled-rt-passes
-  (schedule rt-passes))
-
+(def passes-opts
+  ":passes-opts for `analyze`"
+  {:collect/what                    #{:constants :callsites}
+   :collect/where                   #{:deftype :reify :fn-method}
+   :collect/top-level?              false
+   :collect-closed-overs/where      #{:deftype :reify :fn-method :loop :try}
+   :collect-closed-overs/top-level? false})
 
 (defn analyze [s filename]
-  (with-bindings {#'a/run-passes scheduled-rt-passes}
+  (with-bindings {#'a/run-passes run-passes}
     (let [reader (t/source-logging-push-back-reader s 1 filename)]
       (loop [form (r/read {:eof :eof} reader) ret-val []]
         (if (= :eof form) (do #_(clojure.pprint/pprint (passes/clean-tree ret-val)) ;; uncomment to see simple tree
@@ -77,11 +90,9 @@
             (do
               (eval form)
               (recur (r/read {:eof :eof} reader)
-                     (->> form
-                          a/analyze
-                          passes/fresh-vars
-                          passes/memory-management-pass
-                          (conj ret-val)))))))))
+                     (->> 
+                      (a/analyze form (a/empty-env) {:passes-opts passes-opts})      
+                      (conj ret-val)))))))))
 
 
 (defn generate-protobuf-defs [] (sch/generate-protobuf-defs "bytecode.proto"))

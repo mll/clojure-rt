@@ -8,13 +8,24 @@
             [clojure.walk :refer [postwalk]]))
 
 (defn remove-env
-  ^{:pass-info {:walk :pre :depends #{}}}
+  {:pass-info {:walk :pre :depends #{}}}
   [ast]
   (if (and (map? ast)
            (contains? ast :env))
-    (dissoc ast :env)
+    (-> ast
+        (update-in [:env] #(dissoc % :context))
+        (update-in [:env] #(dissoc % :locals)))
     ast))
 
+(defn simplify-closed-overs
+  {:pass-info {:walk :pre :depends #{#'collect-closed-overs}}}
+  [ast]  
+  (if (and (map? ast)
+           (contains? ast :closed-overs))    
+    (-> ast 
+        (update :closed-overs vals)
+        (update :closed-overs #(map remove-env %)))
+    ast))
 
 (defmulti -fresh-vars :op)
 
@@ -95,7 +106,7 @@
         (assoc :fresh all-fresh))))
 
 (defn fresh-vars
-  ^{:pass-info {:walk :none :depends #{#'uniquify-locals}}}
+  {:pass-info {:walk :none :depends #{#'uniquify-locals}}}
   [ast]
   (-fresh-vars ast))
 
@@ -339,7 +350,7 @@
       (set-unwind unwind-owned)))
 
 (defn memory-management-pass
-  ^{:pass-info {:walk :none :depends #{#'uniquify-locals #'fresh-vars}}}
+  {:pass-info {:walk :none :depends #{#'uniquify-locals #'fresh-vars}}}
   [ast]
   (let [f #(mapv (fn [[k v]] [(name k) v]) %)]
     (postwalk

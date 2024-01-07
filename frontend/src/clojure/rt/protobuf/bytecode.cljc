@@ -736,14 +736,15 @@
 ;-----------------------------------------------------------------------------
 ; FnMethodNode
 ;-----------------------------------------------------------------------------
-(defrecord FnMethodNode-record [body fixedArity loopId params isVariadic]
+(defrecord FnMethodNode-record [body closedOvers fixedArity loopId params isVariadic]
   pb/Writer
   (serialize [this os]
     (serdes.core/write-embedded 1 (:body this) os)
-    (serdes.core/write-Int32 2  {:optimize true} (:fixedArity this) os)
-    (serdes.core/write-String 3  {:optimize true} (:loopId this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 4 (:params this) os)
-    (serdes.core/write-Bool 5  {:optimize true} (:isVariadic this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:closedOvers this) os)
+    (serdes.core/write-Int32 3  {:optimize true} (:fixedArity this) os)
+    (serdes.core/write-String 4  {:optimize true} (:loopId this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 5 (:params this) os)
+    (serdes.core/write-Bool 6  {:optimize true} (:isVariadic this) os))
   pb/TypeReflection
   (gettype [this]
     "clojure.rt.protobuf.bytecode.FnMethodNode"))
@@ -753,7 +754,7 @@
 
 (s/def :clojure.rt.protobuf.bytecode.FnMethodNode/isVariadic boolean?)
 (s/def ::FnMethodNode-spec (s/keys :opt-un [:clojure.rt.protobuf.bytecode.FnMethodNode/fixedArity :clojure.rt.protobuf.bytecode.FnMethodNode/loopId :clojure.rt.protobuf.bytecode.FnMethodNode/isVariadic ]))
-(def FnMethodNode-defaults {:fixedArity 0 :loopId "" :params [] :isVariadic false })
+(def FnMethodNode-defaults {:closedOvers [] :fixedArity 0 :loopId "" :params [] :isVariadic false })
 
 (defn cis->FnMethodNode
   "CodedInputStream to FnMethodNode"
@@ -762,10 +763,11 @@
          (fn [tag index]
              (case index
                1 [:body (ecis->Node is)]
-               2 [:fixedArity (serdes.core/cis->Int32 is)]
-               3 [:loopId (serdes.core/cis->String is)]
-               4 [:params (serdes.complex/cis->repeated ecis->Node is)]
-               5 [:isVariadic (serdes.core/cis->Bool is)]
+               2 [:closedOvers (serdes.complex/cis->repeated ecis->Node is)]
+               3 [:fixedArity (serdes.core/cis->Int32 is)]
+               4 [:loopId (serdes.core/cis->String is)]
+               5 [:params (serdes.complex/cis->repeated ecis->Node is)]
+               6 [:isVariadic (serdes.core/cis->Bool is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -784,6 +786,7 @@
   {:pre [(if (s/valid? ::FnMethodNode-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::FnMethodNode-spec init))))]}
   (-> (merge FnMethodNode-defaults init)
       (cond-> (some? (get init :body)) (update :body new-Node))
+      (cond-> (some? (get init :closedOvers)) (update :closedOvers #(map new-Node %)))
       (cond-> (some? (get init :params)) (update :params #(map new-Node %)))
       (map->FnMethodNode-record)))
 

@@ -317,17 +317,20 @@ message FnMethodNode {
   /* Synthetic :do node (with :body? `true`) representing the body of this fn-method */
   Node body = 1;
 
+  /* A list of bindings closed by this lambda */
+  repeated Node closedOvers = 2;
+
   /* The number of non-variadic args this fn-method takes */
-  int32 fixedArity = 2;
+  int32 fixedArity = 3;
 
   /* Unique symbol identifying this method as a target for recursion */
-  string loopId = 3;
+  string loopId = 4;
 
   /* A vector of :binding AST nodes with :local :arg representing this fn-method args */
-  repeated Node params = 4;
+  repeated Node params = 5;
 
   /* `true` if this fn-method takes a variable number of arguments */
-  bool isVariadic = 5;
+  bool isVariadic = 6;
 }
 
 /* Node for a no-arg instance-call or for an instance-field that couldn't be resolved at compile time */

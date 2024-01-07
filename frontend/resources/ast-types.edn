@@ -50,7 +50,8 @@
              :variadic? :bool
              :params [:node] 
              :fixed-arity :int
-             :body :node}
+             :body :node
+             :closed-overs [:node]}
  :host-interop {:target :node
                 :m-or-f :string
                 :assignable? :bool}

@@ -145,6 +145,7 @@
           ^:children
           [:params "A vector of :binding AST nodes with :local :arg representing this fn-method args"]
           [:fixed-arity "The number of non-variadic args this fn-method takes"]
+          [:closed-overs "A list of bindings closed by this lambda"]
           ^:children
           [:body "Synthetic :do node (with :body? `true`) representing the body of this fn-method"]]}
   {:op   :host-interop

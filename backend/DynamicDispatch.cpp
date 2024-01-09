@@ -376,30 +376,32 @@ ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, c
         }
         if(foundSpecific) break;
       }
+    } catch(CodeGenerationException e) {
+      exceptions.push_back(e);
     }
+
     VariableBindingTypesStack.pop_back();
 
     TheProgramme->RecursiveFunctionsNameMap.erase(rName);
     TheProgramme->RecursiveFunctionsRetValGuesses.erase(rName);
     // TODO: better error here, maybe use the exceptions vector? 
     if(!found) {
-      for(auto e : exceptions) cout << e.toString() << endl;
-      throw CodeGenerationException("Unable to create function with given params", method.body());
+      std::string exceptionString;
+      for(auto e : exceptions) exceptionString += e.toString() + "\n";
+      throw CodeGenerationException("Unable to create function with given params: "+ exceptionString , method.body());
     }
     return retVal;
 } 
 
 
-/* Called by JIT to build the bondy of a function. At this stage all arg types are determined */
+/* Called by JIT to build the body of a function. At this stage all arg types are determined */
 
 void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t methodIndex, const string &name, const ObjectTypeSet &retType, const vector<ObjectTypeSet> &args) {
-
   const FnNode &node = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();
   const FnMethodNode &method = node.methods(methodIndex).subnode().fnmethod();
   
   string rName = ObjectTypeSet::fullyQualifiedMethodKey(name, args, retType);
-  const ObjectTypeSet realRetType = determineMethodReturn(method, uniqueId, args, ObjectTypeSet::all());
-  
+
   vector<Type *> argTypes;
   for(auto arg : args) {
     argTypes.push_back(dynamicType(arg));
@@ -408,7 +410,7 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
   Type *retFunType = dynamicType(retType);
 
   Function *CalleeF = TheModule->getFunction(rName); 
-  if(!CalleeF) {
+  if(!CalleeF) { 
     FunctionType *FT = FunctionType::get(retFunType, argTypes, false);
     CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
     /* Build body */
@@ -433,6 +435,8 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
     VariableBindingTypesStack.push_back(functionArgTypes);
     VariableBindingStack.push_back(namedFunctionArgs);
     try {
+      const ObjectTypeSet realRetType = determineMethodReturn(method, uniqueId, args, ObjectTypeSet::all());
+
       if(realRetType == retType || (!retType.isDetermined() && !realRetType.isDetermined())) {
         auto result = codegen(method.body(), retType);
         Builder->CreateRet(retType.isBoxedScalar() ? box(result).second : result.second);
@@ -474,5 +478,5 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
     }
     VariableBindingStack.pop_back();
     VariableBindingTypesStack.pop_back();
-  }
+  } // !CalleeF
 }

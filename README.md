@@ -39,7 +39,7 @@ using your system's package manager.
 1. ./begin_development.sh
 2. cd backend
 3. cmake . -DCMAKE_PREFIX_PATH=/opt/homebrew
-4. make -j
+4. make -j 8
 
 This should build the c/c++ compiler backend.
 

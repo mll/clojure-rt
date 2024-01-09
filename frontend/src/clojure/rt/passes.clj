@@ -29,10 +29,6 @@
     (dissoc ast :env)
     ast))
 
-;; fresh vars TODO: deftype, host-interop, instance*, letfn, loop, monitor-*, new, prim-invoke,
-;; protocol-invoke, quote, recur, reify, set*, the-var
-;; (for some of them default implementation should be OK)
-
 (defmulti -fresh-vars
   (fn [{:keys [op]}]
     (assert (not (#{:deftype :host-interop :letfn :loop :method :new :quote :recur :reify :set!} op))
@@ -136,10 +132,10 @@
     (assert (not (#{:binding :case-test} op))
             (str "-memory-management-pass: " op " should never occur"))
     ;; (println "-memory-management-pass" op borrowed owned unwind-owned)
-    ;; (assert (empty? (set/intersection borrowed owned)) "Invariant violation: borrowed and owned intersection is nonempty")
-    ;; (assert (set/subset? owned fresh) "Invariant violation: owned not a subset of fresh variables")
-    ;; (assert (set/subset? unwind-owned (set/union borrowed owned)) "Invariant violation: unwind-owned not a subset of owned + borrowed")
-    ;; (assert (set/subset? fresh (set/union borrowed owned)) "Invariant violation: fresh variables not a subset of borrowed and owned")
+    (assert (empty? (set/intersection borrowed owned)) "Invariant violation: borrowed and owned intersection is nonempty")
+    (assert (set/subset? owned fresh) "Invariant violation: owned not a subset of fresh variables")
+    (assert (set/subset? unwind-owned (set/union borrowed owned)) "Invariant violation: unwind-owned not a subset of owned + borrowed")
+    (assert (set/subset? fresh (set/union borrowed owned)) "Invariant violation: fresh variables not a subset of borrowed and owned")
     op))
 
 (defn update-drop-memory

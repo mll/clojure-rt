@@ -17,9 +17,9 @@
 
 (defmulti -fresh-vars
   (fn [{:keys [op]}]
-    (assert (not (#{:deftype :host-interop :letfn :loop :method :new :quote :recur :reify :set!} op))
+    (assert (not (#{:deftype :host-interop :letfn :loop :method :new :recur :reify :set!} op))
             (str "-fresh-vars: " op " not yet implemented"))
-    (assert (not (#{:binding :case-test} op))
+    (assert (not (#{:case-test} op))
             (str "-fresh-vars: " op " should never occur"))
     op))
 
@@ -95,8 +95,8 @@
                :fresh fresh))))
 
 ;; Handled by default:
-;; case-then, const, def, fn, import, instance-call, instance-field, instance?, invoke, keyword-invoke, map,
-;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, set, static-call, static-field, the-var,
+;; binding, case-then, const, def, fn, import, instance-call, instance-field, instance?, invoke, keyword-invoke, map,
+;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, quote, set, static-call, static-field, the-var,
 ;; throw, try, var, vector, with-meta
 (defmethod -fresh-vars :default
   [node]
@@ -113,11 +113,11 @@
 
 (defmulti -memory-management-pass
   (fn [{:keys [fresh op]} borrowed owned unwind-owned]
-    (assert (not (#{:case :catch :deftype :host-interop :letfn :loop :method :new :quote :recur :reify :set! :throw :try} op))
+    (assert (not (#{:case :catch :deftype :host-interop :letfn :loop :method :new :recur :reify :set! :throw :try} op))
             (str "-memory-management-pass: " op " not yet implemented"))
     (assert (not (#{:binding :case-test} op))
             (str "-memory-management-pass: " op " should never occur"))
-    ;; (println "-memory-management-pass" op borrowed owned unwind-owned)
+    ;; (println "-memory-management-pass" op fresh borrowed owned unwind-owned)
     (assert (empty? (set/intersection borrowed owned)) "Invariant violation: borrowed and owned intersection is nonempty")
     (assert (set/subset? owned fresh) "Invariant violation: owned not a subset of fresh variables")
     (assert (set/subset? unwind-owned (set/union borrowed owned)) "Invariant violation: unwind-owned not a subset of owned + borrowed")
@@ -411,7 +411,7 @@
 
 ;; Handled by default:
 ;; case-then, const, def, import, instance-field, instance?,
-;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, set, static-field, the-var,
+;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, quote, set, static-field, the-var,
 ;; var, with-meta
 (defmethod -memory-management-pass :default
   [node borrowed owned unwind-owned]

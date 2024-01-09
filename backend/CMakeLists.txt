@@ -21,6 +21,7 @@ find_package(LLVM 16.0 CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+
 set(SOURCES
      main.cpp 
      codegen.cpp 
@@ -87,7 +88,15 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ../model/bytecode.proto)
 add_executable(clojure-rt ${SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
+
+find_path(GMP_INCLUDE_DIRS NAMES gmp.h)
+find_library(GMP_LIBRARY NAMES gmp libgmp)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
+mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
+include_directories(${GMP_INCLUDE_DIRS})
+
 llvm_map_components_to_libnames(llvm_libs core orcjit native)
 message(STATUS "LLVM libs: ${llvm_libs}")
-target_link_libraries(clojure-rt PUBLIC runtime ${llvm_libs} ${Protobuf_LIBRARIES})
+target_link_libraries(clojure-rt PUBLIC runtime ${llvm_libs} ${Protobuf_LIBRARIES} ${GMP_LIBRARY})
 

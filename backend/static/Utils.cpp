@@ -89,8 +89,8 @@ TypedValue Utils_compare(CodeGenerator *gen, const string &signature, const Node
   vector<Value *> argss = { otherValue, determinedValue };
   Value *int8bool = gen->callRuntimeFun(cmpName, Type::getInt8Ty(*(gen->TheContext)), argTypes, argss); 
   auto retVal = TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateIntCast(int8bool, gen->dynamicUnboxedType(booleanType), false));
-  if(left.first.isScalar()) gen->dynamicRelease(left.second, false);
-  if(right.first.isScalar()) gen->dynamicRelease(right.second, false);
+  if(!left.first.isScalar()) gen->dynamicRelease(left.second, false);
+  if(!right.first.isScalar()) gen->dynamicRelease(right.second, false);
 
   return retVal;
 }

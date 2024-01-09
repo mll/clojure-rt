@@ -15,20 +15,17 @@
     (dissoc ast :env)
     ast))
 
-
-(defmulti -fresh-vars :op)
-
-(defmethod -fresh-vars :var
-  [node]
-  (assoc node :fresh #{}))
+(defmulti -fresh-vars
+  (fn [{:keys [op]}]
+    (assert (not (#{:deftype :host-interop :letfn :loop :method :new :quote :recur :reify :set!} op))
+            (str "-fresh-vars: " op " not yet implemented"))
+    (assert (not (#{:binding :case-test} op))
+            (str "-fresh-vars: " op " should never occur"))
+    op))
 
 (defmethod -fresh-vars :local
   [node]
   (assoc node :fresh #{(:name node)}))
-
-(defmethod -fresh-vars :const
-  [node]
-  (assoc node :fresh #{}))
 
 (defmethod -fresh-vars :fn-method
   [node]
@@ -78,6 +75,16 @@
                :statements updated-statements
                :fresh fresh))))
 
+(defmethod -fresh-vars :case
+  [node]
+  (let [updated-thens (vec (map -fresh-vars (:thens node)))
+        updated-default (some-> node :default -fresh-vars)
+        all-fresh (apply set/union (:fresh updated-default) (map (comp :fresh :then) updated-thens))]
+    (cond-> node
+      updated-default (assoc :default updated-default)
+      true (assoc :thens updated-thens
+                  :fresh all-fresh))))
+
 ;; Revisit catch and try when implementing exceptions
 (defmethod -fresh-vars :catch
   [node]
@@ -87,6 +94,10 @@
         (assoc :body updated-body
                :fresh fresh))))
 
+;; Handled by default:
+;; case-then, const, def, fn, import, instance-call, instance-field, instance?, invoke, keyword-invoke, map,
+;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, set, static-call, static-field, the-var,
+;; throw, try, var, vector, with-meta
 (defmethod -fresh-vars :default
   [node]
   (let [updated-node (ast/update-children node -fresh-vars)
@@ -101,12 +112,17 @@
 
 
 (defmulti -memory-management-pass
-  (fn [node borrowed owned unwind-owned]
+  (fn [{:keys [fresh op]} borrowed owned unwind-owned]
+    (assert (not (#{:case :catch :deftype :host-interop :letfn :loop :method :new :quote :recur :reify :set! :throw :try} op))
+            (str "-memory-management-pass: " op " not yet implemented"))
+    (assert (not (#{:binding :case-test} op))
+            (str "-memory-management-pass: " op " should never occur"))
+    ;; (println "-memory-management-pass" op borrowed owned unwind-owned)
     (assert (empty? (set/intersection borrowed owned)) "Invariant violation: borrowed and owned intersection is nonempty")
-    (assert (set/subset? owned (:fresh node)) "Invariant violation: owned not a subset of fresh variables")
+    (assert (set/subset? owned fresh) "Invariant violation: owned not a subset of fresh variables")
     (assert (set/subset? unwind-owned (set/union borrowed owned)) "Invariant violation: unwind-owned not a subset of owned + borrowed")
-    (assert (set/subset? (:fresh node) (set/union borrowed owned)) "Invariant violation: fresh variables not a subset of borrowed and owned")
-    (:op node)))
+    (assert (set/subset? fresh (set/union borrowed owned)) "Invariant violation: fresh variables not a subset of borrowed and owned")
+    op))
 
 (defn update-drop-memory
   [node name->amount]
@@ -146,6 +162,7 @@
       (set-unwind unwind-owned)))
 
 ;; In paper: SAPP, adapted to modify function and all arguments at once (see also SCON)
+;; This also applies for any sequence of unnamed values
 
 (defn application-usage
   [nodes borrowed owned unwind-owned]
@@ -184,11 +201,48 @@
 (defmethod -memory-management-pass :invoke
   [node borrowed owned unwind-owned]
   (let [nodes (concat [(:fn node)] (:args node))
-        updated-nodes (application-usage nodes borrowed owned unwind-owned)]
+        [updated-fn & updated-args] (application-usage nodes borrowed owned unwind-owned)]
     (-> node
         (set-unwind unwind-owned)
-        (assoc :fn (first updated-nodes)
-               :args (vec (rest updated-nodes))))))
+        (assoc :fn updated-fn
+               :args (vec updated-args)))))
+
+(defmethod -memory-management-pass :prim-invoke
+  [node borrowed owned unwind-owned]
+  (let [nodes (concat [(:fn node)] (:args node))
+        [updated-fn & updated-args] (application-usage nodes borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :fn updated-fn
+               :args (vec updated-args)))))
+
+(defmethod -memory-management-pass :protocol-invoke
+  [node borrowed owned unwind-owned]
+  (let [nodes (concat [(:protocol-fn node) (:target node)] (:args node))
+        [updated-protocol-fn updated-target & updated-args] (application-usage nodes borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :protocol-fn updated-protocol-fn
+               :target updated-target
+               :args (vec updated-args)))))
+
+(defmethod -memory-management-pass :instance-call
+  [node borrowed owned unwind-owned]
+  (let [nodes (concat [(:instance node)] (:args node))
+        [updated-instance & updated-args] (application-usage nodes borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :instance updated-instance
+               :args (vec updated-args)))))
+
+(defmethod -memory-management-pass :keyword-invoke
+  [node borrowed owned unwind-owned]
+  (let [nodes (map node [:keyword :target])
+        [updated-keyword updated-target] (application-usage nodes borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :keyword updated-keyword
+               :target updated-target))))
 
 (defmethod -memory-management-pass :static-call
   [node borrowed owned unwind-owned]
@@ -197,6 +251,50 @@
     (-> node
         (set-unwind unwind-owned)
         (assoc :args updated-nodes))))
+
+(defmethod -memory-management-pass :do
+  ;; Earlier pass guarantees that there is (initially) at least one statement
+  [node borrowed owned unwind-owned]
+  (let [nodes (concat (:statements node) [(:ret node)])
+        updated-nodes (application-usage nodes borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :statements (vec (butlast updated-nodes))
+               :ret (last updated-nodes)))))
+
+(defmethod -memory-management-pass :with-meta
+  [node borrowed owned unwind-owned]
+  (let [nodes (map node [:meta :expr])
+        [updated-meta updated-expr] (application-usage nodes borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :meta updated-meta
+               :expr updated-expr))))
+
+(defmethod -memory-management-pass :map
+  ;; Order of evaluation is key1, val1, key2, val2, ...
+  [node borrowed owned unwind-owned]
+  (let [nodes (->> [:keys :vals] (map node) (apply interleave))
+        updated-nodes (application-usage nodes borrowed owned unwind-owned)
+        [updated-keys updated-vals] (->> updated-nodes (partition 2) (apply mapv vector))]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :keys updated-keys
+               :vals updated-vals))))
+
+(defmethod -memory-management-pass :set
+  [node borrowed owned unwind-owned]
+  (let [updated-nodes (application-usage (:items node) borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :items updated-nodes))))
+
+(defmethod -memory-management-pass :vector
+  [node borrowed owned unwind-owned]
+  (let [updated-nodes (application-usage (:items node) borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :items updated-nodes))))
 
 ;; In paper: SLAM and SLAM-DROP, merged to modify function with multiple arities
 
@@ -218,6 +316,7 @@
   [node borrowed owned unwind-owned]
   (function-definition node borrowed owned unwind-owned))
 
+;; TODO: verify how optional local name is handled when implementing letfn
 (defmethod -memory-management-pass :fn
   [node borrowed owned unwind-owned]
   (update node :methods (fn [methods] (mapv #(function-definition % borrowed owned unwind-owned) methods))))
@@ -253,28 +352,6 @@
           (assoc :fresh (:fresh node))
           ;; (set-unwind unwind-owned) ;; refer to individual bindings/body
           (update :bindings #(vec (concat [updated-binding] %)))))))
-
-(defmethod -memory-management-pass :do
-  ;; Earlier pass guarantees that there is (initially) at least one statement
-  [node borrowed owned unwind-owned]
-  (if (empty? (:statements node))
-    (update node :ret -memory-management-pass borrowed owned unwind-owned)
-    (let [[statement & statements] (:statements node)
-          remainder-fresh (if (seq statements) (:fresh (first statements)) (:fresh (:ret node))) ;; fv(e_2)
-          remainder-owned (set/intersection owned remainder-fresh) ;; Gamma_2
-          updated-statement (-memory-management-pass statement
-                                                     (set/union borrowed remainder-owned)
-                                                     (set/difference owned remainder-owned)
-                                                     (set/intersection unwind-owned (set/union borrowed owned)))
-          updated-do (assoc node :statements statements :fresh remainder-fresh)
-          updated-remainder (-memory-management-pass updated-do
-                                                     borrowed
-                                                     remainder-owned
-                                                     (set/intersection unwind-owned (set/union borrowed remainder-owned)))]
-      (-> updated-remainder
-          (assoc :fresh (:fresh node))
-          ;; (set-unwind unwind-owned) ;; refer to individual statements/ret
-          (update :statements #(vec (concat [updated-statement] %)))))))
 
 ;; Revisit catch and try when implementing exceptions
 #_(defmethod -memory-management-pass :try
@@ -332,6 +409,10 @@
         (set-unwind unwind-owned)
         (merge updated-branches))))
 
+;; Handled by default:
+;; case-then, const, def, import, instance-field, instance?,
+;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, set, static-field, the-var,
+;; var, with-meta
 (defmethod -memory-management-pass :default
   [node borrowed owned unwind-owned]
   (-> node

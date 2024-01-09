@@ -43,7 +43,7 @@ struct Object {
 
 typedef struct Object Object; 
 
-extern _Atomic uint64_t allocationCount[14]; 
+extern _Atomic uint64_t allocationCount[256]; 
 
 void initialise_memory();
 
@@ -74,6 +74,7 @@ inline Object *super(void * restrict self) {
 }
 
 inline void Object_retain(Object * restrict self) {
+//  printf("RETAIN!!! %d\n", self->type);
 #ifdef REFCOUNT_TRACING
   atomic_fetch_add_explicit(&(allocationCount[self->type-1]), 1, memory_order_relaxed);
 #endif
@@ -152,6 +153,7 @@ inline BOOL isReusable(void *restrict self) {
 
 inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChildren) {
 #ifdef REFCOUNT_TRACING
+//    printf("RELEASE!!! %d %d\n", self->type, deallocateChildren);
     atomic_fetch_sub_explicit(&(allocationCount[self->type -1 ]), 1, memory_order_relaxed);
     assert(atomic_load(&(self->atomicRefCount)) > 0);
 #endif

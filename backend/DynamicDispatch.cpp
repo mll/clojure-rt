@@ -22,13 +22,29 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNod
   vector<Type *> argTypes;
   vector<Value *> argVals;
   vector<ObjectTypeSet> argT;
-    
-  for(auto arg : args) {
+
+  vector<TypedValue> finalArgs;
+
+  for(int i=0; i<method.first.fixedarity(); i++) {
+    auto arg = args[i];
     argTypes.push_back(dynamicType(arg.first));
     argVals.push_back(arg.second);
     argT.push_back(arg.first);
+    finalArgs.push_back(arg);
   }
-
+ 
+  // TODO: For now we just use a vector, in the future a faster sequable data structure will be used here */
+  if(method.first.isvariadic()) {
+    auto type = ObjectTypeSet(persistentVectorType);
+    vector<TypedValue> vecArgs(args.begin() + method.first.fixedarity(), args.end()); 
+    argTypes.push_back(dynamicType(type));
+    argT.push_back(type);
+    auto v = dynamicVector(vecArgs);
+    
+    argVals.push_back(v);
+    finalArgs.push_back(TypedValue(type, v));
+  }
+  
   string rName = ObjectTypeSet::recursiveMethodKey(name, argT);
   string rqName = ObjectTypeSet::fullyQualifiedMethodKey(name, argT, retValType);
   
@@ -54,7 +70,7 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNod
     load->setAtomic(AtomicOrdering::Monotonic);
     Value *type = getRuntimeObjectType(load);
     Value *uniqueId = ConstantInt::get(*TheContext, APInt(64, getUniqueFunctionIdFromName(name), false));   
-    return TypedValue(retValType, dynamicInvoke(node, load, type, retValType, args, uniqueId, CalleeF));  
+    return TypedValue(retValType, dynamicInvoke(node, load, type, retValType, finalArgs, uniqueId, CalleeF));  
   }
 
   return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
@@ -251,8 +267,8 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
   Value *packedArgSignature = ConstantInt::get(*TheContext, APInt(64, 0, false));
 
   vector<TypedValue> pointerCallArgs;
-
-  if(args.size() > 20) throw CodeGenerationException("More than 20 args not yet supported", node); 
+  /* 21 because varaidic adds one arg that packs the remaining */
+  if(args.size() > 21) throw CodeGenerationException("More than 20 args not supported", node); 
   for(int i=0; i<args.size(); i++) {
      auto arg = args[i];
      auto group = i / 8;
@@ -325,10 +341,16 @@ ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, c
     
     unordered_map<string, ObjectTypeSet> namedArgs;
 
-    // TODO: Variadic
-    for(int i=0; i<method.params_size(); i++) {
+    for(int i=0; i<method.fixedarity(); i++) {
       auto name = method.params(i).subnode().binding().name();
       namedArgs.insert({name, args[i]});
+    }
+
+    if (method.isvariadic()) {
+      string name;
+      if (method.params_size() == method.fixedarity()) name = "***unbound-variadic***";
+      else name = method.params(method.fixedarity()).subnode().binding().name();
+      namedArgs.insert({name, ObjectTypeSet(persistentVectorType)});
     }
 
     VariableBindingTypesStack.push_back(namedArgs);
@@ -368,6 +390,8 @@ ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, c
 } 
 
 
+/* Called by JIT to build the bondy of a function. At this stage all arg types are determined */
+
 void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t methodIndex, const string &name, const ObjectTypeSet &retType, const vector<ObjectTypeSet> &args) {
 
   const FnNode &node = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();
@@ -397,7 +421,7 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
     unordered_map<string, ObjectTypeSet> functionArgTypes;
     unordered_map<string, TypedValue> namedFunctionArgs;
     vector<TypedValue> functionArgs;
-    // TODO: Variadic
+
     for(int i=0; i<method.params_size(); i++) {
       auto name = method.params(i).subnode().binding().name();
       auto value = TypedValue(args[i].removeConst(), fArgs[i]);

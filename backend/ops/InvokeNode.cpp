@@ -8,7 +8,6 @@ using namespace llvm;
 
 TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto type = getType(node, typeRestrictions);
-  /* TODO - variadic */
   auto functionRef = subnode.fn();
   auto funType = getType(functionRef, ObjectTypeSet::all());
   string fName = "";
@@ -73,7 +72,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     pair<FnMethodNode, uint64_t> method = nodes[foundIdx];
 
     vector<ObjectTypeSet> argTypes;
-    for(int i=0; i<args.size(); i++) argTypes.push_back(args[i].first);
+    for(int i=0; i<method.first.fixedarity(); i++) argTypes.push_back(args[i].first);
+ // TODO: For now we just use a vector, in the future a faster sequable data structure will be used here */
+    if(method.first.isvariadic()) argTypes.push_back(ObjectTypeSet(persistentVectorType));
 
     string rName = ObjectTypeSet::recursiveMethodKey(fName, argTypes);
     string rqName = ObjectTypeSet::fullyQualifiedMethodKey(fName, argTypes, type);
@@ -170,7 +171,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  /* TODO - variadic */
   auto function = subnode.fn();
   auto type = getType(function, ObjectTypeSet::all());
   uint64_t uniqueId = 0;

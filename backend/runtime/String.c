@@ -192,6 +192,7 @@ String *String_compactify(String *self) {
   }
   output[self->count] = 0;
   out->hash = String_computeHash(output);
+  release(self);
   return out;
 }
 

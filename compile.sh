@@ -1,14 +1,32 @@
 #!/bin/bash
 
 LEIN=`which lein`
-FILENAME=$1
+TOCOPY=$1
+FILENAME=$(basename $TOCOPY)
 BINARY="${FILENAME%.clj}.cljb"
-cp $FILENAME frontend
+cd backend
+if [ -f "$BINARY" ]; then
+    rm $BINARY
+fi
+cd ..
+if [ -f "$TOCOPY" ]; then
+    echo "Compiling to AST..." 
+else
+    echo "No such file: $TOCOPY"    
+    exit 1
+fi
+
+cp $TOCOPY frontend
 cd frontend
-echo "Compiling to AST..." 
+
 time $LEIN run $FILENAME
+rm "$FILENAME"
+if [ -f "$BINARY" ]; then
+    echo "Success!!"
+else
+    exit 1
+fi
 mv $BINARY ../backend
-rm $FILENAME
 cd ../backend
 #arch -arm64 lldb ./clojure-rt 
 echo "Executing..."

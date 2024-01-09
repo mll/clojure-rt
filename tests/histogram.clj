@@ -1,3 +1,5 @@
+;; Does not compile yet
+
 (def *histogram-heights* '(3 5 7 10 21 38 22 54 1 3 2 5))
 
 (defn car [iterable] (first iterable))

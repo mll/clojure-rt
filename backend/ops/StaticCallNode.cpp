@@ -5,6 +5,30 @@ using namespace std;
 using namespace llvm;
 
 
+/* Memory management is wrong here all along.
+   The reason is this:
+
+   Our general convention is, that we 'consume' each non-scalar object during the call.
+   Therefore this node needs to make sure the args are released (somehow).
+
+   But, there is also the actual static function implementation.
+
+   Therefore the memory management responsibility is fuzzy here - 
+   should the called static function manage it, or should it be managed in this node?
+
+   To add insult to injury, we have situations where the static function 
+   (such as clojure.lang.Numbers/add, defined in static/Numbers.cpp)
+   has only scalar arguments. In this case, the visitPath function builds a tree of
+   conditional statements that decide which version of the static function to call and 
+   call it on the unboxed values. In this case, it is the visitPath that *must* release the memory
+   as the static function has no idea of memory management. */
+  
+   
+
+/* visitPath is deep magic - but its purpose is simple - it tries to reuse 
+   existing scalar type box in static invokation, such as +, - , etc. */
+
+
 void visitPath(const vector<ObjectTypeSet> &path, 
                BasicBlock *insertBlock, 
                BasicBlock *failBlock, 
@@ -26,6 +50,7 @@ void visitPath(const vector<ObjectTypeSet> &path,
     assert(callIt != calls.end() && "Logic error");
     auto requiredTypes = ObjectTypeSet::typeStringForArgs(callIt->first);
     vector<TypedValue> realArgs;
+
     for(int i=0; i<args.size(); i++) {
       const TypedValue &arg = args[i];
       if(arg.first.isScalar()) {
@@ -35,6 +60,7 @@ void visitPath(const vector<ObjectTypeSet> &path,
         realArgs.push_back(gen->unbox(TypedValue(boxedType, args[i].second)));
       }
     }
+
     TypedValue retValForPath = callIt->second.second(gen, name + " " + requiredTypes, node, realArgs);
 
     // TODO - memory management
@@ -64,7 +90,7 @@ void visitPath(const vector<ObjectTypeSet> &path,
           const TypedValue &arg = args[i];
           if(!arg.first.isScalar() && !(arg.second == reusingVar)) gen->dynamicRelease(arg.second, false);
         }
-        /* TODO - why integer here? */
+        /* TODO - why integer here? - it probably doesnt matter as all scalar types have their data stored in the first 8 bytes. But this seems like a hack... */
         StructType *stype = gen->runtimeIntegerType();        
         Value *ptr = gen->Builder->CreateBitOrPointerCast(reusingVar, stype->getPointerTo(), "void_to_struct");
         Value *tPtr = gen->Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
@@ -75,7 +101,11 @@ void visitPath(const vector<ObjectTypeSet> &path,
         
         parentFunction->insert(parentFunction->end(), ignoreBB);
         gen->Builder->SetInsertPoint(ignoreBB);
-        gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);     
+        gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);
+        for(int i=0; i<args.size(); i++) {
+          const TypedValue &arg = args[i];
+          if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
+        }
         gen->Builder->CreateBr(mergeBlock);
         return;
       }
@@ -115,6 +145,9 @@ void visitPath(const vector<ObjectTypeSet> &path,
   }
 }
 
+
+/****************************** CODEGEN ***************************************************/
+
 TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto c = subnode.class_();
   auto m = subnode.method();
@@ -139,7 +172,11 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
   for(int i=0; i< subnode.args_size(); i++) types.push_back(getType(subnode.args(i), ObjectTypeSet::all()));
 
   string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
-  for(auto t: types) if(!t.isDetermined()) dynamic = true;
+
+  /* We push LJLJ towards dynamic invokation, even though it may not be the most efficient way,
+     it needs to suffice for now. */
+
+  for(auto t: types) if(!t.isDetermined() || t.isBoxedScalar()) dynamic = true;
 
   for(auto method: methods) {
     auto methodTypes = typesForArgString(node, method.first);
@@ -159,8 +196,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     return method.second.second(this, name + " " + requiredTypes, node, args);
   }
 
-  /* Dynamic call */
-  if(dynamic && foundArity) {
+  if(dynamic && foundArity) { /* Dynamic call, triggered when at least one variable is not fully determined (or boxed scalar) and any method with given arity exists */
     
     vector<TypedValue> args;
     
@@ -209,9 +245,11 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
     Builder->SetInsertPoint(merge);                 
     Value *v = Builder->CreateLoad(dynamicBoxedType(), retVal);
     return TypedValue(ObjectTypeSet::dynamicType(), v);
-  }
+  }   /* Dynamic call */
   throw CodeGenerationException(string("Static call ") + name + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node);
 }
+
+/****************************** GET TYPE ***************************************************/
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto c = subnode.class_();

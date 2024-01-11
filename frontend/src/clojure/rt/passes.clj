@@ -8,16 +8,39 @@
             [clojure.walk :refer [postwalk]]))
 
 (defn remove-env
-  ^{:pass-info {:walk :pre :depends #{}}}
+  {:pass-info {:walk :pre :depends #{}}}
   [ast]
   (if (and (map? ast)
            (contains? ast :env))
     (dissoc ast :env)
     ast))
 
+(defn rewrite-loops
+  "Rewrite loop nodes `(loop [bindings] body)` to `(let [G (loop [bindings] body)] G)` and tag those lets."
+  {:pass-info {:walk :post :before #{#'uniquify-locals}}}
+  [ast]
+  (if (= :loop (:op ast))
+    (let [new-var (gensym)]
+      {:loop-let true
+       :op :let
+       :bindings [{:op :binding
+                   :children [:init]
+                   :form new-var
+                   :name new-var
+                   :init ast
+                   :local :let}]
+       :body {:children []
+              :op :local
+              :form new-var
+              :name new-var
+              :local :let}
+       :form `(~'let* [~new-var ~(:form ast)] ~new-var) ;; outer forms are not rewritten
+       :children [:bindings :body]})
+    ast))
+
 (defmulti -fresh-vars
   (fn [{:keys [op]}]
-    (assert (not (#{:deftype :host-interop :letfn :loop :method :new :recur :reify :set!} op))
+    (assert (not (#{:deftype :host-interop :letfn :method :new :reify :set!} op))
             (str "-fresh-vars: " op " not yet implemented"))
     (assert (not (#{:case-test} op))
             (str "-fresh-vars: " op " should never occur"))
@@ -35,6 +58,28 @@
                                       (set (map :name (:params updated-node))))))))
 
 (defmethod -fresh-vars :let
+  [node]
+  (let [updated-body (-fresh-vars (:body node))
+        [reversed-updated-bindings fresh]
+        (->> node
+             :bindings
+             reverse
+             (reduce (fn [[new-bindings fresh] binding]
+                       (let [updated-init (-fresh-vars (:init binding))
+                             binding-fresh (set/union (disj fresh (:name binding))
+                                                      (:fresh updated-init))
+                             updated-binding (assoc binding
+                                                    :init updated-init
+                                                    :fresh binding-fresh)]
+                         [(conj new-bindings updated-binding) binding-fresh]))
+                     [[] (:fresh updated-body)]))
+        updated-bindings (vec (reverse reversed-updated-bindings))]
+    (-> node
+        (assoc :body updated-body
+               :bindings updated-bindings
+               :fresh fresh))))
+
+(defmethod -fresh-vars :loop
   [node]
   (let [updated-body (-fresh-vars (:body node))
         [reversed-updated-bindings fresh]
@@ -79,7 +124,7 @@
   [node]
   (let [updated-thens (vec (map -fresh-vars (:thens node)))
         updated-default (some-> node :default -fresh-vars)
-        all-fresh (apply set/union (:fresh updated-default) (map (comp :fresh :then) updated-thens))]
+        all-fresh (apply set/union (:fresh updated-default) #{(-> node :test :name)} (map (comp :fresh :then) updated-thens))]
     (cond-> node
       updated-default (assoc :default updated-default)
       true (assoc :thens updated-thens
@@ -96,7 +141,7 @@
 
 ;; Handled by default:
 ;; binding, case-then, const, def, fn, import, instance-call, instance-field, instance?, invoke, keyword-invoke, map,
-;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, quote, set, static-call, static-field, the-var,
+;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, quote, recur, set, static-call, static-field, the-var,
 ;; throw, try, var, vector, with-meta
 (defmethod -fresh-vars :default
   [node]
@@ -112,33 +157,41 @@
 
 
 (defmulti -memory-management-pass
-  (fn [{:keys [fresh op]} borrowed owned unwind-owned]
-    (assert (not (#{:case :catch :deftype :host-interop :letfn :loop :method :new :recur :reify :set! :throw :try} op))
+  (fn [{:keys [fresh op form]} borrowed owned unwind-owned]
+    (assert (not (#{:catch :deftype :host-interop :letfn :method :new :reify :set! :throw :try} op))
             (str "-memory-management-pass: " op " not yet implemented"))
-    (assert (not (#{:binding :case-test} op))
+    (assert (not (#{:case-test} op))
             (str "-memory-management-pass: " op " should never occur"))
-    ;; (println "-memory-management-pass" op fresh borrowed owned unwind-owned)
-    (assert (empty? (set/intersection borrowed owned)) "Invariant violation: borrowed and owned intersection is nonempty")
-    (assert (set/subset? owned fresh) "Invariant violation: owned not a subset of fresh variables")
-    (assert (set/subset? unwind-owned (set/union borrowed owned)) "Invariant violation: unwind-owned not a subset of owned + borrowed")
-    (assert (set/subset? fresh (set/union borrowed owned)) "Invariant violation: fresh variables not a subset of borrowed and owned")
+    ;; (println "-memory-management-pass" form fresh borrowed owned unwind-owned)
+    (assert (empty? (set/intersection borrowed owned))
+            (str "-memory-management-pass: Invariant violation in " op ": borrowed " borrowed
+                 " and owned " owned " have nonempty intersection"))
+    (assert (set/subset? owned fresh)
+            (str "-memory-management-pass: Invariant violation in " op ": owned " owned
+                 " not a subset of fresh " fresh))
+    (assert (set/subset? unwind-owned (set/union borrowed owned))
+            (str "-memory-management-pass: Invariant violation in " op ": unwind-owned " unwind-owned
+                 " not a subset of borrowed " borrowed " + owned " owned))
+    (assert (set/subset? fresh (set/union borrowed owned))
+            (str "-memory-management-pass: Invariant violation in " op ": fresh " fresh
+                 " not a subset of borrowed " borrowed " + owned " owned))
     op))
 
 (defn update-drop-memory
-  [node name->amount]
-  (update node :drop-memory #(merge-with + % name->amount)))
+  [node key name->amount]
+  (update node key #(merge-with + % name->amount)))
 
 (defn drop-vars
   [node names]
-  (update-drop-memory node (->> names (map #(vector % -1)) (into {}))))
+  (update-drop-memory node :drop-memory (->> names (map #(vector % -1)) (into {}))))
 
 (defn dup-vars
   [node names]
-  (update-drop-memory node (->> names (map #(vector % 1)) (into {}))))
+  (update-drop-memory node :drop-memory (->> names (map #(vector % 1)) (into {}))))
 
 (defn set-unwind
   [node names]
-  (assoc node :unwind-memory (->> names (map #(vector % -1)))))
+  (update-drop-memory node :unwind-memory (->> names (map #(vector % -1)) (into {}))))
 
 ;; In paper: SVAR, SVAR-DUP
 
@@ -148,7 +201,7 @@
       (and (empty? owned)
            ;; (borrowed name) ;; disabled due to how defs work
            (dup-vars node [name]))
-      (assert false "Invariant violation: unexpected SVAR case\n")))
+      (assert false (str "Invariant violation: unexpected SVAR case " owned))))
 
 (defmethod -memory-management-pass :var
   [node _borrowed _owned unwind-owned]
@@ -262,6 +315,14 @@
         (assoc :statements (vec (butlast updated-nodes))
                :ret (last updated-nodes)))))
 
+(defmethod -memory-management-pass :recur
+  [node borrowed owned unwind-owned]
+  (let [nodes (:exprs node)
+        updated-nodes (application-usage nodes borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :exprs updated-nodes))))
+
 (defmethod -memory-management-pass :with-meta
   [node borrowed owned unwind-owned]
   (let [nodes (map node [:meta :expr])
@@ -276,7 +337,8 @@
   [node borrowed owned unwind-owned]
   (let [nodes (->> [:keys :vals] (map node) (apply interleave))
         updated-nodes (application-usage nodes borrowed owned unwind-owned)
-        [updated-keys updated-vals] (->> updated-nodes (partition 2) (apply mapv vector))]
+        [first-half second-half] (partition 2 updated-nodes)
+        [updated-keys updated-vals] (mapv vector first-half second-half)]
     (-> node
         (set-unwind unwind-owned)
         (assoc :keys updated-keys
@@ -323,11 +385,13 @@
 
 ;; In paper: SBIND and SBIND-DROP, adapted to handle multiple bindings in let
 
-(defmethod -memory-management-pass :let
-  ;; Earlier pass guarantees that there is (initially) at least one binding
+(defn node-with-bindings-memory-management-pass
   [node borrowed owned unwind-owned]
   (if (empty? (:bindings node))
-    (update node :body -memory-management-pass borrowed owned unwind-owned)
+    (do (when (= :loop (:op node))
+          (assert (set/subset? owned (:bound-by-this node))
+                  (str "Loop body must not own any local variable, except for loop bindings! " owned)))
+        (update node :body -memory-management-pass borrowed owned unwind-owned))
     (let [[binding & bindings] (:bindings node)
           local-name (:name binding) ;; x
           remainder-fresh (if (seq bindings) (:fresh (first bindings)) (:fresh (:body node))) ;; fv(e_2)
@@ -339,11 +403,14 @@
                                                 (set/difference owned remainder-owned)
                                                 unwind-owned)
           updated-binding (assoc binding :init updated-init)
-          updated-let (assoc node :bindings bindings :fresh remainder-fresh)
-          updated-remainder (-memory-management-pass updated-let
-                                                     borrowed
-                                                     (cond-> remainder-owned local-name-used (conj local-name))
-                                                     (cond-> remainder-unwind-owned local-name-used (conj local-name)))
+          updated-node (-> node
+                           (assoc :bindings bindings :fresh remainder-fresh)
+                           (update :bound-by-this set/union #{local-name}))
+          updated-remainder (node-with-bindings-memory-management-pass
+                             updated-node
+                             borrowed
+                             (cond-> remainder-owned local-name-used (conj local-name))
+                             (cond-> remainder-unwind-owned local-name-used (conj local-name)))
           drop-local-updated-remainder (if local-name-used
                                          updated-remainder
                                          (let [ks (if (seq bindings) [:bindings 0] [:body])]
@@ -352,6 +419,26 @@
           (assoc :fresh (:fresh node))
           ;; (set-unwind unwind-owned) ;; refer to individual bindings/body
           (update :bindings #(vec (concat [updated-binding] %)))))))
+
+(defmethod -memory-management-pass :loop
+  [node borrowed owned unwind-owned]
+  (node-with-bindings-memory-management-pass node borrowed owned unwind-owned))
+
+(defmethod -memory-management-pass :let
+  [node borrowed owned unwind-owned]
+  (if (:loop-let node)
+    ;; Let is of form `(let [G (loop [bindings] body)] G)`.
+    ;; Decorate loop body under assumption that all local variables are borrowed
+    ;; (they are owned by the next loop iteration) and drop them before let body G.
+    (let [owned-by-loop-body (set/intersection owned (-> node :bindings first :init :body :fresh))]
+      (-> node
+          (update :body drop-vars owned-by-loop-body)
+          (node-with-bindings-memory-management-pass
+           (set/union borrowed owned-by-loop-body)
+           (set/difference owned owned-by-loop-body)
+           unwind-owned)))
+    ;; In standard case, earlier pass guarantees that there is (initially) at least one binding
+    (node-with-bindings-memory-management-pass node borrowed owned unwind-owned)))
 
 ;; Revisit catch and try when implementing exceptions
 #_(defmethod -memory-management-pass :try
@@ -409,6 +496,34 @@
         (set-unwind unwind-owned)
         (merge updated-branches))))
 
+(defmethod -memory-management-pass :case
+  ;; Warning: case without default case is rewritten by compiler to contain default case with exception.
+  ;; This exception uses :new node, which is not yet handled! For now, please write default cases by yourself.
+  [node borrowed owned unwind-owned]
+  (let [branches (->> node :thens (map-indexed vector) (into {}))
+        default (:default node)
+        branches (cond-> branches default (assoc :default default))
+        owned-in-branch (->> branches
+                             (map (fn [[branch-id branch-node]] [branch-id (set/intersection owned (:fresh branch-node))]))
+                             (into {}))
+        disowned-in-branch (->> branches
+                                (map (fn [[branch-id]] [branch-id (set/difference owned (get owned-in-branch branch-id))]))
+                                (into {}))
+        updated-branches (->> branches
+                              (map (fn [[branch-id branch-node]]
+                                     [branch-id (-> branch-node
+                                                    (-memory-management-pass
+                                                     borrowed
+                                                     (get owned-in-branch branch-id)
+                                                     (set/difference unwind-owned (get disowned-in-branch branch-id)))
+                                                    (drop-vars (get disowned-in-branch branch-id)))]))
+                              (into {}))
+        updated-node (cond-> node default (assoc :default (:default updated-branches)))
+        updated-branches (->> (dissoc updated-branches :default) (into []) sort (map second) vec)]
+    (-> updated-node
+        (set-unwind unwind-owned)
+        (assoc :thens updated-branches))))
+
 ;; Handled by default:
 ;; case-then, const, def, import, instance-field, instance?,
 ;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, quote, set, static-field, the-var,
@@ -425,22 +540,29 @@
   (let [f #(mapv (fn [[k v]] [(name k) v]) %)]
     (postwalk
     ;;  identity
-     (fn [m] (if (map? m)
-               (cond-> m
-                 (contains? m :drop-memory) (update :drop-memory f)
-                 (contains? m :unwind-memory) (update :unwind-memory f))
-               m))
+     (fn [m]
+       (cond (= (class m) clojure.lang.PersistentTreeMap)
+             m
+             
+             (map? m)
+             (cond-> m
+               (contains? m :drop-memory) (update :drop-memory f)
+               (contains? m :unwind-memory) (update :unwind-memory f))
+             
+             :else
+             m))
      (-memory-management-pass ast #{} #{} #{}))))
 
 
 (defn clean-tree
   [node]
   (cond (map? node)
-        (let [important-keys (concat (:children node)
-                                     [:op :fresh :form :name :drop-memory :unwind-memory])]
-          (->> (select-keys node important-keys)
-               (map (fn [[k v]] [k (if (#{:drop-memory :unwind-memory} k) v (clean-tree v))]))
-               (into {})))
+        (if (= (:op node) :case) node
+          (let [important-keys (concat (:children node)
+                                       [:children :op :loop-let :fresh :form :name :drop-memory :unwind-memory :local])]
+            (->> (select-keys node important-keys)
+                 (map (fn [[k v]] [k (if (#{:drop-memory :unwind-memory} k) v (clean-tree v))]))
+                 (into {}))))
         (vector? node)
         (mapv clean-tree node)
         :else

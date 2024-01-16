@@ -40,7 +40,7 @@
 
 (defmulti -fresh-vars
   (fn [{:keys [op]}]
-    (assert (not (#{:deftype :host-interop :letfn :method :new :reify :set!} op))
+    (assert (not (#{:deftype :host-interop :method :new :reify :set!} op))
             (str "-fresh-vars: " op " not yet implemented"))
     (assert (not (#{:case-test} op))
             (str "-fresh-vars: " op " should never occur"))
@@ -57,7 +57,16 @@
         (assoc :fresh (set/difference (:fresh (:body updated-node))
                                       (set (map :name (:params updated-node))))))))
 
-(defmethod -fresh-vars :let
+(defmethod -fresh-vars :fn
+  [node]
+  (let [updated-node (ast/update-children node -fresh-vars)
+        local-binding (-> node :local :name)
+        all-fresh (cond-> (->> updated-node ast/children (map :fresh) (apply set/union))
+                    local-binding (disj local-binding))]
+    (-> updated-node
+        (assoc :fresh all-fresh))))
+
+(defn let-fresh-vars
   [node]
   (let [updated-body (-fresh-vars (:body node))
         [reversed-updated-bindings fresh]
@@ -78,6 +87,14 @@
         (assoc :body updated-body
                :bindings updated-bindings
                :fresh fresh))))
+
+(defmethod -fresh-vars :let [node] (let-fresh-vars node))
+
+(defmethod -fresh-vars :letfn
+  [node]
+  (let [updated-node (let-fresh-vars node)
+        fn-names (set (map :name (:bindings node)))]
+    (update updated-node :fresh set/difference fn-names)))
 
 (defmethod -fresh-vars :loop
   [node]
@@ -158,11 +175,11 @@
 
 (defmulti -memory-management-pass
   (fn [{:keys [fresh op form]} borrowed owned unwind-owned]
-    (assert (not (#{:catch :deftype :host-interop :letfn :method :new :reify :set! :throw :try} op))
+    (assert (not (#{:catch :deftype :host-interop :method :new :reify :set! :throw :try} op))
             (str "-memory-management-pass: " op " not yet implemented"))
-    (assert (not (#{:case-test} op))
+    (assert (not (#{:case-test :fn-method} op))
             (str "-memory-management-pass: " op " should never occur"))
-    ;; (println "-memory-management-pass" form fresh borrowed owned unwind-owned)
+    ;; (println "-memory-management-pass" op "fresh" fresh "borrowed" borrowed "owned" owned "unwind-owned" unwind-owned)
     (assert (empty? (set/intersection borrowed owned))
             (str "-memory-management-pass: Invariant violation in " op ": borrowed " borrowed
                  " and owned " owned " have nonempty intersection"))
@@ -360,28 +377,33 @@
 
 ;; In paper: SLAM and SLAM-DROP, merged to modify function with multiple arities
 
-(defn function-definition
-  [node _borrowed owned unwind-owned]
+;; fn/fn-method is NOT expected to have drop/unwind-memory, all information is passed to the body
+(defn fn-method-memory-management-pass
+  [node]
   (let [fn-fresh (:fresh node) ;; ys
         args (set (map :name (:params node)))
         used (set/intersection args (:fresh (:body node))) ;; x in fv(e)
         unused (set/difference args used) ;; x not in fv(e)
-        duplicated (set/difference fn-fresh owned) ;; Delta_1
-        updated-body (-memory-management-pass (:body node) #{} (set/union fn-fresh used) (set/union unwind-owned used))]
+        updated-body (-memory-management-pass (:body node) #{} (set/union fn-fresh used) used)]
     (-> node
         (assoc :body updated-body)
         (update :body drop-vars unused)
-        (set-unwind unwind-owned)
-        (dup-vars duplicated))))
+        (update :body dup-vars fn-fresh))))
 
-(defmethod -memory-management-pass :fn-method
-  [node borrowed owned unwind-owned]
-  (function-definition node borrowed owned unwind-owned))
-
-;; TODO: verify how optional local name is handled when implementing letfn
+;; :drop/unwind-memory defines memory management at the moment of DEFINING a function
+;; When the function is dropped (or an exception is thrown), it should also drop (unwind) variables in :closed-overs
 (defmethod -memory-management-pass :fn
-  [node borrowed owned unwind-owned]
-  (update node :methods (fn [methods] (mapv #(function-definition % borrowed owned unwind-owned) methods))))
+  [node _borrowed owned unwind-owned]
+  (let [local-binding (-> node :local :name)
+        updated-methods (mapv fn-method-memory-management-pass (:methods node))
+        fn-used-locals (cond-> (apply set/union (map :fresh updated-methods))
+                         true (set/difference owned) ;; Delta_1
+                         local-binding (disj local-binding))]
+    (-> node
+        (assoc :methods updated-methods)
+        (dup-vars fn-used-locals)
+        (set-unwind unwind-owned)
+        (set-unwind fn-used-locals))))
 
 ;; In paper: SBIND and SBIND-DROP, adapted to handle multiple bindings in let
 
@@ -391,7 +413,17 @@
     (do (when (= :loop (:op node))
           (assert (set/subset? owned (:bound-by-this node))
                   (str "Loop body must not own any local variable, except for loop bindings! " owned)))
-        (update node :body -memory-management-pass borrowed owned unwind-owned))
+        (if (= :letfn (:op node))
+          (let [fn-names (:bound-by-this node)
+                fn-used (set/intersection fn-names (:fresh (:body node)))
+                fn-unused (set/difference fn-names fn-used)
+                borrowed (set/difference borrowed fn-names)
+                owned (set/union owned fn-used)
+                unwind-owned (set/difference unwind-owned fn-unused)]
+            (update node :body #(-> %
+                                    (-memory-management-pass borrowed owned unwind-owned)
+                                    (drop-vars fn-unused))))
+          (update node :body -memory-management-pass borrowed owned unwind-owned)))
     (let [[binding & bindings] (:bindings node)
           local-name (:name binding) ;; x
           remainder-fresh (if (seq bindings) (:fresh (first bindings)) (:fresh (:body node))) ;; fv(e_2)
@@ -409,9 +441,9 @@
           updated-remainder (node-with-bindings-memory-management-pass
                              updated-node
                              borrowed
-                             (cond-> remainder-owned local-name-used (conj local-name))
+                             (cond-> remainder-owned (and local-name-used (not= :letfn (:op node))) (conj local-name))
                              (cond-> remainder-unwind-owned local-name-used (conj local-name)))
-          drop-local-updated-remainder (if local-name-used
+          drop-local-updated-remainder (if (or local-name-used (= :letfn (:op node)))
                                          updated-remainder
                                          (let [ks (if (seq bindings) [:bindings 0] [:body])]
                                            (update-in updated-remainder ks drop-vars [local-name])))]
@@ -438,6 +470,13 @@
            (set/difference owned owned-by-loop-body)
            unwind-owned)))
     ;; In standard case, earlier pass guarantees that there is (initially) at least one binding
+    (node-with-bindings-memory-management-pass node borrowed owned unwind-owned)))
+
+(defmethod -memory-management-pass :letfn
+  [node borrowed owned unwind-owned]
+  (let [fn-names (set (map :name (:bindings node)))
+        borrowed (set/union borrowed fn-names)
+        owned (set/difference owned fn-names)]
     (node-with-bindings-memory-management-pass node borrowed owned unwind-owned)))
 
 ;; Revisit catch and try when implementing exceptions
@@ -559,9 +598,13 @@
   (cond (map? node)
         (if (= (:op node) :case) node
           (let [important-keys (concat (:children node)
-                                       [:children :op :loop-let :fresh :form :name :drop-memory :unwind-memory :local])]
+                                       [:children :op :loop-let :fresh :form :name :drop-memory
+                                        :unwind-memory :local :closed-overs])]
             (->> (select-keys node important-keys)
-                 (map (fn [[k v]] [k (if (#{:drop-memory :unwind-memory} k) v (clean-tree v))]))
+                 (map (fn [[k v]] [k (case k
+                                       (:drop-memory :unwind-memory) v
+                                       :closed-overs (set (keys v))
+                                       (clean-tree v))]))
                  (into {}))))
         (vector? node)
         (mapv clean-tree node)

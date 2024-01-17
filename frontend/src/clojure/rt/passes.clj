@@ -40,7 +40,7 @@
 
 (defmulti -fresh-vars
   (fn [{:keys [op]}]
-    (assert (not (#{:deftype :host-interop :method :new :reify :set!} op))
+    (assert (not (#{:deftype :host-interop :method :reify :set!} op))
             (str "-fresh-vars: " op " not yet implemented"))
     (assert (not (#{:case-test} op))
             (str "-fresh-vars: " op " should never occur"))
@@ -158,7 +158,7 @@
 
 ;; Handled by default:
 ;; binding, case-then, const, def, fn, import, instance-call, instance-field, instance?, invoke, keyword-invoke, map,
-;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, quote, recur, set, static-call, static-field, the-var,
+;; monitor-enter, monitor-exit, new, prim-invoke, protocol-invoke, quote, recur, set, static-call, static-field, the-var,
 ;; throw, try, var, vector, with-meta
 (defmethod -fresh-vars :default
   [node]
@@ -175,7 +175,7 @@
 
 (defmulti -memory-management-pass
   (fn [{:keys [fresh op form]} borrowed owned unwind-owned]
-    (assert (not (#{:catch :deftype :host-interop :method :new :reify :set! :throw :try} op))
+    (assert (not (#{:deftype :host-interop :method :reify :set!} op))
             (str "-memory-management-pass: " op " not yet implemented"))
     (assert (not (#{:case-test :fn-method} op))
             (str "-memory-management-pass: " op " should never occur"))
@@ -315,6 +315,14 @@
                :target updated-target))))
 
 (defmethod -memory-management-pass :static-call
+  [node borrowed owned unwind-owned]
+  (let [nodes (:args node)
+        updated-nodes (application-usage nodes borrowed owned unwind-owned)]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc :args updated-nodes))))
+
+(defmethod -memory-management-pass :new
   [node borrowed owned unwind-owned]
   (let [nodes (:args node)
         updated-nodes (application-usage nodes borrowed owned unwind-owned)]
@@ -479,28 +487,53 @@
         owned (set/difference owned fn-names)]
     (node-with-bindings-memory-management-pass node borrowed owned unwind-owned)))
 
-;; Revisit catch and try when implementing exceptions
-#_(defmethod -memory-management-pass :try
-    ;; Earlier pass guarantees that there is at least one catch OR finally block
-  ;; 1st attempt: without finally
-    [node borrowed owned]
-    (let []))
+(defmethod -memory-management-pass :try
+  ;; Earlier pass (trim) guarantees that there is at least one catch OR finally block
+  [node borrowed owned unwind-owned]
+  (let [finally-owned (set/intersection owned (:fresh (:finally node)))
+        each-catch-owned (map #(-> % :fresh (set/intersection owned) (set/difference finally-owned)) (:catches node))
+        all-catches-owned (apply set/union each-catch-owned)
+        each-catch-disowned (mapv #(set/difference all-catches-owned %) each-catch-owned)
+        try-owned (-> owned
+                      (set/intersection (:fresh (:body node)))
+                      (set/difference (set/union finally-owned all-catches-owned)))
+        all-catches-unwind-owned (set/difference unwind-owned try-owned)
+        try-borrowed (set/union borrowed (set/difference owned try-owned))
+        updated-body (-memory-management-pass (:body node) try-borrowed try-owned #{})
+        updated-catches (mapv (fn [catch-node catch-owned catch-disowned]
+                                (-> catch-node
+                                    (-memory-management-pass (set/difference try-borrowed catch-owned)
+                                                             catch-owned
+                                                             (set/difference all-catches-unwind-owned catch-disowned))
+                                    (drop-vars catch-disowned)))
+                              (:catches node)
+                              each-catch-owned
+                              each-catch-disowned)
+        finally-unwind-owned (set/difference all-catches-unwind-owned all-catches-owned)
+        updated-finally (some-> node
+                                :finally
+                                (-memory-management-pass borrowed finally-owned finally-unwind-owned)
+                                #_(drop-vars all-catches-owned))]
+    (cond-> node
+      true (assoc :body updated-body)
+      true (assoc :catches updated-catches)
+      updated-finally (assoc :finally updated-finally)
+      updated-finally (assoc :try->finally all-catches-owned) ;; drop these variables if execution went from try block directly to finally
+      true (set-unwind unwind-owned))))
 
-#_(defmethod -memory-management-pass :catch
-    [node borrowed owned unwind-owned]
-    (let [exception-name (:name (:local node))
-          remainder-fresh (:fresh (:body node))
-          exception-used (remainder-fresh exception-name)
-          remainder-owned (set/intersection owned (disj remainder-fresh exception-name))
-          remainder-unwind-owned (set/intersection unwind-owned (disj remainder-fresh exception-name))
-          updated-body (-memory-management-pass (:body node)
-                                                (set/union borrowed remainder-owned)
-                                                (set/difference owned remainder-owned)
-                                                (set/difference unwind-owned remainder-unwind-owned))
-          drop-exception-updated-body (cond-> updated-body (not exception-used) (drop-vars [exception-name]))]
-      (-> node
-          (assoc :body drop-exception-updated-body)
-          (set-unwind unwind-owned))))
+(defmethod -memory-management-pass :catch
+  [node borrowed owned unwind-owned]
+  (let [exception-name (:name (:local node))
+        body-fresh (:fresh (:body node))
+        exception-used (body-fresh exception-name)
+        body-owned (cond-> owned
+                     true (set/intersection body-fresh)
+                     exception-used (conj exception-used))
+        body-unwind-owned (cond-> unwind-owned exception-used (conj exception-used))
+        updated-body (-memory-management-pass (:body node) borrowed body-owned body-unwind-owned)
+        drop-exception-updated-body (cond-> updated-body (not exception-used) (drop-vars [exception-name]))]
+    (-> node
+        (assoc :body drop-exception-updated-body))))
 
 ;; In paper: SMATCH, adapted
 
@@ -602,7 +635,7 @@
                                         :unwind-memory :local :closed-overs])]
             (->> (select-keys node important-keys)
                  (map (fn [[k v]] [k (case k
-                                       (:drop-memory :unwind-memory) v
+                                       (:drop-memory :unwind-memory :try->finally) v
                                        :closed-overs (set (keys v))
                                        (clean-tree v))]))
                  (into {}))))

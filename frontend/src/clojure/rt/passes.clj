@@ -569,8 +569,6 @@
         (merge updated-branches))))
 
 (defmethod -memory-management-pass :case
-  ;; Warning: case without default case is rewritten by compiler to contain default case with exception.
-  ;; This exception uses :new node, which is not yet handled! For now, please write default cases by yourself.
   [node borrowed owned unwind-owned]
   (let [branches (->> node :thens (map-indexed vector) (into {}))
         default (:default node)

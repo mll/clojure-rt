@@ -39,27 +39,27 @@
     ast))
 
 (defmulti -fresh-vars
-  (fn [{:keys [op]}]
-    (assert (not (#{:deftype :host-interop :method :reify :set!} op))
+  (fn [{:keys [op]} _]
+    (assert (not (#{:host-interop} op))
             (str "-fresh-vars: " op " not yet implemented"))
     (assert (not (#{:case-test} op))
             (str "-fresh-vars: " op " should never occur"))
     op))
 
 (defmethod -fresh-vars :local
-  [node]
+  [node _recur-this]
   (assoc node :fresh #{(:name node)}))
 
 (defmethod -fresh-vars :fn-method
-  [node]
-  (let [updated-node (ast/update-children node -fresh-vars)]
+  [node recur-this]
+  (let [updated-node (ast/update-children node #(-fresh-vars % recur-this))]
     (-> updated-node
         (assoc :fresh (set/difference (:fresh (:body updated-node))
                                       (set (map :name (:params updated-node))))))))
 
 (defmethod -fresh-vars :fn
-  [node]
-  (let [updated-node (ast/update-children node -fresh-vars)
+  [node recur-this]
+  (let [updated-node (ast/update-children node #(-fresh-vars % recur-this))
         local-binding (-> node :local :name)
         all-fresh (cond-> (->> updated-node ast/children (map :fresh) (apply set/union))
                     local-binding (disj local-binding))]
@@ -67,14 +67,14 @@
         (assoc :fresh all-fresh))))
 
 (defn let-fresh-vars
-  [node]
-  (let [updated-body (-fresh-vars (:body node))
+  [node recur-this]
+  (let [updated-body (-fresh-vars (:body node) recur-this)
         [reversed-updated-bindings fresh]
         (->> node
              :bindings
              reverse
              (reduce (fn [[new-bindings fresh] binding]
-                       (let [updated-init (-fresh-vars (:init binding))
+                       (let [updated-init (-fresh-vars (:init binding) recur-this)
                              binding-fresh (set/union (disj fresh (:name binding))
                                                       (:fresh updated-init))
                              updated-binding (assoc binding
@@ -88,23 +88,23 @@
                :bindings updated-bindings
                :fresh fresh))))
 
-(defmethod -fresh-vars :let [node] (let-fresh-vars node))
+(defmethod -fresh-vars :let [node recur-this] (let-fresh-vars node recur-this))
 
 (defmethod -fresh-vars :letfn
-  [node]
-  (let [updated-node (let-fresh-vars node)
+  [node recur-this]
+  (let [updated-node (let-fresh-vars node recur-this)
         fn-names (set (map :name (:bindings node)))]
     (update updated-node :fresh set/difference fn-names)))
 
 (defmethod -fresh-vars :loop
-  [node]
-  (let [updated-body (-fresh-vars (:body node))
+  [node recur-this]
+  (let [updated-body (-fresh-vars (:body node) recur-this)
         [reversed-updated-bindings fresh]
         (->> node
              :bindings
              reverse
              (reduce (fn [[new-bindings fresh] binding]
-                       (let [updated-init (-fresh-vars (:init binding))
+                       (let [updated-init (-fresh-vars (:init binding) recur-this)
                              binding-fresh (set/union (disj fresh (:name binding))
                                                       (:fresh updated-init))
                              updated-binding (assoc binding
@@ -119,14 +119,14 @@
                :fresh fresh))))
 
 (defmethod -fresh-vars :do
-  [node]
-  (let [updated-ret (-fresh-vars (:ret node))
+  [node recur-this]
+  (let [updated-ret (-fresh-vars (:ret node) recur-this)
         [reversed-updated-statements fresh]
         (->> node
              :statements
              reverse
              (reduce (fn [[new-statements fresh] statement]
-                       (let [updated-statement (-fresh-vars statement)
+                       (let [updated-statement (-fresh-vars statement recur-this)
                              binding-fresh (set/union fresh (:fresh updated-statement))
                              updated-statement (assoc updated-statement :fresh binding-fresh)]
                          [(conj new-statements updated-statement) binding-fresh]))
@@ -138,31 +138,77 @@
                :fresh fresh))))
 
 (defmethod -fresh-vars :case
-  [node]
-  (let [updated-thens (vec (map -fresh-vars (:thens node)))
-        updated-default (some-> node :default -fresh-vars)
+  [node recur-this]
+  (let [updated-thens (vec (map #(-fresh-vars % recur-this) (:thens node)))
+        updated-default (some-> node :default (-fresh-vars recur-this))
         all-fresh (apply set/union (:fresh updated-default) #{(-> node :test :name)} (map (comp :fresh :then) updated-thens))]
     (cond-> node
       updated-default (assoc :default updated-default)
       true (assoc :thens updated-thens
                   :fresh all-fresh))))
 
-;; Revisit catch and try when implementing exceptions
 (defmethod -fresh-vars :catch
-  [node]
-  (let [updated-body (-fresh-vars (:body node))
+  [node recur-this]
+  (let [updated-body (-fresh-vars (:body node) recur-this)
         fresh (disj (:fresh updated-body) (:name (:local node)))]
     (-> node
         (assoc :body updated-body
                :fresh fresh))))
 
+(defmethod -fresh-vars :deftype
+  [node recur-this]
+  (let [field-names (->> node :fields (map :name) set)
+        update-method (fn [method-node]
+                        (let [updated-method-node (-> method-node
+                                                      (-fresh-vars recur-this)
+                                                      (update :fresh set/difference field-names))]
+                          (assert (empty? (:fresh updated-method-node))
+                                  (str "Record method in deftype should not have any free variables: "
+                                       (:fresh updated-method-node)
+                                       (:form updated-method-node)))
+                          updated-method-node))]
+    (-> node
+        (update :methods #(mapv update-method %))
+        (assoc :fresh #{}))))
+
+(defmethod -fresh-vars :reify
+  [node recur-this]
+  (let [updated-methods (mapv #(-fresh-vars % recur-this) (:methods node))]
+    (-> node
+        (assoc :methods updated-methods
+               :fresh (apply set/union (map :fresh updated-methods))))))
+
+(defmethod -fresh-vars :method
+  [node recur-this]
+  (let [this (:this node)
+        updated-body (->> :local
+                          (assoc this :op)
+                          (assoc recur-this (:loop-id node))
+                          (-fresh-vars (:body node)))
+        args (conj (->> node :params (map :name) set) (:name this))]
+    (-> node
+        (assoc :body updated-body
+               :fresh (set/difference (:fresh updated-body) args)))))
+
+(defmethod -fresh-vars :recur
+  [node recur-this]
+  ;; Special case: in defrecord/reify methods, you are not supposed to pass this as an argument
+  ;; (it is passed implicitly), only remaining arguments (see pendulum.clj as an example)
+  (let [updated-node (ast/update-children node #(-fresh-vars % recur-this))
+        all-fresh (->> updated-node ast/children (map :fresh) (apply set/union))
+        this (recur-this (node :loop-id))
+        all-fresh (cond-> all-fresh this (conj (:name this)))]
+    (cond-> updated-node
+      this (assoc :recur-this (-fresh-vars this recur-this))
+      true (assoc :fresh all-fresh))))
+
 ;; Handled by default:
 ;; binding, case-then, const, def, fn, import, instance-call, instance-field, instance?, invoke, keyword-invoke, map,
-;; monitor-enter, monitor-exit, new, prim-invoke, protocol-invoke, quote, recur, set, static-call, static-field, the-var,
-;; throw, try, var, vector, with-meta
+;; monitor-enter, monitor-exit, new, prim-invoke, protocol-invoke, quote, recur, set, set!,
+;; static-call, static-field, the-var, throw, try, var, vector, with-meta
 (defmethod -fresh-vars :default
-  [node]
-  (let [updated-node (ast/update-children node -fresh-vars)
+  [node recur-this]
+  (let [updated-node (ast/update-children node #(-fresh-vars % recur-this))
         all-fresh (->> updated-node ast/children (map :fresh) (apply set/union))]
     (-> updated-node
         (assoc :fresh all-fresh))))
@@ -170,14 +216,14 @@
 (defn fresh-vars
   ^{:pass-info {:walk :none :depends #{#'uniquify-locals}}}
   [ast]
-  (-fresh-vars ast))
+  (-fresh-vars ast {}))
 
 
 (defmulti -memory-management-pass
   (fn [{:keys [fresh op form]} borrowed owned unwind-owned]
-    (assert (not (#{:deftype :host-interop :method :reify :set!} op))
+    (assert (not (#{:host-interop} op))
             (str "-memory-management-pass: " op " not yet implemented"))
-    (assert (not (#{:case-test :fn-method} op))
+    (assert (not (#{:case-test :fn-method :method} op))
             (str "-memory-management-pass: " op " should never occur"))
     ;; (println "-memory-management-pass" op "fresh" fresh "borrowed" borrowed "owned" owned "unwind-owned" unwind-owned)
     (assert (empty? (set/intersection borrowed owned))
@@ -343,10 +389,25 @@
 (defmethod -memory-management-pass :recur
   [node borrowed owned unwind-owned]
   (let [nodes (:exprs node)
-        updated-nodes (application-usage nodes borrowed owned unwind-owned)]
+        this (:recur-this node)
+        nodes (cond->> nodes this (concat [this]))
+        updated-nodes (application-usage nodes borrowed owned unwind-owned)
+        [updated-this updated-exprs] (if this
+                                       [(first updated-nodes) (vec (rest updated-nodes))]
+                                       [nil updated-nodes])]
+    (cond-> node
+        true (set-unwind unwind-owned)
+        updated-this (assoc :recur-this updated-this)
+        true (assoc :exprs updated-exprs))))
+
+(defmethod -memory-management-pass :set!
+  [node borrowed owned unwind-owned]
+  (let [nodes (map node [:target :val])
+        [updated-target updated-val] (application-usage nodes borrowed owned unwind-owned)]
     (-> node
         (set-unwind unwind-owned)
-        (assoc :exprs updated-nodes))))
+        (assoc :target updated-target
+               :val updated-val))))
 
 (defmethod -memory-management-pass :with-meta
   [node borrowed owned unwind-owned]
@@ -385,17 +446,21 @@
 
 ;; In paper: SLAM and SLAM-DROP, merged to modify function with multiple arities
 
-;; fn/fn-method is NOT expected to have drop/unwind-memory, all information is passed to the body
+;; fn/fn-method/method is NOT expected to have drop/unwind-memory, all information is passed to the body
 (defn fn-method-memory-management-pass
-  [node]
+  [node record-fields]
   (let [fn-fresh (:fresh node) ;; ys
-        args (set (map :name (:params node)))
-        used (set/intersection args (:fresh (:body node))) ;; x in fv(e)
+        this (:name (:this node)) ;; defrecord/reify method
+        args (cond-> (set (map :name (:params node))) this (conj this))
+        used (->> node :body :fresh (set/intersection args)) ;; x in fv(e)
+        record-fields-used (->> node :body :fresh (set/intersection record-fields))
         unused (set/difference args used) ;; x not in fv(e)
-        updated-body (-memory-management-pass (:body node) #{} (set/union fn-fresh used) used)]
+        record-fields-unused (set/difference record-fields record-fields-used)
+        updated-body (-memory-management-pass (:body node) #{} (set/union fn-fresh used record-fields-used) used)]
     (-> node
         (assoc :body updated-body)
         (update :body drop-vars unused)
+        (update :body drop-vars record-fields-unused)
         (update :body dup-vars fn-fresh))))
 
 ;; :drop/unwind-memory defines memory management at the moment of DEFINING a function
@@ -403,7 +468,7 @@
 (defmethod -memory-management-pass :fn
   [node _borrowed owned unwind-owned]
   (let [local-binding (-> node :local :name)
-        updated-methods (mapv fn-method-memory-management-pass (:methods node))
+        updated-methods (mapv #(fn-method-memory-management-pass % #{}) (:methods node))
         fn-used-locals (cond-> (apply set/union (map :fresh updated-methods))
                          true (set/difference owned) ;; Delta_1
                          local-binding (disj local-binding))]
@@ -412,6 +477,27 @@
         (dup-vars fn-used-locals)
         (set-unwind unwind-owned)
         (set-unwind fn-used-locals))))
+
+(defmethod -memory-management-pass :method
+  [node _borrowed _owned _unwind-owned]
+  (fn-method-memory-management-pass node #{}))
+
+(defmethod -memory-management-pass :reify
+  [node _borrowed owned unwind-owned]
+  (let [updated-methods (mapv #(fn-method-memory-management-pass % #{}) (:methods node))
+        fn-used-locals (set/difference (apply set/union (map :fresh updated-methods)) owned)]
+    (-> node
+        (assoc :methods updated-methods)
+        (dup-vars fn-used-locals)
+        (set-unwind unwind-owned)
+        (set-unwind fn-used-locals))))
+
+(defmethod -memory-management-pass :deftype
+  [node _borrowed _owned _unwind-owned]
+  (let [fields (set (map :name (:fields node)))
+        updated-methods (mapv #(fn-method-memory-management-pass % fields) (:methods node))]
+    (-> node
+        (assoc :methods updated-methods))))
 
 ;; In paper: SBIND and SBIND-DROP, adapted to handle multiple bindings in let
 
@@ -630,10 +716,10 @@
         (if (= (:op node) :case) node
           (let [important-keys (concat (:children node)
                                        [:children :op :loop-let :fresh :form :name :drop-memory
-                                        :unwind-memory :local :closed-overs])]
+                                        :unwind-memory :local :closed-overs :loops :loop-id :recur-this])]
             (->> (select-keys node important-keys)
                  (map (fn [[k v]] [k (case k
-                                       (:drop-memory :unwind-memory :try->finally) v
+                                       (:drop-memory :unwind-memory :try->finally :loops :loop-id) v
                                        :closed-overs (set (keys v))
                                        (clean-tree v))]))
                  (into {}))))

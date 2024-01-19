@@ -604,7 +604,7 @@
       true (assoc :body updated-body)
       true (assoc :catches updated-catches)
       updated-finally (assoc :finally updated-finally)
-      updated-finally (assoc :try->finally all-catches-owned) ;; drop these variables if execution went from try block directly to finally
+      true (assoc :all-catches-owned all-catches-owned) ;; drop these variables if execution went from try block directly to finally
       true (set-unwind unwind-owned))))
 
 (defmethod -memory-management-pass :catch
@@ -701,9 +701,9 @@
              m
              
              (map? m)
-             (cond-> m
-               (contains? m :drop-memory) (update :drop-memory f)
-               (contains? m :unwind-memory) (update :unwind-memory f))
+             (reduce (fn [m k] (cond-> m (contains? m k) (update k f)))
+                     m
+                     [:drop-memory :unwind-memory :all-catches-owned])
              
              :else
              m))
@@ -719,7 +719,7 @@
                                         :unwind-memory :local :closed-overs :loops :loop-id :recur-this])]
             (->> (select-keys node important-keys)
                  (map (fn [[k v]] [k (case k
-                                       (:drop-memory :unwind-memory :try->finally :loops :loop-id) v
+                                       (:drop-memory :unwind-memory :all-catches-owned :loops :loop-id) v
                                        :closed-overs (set (keys v))
                                        (clean-tree v))]))
                  (into {}))))

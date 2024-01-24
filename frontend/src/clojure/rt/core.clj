@@ -9,7 +9,9 @@
             [clojure.string :refer [join split]]
             [clojure.tools.reader.reader-types :as t]
             [clojure.rt.passes :as passes]
+            [clojure.rt.quote :as quote]
 
+            [clojure.tools.analyzer :as ana]
             [clojure.tools.analyzer
              [utils :refer [ctx resolve-sym -source-info resolve-ns obj? dissoc-env butlast+last mmerge]]
              [ast :refer [walk prewalk postwalk] :as ast]
@@ -70,18 +72,19 @@
 
 (defn analyze [s filename]
   (with-bindings {#'a/run-passes scheduled-rt-passes}
-    (let [reader (t/source-logging-push-back-reader s 1 filename)]
-      (loop [form (r/read {:eof :eof} reader) ret-val []]
-        (if (= :eof form) (do #_(clojure.pprint/pprint (passes/clean-tree ret-val)) ;; uncomment to see simple tree
-                              ret-val)
-            (do
-              (eval form)
-              (recur (r/read {:eof :eof} reader)
-                     (->> form
-                          a/analyze
-                          passes/fresh-vars
-                          passes/memory-management-pass
-                          (conj ret-val)))))))))
+    (with-redefs [ana/parse-quote quote/parse-quote]
+      (let [reader (t/source-logging-push-back-reader s 1 filename)]
+        (loop [form (r/read {:eof :eof} reader) ret-val []]
+          (if (= :eof form) (do #_(clojure.pprint/pprint (passes/clean-tree ret-val)) ;; uncomment to see simple tree
+                                ret-val)
+              (do
+                (eval form)
+                (recur (r/read {:eof :eof} reader)
+                       (->> form
+                            a/analyze
+                            passes/fresh-vars
+                            passes/memory-management-pass
+                            (conj ret-val))))))))))
 
 
 (defn generate-protobuf-defs [] (sch/generate-protobuf-defs "bytecode.proto"))

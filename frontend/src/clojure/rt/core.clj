@@ -64,6 +64,7 @@
     #'classify-invoke
     #'collect-closed-overs
 
+    #'passes/rewrite-loops
     #'passes/remove-env})
 
 (def scheduled-rt-passes

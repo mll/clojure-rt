@@ -1271,16 +1271,18 @@
 ;-----------------------------------------------------------------------------
 ; RecurNode
 ;-----------------------------------------------------------------------------
-(defrecord RecurNode-record [exprs loopId]
+(defrecord RecurNode-record [exprs loopId recurThis]
   pb/Writer
   (serialize [this os]
     (serdes.complex/write-repeated serdes.core/write-embedded 1 (:exprs this) os)
-    (serdes.core/write-String 2  {:optimize true} (:loopId this) os))
+    (serdes.core/write-String 2  {:optimize true} (:loopId this) os)
+    (serdes.core/write-embedded 3 (:recurThis this) os))
   pb/TypeReflection
   (gettype [this]
     "clojure.rt.protobuf.bytecode.RecurNode"))
 
 (s/def :clojure.rt.protobuf.bytecode.RecurNode/loopId string?)
+
 (s/def ::RecurNode-spec (s/keys :opt-un [:clojure.rt.protobuf.bytecode.RecurNode/loopId ]))
 (def RecurNode-defaults {:exprs [] :loopId "" })
 
@@ -1292,6 +1294,7 @@
              (case index
                1 [:exprs (serdes.complex/cis->repeated ecis->Node is)]
                2 [:loopId (serdes.core/cis->String is)]
+               3 [:recurThis (ecis->Node is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -1310,6 +1313,7 @@
   {:pre [(if (s/valid? ::RecurNode-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::RecurNode-spec init))))]}
   (-> (merge RecurNode-defaults init)
       (cond-> (some? (get init :exprs)) (update :exprs #(map new-Node %)))
+      (cond-> (some? (get init :recurThis)) (update :recurThis new-Node))
       (map->RecurNode-record)))
 
 (defn pb->RecurNode
@@ -1998,18 +2002,19 @@
 ;-----------------------------------------------------------------------------
 ; TryNode
 ;-----------------------------------------------------------------------------
-(defrecord TryNode-record [body catches finally]
+(defrecord TryNode-record [allCatchesOwned body catches finally]
   pb/Writer
   (serialize [this os]
-    (serdes.core/write-embedded 1 (:body this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:catches this) os)
-    (serdes.core/write-embedded 3 (:finally this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 1 (:allCatchesOwned this) os)
+    (serdes.core/write-embedded 2 (:body this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:catches this) os)
+    (serdes.core/write-embedded 4 (:finally this) os))
   pb/TypeReflection
   (gettype [this]
     "clojure.rt.protobuf.bytecode.TryNode"))
 
 (s/def ::TryNode-spec (s/keys :opt-un []))
-(def TryNode-defaults {:catches [] })
+(def TryNode-defaults {:allCatchesOwned [] :catches [] })
 
 (defn cis->TryNode
   "CodedInputStream to TryNode"
@@ -2017,9 +2022,10 @@
   (->> (tag-map TryNode-defaults
          (fn [tag index]
              (case index
-               1 [:body (ecis->Node is)]
-               2 [:catches (serdes.complex/cis->repeated ecis->Node is)]
-               3 [:finally (ecis->Node is)]
+               1 [:allCatchesOwned (serdes.complex/cis->repeated ecis->MemoryManagementGuidance is)]
+               2 [:body (ecis->Node is)]
+               3 [:catches (serdes.complex/cis->repeated ecis->Node is)]
+               4 [:finally (ecis->Node is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -2037,6 +2043,7 @@
   [init]
   {:pre [(if (s/valid? ::TryNode-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::TryNode-spec init))))]}
   (-> (merge TryNode-defaults init)
+      (cond-> (some? (get init :allCatchesOwned)) (update :allCatchesOwned #(map new-MemoryManagementGuidance %)))
       (cond-> (some? (get init :body)) (update :body new-Node))
       (cond-> (some? (get init :catches)) (update :catches #(map new-Node %)))
       (cond-> (some? (get init :finally)) (update :finally new-Node))

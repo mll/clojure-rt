@@ -574,6 +574,9 @@ message RecurNode {
 
   /* Unique symbol identifying the enclosing loop target */
   string loopId = 2;
+
+  /* OPTIONAL: An AST node representing the this object, passed implicitly when calling recur in record method. */
+  Node recurThis = 3;
 }
 
 /* Node for a reify* special-form expression */
@@ -644,14 +647,20 @@ message ThrowNode {
 
 /* Node for a try special-form expression */
 message TryNode {
+  /* A list of variables that are to have dups (+) or drops (-) performed if an exception was not caught
+                                (either because there was no exception at all or a thrown exception was not matched to any of catch clauses).
+                                If there is a finally clause, dups and drops should happen before executing first statement in finallly block.
+                                Otherwise, they should happen at the end of try block. */
+  repeated MemoryManagementGuidance allCatchesOwned = 1;
+
   /* Synthetic :do AST node (with :body? `true`) representing the body of this try expression */
-  Node body = 1;
+  Node body = 2;
 
   /* A vector of :catch AST nodes representing the catch clauses of this try expression */
-  repeated Node catches = 2;
+  repeated Node catches = 3;
 
   /* OPTIONAL: Synthetic :do AST node (with :body? `true`) representing the final clause of this try expression */
-  Node finally = 3;
+  Node finally = 4;
 }
 
 /* Node for a var symbol */

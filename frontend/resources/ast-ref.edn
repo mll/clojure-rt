@@ -317,6 +317,8 @@
    :keys [[:form "`(recur expr*)`"]
           ^:children
           [:exprs "A vector of AST nodes representing the new bound values for the loop binding on the next loop iteration"]
+          ^:optional
+          [:recur-this "An AST node representing the this object, passed implicitly when calling recur in record method."]
           [:loop-id "Unique symbol identifying the enclosing loop target"]]}
   {:op   :reify
    :doc  "Node for a reify* special-form expression"
@@ -378,7 +380,11 @@
            ^:children
            [:catches "A vector of :catch AST nodes representing the catch clauses of this try expression"]
            ^:optional ^:children
-           [:finally "Synthetic :do AST node (with :body? `true`) representing the final clause of this try expression"]]}
+           [:finally "Synthetic :do AST node (with :body? `true`) representing the final clause of this try expression"]
+           [:all-catches-owned "A list of variables that are to have dups (+) or drops (-) performed if an exception was not caught
+                                (either because there was no exception at all or a thrown exception was not matched to any of catch clauses).
+                                If there is a finally clause, dups and drops should happen before executing first statement in finallly block.
+                                Otherwise, they should happen at the end of try block."]]}
   {:op   :var
    :doc  "Node for a var symbol"
    :keys [[:form "A symbol naming the var"]

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.26)
 project(runtime)
 
-set(CMAKE_OSX_ARCHITECTURES "arm64")
+#set(CMAKE_OSX_ARCHITECTURES "arm64")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -16,6 +16,7 @@ set(CMAKE_C_FLAGS_DEBUG "-g")
 set(CMAKE_C_FLAGS_RELEASE "-Ofast")
 
 set(SOURCES
+    Transient.c
     Object.c 
     Integer.c 
     PersistentList.c 

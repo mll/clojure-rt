@@ -23,6 +23,7 @@ typedef struct PersistentVectorNode PersistentVectorNode;
 struct PersistentVector {
   uint64_t count;
   uint64_t shift;
+  uint64_t transientID;
   PersistentVectorNode *tail;
   PersistentVectorNode *root;
 };
@@ -35,12 +36,21 @@ uint64_t PersistentVector_hash(PersistentVector * restrict self);
 String *PersistentVector_toString(PersistentVector * restrict self);
 void PersistentVector_destroy(PersistentVector * restrict self, BOOL deallocateChildren);
 
+PersistentVector* PersistentVector_conj_internal(PersistentVector * restrict self, void * restrict other);
 PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void * restrict other);
+PersistentVector* PersistentVector_conj_BANG_(PersistentVector * restrict self, void * restrict other);
+
+PersistentVector* PersistentVector_assoc_internal(PersistentVector * restrict self, uint64_t index, void * restrict other);
 PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint64_t index, void * restrict other);
+PersistentVector* PersistentVector_assoc_BANG_(PersistentVector * restrict self, uint64_t index, void * restrict other);
 
 void* PersistentVector_dynamic_nth(PersistentVector * restrict self, void *indexObject);
 void* PersistentVector_nth(PersistentVector * restrict self, uint64_t index);
 
 void PersistentVector_print(PersistentVector * restrict self);
+
+PersistentVector* PersistentVector_copy_root(PersistentVector * restrict self, uint64_t transientID);
+PersistentVector* PersistentVector_transient(PersistentVector * restrict self);
+PersistentVector* PersistentVector_persistent_BANG_(PersistentVector * restrict self);
 
 #endif

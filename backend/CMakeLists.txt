@@ -73,6 +73,7 @@ set(SOURCES
      RuntimeInterop.cpp
      ObjectTypeSet.cpp
      static/Utils.cpp
+     static/Vector.cpp
      jit/Materialisation.cpp
      jit/ASTLayer.cpp
      DynamicRuntime.cpp

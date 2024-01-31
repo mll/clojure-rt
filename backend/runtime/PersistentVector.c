@@ -104,7 +104,7 @@ PersistentVector* PersistentVector_assoc_internal(PersistentVector * restrict se
   BOOL reusable = isReusable(self) || transientID;
   
   if (index >= tailOffset) {
-    BOOL tailReusable = isReusable(self->tail) || (transientID && (transientID == self->tail->transientID));
+    BOOL tailReusable = (reusable && isReusable(self->tail)) || (transientID && (transientID == self->tail->transientID));
     PersistentVector *new;
     PersistentVectorNode *newTail;
     if (tailReusable) {
@@ -118,7 +118,6 @@ PersistentVector* PersistentVector_assoc_internal(PersistentVector * restrict se
       newTail->transientID = transientID;
       newTail->array[index - tailOffset] = super(other);  
       for (int i = 0; i < newTail->count; i++) if (i != index - tailOffset) Object_retain(newTail->array[i]);
-      release(self->tail);
     }
     if (reusable) {
       new = self;
@@ -128,6 +127,7 @@ PersistentVector* PersistentVector_assoc_internal(PersistentVector * restrict se
       if (new->root) retain(new->root);
     }
     new->tail = newTail;
+    if (!reusable) release(self);
     return new;
   }
   

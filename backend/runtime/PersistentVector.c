@@ -38,9 +38,11 @@ PersistentVector* PersistentVector_createMany(uint64_t objCount, ...) {
   }
   v->count = initialCount;
 
-  int remainingCount = objCount - initialCount;
-  for(int i=0; i<remainingCount; i++) {
-    v = PersistentVector_conj_internal(v, super(va_arg(args, void *)));
+  if (objCount > initialCount) {
+    int remainingCount = objCount - initialCount;
+    for(int i=0; i<remainingCount; i++) {
+      v = PersistentVector_conj_internal(v, va_arg(args, void *));
+    }
   }
   va_end(args);
   return v;
@@ -189,10 +191,10 @@ PersistentVector* PersistentVector_conj_internal(PersistentVector * restrict sel
     /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
     memcpy(new, self, sizeof(PersistentVector));
   }
+  new->count++;
   
   if (self->tail->count < RRB_BRANCHING) {
     
-    new->count++;
 
     if(reusable) {
       /* If tail is not full, it is impossible for it to be used by any other vector */
@@ -215,7 +217,6 @@ PersistentVector* PersistentVector_conj_internal(PersistentVector * restrict sel
   
   PersistentVectorNode *oldTail = self->tail;
   PersistentVectorNode *oldRoot = self->root;
-  new->count++;
   new->tail = PersistentVectorNode_allocate(1, leafNode, transientID);
   new->tail->array[0] = super(other);
   
@@ -324,4 +325,84 @@ PersistentVector* PersistentVector_transient(PersistentVector * restrict self) {
 PersistentVector* PersistentVector_persistent_BANG_(PersistentVector * restrict self) {
   assert_transient(self->transientID);
   return PersistentVector_copy_root(self, PERSISTENT);
+}
+
+PersistentVector* PersistentVector_pop_internal(PersistentVector * restrict self) {
+  if (!self->count) {
+    release(self);
+    return NULL; // TODO: Pop on empty vector throws exception
+  }
+
+  PersistentVector *new;
+  uint64_t transientID = self->transientID;
+  BOOL reusable = isReusable(self) || transientID;
+  if (reusable) {
+    new = self;
+  } else {
+    new = PersistentVector_allocate(transientID);
+    memcpy(new, self, sizeof(PersistentVector));
+  }
+  --new->count;
+  
+  PersistentVectorNode *newTail = NULL;
+  if (self->tail->count > 1) {
+    // Root remains unmodified
+    if (!reusable && self->root) retain(self->root);
+    BOOL tailReusable = (reusable && isReusable(self->tail)) || (transientID && (transientID == self->tail->transientID)); 
+    uint64_t newCount = self->tail->count - 1;
+    if (tailReusable) {
+      newTail = self->tail;
+      Object_release(newTail->array[newCount]);
+      if (!reusable) retain(newTail);
+    } else {
+      newTail = PersistentVectorNode_allocate(newCount, leafNode, transientID);
+      memcpy(newTail, self->tail, sizeof(PersistentVectorNode) + newCount * sizeof(Object *));
+      for (int i = 0; i < newCount; i++) Object_retain(newTail->array[i]);
+      if (reusable) release(self->tail);
+    }
+    --newTail->count;
+    newTail->transientID = transientID;
+    new->tail = newTail;
+    if (!reusable) release(self);
+    return new;
+  }
+  // self->tail->count == 1: pop furthest leaf out of root tree
+  PersistentVectorNode *oldTail = self->tail;
+  PersistentVectorNode *oldRoot = self->root;
+  PersistentVectorNode *newRoot = NULL;
+  if (oldRoot) {
+    newRoot = PersistentVectorNode_popTail(oldRoot, &newTail, reusable, transientID);
+  } else {
+    newTail = PersistentVectorNode_allocate(0, leafNode, transientID);
+  }
+  new->tail = newTail;
+  
+  BOOL reduceNodeTree = newRoot && new->shift > 0 && newRoot->count == 1; // Top node of Node tree has only one child
+  if (reduceNodeTree) {
+    PersistentVectorNode *newNewRoot = Object_data(newRoot->array[0]);
+    retain(newNewRoot);
+    if (newRoot != oldRoot) release(newRoot);
+    new->shift -= RRB_BITS;
+    new->root = newNewRoot;
+  } else {
+    new->root = newRoot;
+  }
+  
+  if (reusable) {
+    release(oldTail);
+    if (oldRoot && (reduceNodeTree || (newRoot != oldRoot))) release(oldRoot);
+  } else {
+    release(self);
+  }
+  return new;
+}
+
+PersistentVector* PersistentVector_pop(PersistentVector * restrict self) {
+  assert_persistent(self->transientID);
+  return PersistentVector_pop_internal(self);
+}
+
+PersistentVector* PersistentVector_pop_BANG_(PersistentVector * restrict self) {
+  assert_transient(self->transientID);
+  return PersistentVector_pop_internal(self);
 }

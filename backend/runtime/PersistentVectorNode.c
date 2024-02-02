@@ -166,3 +166,46 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
   return new;
 } 
 
+PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode * restrict self, PersistentVectorNode ** restrict poppedLeaf, BOOL allowsReuse, uint64_t vectorTransientID) {
+  if (self->type == leafNode) {
+    retain(self);
+    *poppedLeaf = self;
+    return NULL;
+  }
+
+  // self->type == internalNode
+  uint64_t transientID = self->transientID;
+  BOOL reusable = allowsReuse && (isReusable(self) || (transientID && (transientID == vectorTransientID)));
+  uint64_t lastPos = self->count - 1; // Invariant: count > 0
+  PersistentVectorNode *lastChild = Object_data(self->array[lastPos]);
+  PersistentVectorNode *newSubtree = PersistentVectorNode_popTail(lastChild, poppedLeaf, reusable, vectorTransientID);
+  BOOL modifiedInPlace = lastChild == newSubtree; // compare addresses!
+  PersistentVectorNode *newTree;
+  if (reusable) {
+    newTree = self;
+  } else {
+    newTree = PersistentVectorNode_allocate(self->count, self->type, vectorTransientID);
+    memcpy(newTree, self, sizeof(PersistentVectorNode) + self->count * sizeof(Object *));
+    newTree->transientID = vectorTransientID;
+    for (int i = 0; i < lastPos; ++i) Object_retain(newTree->array[i]); // do not retain last object
+  }
+
+  if (newSubtree) {
+    if (reusable && !modifiedInPlace) release(lastChild);
+    newTree->array[lastPos] = super(newSubtree);
+    return newTree;
+  }
+  
+  // newSubtree == NULL
+  --newTree->count;
+  newTree->array[lastPos] = NULL;
+  if (reusable) release(lastChild);
+  
+  if (lastPos) {
+    return newTree;
+  }
+  
+  // self->count == 1
+  if (!reusable) release(newTree);
+  return NULL;
+}

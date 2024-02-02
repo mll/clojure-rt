@@ -69,9 +69,28 @@ TypedValue Conj_BANG_(CodeGenerator *gen, const string &signature, const Node &n
 }
 
 
+ObjectTypeSet Pop_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
+  return ObjectTypeSet(persistentVectorType);
+}
+
+TypedValue Pop(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+  if (args.size() != 1) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+  return gen->callRuntimeFun("PersistentVector_pop", ObjectTypeSet(persistentVectorType), args);
+}
+
+ObjectTypeSet Pop_BANG__type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
+  return ObjectTypeSet(persistentVectorType);
+}
+
+TypedValue Pop_BANG_(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+  if (args.size() != 1) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+  return gen->callRuntimeFun("PersistentVector_pop!", ObjectTypeSet(persistentVectorType), args);
+}
+
+
 unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> getVectorStaticFunctions() {
   unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> vals;
-  vector<pair<string, pair<StaticCallType, StaticCall>>> transient, persistent_BANG_, assoc, assoc_BANG_, conj, conj_BANG_;
+  vector<pair<string, pair<StaticCallType, StaticCall>>> transient, persistent_BANG_, assoc, assoc_BANG_, conj, conj_BANG_, pop, pop_BANG_;
 
   vector<string> types {"J", "D", "Z", "LS", "LV", "LL", "LY", "LK", "LF", "LN", "LO"};
   
@@ -92,6 +111,12 @@ unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> ge
   
   // for (auto type: types) conj_BANG_.push_back({"LV" + type, {&Conj_BANG__type, &Conj_BANG_}});
   // vals.insert({"clojure.lang.RT/conj!", conj_BANG_});
+  
+  pop.push_back({"LV", {&Pop_type, &Pop}});
+  vals.insert({"clojure.lang.RT/pop", pop});
+  
+  // pop_BANG_.push_back({"LV", {&Pop_BANG__type, &Pop_BANG_}});
+  // vals.insert({"clojure.lang.RT/pop!", pop_BANG_});
 
   
 

@@ -44,6 +44,10 @@ PersistentVector* PersistentVector_assoc_internal(PersistentVector * restrict se
 PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint64_t index, void * restrict other);
 PersistentVector* PersistentVector_assoc_BANG_(PersistentVector * restrict self, uint64_t index, void * restrict other);
 
+PersistentVector* PersistentVector_pop_internal(PersistentVector * restrict self);
+PersistentVector* PersistentVector_pop(PersistentVector * restrict self);
+PersistentVector* PersistentVector_pop_BANG_(PersistentVector * restrict self);
+
 void* PersistentVector_dynamic_nth(PersistentVector * restrict self, void *indexObject);
 void* PersistentVector_nth(PersistentVector * restrict self, uint64_t index);
 

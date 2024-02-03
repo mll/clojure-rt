@@ -79,9 +79,9 @@
 (def passes-opts
   ":passes-opts for `analyze`"
   {:collect/what                    #{:constants :callsites}
-   :collect/where                   #{:deftype :reify :fn-method}
+   :collect/where                   #{:deftype :reify :fn :fn-method}
    :collect/top-level?              false
-   :collect-closed-overs/where      #{:deftype :reify :fn-method :loop :try}
+   :collect-closed-overs/where      #{:deftype :reify :fn :fn-method :loop :try}
    :collect-closed-overs/top-level? false})
 
 (defn analyze [s filename]
@@ -96,7 +96,7 @@
                 (recur (r/read {:eof :eof} reader)
                      (->> 
                       (a/analyze form (a/empty-env) {:passes-opts passes-opts})      
-                      (conj ret-val)))))))))
+                      (conj ret-val))))))))))
 
 
 (defn generate-protobuf-defs [] (sch/generate-protobuf-defs "bytecode.proto"))

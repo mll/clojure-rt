@@ -112,7 +112,8 @@
  :quote {:literal? :bool
          :expr :node}
  :recur {:exprs [:node]
-         :loop-id :string}
+         :loop-id :string
+         :recur-this :node}
  :reify {:interfaces [:string]
          :class-name :string
          :methods [:node]}
@@ -130,7 +131,8 @@
  :throw {:exception :node}
  :try {:body :node
        :catches [:node]
-       :finally :node}
+       :finally :node
+       :all-catches-owned [:memory]}
  :var {:var :string
        :assignable? :bool}
  :vector {:items [:node]}

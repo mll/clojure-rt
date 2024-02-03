@@ -1,6 +1,10 @@
 #ifndef RT_OBJECT
 #define RT_OBJECT
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnullability-completeness"
+#pragma clang diagnostic ignored "-Wexpansion-to-defined"
+
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
@@ -26,10 +30,7 @@
 
 typedef struct String String; 
 
-#define REFCOUNT_TRACING
-//#define REFCOUNT_NONATOMIC
-
-
+extern void logBacktrace();
 void printReferenceCounts();
 
 struct Object {
@@ -86,7 +87,7 @@ inline void Object_retain(Object * restrict self) {
 }
 
 inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
-  //printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t)Object_data(self));
+//  printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t)Object_data(self));
  // printReferenceCounts();
   switch((objectType)self->type) {
   case integerType:
@@ -153,7 +154,7 @@ inline BOOL isReusable(void *restrict self) {
 
 inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChildren) {
 #ifdef REFCOUNT_TRACING
-//    printf("RELEASE!!! %d %d\n", self->type, deallocateChildren);
+//    printf("RELEASE!!! %p %d %d\n", self, self->type, deallocateChildren);
     atomic_fetch_sub_explicit(&(allocationCount[self->type -1 ]), 1, memory_order_relaxed);
     assert(atomic_load(&(self->atomicRefCount)) > 0);
 #endif
@@ -362,5 +363,6 @@ inline uint64_t combineHash(uint64_t lhs, uint64_t rhs) {
   lhs ^= rhs + 0x9ddfea08eb382d69ULL + (lhs << 6) + (lhs >> 2);
   return lhs;
 }
+#pragma clang diagnostic pop
 
 #endif

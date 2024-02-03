@@ -270,8 +270,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
 
   for(int i=0; i< subnode.args_size(); i++) {
     auto t = getType(subnode.args(i), ObjectTypeSet::all());
-    types.push_back(t);
     if(!t.isDetermined()) dynamic = true;
+    types.push_back(t.unboxed()); /* We always unbox primitives before calling static funs as they never ever implement LJ etc. */
   }
 
   string requiredTypes = ObjectTypeSet::typeStringForArgs(types);

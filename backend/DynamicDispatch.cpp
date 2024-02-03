@@ -438,9 +438,13 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
       const ObjectTypeSet realRetType = determineMethodReturn(method, uniqueId, args, ObjectTypeSet::all());
 
       if(realRetType == retType || (!retType.isDetermined() && !realRetType.isDetermined())) {
+        /* The actual code generation happens here! */
         auto result = codegen(method.body(), retType);
+       
         Builder->CreateRet(retType.isBoxedScalar() ? box(result).second : result.second);
       } else {
+        /* This is a case when return type computed from recursion does not match the one 
+           that is expected of the function. In this case, we need to call the function with the discovered type and convert the return type afterwards */
         auto f = make_unique<FunctionJIT>();
         f->methodIndex = methodIndex;
         f->args = args;

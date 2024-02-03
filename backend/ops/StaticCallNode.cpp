@@ -24,12 +24,11 @@ using namespace llvm;
    as the static function has no idea of memory management. */
   
    
-
 /* visitPath is deep magic - but its purpose is simple - it tries to reuse 
    existing scalar type box in static invokation, such as +, - , etc. */
 
 
-void visitPath(const vector<ObjectTypeSet> &path, 
+void visitPath(const vector<ObjectTypeSet> &path, // a path already taken in this branch 
                BasicBlock *insertBlock, 
                BasicBlock *failBlock, 
                BasicBlock *mergeBlock, 
@@ -43,7 +42,7 @@ void visitPath(const vector<ObjectTypeSet> &path,
                const string &name) {
   gen->Builder->SetInsertPoint(insertBlock);
   string pathString;
-  for(auto p : path) pathString+= p.unboxed().toString();
+  for(auto p : path) pathString+= p.unboxed().removeConst().toString();
 
   if(path.size() == args.size()) {
     auto callIt = calls.find(path);
@@ -53,11 +52,12 @@ void visitPath(const vector<ObjectTypeSet> &path,
 
     for(int i=0; i<args.size(); i++) {
       const TypedValue &arg = args[i];
-      if(arg.first.isScalar()) {
+      /* We unbox the remaining variables right here */
+      if(arg.first.isDetermined()) {
         realArgs.push_back(arg);
       } else {
         auto boxedType = callIt->first[i].boxed();
-        realArgs.push_back(gen->unbox(TypedValue(boxedType, args[i].second)));
+        realArgs.push_back(gen->unbox(TypedValue(boxedType, arg.second)));
       }
     }
 
@@ -79,16 +79,22 @@ void visitPath(const vector<ObjectTypeSet> &path,
       }
 
       if(potentiallyReusingVar) {
+        /* This is just a rename */
+        Value *reusingVar = potentiallyReusingVar;
         auto condValue = gen->dynamicIsReusable(potentiallyReusingVar);
         Function *parentFunction = gen->Builder->GetInsertBlock()->getParent();
         BasicBlock *reuseBB = llvm::BasicBlock::Create(*gen->TheContext, "reuse", parentFunction);  
         BasicBlock *ignoreBB = llvm::BasicBlock::Create(*gen->TheContext, "ignore");
         gen->Builder->CreateCondBr(condValue.second, reuseBB, ignoreBB);
         gen->Builder->SetInsertPoint(reuseBB);
-        Value *reusingVar = potentiallyReusingVar;
+
         for(int i=0; i<args.size(); i++) {
           const TypedValue &arg = args[i];
-          if(!arg.first.isScalar() && !(arg.second == reusingVar)) gen->dynamicRelease(arg.second, false);
+          auto discoveredType = callIt->first[i];
+          /* Release any boxed scalars discovered in this path we do not want to reuse */
+          if(discoveredType.isScalar() && 
+             !arg.first.isDetermined() &&
+             arg.second != reusingVar) gen->dynamicRelease(arg.second, false);
         }
         /* TODO - why integer here? - it probably doesnt matter as all scalar types have their data stored in the first 8 bytes. But this seems like a hack... */
         StructType *stype = gen->runtimeIntegerType();        
@@ -101,11 +107,8 @@ void visitPath(const vector<ObjectTypeSet> &path,
         
         parentFunction->insert(parentFunction->end(), ignoreBB);
         gen->Builder->SetInsertPoint(ignoreBB);
-        gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);
-        for(int i=0; i<args.size(); i++) {
-          const TypedValue &arg = args[i];
-          if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
-        }
+        gen->dynamicRelease(reusingVar, false);
+        gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);        
         gen->Builder->CreateBr(mergeBlock);
         return;
       }
@@ -113,7 +116,9 @@ void visitPath(const vector<ObjectTypeSet> &path,
 
     for(int i=0; i<args.size(); i++) {
        const TypedValue &arg = args[i];
-       if(!arg.first.isScalar()) gen->dynamicRelease(arg.second, false);
+       auto discoveredType = callIt->first[i];
+       /* Release any boxed scalars discovered in this path */
+       if(!arg.first.isDetermined() && discoveredType.isScalar()) gen->dynamicRelease(arg.second, false);
     }
     gen->Builder->CreateStore(gen->box(retValForPath).second, retVal);     
     gen->Builder->CreateBr(mergeBlock);
@@ -123,12 +128,16 @@ void visitPath(const vector<ObjectTypeSet> &path,
   assert(i<options.size());
   auto conds = options[i];
   auto arg = args[i];
-  
+
   Value *computedType = nullptr;
   if(arg.first.isDetermined()) {
-    computedType = ConstantInt::get(*(gen->TheContext), APInt(32, arg.first.determinedType(), false));
-  } else computedType = gen->getRuntimeObjectType(arg.second);
+    vector<ObjectTypeSet> newPath = path;
+    newPath.push_back(arg.first.removeConst());
+    visitPath(newPath, insertBlock, failBlock, mergeBlock, args, calls, retVal, options, parentFunction, node, gen, name);
+    return;
+  }
 
+  computedType = gen->getRuntimeObjectType(arg.second);
   SwitchInst *swInst = gen->Builder->CreateSwitch(computedType, failBlock, conds.size());
   vector<pair<BasicBlock *, ObjectTypeSet>> successes;
   assert(conds.size() > 0);
@@ -169,14 +178,21 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
   bool foundArity = false;
 
   vector<ObjectTypeSet> types;
-  for(int i=0; i< subnode.args_size(); i++) types.push_back(getType(subnode.args(i), ObjectTypeSet::all()));
+  for(int i=0; i< subnode.args_size(); i++) {
+    auto t = getType(subnode.args(i), ObjectTypeSet::all());
+  
+  /* We solve LJLJ here by unboxing. It remains to be discovered what to do with static functions 
+     that can take any type as an argument. Currently we add all the representations 
+     (like J, D, LV, etc. etc.) but this might not be optimal as might include a series of 
+     box/unbox on separate sides of a function call. */
+
+    if(!t.isDetermined()) { 
+      dynamic = true; 
+      types.push_back(t);
+    } else types.push_back(t.unboxed());
+  }
 
   string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
-
-  /* We push LJLJ towards dynamic invokation, even though it may not be the most efficient way,
-     it needs to suffice for now. */
-
-  for(auto t: types) if(!t.isDetermined() || t.isBoxedScalar()) dynamic = true;
 
   for(auto method: methods) {
     auto methodTypes = typesForArgString(node, method.first);
@@ -185,12 +201,18 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
 
     auto retType = method.second.first(this, name + " " + requiredTypes, node, types);
         
-    if(retType.restriction(typeRestrictions).isEmpty()) continue;
+    if (retType.restriction(typeRestrictions).isEmpty()) continue;
 
     vector<TypedValue> args;
     
     for(int i=0; i< subnode.args_size();i++) {
-       args.push_back(codegen(subnode.args(i), types[i]));
+      auto v = codegen(subnode.args(i), types[i]);
+      args.push_back(v.first.isDetermined() ? unbox(v) : v);
+
+      /* Release only boxed scalars known at compilation time, 
+         any other type needs to be managed by static fun */
+
+      if(v.first.isBoxedScalar()) dynamicRelease(v.second, false);
     }
     
     return method.second.second(this, name + " " + requiredTypes, node, args);
@@ -199,9 +221,18 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
   if(dynamic && foundArity) { /* Dynamic call, triggered when at least one variable is not fully determined (or boxed scalar) and any method with given arity exists */
     
     vector<TypedValue> args;
-    
+   
+
     for(int i=0; i< subnode.args_size();i++) {
-       args.push_back(codegen(subnode.args(i), ObjectTypeSet::all()));
+      auto v = codegen(subnode.args(i), types[i]);      
+      
+      /* We unbox args right here: 
+         Unboxing of LJ, LD, LB (boxed scalars) */
+      
+      if (v.first.isDetermined()) {
+        args.push_back(unbox(v));
+        if(v.first.isBoxedScalar()) dynamicRelease(v.second, false);        
+      } else args.push_back(v);     
     }
 
     vector<set<ObjectTypeSet>> options; 
@@ -271,7 +302,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const StaticCallNode &sub
   for(int i=0; i< subnode.args_size(); i++) {
     auto t = getType(subnode.args(i), ObjectTypeSet::all());
     if(!t.isDetermined()) dynamic = true;
-    types.push_back(t.unboxed()); /* We always unbox primitives before calling static funs as they never ever implement LJ etc. */
+    /* We always unbox primitives before calling static funs as they never ever implement LJ etc. */
+    types.push_back(t.unboxed()); 
   }
 
   string requiredTypes = ObjectTypeSet::typeStringForArgs(types);

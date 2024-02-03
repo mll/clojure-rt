@@ -558,8 +558,7 @@ TypedValue CodeGenerator::unbox(const TypedValue &value) {
 
   Value *loaded = Builder->CreateLoad(type, tPtr, "load_var");
   if(dynType.isBoxedType(booleanType)) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
-  // TODO: memory management
-//  dynamicRelease(value.second);
+  /* Memory is not being managed here, every user of unbox needs to decide what to do with the memory of unboxed value by themselves */
   return TypedValue(t, loaded);
 }
                                         

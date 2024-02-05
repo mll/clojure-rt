@@ -50,8 +50,18 @@ class ProgrammeState {
   std::unordered_map<std::string, uint64_t> StaticFunctions;
   std::unordered_map<std::string, ObjectTypeSet> RecursiveFunctionsRetValGuesses;
   std::unordered_map<std::string, bool> RecursiveFunctionsNameMap;
-  std::unordered_map<std::string, std::vector<std::pair<std::string, std::pair<StaticCallType, StaticCall>>>> StaticCallLibrary; 
+  std::unordered_map<std::string, std::vector<std::pair<std::string, std::pair<StaticCallType, StaticCall>>>> StaticCallLibrary;
   std::unordered_map<std::string, ObjectTypeSet> StaticVarTypes;
+  
+  // TODO: Keep structure dynamic (updated as defrecord + others is used)
+  std::unordered_map<
+    std::string, // className
+    std::unordered_map<
+      std::string, // methodName
+      std::vector<
+        std::pair<
+          std::string, // signature
+          std::pair<StaticCallType, StaticCall>>>>> InstanceCallLibrary;
 
   uint64_t lastFunctionUniqueId = 0;
 

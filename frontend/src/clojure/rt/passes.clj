@@ -720,7 +720,7 @@
                                         :unwind-memory :local :closed-overs :loops :loop-id :recur-this])]
             (->> (select-keys node important-keys)
                  (map (fn [[k v]] [k (case k
-                                       (:drop-memory :unwind-memory :all-catches-owned :loops :loop-id) v
+                                       (:drop-memory :unwind-memory :all-catches-owned :loops :loop-id :form) v
                                        :closed-overs (set (keys v))
                                        (clean-tree v))]))
                  (into {}))))

@@ -423,8 +423,9 @@
   [node borrowed owned unwind-owned]
   (let [nodes (->> [:keys :vals] (map node) (apply interleave))
         updated-nodes (application-usage nodes borrowed owned unwind-owned)
-        [first-half second-half] (partition 2 updated-nodes)
-        [updated-keys updated-vals] (mapv vector first-half second-half)]
+        [updated-keys updated-vals] (if (seq updated-nodes)
+                                      (apply mapv vector (partition 2 updated-nodes))
+                                      [[] []])]
     (-> node
         (set-unwind unwind-owned)
         (assoc :keys updated-keys
@@ -719,7 +720,7 @@
                                         :unwind-memory :local :closed-overs :loops :loop-id :recur-this])]
             (->> (select-keys node important-keys)
                  (map (fn [[k v]] [k (case k
-                                       (:drop-memory :unwind-memory :all-catches-owned :loops :loop-id) v
+                                       (:drop-memory :unwind-memory :all-catches-owned :loops :loop-id :form) v
                                        :closed-overs (set (keys v))
                                        (clean-tree v))]))
                  (into {}))))

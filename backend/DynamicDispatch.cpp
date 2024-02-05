@@ -18,7 +18,7 @@ extern "C" {
      dynamic arg discovery.
 */
 
-TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNode, uint64_t> &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args, const string &refName) {
+TypedValue CodeGenerator::callStaticFun(const Node &node, const FnNode& body, const pair<FnMethodNode, uint64_t> &method, const string &name, const ObjectTypeSet &retValType, const vector<TypedValue> &args, const string &refName) {
   vector<Type *> argTypes;
   vector<Value *> argVals;
   vector<ObjectTypeSet> argT;
@@ -72,8 +72,16 @@ TypedValue CodeGenerator::callStaticFun(const Node &node, const pair<FnMethodNod
     Value *uniqueId = ConstantInt::get(*TheContext, APInt(64, getUniqueFunctionIdFromName(name), false));   
     return TypedValue(retValType, dynamicInvoke(node, load, type, retValType, finalArgs, uniqueId, CalleeF));  
   }
+  
+  auto retVal = TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
+  if(body.once()) {
+    auto functionRef = node.subnode().invoke().fn();
+    vector<TypedValue> cleanupArgs;
+    cleanupArgs.push_back(codegen(functionRef, ObjectTypeSet::all()));    
+    callRuntimeFun("Function_cleanupOnce", ObjectTypeSet::empty(), cleanupArgs);       
+  }
 
-  return TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
+  return retVal;
 }
 
 /* 
@@ -127,21 +135,45 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
     vector<Value *> argVals;
     for(auto v : args) argVals.push_back(v.second);
     Value *uniqueIdOkVal = Builder->CreateCall(staticFunctionToCall, argVals, string("call_dynamic"));
-    Builder->CreateBr(uniqueIdMergeBB);
     
+    Value *oncePtr = Builder->CreateStructGEP(runtimeFunctionType(), objectToInvoke, 3, "get_once");
+    Value *once = Builder->CreateLoad(Type::getInt8Ty(*TheContext), oncePtr, "load_once");
+    Value *onceCond = Builder->CreateIntCast(once, dynamicUnboxedType(booleanType), false);
+    
+    BasicBlock *cleanupBB = llvm::BasicBlock::Create(*TheContext, "cleanup", parentFunction);
+    BasicBlock *ccBB = llvm::BasicBlock::Create(*TheContext, "ccBB", parentFunction);
+
+    Builder->CreateCondBr(onceCond, cleanupBB, ccBB);
+    Builder->SetInsertPoint(cleanupBB);
+
+    vector<TypedValue> cleanupArgs;
+    cleanupArgs.push_back(TypedValue(ObjectTypeSet(functionType), objectToInvoke));    
+    callRuntimeFun("Function_cleanupOnce", ObjectTypeSet::empty(), cleanupArgs);       
+
+    Builder->CreateBr(ccBB);
+    Builder->SetInsertPoint(ccBB);
+    Builder->CreateBr(uniqueIdMergeBB);
+
+  
     parentFunction->insert(parentFunction->end(), uniqueIdFailedBB); 
     Builder->SetInsertPoint(uniqueIdFailedBB);
     Value *uniqueIdFailedVal = callDynamicFun(node, objectToInvoke, retValType, args);
+    uniqueIdFailedBB = Builder->GetInsertBlock();
+
     Builder->CreateBr(uniqueIdMergeBB);
     
     parentFunction->insert(parentFunction->end(), uniqueIdMergeBB); 
     Builder->SetInsertPoint(uniqueIdMergeBB);
     PHINode *phiNode = Builder->CreatePHI(uniqueIdOkVal->getType(), 2, "phi");
-    phiNode->addIncoming(uniqueIdOkVal, uniqueIdOkBB);
+    phiNode->addIncoming(uniqueIdOkVal, ccBB);
     phiNode->addIncoming(uniqueIdFailedVal, uniqueIdFailedBB);  
     funRetVal = phiNode;
     funRetValBlock = Builder->GetInsertBlock();
-  } else funRetVal = callDynamicFun(node, objectToInvoke, retValType, args);
+  } else { 
+    funRetVal = callDynamicFun(node, objectToInvoke, retValType, args); 
+    funRetValBlock = Builder->GetInsertBlock();
+  }
+  
   Builder->CreateBr(mergeBB);
 
   parentFunction->insert(parentFunction->end(), vectorTypeBB); 
@@ -317,12 +349,30 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
 
   FunctionType *FT = FunctionType::get(retVal, argTypes, false);
   Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, FT->getPointerTo());
+  auto finalRetVal = Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("call_dynamic"));
+
+  Function *parentFunction = Builder->GetInsertBlock()->getParent();  
+  Value *oncePtr = Builder->CreateStructGEP(runtimeFunctionType(), rtFnPointer, 3, "get_once");
+  Value *once = Builder->CreateLoad(Type::getInt8Ty(*TheContext), oncePtr, "load_once");
+  Value *onceCond = Builder->CreateIntCast(once, dynamicUnboxedType(booleanType), false);
+    
+  BasicBlock *cleanupBB = llvm::BasicBlock::Create(*TheContext, "cleanup", parentFunction);
+  BasicBlock *continueBB = llvm::BasicBlock::Create(*TheContext, "continue", parentFunction);
+
+  Builder->CreateCondBr(onceCond, cleanupBB, continueBB);
+  Builder->SetInsertPoint(cleanupBB);
+
+  vector<TypedValue> cleanupArgs;
+  cleanupArgs.push_back(TypedValue(ObjectTypeSet(functionType), rtFnPointer));    
+  callRuntimeFun("Function_cleanupOnce", ObjectTypeSet::empty(), cleanupArgs);       
+  Builder->CreateBr(continueBB);
+  Builder->SetInsertPoint(continueBB);
   
-  return Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("call_dynamic"));
+  return finalRetVal;
 }
 
 
-ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const vector<ObjectTypeSet> &args, const ObjectTypeSet &typeRestrictions) {
+ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const vector<ObjectTypeSet> &args, const std::vector<ObjectTypeSet> &closedOvers, const ObjectTypeSet &typeRestrictions) {
 
     string name = getMangledUniqueFunctionName(uniqueId);
     string rName = ObjectTypeSet::recursiveMethodKey(name, args);
@@ -351,6 +401,13 @@ ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, c
       if (method.params_size() == method.fixedarity()) name = "***unbound-variadic***";
       else name = method.params(method.fixedarity()).subnode().binding().name();
       namedArgs.insert({name, ObjectTypeSet(persistentVectorType)});
+    }
+    
+    for(int i=0; i<method.closedovers_size(); i++) {
+      auto name = method.closedovers(i).subnode().local().name();
+      if(namedArgs.find(name) == namedArgs.end()) {
+        namedArgs.insert({name, closedOvers[i]});  
+      }
     }
 
     VariableBindingTypesStack.push_back(namedArgs);
@@ -396,7 +453,7 @@ ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, c
 
 /* Called by JIT to build the body of a function. At this stage all arg types are determined */
 
-void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t methodIndex, const string &name, const ObjectTypeSet &retType, const vector<ObjectTypeSet> &args) {
+void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t methodIndex, const string &name, const ObjectTypeSet &retType, const vector<ObjectTypeSet> &args, void **closedOvers) {
   const FnNode &node = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();
   const FnMethodNode &method = node.methods(methodIndex).subnode().fnmethod();
   
@@ -408,8 +465,8 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
   }
  
   Type *retFunType = dynamicType(retType);
-
   Function *CalleeF = TheModule->getFunction(rName); 
+
   if(!CalleeF) { 
     FunctionType *FT = FunctionType::get(retFunType, argTypes, false);
     CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
@@ -423,25 +480,58 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
     unordered_map<string, ObjectTypeSet> functionArgTypes;
     unordered_map<string, TypedValue> namedFunctionArgs;
     vector<TypedValue> functionArgs;
-
-    for(int i=0; i<method.params_size(); i++) {
-      auto name = method.params(i).subnode().binding().name();
-      auto value = TypedValue(args[i].removeConst(), fArgs[i]);
-      functionArgTypes.insert({name, args[i].removeConst()});      
-      namedFunctionArgs.insert({name, value});
-      functionArgs.push_back(value);
-    }
     
-    VariableBindingTypesStack.push_back(functionArgTypes);
-    VariableBindingStack.push_back(namedFunctionArgs);
-    try {
-      const ObjectTypeSet realRetType = determineMethodReturn(method, uniqueId, args, ObjectTypeSet::all());
+    vector<ObjectTypeSet> closedOverTypes;
+    for(int i=0; i<method.closedovers_size();i++) {
+      closedOverTypes.push_back(typeOfObjectFromRuntime(closedOvers[i]));
+    }
+    cout << "xx" << endl;
+    const ObjectTypeSet realRetType = determineMethodReturn(method, uniqueId, args, closedOverTypes, ObjectTypeSet::all());
 
-      if(realRetType == retType || (!retType.isDetermined() && !realRetType.isDetermined())) {
+      if(realRetType == retType || (!retType.isDetermined() && !realRetType.isDetermined())) {        
+        cout << "Building fun: " << endl;        
+        for(int i=0; i<method.params_size(); i++) {
+          auto name = method.params(i).subnode().binding().name();
+          auto value = TypedValue(args[i].removeConst(), fArgs[i]);
+          functionArgTypes.insert({name, args[i].removeConst()});      
+          namedFunctionArgs.insert({name, value});
+          functionArgs.push_back(value);
+        }
+        
+        for(int i=0; i<method.closedovers_size(); i++) {
+          auto name = method.closedovers(i).subnode().local().name();
+          if(functionArgTypes.find(name)== functionArgTypes.end()) {
+            cout << "Adding closed over: " << name << endl;
+            auto closedOver = loadObjectFromRuntime(closedOvers[i]); 
+            if(!closedOver.first.isScalar()) dynamicRetain(closedOver.second);
+            functionArgTypes.insert({name, closedOver.first});      
+            namedFunctionArgs.insert({name, closedOver});
+          }
+        }
+        
+        VariableBindingTypesStack.push_back(functionArgTypes);
+        VariableBindingStack.push_back(namedFunctionArgs);
+
         /* The actual code generation happens here! */
-        auto result = codegen(method.body(), retType);
-       
-        Builder->CreateRet(retType.isBoxedScalar() ? box(result).second : result.second);
+
+        try {
+          auto result = codegen(method.body(), retType);
+          Builder->CreateRet(retType.isBoxedScalar() ? box(result).second : result.second);
+          verifyFunction(*CalleeF);
+        } catch (CodeGenerationException e) {
+          CalleeF->eraseFromParent();
+          FunctionType *FT = FunctionType::get(retFunType, argTypes, false);
+          CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
+          BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
+          Builder->SetInsertPoint(BB);
+          runtimeException(e);  
+          Builder->CreateRet(dynamicZero(retType));
+          verifyFunction(*CalleeF);
+        }
+
+        VariableBindingStack.pop_back();
+        VariableBindingTypesStack.pop_back();  
+        
       } else {
         /* This is a case when return type computed from recursion does not match the one 
            that is expected of the function. In this case, we need to call the function with the discovered type and convert the return type afterwards */
@@ -450,6 +540,7 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
         f->args = args;
         f->retVal = realRetType;
         f->uniqueId = uniqueId;
+        f->closedOvers = closedOvers;
         ExitOnErr(TheJIT->addAST(std::move(f)));
         
         TypedValue realRet = callRuntimeFun(ObjectTypeSet::fullyQualifiedMethodKey(name, args, realRetType), realRetType, functionArgs);
@@ -468,19 +559,7 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId, const uint64_t method
 
         if(finalRet == nullptr) finalRet = realRet.second;
         Builder->CreateRet(finalRet);
+        verifyFunction(*CalleeF);
       }
-      verifyFunction(*CalleeF);
-    } catch (CodeGenerationException e) {
-      CalleeF->eraseFromParent();
-      FunctionType *FT = FunctionType::get(retFunType, argTypes, false);
-      CalleeF = Function::Create(FT, Function::ExternalLinkage, rName, TheModule.get());
-      BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", CalleeF);
-      Builder->SetInsertPoint(BB);
-      runtimeException(e);  
-      Builder->CreateRet(dynamicZero(retType));
-      verifyFunction(*CalleeF);
-    }
-    VariableBindingStack.pop_back();
-    VariableBindingTypesStack.pop_back();
   } // !CalleeF
 }

@@ -19,7 +19,7 @@ void ClojureASTLayer::emit(std::unique_ptr<MaterializationResponsibility> MR, un
 
 llvm::orc::ThreadSafeModule ClojureASTLayer::irgenAndTakeOwnership(FunctionJIT &FnAST, const std::string &Suffix) {
   auto codegen = make_unique<CodeGenerator>(TheProgramme, TheJIT);
-  codegen->buildStaticFun(FnAST.uniqueId, FnAST.methodIndex, codegen->getMangledUniqueFunctionName(FnAST.uniqueId) + Suffix, FnAST.retVal, FnAST.args);
+  codegen->buildStaticFun(FnAST.uniqueId, FnAST.methodIndex, codegen->getMangledUniqueFunctionName(FnAST.uniqueId) + Suffix, FnAST.retVal, FnAST.args, FnAST.closedOvers);
   return ThreadSafeModule(std::move(codegen->TheModule), std::move(codegen->TheContext));
 }
 

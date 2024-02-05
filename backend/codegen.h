@@ -81,13 +81,13 @@ public:
 /* Dynamic dispatch */
 
 
-TypedValue callStaticFun(const Node &node, const std::pair<FnMethodNode, uint64_t> &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName);
+TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<FnMethodNode, uint64_t> &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName);
 
-  void buildStaticFun(const int64_t uniqueId, const uint64_t methodIndex, const std::string &name, const ObjectTypeSet &retVal, const std::vector<ObjectTypeSet> &args);
+  void buildStaticFun(const int64_t uniqueId, const uint64_t methodIndex, const std::string &name, const ObjectTypeSet &retVal, const std::vector<ObjectTypeSet> &args, void **closedOvers);
 
   llvm::Value *callDynamicFun(const Node &node, llvm::Value *rtFnPointer, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args);
   llvm::Value *dynamicInvoke(const Node &node, llvm::Value *objectToInvoke, llvm::Value* objectType, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, llvm::Value *uniqueFunctionId = nullptr, llvm::Function *staticFunctionToCall = nullptr);    
-ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const std::vector<ObjectTypeSet> &args, const ObjectTypeSet &typeRestrictions);
+ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const std::vector<ObjectTypeSet> &args, const std::vector<ObjectTypeSet> &closedOvers, const ObjectTypeSet &typeRestrictions);
 
   /* Runtime types */
 
@@ -124,7 +124,9 @@ ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t u
   void logType(llvm::Value *v);
   void logDebugBoxed(llvm::Value *v);
   void logString(const std::string &s);
-  
+  TypedValue loadObjectFromRuntime(void *ptr);  
+  ObjectTypeSet typeOfObjectFromRuntime(void *ptr);
+
 
   llvm::Value *dynamicZero(const ObjectTypeSet &type);
   llvm::Value *callRuntimeFun(const std::string &fname, llvm::Type *retValType, const std::vector<llvm::Type *> &argTypes, const std::vector<llvm::Value *> &args, bool isVariadic = false);

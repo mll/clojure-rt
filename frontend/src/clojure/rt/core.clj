@@ -81,7 +81,7 @@
   {:collect/what                    #{:constants :callsites}
    :collect/where                   #{:deftype :reify :fn :fn-method}
    :collect/top-level?              false
-   :collect-closed-overs/where      #{:deftype :reify :fn :fn-method :loop :try}
+   :collect-closed-overs/where      #{:deftype :reify :fn-method :loop :try}
    :collect-closed-overs/top-level? false})
 
 (defn analyze [s filename]

@@ -17,7 +17,7 @@
         (update-in [:env] #(dissoc % :locals)))
     ast))
 
-    (defn simplify-closed-overs
+(defn simplify-closed-overs
   {:pass-info {:walk :pre :depends #{#'collect-closed-overs}}}
   [ast]  
   (if (and (map? ast)

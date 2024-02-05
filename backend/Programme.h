@@ -46,6 +46,7 @@ class ProgrammeState {
   public:
   /* TODO: thread safety? locks? */
   std::unordered_map<uint64_t, Node> Functions;
+  std::unordered_map<std::pair<uint64_t, uint64_t>, std::vector<ObjectTypeSet> > ClosedOverTypes;
   std::unordered_map<std::string, uint64_t> RecurTargets;
   std::unordered_map<std::string, uint64_t> StaticFunctions;
   std::unordered_map<std::string, ObjectTypeSet> RecursiveFunctionsRetValGuesses;

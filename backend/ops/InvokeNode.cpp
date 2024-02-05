@@ -87,8 +87,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     /* We leave the return type cached, maybe in the future it needs to be removed here */
     TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
 
-    auto retVal = callStaticFun(node, method, fName, type, args, refName);
-    
+    auto retVal = callStaticFun(node, functionBody, method, fName, type, args, refName);
+
     return retVal;
   }
 
@@ -174,7 +174,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
   auto function = subnode.fn();
   auto type = getType(function, ObjectTypeSet::all());
   uint64_t uniqueId = 0;
-
+  cout << "GTYP" << endl;
   if(function.op() == opVar) { /* Static var holding a fuction */
     auto var = function.subnode().var();
     string name = var.var().substr(2);
@@ -191,10 +191,12 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
 
   vector<ObjectTypeSet> args;
   for(int i=0; i< subnode.args_size(); i++) {
+    cout << "josh" << endl;
     auto t = getType(subnode.args(i), ObjectTypeSet::all());
+    cout << "squosh" << endl;
     args.push_back(t.removeConst());
   }
-  
+   
   bool determinedArgs = true;
   for(auto a: args) if(!a.isDetermined()) determinedArgs = false;
 
@@ -215,17 +217,21 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     });
 
     const FnMethodNode *method = nullptr;
+    int methodId = -1;
     for(int i=0; i<nodes.size(); i++) {
-      if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; break;}
-      if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; break;}
+      if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; methodId = i; break;}
+      if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; methodId = i; break;}
     }
 
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
+   cout << "borba" << endl;
+   
+    const vector<ObjectTypeSet> &closedOvers = TheProgramme->ClosedOverTypes.find(std::pair<unit64_t, uint64_t>(uniqueId, methodId)).second;
     
-
-    return determineMethodReturn(*method, uniqueId, args, typeRestrictions);
+    cout << "yy" << endl;
+    return determineMethodReturn(*method, uniqueId, args, closedOvers, typeRestrictions);
   }
-  
+  cout << "kk" << endl;
   /* Unable to find function body, it has gone through generic path and type has to be resolved at runtime */
   return ObjectTypeSet::all().restriction(typeRestrictions);
 }

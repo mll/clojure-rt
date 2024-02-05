@@ -24,24 +24,19 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
   types.push_back(Type::getInt64Ty(*TheContext));
   types.push_back(Type::getInt64Ty(*TheContext));
   types.push_back(Type::getInt64Ty(*TheContext));
+  types.push_back(Type::getInt8Ty(*TheContext)); // once meta
 
   args.push_back(ConstantInt::get(*TheContext, APInt(64, subnode.methods_size(), false)));  
   args.push_back(ConstantInt::get(*TheContext, APInt(64, funId, false)));
   args.push_back(ConstantInt::get(*TheContext, APInt(64, subnode.maxfixedarity(), false)));
+  args.push_back(ConstantInt::get(*TheContext, APInt(8, 0, false))); // TODO - actual once meta
+  
 
 // We need to add a function pointer for each method in its generic form
 // ConstantExpr::getBitCast(MyFunction, Type::getInt8PtrTy(Ctx))
 
   Value *fun = dynamicCreate(functionType, types, args); 
-  types.clear();
-
-  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-  types.push_back(Type::getInt64Ty(*TheContext));
-  types.push_back(Type::getInt64Ty(*TheContext));
-  types.push_back(Type::getInt64Ty(*TheContext));
-  types.push_back(Type::getInt8Ty(*TheContext));
-  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-  
+ 
   vector<pair<FnMethodNode, uint64_t>> nodes;
   for(int i=0; i<subnode.methods_size(); i++) {
     auto &method = subnode.methods(i).subnode().fnmethod();
@@ -56,17 +51,42 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
     return lhs.first.fixedarity() > rhs.first.fixedarity();
   });
   
-  for(int i=0; i<subnode.methods_size(); i++) {
-    args.clear();
+  for(int i=0; i<subnode.methods_size(); i++) {    
     const FnMethodNode &method = nodes[i].first;
+    
+    types.clear();
+
+    types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+    types.push_back(Type::getInt64Ty(*TheContext));
+    types.push_back(Type::getInt64Ty(*TheContext));
+    types.push_back(Type::getInt64Ty(*TheContext));
+    types.push_back(Type::getInt8Ty(*TheContext));
+    types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo()); // loopId
+    types.push_back(Type::getInt64Ty(*TheContext)); // closed overs count
+    
+    for(int i=0; i<method.closedovers_size(); i++) {
+      types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo()); // closed overs
+    }
+
+    args.clear();
     args.push_back(fun);
     args.push_back(ConstantInt::get(*TheContext, APInt(64, i)));
     args.push_back(ConstantInt::get(*TheContext, APInt(64, nodes[i].second)));
     args.push_back(ConstantInt::get(*TheContext, APInt(64, method.fixedarity())));
     args.push_back(ConstantInt::get(*TheContext, APInt(8, method.isvariadic())));
     args.push_back(Builder->CreateGlobalStringPtr(StringRef(method.loopid().c_str()), "staticString"));
-        
-    callRuntimeFun("Function_fillMethod", Type::getVoidTy(*TheContext), types, args);
+    args.push_back(ConstantInt::get(*TheContext, APInt(64, method.closedovers_size())));
+    
+    for(int i=0; i<method.closedovers_size(); i++) { // closed overs
+      auto closedOver = codegen(method.closedovers(i), ObjectTypeSet::all());
+      if(closedOver.first.isScalar()) args.push_back(box(closedOver).second);
+      else {
+        dynamicRetain(closedOver.second);
+        args.push_back(closedOver.second);
+      }       
+    }
+
+    callRuntimeFun("Function_fillMethod", Type::getVoidTy(*TheContext), types, args, true);
   } 
 
   return TypedValue(type, fun);

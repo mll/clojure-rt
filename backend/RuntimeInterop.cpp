@@ -5,8 +5,12 @@ using namespace std;
 using namespace llvm;
 
 extern "C" {
-  #include "runtime/String.h"
-  #include "runtime/Keyword.h"
+#include "runtime/String.h"
+#include "runtime/Keyword.h"
+  objectType getType(void *obj);
+  objectType getTypeC(void *obj)  {
+    return getType(obj);
+  }
 } 
 
 
@@ -29,6 +33,7 @@ TypedValue CodeGenerator::callRuntimeFun(const string &fname, const ObjectTypeSe
 
   if (!CalleeF) throw InternalInconsistencyException(string("Unable to find ") + fname + " - do we link runtime?");
   
+  if(retVal.isEmpty()) return  TypedValue(retVal, Builder->CreateCall(CalleeF, argVals));
   return  TypedValue(retVal, Builder->CreateCall(CalleeF, argVals, string("call_") + fname));
 } 
 
@@ -141,6 +146,19 @@ Value * CodeGenerator::dynamicNil() {
   return dynamicCreate(nilType, vector<Type *>(), vector<Value *>());
 }
 
+TypedValue CodeGenerator::loadObjectFromRuntime(void *ptr) {
+  objectType t = getTypeC(ptr);
+  auto type = ObjectTypeSet(t, true);
+  Value *value = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) ptr, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_boxed");
+  return unbox(TypedValue(type, value));
+}
+
+ObjectTypeSet CodeGenerator::typeOfObjectFromRuntime(void *ptr) {
+  objectType t = getTypeC(ptr);
+  return ObjectTypeSet(t, true).unboxed();
+}
+
+
 uint64_t CodeGenerator::avalanche_64(uint64_t h) {
     h ^= h >> 33;
     h *= 0xff51afd7ed558ccd;
@@ -149,7 +167,6 @@ uint64_t CodeGenerator::avalanche_64(uint64_t h) {
     h ^= h >> 33;
     return h;
 }
-
 
 uint64_t CodeGenerator::computeHash(const char *str) {
     uint64_t h = 5381;
@@ -211,6 +228,8 @@ StructType *CodeGenerator::runtimeObjectType() {
    uint64_t uniqueId;
    uint64_t methodCount;
    uint64_t maxArity;
+   uint8_t once;
+   uint8_t executed;
    FunctionMethod methods[];
 }; */
 
@@ -222,6 +241,8 @@ StructType *CodeGenerator::runtimeFunctionType() {
        /* uniqueId */ dynamicUnboxedType(integerType),
        /* methodCount */ dynamicUnboxedType(integerType),
        /* maxArity */ dynamicUnboxedType(integerType),
+       /* once */ Type::getInt8Ty(*TheContext),
+       /* executed */ Type::getInt8Ty(*TheContext)
        /* TODO : Methods */
      }, "Function");
 }
@@ -351,7 +372,7 @@ TypedValue CodeGenerator::dynamicIsReusable(Value *what) {
 Value * CodeGenerator::dynamicString(const char *str) {
   String * retVal = String_createDynamicStr((char *)str);
   /* TODO: uniquing? */
-  Value *strPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
+  Value *strPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_boxed");
   return strPointer;
 }
 
@@ -469,6 +490,7 @@ PointerType *CodeGenerator::dynamicBoxedType() {
 
 Type *CodeGenerator::dynamicType(const ObjectTypeSet &type) {
   if (type.isScalar()) return dynamicUnboxedType(type.determinedType());
+  if(type.isEmpty()) return Type::getVoidTy(*TheContext);
   return dynamicBoxedType();
 }
 

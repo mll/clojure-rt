@@ -131,6 +131,7 @@ extern "C" {
     f->retVal = retValT;
     f->uniqueId = fun->uniqueId;
     f->methodIndex = method->index;
+    f->closedOvers = method->closedOvers;
     llvm::ExitOnError eo = llvm::ExitOnError();
 
     /* TODO - we probably need to modify TheProgramme here somehow, this needs more thinking */

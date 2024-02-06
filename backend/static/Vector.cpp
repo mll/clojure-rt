@@ -19,7 +19,7 @@ ObjectTypeSet Persistent_BANG__type(CodeGenerator *gen, const string &signature,
 
 TypedValue Persistent_BANG_(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
   if (args.size() != 1) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  return gen->callRuntimeFun("PersistentVector_persistent!", ObjectTypeSet(persistentVectorType), args);
+  return gen->callRuntimeFun("PersistentVector_persistent_BANG_", ObjectTypeSet(persistentVectorType), args);
 }
 
 

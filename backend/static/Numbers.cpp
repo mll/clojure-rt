@@ -455,6 +455,9 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
         case integerType:
           argsF.push_back(gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i"));
           break;
+        case bigIntegerType:
+          argsF.push_back(gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left}).second);
+          break;
         default:
           // TODO - generic types 
           break;
@@ -501,116 +504,32 @@ unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> ge
   vals.insert({"clojure.lang.Numbers/multiply", multiplyX});
   vals.insert({"clojure.lang.Numbers/divide", divideX}); 
 
-  sinX.push_back({"J", {&Link_external_type, &Link_external}});
-  sinX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/sin", sinX}); 
-
-  cosX.push_back({"J", {&Link_external_type, &Link_external}});
-  cosX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/cos", cosX}); 
-
-  tanX.push_back({"J", {&Link_external_type, &Link_external}});
-  tanX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/tan", tanX}); 
-
-  asinX.push_back({"J", {&Link_external_type, &Link_external}});
-  asinX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/asin", asinX}); 
-
-  acosX.push_back({"J", {&Link_external_type, &Link_external}});
-  acosX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/acos", acosX}); 
-
-  atanX.push_back({"J", {&Link_external_type, &Link_external}});
-  atanX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/atan", atanX}); 
-
-  atan2X.push_back({"JJ", {&Link_external_type, &Link_external}});
-  atan2X.push_back({"DJ", {&Link_external_type, &Link_external}});
-  atan2X.push_back({"JD", {&Link_external_type, &Link_external}});
-  atan2X.push_back({"DD", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/atan2", atan2X}); 
-
-  expX.push_back({"J", {&Link_external_type, &Link_external}});
-  expX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/exp", expX}); 
-
-  exp2X.push_back({"J", {&Link_external_type, &Link_external}});
-  exp2X.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/exp2", exp2X}); 
-
-  exp10X.push_back({"J", {&Link_external_type, &Link_external}});
-  exp10X.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/exp10", exp10X}); 
-
-  powX.push_back({"JJ", {&Link_external_type, &Link_external}});
-  powX.push_back({"DJ", {&Link_external_type, &Link_external}});
-  powX.push_back({"JD", {&Link_external_type, &Link_external}});
-  powX.push_back({"DD", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/pow", powX}); 
-
-  logX.push_back({"J", {&Link_external_type, &Link_external}});
-  logX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/log", logX}); 
-
-  log10X.push_back({"J", {&Link_external_type, &Link_external}});
-  log10X.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/log10", log10X}); 
-
-  logbX.push_back({"J", {&Link_external_type, &Link_external}});
-  logbX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/logb", logbX}); 
-
-  log2X.push_back({"J", {&Link_external_type, &Link_external}});
-  log2X.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/log2", log2X}); 
-
-  sqrtX.push_back({"J", {&Link_external_type, &Link_external}});
-  sqrtX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/sqrt", sqrtX}); 
-
-  cbrtX.push_back({"J", {&Link_external_type, &Link_external}});
-  cbrtX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/cbrt", cbrtX}); 
-
-  hypotX.push_back({"JJ", {&Link_external_type, &Link_external}});
-  hypotX.push_back({"DJ", {&Link_external_type, &Link_external}});
-  hypotX.push_back({"JD", {&Link_external_type, &Link_external}});
-  hypotX.push_back({"DD", {&Link_external_type, &Link_external}});
-  vals.insert({"java.lang.Math/hypot", hypotX}); 
-
-  exp1mX.push_back({"J", {&Link_external_type, &Link_external}});
-  exp1mX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/exp1m", exp1mX}); 
-
-  log1pX.push_back({"J", {&Link_external_type, &Link_external}});
-  log1pX.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/log1p", log1pX}); 
-
-  abs.push_back({"J", {&Link_external_type, &Link_external}});
-  abs.push_back({"D", {&Link_external_type, &Link_external}});
-
-  vals.insert({"java.lang.Math/abs", abs}); 
-
+  vector<string> math_1arg = {
+    "java.lang.Math/sin", "java.lang.Math/cos", "java.lang.Math/tan", "java.lang.Math/asin",
+    "java.lang.Math/acos", "java.lang.Math/atan",
+    "java.lang.Math/exp", "java.lang.Math/exp2", "java.lang.Math/exp10",
+    "java.lang.Math/log", "java.lang.Math/log10", "java.lang.Math/logb", "java.lang.Math/log2",
+    "java.lang.Math/sqrt", "java.lang.Math/cbrt",
+    "java.lang.Math/exp1m", "java.lang.Math/log1p", "java.lang.Math/abs"
+  };
+  
+  vector<string> math_2arg = {
+    "java.lang.Math/atan2", "java.lang.Math/pow", "java.lang.Math/hypot"
+  };
+  
+  for (auto op: math_1arg) {
+    vector<pair<string, pair<StaticCallType, StaticCall>>> opX;
+    for (auto t: numericTypes) opX.push_back({t, {&Link_external_type, &Link_external}});
+    vals.insert({op, opX});
+  }
+  
+  for (auto op: math_2arg) {
+    vector<pair<string, pair<StaticCallType, StaticCall>>> opX;
+    for (auto t1: numericTypes)
+      for (auto t2: numericTypes)
+        opX.push_back({t1 + t2, {&Link_external_type, &Link_external}});
+    vals.insert({op, opX});
+  }
 
   return vals;
 }

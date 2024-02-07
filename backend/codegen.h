@@ -103,6 +103,7 @@ ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t u
 
   llvm::Value *dynamicNil();
   llvm::Value *dynamicString(const char *str);
+  llvm::Value *dynamicBigInteger(const char *value);
 
   llvm::Value *dynamicSymbol(const char *name);
   llvm::Value *dynamicKeyword(const char *name);

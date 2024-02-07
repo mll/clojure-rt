@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
+#include <gmp.h>
 
 class ObjectTypeConstant {
   protected:
@@ -24,8 +25,8 @@ class ObjectTypeConstant {
 
 class ConstantInteger: public ObjectTypeConstant {
   public:
-  uint64_t value;
-  ConstantInteger(uint64_t val) : ObjectTypeConstant(integerType), value(val) {}
+  int64_t value;
+  ConstantInteger(int64_t val) : ObjectTypeConstant(integerType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantInteger(value)); }
   virtual std::string toString() { return std::to_string(value); }
   virtual bool equals(ObjectTypeConstant *other) {   
@@ -94,7 +95,7 @@ class ConstantFunction: public ObjectTypeConstant {
   ConstantFunction(uint64_t val) : ObjectTypeConstant(functionType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantFunction(value)); }
   virtual std::string toString() { return std::string("fn_") + std::to_string(value); }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     if(ConstantFunction *i = dynamic_cast<ConstantFunction *>(other)) {
       return i->value == value;
     }
@@ -124,6 +125,23 @@ class ConstantSymbol: public ObjectTypeConstant {
   virtual std::string toString() { return value; }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantSymbol *i = dynamic_cast<ConstantSymbol *>(other)) {
+      return i->value == value;
+    }
+    return false;
+  }
+};
+
+class ConstantBigInteger: public ObjectTypeConstant {
+  public:
+  mpz_t value;
+  ConstantBigInteger(mpz_t val) : ObjectTypeConstant(bigIntegerType) { mpz_init_set(value, val); }
+  ConstantBigInteger(std::string val) : ObjectTypeConstant(bigIntegerType) {
+    assert(mpz_init_set_str(value, val.c_str(), 10) == 0 && "Failed to initialize BigInteger");
+  }
+  virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantBigInteger(value)); }
+  virtual std::string toString() { return std::string(mpz_get_str(NULL, 10, value)); }
+  virtual bool equals(ObjectTypeConstant *other) {   
+    if(ConstantBigInteger *i = dynamic_cast<ConstantBigInteger *>(other)) {
       return i->value == value;
     }
     return false;
@@ -312,6 +330,7 @@ class ObjectTypeSet {
     retVal.insert(symbolType);
     retVal.insert(keywordType);
     retVal.insert(functionType);
+    retVal.insert(bigIntegerType);
     retVal.insert(persistentArrayMapType);
     retVal.isBoxed = true;
     return retVal;
@@ -357,6 +376,8 @@ class ObjectTypeSet {
         return "LK";
       case functionType:
         return "LF";
+      case bigIntegerType:
+        return "LI";
       case persistentArrayMapType:
         return "LA";
       }

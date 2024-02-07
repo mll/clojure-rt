@@ -7,6 +7,7 @@ using namespace llvm;
 extern "C" {
   #include "runtime/String.h"
   #include "runtime/Keyword.h"
+  #include "runtime/BigInteger.h"
 } 
 
 
@@ -128,6 +129,9 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     break;
   case concurrentHashMapType:
     fname = "ConcurrentHashMap_create";
+    break;
+  case bigIntegerType:
+    fname = "BigInteger_createFromStr";
     break;
   case functionType:
     fname = "Function_create";
@@ -338,6 +342,12 @@ Value * CodeGenerator::dynamicString(const char *str) {
   return strPointer;
 }
 
+Value * CodeGenerator::dynamicBigInteger(const char *value) {
+  BigInteger * retVal = BigInteger_createFromStr((char *)value);
+  Value *bigIntegerPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
+  return bigIntegerPointer;
+}
+
 TypedValue CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false) {
   vector<Type *> types;
   vector<Value *> args;
@@ -409,6 +419,7 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
       return Type::getDoubleTy(*TheContext);
     case booleanType:
       return Type::getInt1Ty(*TheContext);
+    case bigIntegerType:
     case stringType:
     case persistentListType:
     case persistentVectorType:
@@ -432,6 +443,8 @@ Value *CodeGenerator::dynamicZero(const ObjectTypeSet &type) {
       return ConstantInt::get(*TheContext, APInt(1, 0, false));
     case doubleType:
       return ConstantFP::get(*TheContext, APFloat(0.0));
+    case bigIntegerType:
+      return dynamicBigInteger("0");
     default:
       break;
   }
@@ -559,6 +572,7 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
   case booleanType:
     args.push_back(Builder->CreateIntCast(value.second, Type::getInt8Ty(*TheContext), false));
     break;
+  case bigIntegerType:
   case stringType:
   case persistentListType:
   case persistentVectorType:

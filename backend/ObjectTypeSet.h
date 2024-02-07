@@ -142,7 +142,7 @@ class ConstantBigInteger: public ObjectTypeConstant {
   virtual std::string toString() { return std::string(mpz_get_str(NULL, 10, value)); }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantBigInteger *i = dynamic_cast<ConstantBigInteger *>(other)) {
-      return i->value == value;
+      return mpz_cmp(i->value, value) == 0;
     }
     return false;
   }

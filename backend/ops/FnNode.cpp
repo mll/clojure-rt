@@ -36,7 +36,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
 // ConstantExpr::getBitCast(MyFunction, Type::getInt8PtrTy(Ctx))
 
   Value *fun = dynamicCreate(functionType, types, args); 
- 
+
   vector<pair<FnMethodNode, uint64_t>> nodes;
   for(int i=0; i<subnode.methods_size(); i++) {
     auto &method = subnode.methods(i).subnode().fnmethod();
@@ -64,10 +64,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
     types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo()); // loopId
     types.push_back(Type::getInt64Ty(*TheContext)); // closed overs count
     
-    for(int i=0; i<method.closedovers_size(); i++) {
-      types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo()); // closed overs
-    }
-
     args.clear();
     args.push_back(fun);
     args.push_back(ConstantInt::get(*TheContext, APInt(64, i)));
@@ -77,15 +73,20 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
     args.push_back(Builder->CreateGlobalStringPtr(StringRef(method.loopid().c_str()), "staticString"));
     args.push_back(ConstantInt::get(*TheContext, APInt(64, method.closedovers_size())));
     
-    for(int i=0; i<method.closedovers_size(); i++) { // closed overs
-      auto closedOver = codegen(method.closedovers(i), ObjectTypeSet::all());
-      if(closedOver.first.isScalar()) args.push_back(box(closedOver).second);
-      else {
-        dynamicRetain(closedOver.second);
-        args.push_back(closedOver.second);
-      }       
+    vector<ObjectTypeSet> closedOverTypes;
+
+    for(int j=0; j<method.closedovers_size(); j++) { // closed overs
+      auto closedOver = codegen(method.closedovers(j), ObjectTypeSet::all());
+      auto boxed = box(closedOver);
+
+      args.push_back(boxed.second);
+      closedOverTypes.push_back(boxed.first);
     }
 
+    TheProgramme->ClosedOverTypes.insert({ProgrammeState::closedOverKey(funId, i),
+        closedOverTypes});
+    
+   
     callRuntimeFun("Function_fillMethod", Type::getVoidTy(*TheContext), types, args, true);
   } 
 

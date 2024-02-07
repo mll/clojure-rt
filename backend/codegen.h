@@ -81,9 +81,14 @@ public:
 /* Dynamic dispatch */
 
 
-TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<FnMethodNode, uint64_t> &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName);
+TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<FnMethodNode, uint64_t> &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName, const TypedValue &callObject, std::vector<ObjectTypeSet> &closedOverTypes);
 
-  void buildStaticFun(const int64_t uniqueId, const uint64_t methodIndex, const std::string &name, const ObjectTypeSet &retVal, const std::vector<ObjectTypeSet> &args, void **closedOvers);
+  void buildStaticFun(const int64_t uniqueId, 
+                      const uint64_t methodIndex, 
+                      const std::string &name, 
+                      const ObjectTypeSet &retVal, 
+                      const std::vector<ObjectTypeSet> &args, 
+                      std::vector<ObjectTypeSet> &closedOvers);
 
   llvm::Value *callDynamicFun(const Node &node, llvm::Value *rtFnPointer, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args);
   llvm::Value *dynamicInvoke(const Node &node, llvm::Value *objectToInvoke, llvm::Value* objectType, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, llvm::Value *uniqueFunctionId = nullptr, llvm::Function *staticFunctionToCall = nullptr);    
@@ -96,6 +101,8 @@ ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t u
   llvm::StructType *runtimeBooleanType();
   llvm::StructType *runtimeIntegerType();
   llvm::StructType *runtimeDoubleType();
+  llvm::StructType *runtimeInvokationCacheType();
+  llvm::StructType *runtimeFunctionMethodType();
 
   llvm::Value *getRuntimeObjectType(llvm::Value *objectPtr);
 
@@ -125,7 +132,7 @@ ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t u
   void logDebugBoxed(llvm::Value *v);
   void logString(const std::string &s);
   TypedValue loadObjectFromRuntime(void *ptr);  
-  ObjectTypeSet typeOfObjectFromRuntime(void *ptr);
+  static ObjectTypeSet typeOfObjectFromRuntime(void *ptr);
 
 
   llvm::Value *dynamicZero(const ObjectTypeSet &type);

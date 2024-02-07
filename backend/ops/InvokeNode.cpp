@@ -21,7 +21,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
   }
 
   bool determinedArgs = true;
-  for(auto a: args) if(!a.first.isDetermined()) determinedArgs = false;
+  for(auto a: args) if(!a.first.isDetermined()) { determinedArgs = false; break; }
       
   if(functionRef.op() == opVar) { /* Static var holding a fuction */
     auto var = functionRef.subnode().var();
@@ -39,7 +39,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     uniqueId  = dynamic_cast<ConstantFunction *>(funType.getConstant())->value;
     fName = getMangledUniqueFunctionName(uniqueId);
   }
-
+    
   /* All args are determined on compile time, we go static route. This means we build the function 
      with appropriate input types during compile time and just put a call into the node implementation.
        
@@ -68,6 +68,11 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
       if(nodes[i].first.fixedarity() <= args.size() && nodes[i].first.isvariadic()) { foundIdx = i; break;}
     }
     if(foundIdx == -1) throw CodeGenerationException(string("Function ") + (refName.size() > 0 ? refName : fName) + " has been called with wrong arity: " + to_string(args.size()), node);
+    
+    auto closedOvers =  TheProgramme->ClosedOverTypes.find(ProgrammeState::closedOverKey(uniqueId, foundIdx))->second;
+    for (auto c : closedOvers) if(!c.isDetermined()) { determinedArgs = false; break; }
+    /* Short circut - if it turns out that after all closed overs are not determined at compile time we go the dynamic route */
+    if (!determinedArgs) goto undetermined; 
 
     pair<FnMethodNode, uint64_t> method = nodes[foundIdx];
 
@@ -87,15 +92,16 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     /* We leave the return type cached, maybe in the future it needs to be removed here */
     TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
 
-    auto retVal = callStaticFun(node, functionBody, method, fName, type, args, refName);
-
+    auto callObject = codegen(functionRef, ObjectTypeSet::all());
+    auto retVal = callStaticFun(node, functionBody, method, fName, type, args, refName, callObject, closedOvers);
     return retVal;
   }
 
 /* 
-  If at least one arg is indetermined - we need to go the dynamic route.
+  If at least one arg is undetermined - we need to go the dynamic route.
   First, we try to check if we can establish the type of callee during compilation. If so, we can generate much simpler and more taylored code.
 */
+  undetermined:
   if(funType.isDetermined()) {
     switch(funType.determinedType()) {
     case integerType:
@@ -109,7 +115,11 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
       throw CodeGenerationException("This type cannot be invoked.", node);
     case symbolType:
       /* Strange clojure behaviour, we just imitate */
-      return TypedValue(ObjectTypeSet(nilType), dynamicNil());
+      {
+        auto funObj = codegen(functionRef, ObjectTypeSet::all());
+        dynamicRelease(funObj.second, false);
+        return TypedValue(ObjectTypeSet(nilType), dynamicNil());
+      }
     case persistentArrayMapType:
       {
         if(args.size() != 1) throw CodeGenerationException("Wrong number of args passed to invokation", node);
@@ -150,7 +160,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
         auto argType = args[0].first;
         /* Todo - what about big integer? */
 
-        
         if(args[0].first.isUnboxedType(integerType)) {
           finalArgs.push_back(args[0]);          
           callName = "PersistentVector_nth";
@@ -174,7 +183,6 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
   auto function = subnode.fn();
   auto type = getType(function, ObjectTypeSet::all());
   uint64_t uniqueId = 0;
-  cout << "GTYP" << endl;
   if(function.op() == opVar) { /* Static var holding a fuction */
     auto var = function.subnode().var();
     string name = var.var().substr(2);
@@ -191,9 +199,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
 
   vector<ObjectTypeSet> args;
   for(int i=0; i< subnode.args_size(); i++) {
-    cout << "josh" << endl;
     auto t = getType(subnode.args(i), ObjectTypeSet::all());
-    cout << "squosh" << endl;
     args.push_back(t.removeConst());
   }
    
@@ -224,14 +230,9 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     }
 
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
-   cout << "borba" << endl;
-   
-    const vector<ObjectTypeSet> &closedOvers = TheProgramme->ClosedOverTypes.find(std::pair<unit64_t, uint64_t>(uniqueId, methodId)).second;
-    
-    cout << "yy" << endl;
+    auto closedOvers = TheProgramme->ClosedOverTypes.find(ProgrammeState::closedOverKey(uniqueId, methodId))->second;    
     return determineMethodReturn(*method, uniqueId, args, closedOvers, typeRestrictions);
   }
-  cout << "kk" << endl;
   /* Unable to find function body, it has gone through generic path and type has to be resolved at runtime */
   return ObjectTypeSet::all().restriction(typeRestrictions);
 }

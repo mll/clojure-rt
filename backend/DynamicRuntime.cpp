@@ -50,6 +50,10 @@ extern "C" {
     std::cout << "---> Char value: '" << (int64_t)i << "'" << std::endl;
   }
 
+  void printPointer(void *i) {
+    std::cout << "---> Pointer value: '" << i << "'" << std::endl;
+  }
+
 
 /* Used in DefNode to assign a function to a var during runtime */
   void setFunForVar(void *jitPtr, void *funPtr, const char *varName) {
@@ -111,6 +115,7 @@ extern "C" {
     } 
 
     std::vector<ObjectTypeSet> argT;
+    std::vector<ObjectTypeSet> closedOverT;
     ObjectTypeSet retValT;
     uint64_t mask = 0xff;
 
@@ -122,6 +127,12 @@ extern "C" {
       argT.insert(argT.begin(), ObjectTypeSet((objectType)type, isBoxed));
     }
 
+    for(int i=0; i< method->closedOversCount; i++) {
+      auto type = CodeGenerator::typeOfObjectFromRuntime(method->closedOvers[i]);
+      closedOverT.push_back(type);
+    }
+
+
     retValT = retValType == 0 ? ObjectTypeSet::all() : ObjectTypeSet((objectType)retValType);
 
     std::string name = "fn_" + std::to_string(fun->uniqueId);   
@@ -131,7 +142,7 @@ extern "C" {
     f->retVal = retValT;
     f->uniqueId = fun->uniqueId;
     f->methodIndex = method->index;
-    f->closedOvers = method->closedOvers;
+    f->closedOvers = closedOverT;
     llvm::ExitOnError eo = llvm::ExitOnError();
 
     /* TODO - we probably need to modify TheProgramme here somehow, this needs more thinking */

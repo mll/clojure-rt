@@ -233,17 +233,53 @@ StructType *CodeGenerator::runtimeObjectType() {
    FunctionMethod methods[];
 }; */
 
+
+// %struct.Function = type { i64, i64, i64, i8, i8, [0 x %struct.FunctionMethod] }
+// %struct.FunctionMethod = type { i8, i64, i64, i64, ptr, ptr, [3 x %struct.InvokationCache] }
+// %struct.InvokationCache = type { [3 x i64], i64, i8, ptr }
+
+// Type::getInt64Ty(*TheContext);
+// Type::getDoubleTy(*TheContext);
+// Type::getInt1Ty(*TheContext);
+// Type::getInt8Ty(*TheContext)->getPointerTo();
+
+
+StructType *CodeGenerator::runtimeInvokationCacheType() {
+  StructType *retVal = StructType::getTypeByName(*TheContext,"InvokationCache");
+  if(retVal) return retVal;
+  return StructType::create(*TheContext, {
+           /* signature */ ArrayType::get(Type::getInt64Ty(*TheContext), 3),
+           /* packed */ Type::getInt64Ty(*TheContext),
+           /* returnType */ Type::getInt8Ty(*TheContext),
+           /* fptr */ Type::getInt8Ty(*TheContext)->getPointerTo()
+    }, "InvokationCache");
+}
+
+StructType *CodeGenerator::runtimeFunctionMethodType() {
+  StructType *retVal = StructType::getTypeByName(*TheContext,"FunctionMethod");
+  if(retVal) return retVal;
+  return StructType::create(*TheContext, {
+           /* index */ Type::getInt8Ty(*TheContext),
+           /* fixedArity */ Type::getInt64Ty(*TheContext),
+           /* isVariadic */ Type::getInt64Ty(*TheContext),
+           /* closedOversCount */ Type::getInt64Ty(*TheContext),
+           /* loopId */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+           /* closedOvers */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+           /* invokations */ ArrayType::get(runtimeInvokationCacheType(), 3)
+    }, "FunctionMethod");
+}
+
 StructType *CodeGenerator::runtimeFunctionType() {
   StructType *retVal = StructType::getTypeByName(*TheContext,"Function");
   if(retVal) return retVal;
 
    return StructType::create(*TheContext, {
-       /* uniqueId */ dynamicUnboxedType(integerType),
-       /* methodCount */ dynamicUnboxedType(integerType),
-       /* maxArity */ dynamicUnboxedType(integerType),
+       /* uniqueId */ Type::getInt64Ty(*TheContext),
+       /* methodCount */ Type::getInt64Ty(*TheContext),
+       /* maxArity */ Type::getInt64Ty(*TheContext),
        /* once */ Type::getInt8Ty(*TheContext),
-       /* executed */ Type::getInt8Ty(*TheContext)
-       /* TODO : Methods */
+       /* executed */ Type::getInt8Ty(*TheContext),
+       /* methods */ ArrayType::get(runtimeFunctionMethodType(), 0)
      }, "Function");
 }
 

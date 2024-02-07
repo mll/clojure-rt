@@ -12,7 +12,7 @@ struct FunctionJIT {
   ObjectTypeSet retVal;
   int64_t uniqueId = 0;
   int64_t methodIndex;
-  void **closedOvers;
+  std::vector<ObjectTypeSet> closedOvers;
   std::string uniqueName() {
     auto retVall = "fn_" + std::to_string(uniqueId) + "_" + ObjectTypeSet::typeStringForArgs(args) + "_"+ ObjectTypeSet::typeStringForArg(retVal);
 //    std::cout << "uniqueName: " << retVall << std::endl;

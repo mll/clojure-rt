@@ -91,3 +91,17 @@ BigInteger *BigInteger_div(BigInteger *self, BigInteger *other) {
   release(other);
   return retVal;
 }
+
+BOOL BigInteger_gte(BigInteger *self, BigInteger *other) {
+  BOOL retVal = mpz_cmp(self->value, other->value);
+  release(self);
+  release(other);
+  return retVal >= 0;
+}
+
+BOOL BigInteger_lt(BigInteger *self, BigInteger *other) {
+  BOOL retVal = mpz_cmp(self->value, other->value);
+  release(self);
+  release(other);
+  return retVal < 0;
+}

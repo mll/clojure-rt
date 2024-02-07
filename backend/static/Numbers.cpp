@@ -108,11 +108,6 @@ ObjectTypeSet Numbers_add_type(CodeGenerator *gen, const string &signature, cons
   );
 }
 
-ObjectTypeSet Numbers_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
-  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node); 
-  return ObjectTypeSet(booleanType);  
-}
-
 ObjectTypeSet Numbers_minus_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
   return Numbers_generic_op_type(gen, signature, node, args,
     [](double x, double y) { return x - y; },
@@ -194,66 +189,6 @@ TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &
   throw CodeGenerationException(string("Wrong types for add call"), node);
 }
 
-
-TypedValue Numbers_gte(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
-  // TODO: It's not that obvious actually, what type to convert to
-  // If we have (> 1e500 (BigInteger) 1e499 (BigInteger) 1e308 (Double)) [true], we can't convert arguments to double,
-  // otherwise we would have (> ##Inf ##Inf 1e308) [false]
-  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  auto left = args[0]; 
-  auto right = args[1];
- 
-  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
-    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(left.second, right.second, "ge_dd_tmp"));
-  }
-  
-  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first == left.first) {
-    /* TODO integer overflow or promotion to bigint */
-    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateICmpSGE(left.second, right.second, "ge_ii_tmp"));
-  }
-  
-  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first.isDetermined() && right.first.determinedType() == doubleType) {
-    auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(converted, right.second, "ge_ii_tmp"));
-  }
-  
-  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first.isDetermined() && right.first.determinedType() == integerType) {
-    auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(left.second, converted, "ge_dd_tmp"));
-  }
-  // TODO: generic version 
-  throw CodeGenerationException(string("Wrong types for add call"), node);
-}
-
-TypedValue Numbers_lt(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
-  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  
-  auto left = args[0]; 
-  auto right = args[1];
- 
-  
-  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first == left.first) {
-    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(left.second, right.second, "ge_dd_tmp"));
-  }
-  
-  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first == left.first) {
-    /* TODO integer overflow or promotion to bigint */
-    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateICmpSLT(left.second, right.second, "ge_ii_tmp"));
-  }
-  
-  if (left.first.isDetermined() &&  left.first.determinedType() == integerType &&  right.first.isDetermined() && right.first.determinedType() == doubleType) {
-    auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(converted, right.second, "ge_ii_tmp"));
-  }
-  
-  if (left.first.isDetermined() &&  left.first.determinedType() == doubleType &&  right.first.isDetermined() && right.first.determinedType() == integerType) {
-    auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-    return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(left.second, converted, "ge_dd_tmp"));
-  }
-  // TODO: generic version 
-  throw CodeGenerationException(string("Wrong types for add call"), node);
-}
-
 TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
@@ -261,7 +196,7 @@ TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node
   auto right = args[1];
   
   if (!left.first.isDetermined() || !right.first.isDetermined()) {
-    throw CodeGenerationException(string("Wrong types for add call"), node);
+    throw CodeGenerationException(string("Wrong types for minus call"), node);
   }
   
   auto ltype = left.first.determinedType();
@@ -307,7 +242,7 @@ TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node
     }
   }
 
-  throw CodeGenerationException(string("Wrong types for add call"), node);
+  throw CodeGenerationException(string("Wrong types for minus call"), node);
 }
 
 TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
@@ -317,7 +252,7 @@ TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const N
   auto right = args[1];
   
   if (!left.first.isDetermined() || !right.first.isDetermined()) {
-    throw CodeGenerationException(string("Wrong types for add call"), node);
+    throw CodeGenerationException(string("Wrong types for multiply call"), node);
   }
   
   auto ltype = left.first.determinedType();
@@ -363,7 +298,7 @@ TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const N
     }
   }
 
-  throw CodeGenerationException(string("Wrong types for add call"), node);
+  throw CodeGenerationException(string("Wrong types for multiply call"), node);
 }
 
 TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
@@ -374,7 +309,7 @@ TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Nod
   auto right = args[1];
   
   if (!left.first.isDetermined() || !right.first.isDetermined()) {
-    throw CodeGenerationException(string("Wrong types for add call"), node);
+    throw CodeGenerationException(string("Wrong types for divide call"), node);
   }
   
   auto ltype = left.first.determinedType();
@@ -420,7 +355,122 @@ TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Nod
     }
   }
 
-  throw CodeGenerationException(string("Wrong types for add call"), node);
+  throw CodeGenerationException(string("Wrong types for divide call"), node);
+}
+
+ObjectTypeSet Numbers_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
+  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node); 
+  return ObjectTypeSet(booleanType);  
+}
+
+TypedValue Numbers_gte(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+  auto left = args[0]; 
+  auto right = args[1];
+  
+  if (!left.first.isDetermined() || !right.first.isDetermined()) {
+    throw CodeGenerationException(string("Wrong types for gte call"), node);
+  }
+  
+  auto ltype = left.first.determinedType();
+  auto rtype = right.first.determinedType();
+  
+  if (ltype == doubleType) {
+    if (rtype == doubleType) {
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(left.second, right.second, "gte_dd_tmp"));
+    }
+    if (rtype == bigIntegerType) {
+      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {right});
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(left.second, converted.second, "gte_dd_tmp"));
+    }
+    if (rtype == integerType) {
+      auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)), "convert_d_i");
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(left.second, converted, "gte_dd_tmp"));
+    }
+  }
+  if (ltype == bigIntegerType) {
+    if (rtype == doubleType) {
+      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left});
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(converted.second, right.second, "gte_dd_tmp"));
+    }
+    if (rtype == bigIntegerType) {
+      return gen->callRuntimeFun("BigInteger_gte", ObjectTypeSet(booleanType), args);
+    }
+    if (rtype == integerType) {
+      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {right});
+      return gen->callRuntimeFun("BigInteger_gte", ObjectTypeSet(booleanType), {left, converted});
+    }
+  }
+  if (ltype == integerType) {
+    if (rtype == doubleType) {
+      auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOGE(converted, right.second, "gte_dd_tmp"));
+    }
+    if (rtype == bigIntegerType) {
+      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {left});
+      return gen->callRuntimeFun("BigInteger_gte", ObjectTypeSet(booleanType), {converted, right});
+    }
+    if (rtype == integerType) {
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateICmpSGE(left.second, right.second, "gte_ii_tmp"));
+    }
+  }
+
+  throw CodeGenerationException(string("Wrong types for gte call"), node);
+}
+
+TypedValue Numbers_lt(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+  auto left = args[0]; 
+  auto right = args[1];
+  
+  if (!left.first.isDetermined() || !right.first.isDetermined()) {
+    throw CodeGenerationException(string("Wrong types for lt call"), node);
+  }
+  
+  auto ltype = left.first.determinedType();
+  auto rtype = right.first.determinedType();
+  
+  if (ltype == doubleType) {
+    if (rtype == doubleType) {
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(left.second, right.second, "lt_dd_tmp"));
+    }
+    if (rtype == bigIntegerType) {
+      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {right});
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(left.second, converted.second, "lt_dd_tmp"));
+    }
+    if (rtype == integerType) {
+      auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)), "convert_d_i");
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(left.second, converted, "lt_dd_tmp"));
+    }
+  }
+  if (ltype == bigIntegerType) {
+    if (rtype == doubleType) {
+      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left});
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(converted.second, right.second, "lt_dd_tmp"));
+    }
+    if (rtype == bigIntegerType) {
+      return gen->callRuntimeFun("BigInteger_lt", ObjectTypeSet(booleanType), args);
+    }
+    if (rtype == integerType) {
+      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {right});
+      return gen->callRuntimeFun("BigInteger_lt", ObjectTypeSet(booleanType), {left, converted});
+    }
+  }
+  if (ltype == integerType) {
+    if (rtype == doubleType) {
+      auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateFCmpOLT(converted, right.second, "lt_dd_tmp"));
+    }
+    if (rtype == bigIntegerType) {
+      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {left});
+      return gen->callRuntimeFun("BigInteger_lt", ObjectTypeSet(booleanType), {converted, right});
+    }
+    if (rtype == integerType) {
+      return TypedValue(ObjectTypeSet(booleanType), gen->Builder->CreateICmpSLT(left.second, right.second, "lt_ii_tmp"));
+    }
+  }
+
+  throw CodeGenerationException(string("Wrong types for lt call"), node);
 }
 
 ObjectTypeSet Link_external_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
@@ -478,31 +528,21 @@ unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> ge
   // vector<string> numericTypes = {"D", "LM", "LR", "LI", "J"};
   vector<string> numericTypes = {"D", "LI", "J"};
 
-  gte.push_back({"JJ", {&Numbers_compare_type, &Numbers_gte}});
-  gte.push_back({"DJ", {&Numbers_compare_type, &Numbers_gte}});
-  gte.push_back({"JD", {&Numbers_compare_type, &Numbers_gte}});
-  gte.push_back({"DD", {&Numbers_compare_type, &Numbers_gte}});
-
-  vals.insert({"clojure.lang.Numbers/gte", gte});
-
-  lt.push_back({"JJ", {&Numbers_compare_type, &Numbers_lt}});
-  lt.push_back({"DJ", {&Numbers_compare_type, &Numbers_lt}});
-  lt.push_back({"JD", {&Numbers_compare_type, &Numbers_lt}});
-  lt.push_back({"DD", {&Numbers_compare_type, &Numbers_lt}});
-
-  vals.insert({"clojure.lang.Numbers/lt", lt});
-
   for (auto t1: numericTypes)
     for (auto t2: numericTypes) {
       addX.push_back({t1 + t2, {&Numbers_add_type, &Numbers_add}});
       minusX.push_back({t1 + t2, {&Numbers_minus_type, &Numbers_minus}});
       multiplyX.push_back({t1 + t2, {&Numbers_multiply_type, &Numbers_multiply}});
       divideX.push_back({t1 + t2, {&Numbers_divide_type, &Numbers_divide}});
+      gte.push_back({t1 + t2, {&Numbers_compare_type, &Numbers_gte}});
+      lt.push_back({t1 + t2, {&Numbers_compare_type, &Numbers_lt}});
     }
   vals.insert({"clojure.lang.Numbers/add", addX});
   vals.insert({"clojure.lang.Numbers/minus", minusX});
   vals.insert({"clojure.lang.Numbers/multiply", multiplyX});
-  vals.insert({"clojure.lang.Numbers/divide", divideX}); 
+  vals.insert({"clojure.lang.Numbers/divide", divideX});
+  vals.insert({"clojure.lang.Numbers/gte", gte});
+  vals.insert({"clojure.lang.Numbers/lt", lt});
 
   vector<string> math_1arg = {
     "java.lang.Math/sin", "java.lang.Math/cos", "java.lang.Math/tan", "java.lang.Math/asin",

@@ -40,7 +40,7 @@
 
 (defmulti -fresh-vars
   (fn [{:keys [op]} _]
-    (assert (not (#{:host-interop} op))
+    (assert (not (#{} op))
             (str "-fresh-vars: " op " not yet implemented"))
     (assert (not (#{:case-test} op))
             (str "-fresh-vars: " op " should never occur"))
@@ -203,7 +203,8 @@
       true (assoc :fresh all-fresh))))
 
 ;; Handled by default:
-;; binding, case-then, const, def, fn, import, instance-call, instance-field, instance?, invoke, keyword-invoke, map,
+;; binding, case-then, const, def, fn, host-interop, import, instance-call, instance-field,
+;; instance?, invoke, keyword-invoke, map,
 ;; monitor-enter, monitor-exit, new, prim-invoke, protocol-invoke, quote, recur, set, set!,
 ;; static-call, static-field, the-var, throw, try, var, vector, with-meta
 (defmethod -fresh-vars :default
@@ -221,7 +222,7 @@
 
 (defmulti -memory-management-pass
   (fn [{:keys [fresh op form]} borrowed owned unwind-owned]
-    (assert (not (#{:host-interop} op))
+    (assert (not (#{} op))
             (str "-memory-management-pass: " op " not yet implemented"))
     (assert (not (#{:case-test :fn-method :method} op))
             (str "-memory-management-pass: " op " should never occur"))
@@ -682,7 +683,7 @@
         (assoc :thens updated-branches))))
 
 ;; Handled by default:
-;; case-then, const, def, import, instance-field, instance?,
+;; case-then, const, def, host-interop, import, instance-field, instance?,
 ;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, quote, set, static-field, the-var,
 ;; var, with-meta
 (defmethod -memory-management-pass :default

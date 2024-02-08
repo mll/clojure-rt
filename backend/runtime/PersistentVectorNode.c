@@ -1,9 +1,10 @@
 #include "Object.h"
 #include "PersistentVectorNode.h"
 #include "PersistentVector.h"
+#include "Transient.h"
 
 /* mem done */
-PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type) { 
+PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type, uint64_t transientID) { 
   /* Why do we allocate full RRB_BRANCHING elements for leaf nodes? 
      Should we optimise and keep only as much as is needed if 
      we copy them when adding new items anyway? 
@@ -15,11 +16,12 @@ PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType typ
 
   */
   size_t allocs = type == leafNode ? RRB_BRANCHING : count;
-  Object *super = allocate(sizeof(PersistentVectorNode)+ sizeof(Object) + allocs * sizeof(PersistentVectorNode *)); 
+  Object *super = allocate(sizeof(Object) + sizeof(PersistentVectorNode) + allocs * sizeof(Object *)); 
   
   PersistentVectorNode *self = (PersistentVectorNode *)(super + 1);
   self->type = type;
   self->count = count;
+  self->transientID = transientID;
   Object_create(super, persistentVectorNodeType); 
   return self;
 }
@@ -63,13 +65,13 @@ void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL dea
 }
 
 /* mem done */
-PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other, BOOL allowsReuse) {
+PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other, BOOL allowsReuse, uint64_t vectorTransientID) {
   uint64_t level_index = (index >> level) & RRB_MASK;
-  BOOL reusable = isReusable(self) && allowsReuse;
+  BOOL reusable = allowsReuse && (isReusable(self) || (self->transientID == vectorTransientID));
   PersistentVectorNode *new = NULL;
   if(reusable) new = self;
   else {
-    new = PersistentVectorNode_allocate(self->count, self->type);
+    new = PersistentVectorNode_allocate(self->count, self->type, vectorTransientID);
     memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(Object *));
   }
 
@@ -79,7 +81,7 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * re
         if(reusable) Object_release(new->array[i]);
         new->array[i] = other;
       } else {
-        new->array[i] = super(PersistentVectorNode_replacePath(Object_data(new->array[i]), level - RRB_BITS, index, other, reusable));
+        new->array[i] = super(PersistentVectorNode_replacePath(Object_data(new->array[i]), level - RRB_BITS, index, other, reusable, vectorTransientID));
       }
     } else {
       if(!reusable) Object_retain(self->array[i]);
@@ -89,7 +91,7 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * re
 }
 
 /* mem done */
-PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied, BOOL allowsReuse) {
+PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied, BOOL allowsReuse, uint64_t vectorTransientID) {
   if (self == NULL) { 
     /* Special case, we have no root in the vector */
     *copied = FALSE;
@@ -98,7 +100,7 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
 
   if(self->type == leafNode) {
     /* Special case, just a single leaf node */
-     PersistentVectorNode *new = PersistentVectorNode_allocate(2, internalNode);
+    PersistentVectorNode *new = PersistentVectorNode_allocate(2, internalNode, vectorTransientID);
     new->array[0] = super(self);
     new->array[1] = super(tailToPush);
     *copied = FALSE;
@@ -107,10 +109,10 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
   
   PersistentVectorNode *entry = level <= RRB_BITS ? NULL : Object_data(self->array[self->count - 1]);
 
-  BOOL reusable = isReusable(self) && allowsReuse;
+  BOOL reusable = allowsReuse && (isReusable(self) || (self->transientID == vectorTransientID));
   if(entry) retain(entry);
   BOOL copiedInSubtree;
-  PersistentVectorNode *subtree = PersistentVectorNode_pushTail(self, entry, tailToPush, level -= RRB_BITS, &copiedInSubtree, reusable);
+  PersistentVectorNode *subtree = PersistentVectorNode_pushTail(self, entry, tailToPush, level -= RRB_BITS, &copiedInSubtree, reusable, vectorTransientID);
   
   if(copiedInSubtree) {
     if(reusable) {
@@ -120,7 +122,7 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
       return self;
     }
     
-    PersistentVectorNode *new = PersistentVectorNode_allocate(self->count, internalNode);
+    PersistentVectorNode *new = PersistentVectorNode_allocate(self->count, internalNode, vectorTransientID);
     memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(PersistentVectorNode *));    
     new->array[new->count - 1] = super(subtree);
     for (int i=0; i< new->count - 1; i++) Object_retain(new->array[i]);
@@ -132,7 +134,7 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
   /* We have created a new node somewhere down there */
 
   if (self->count < RRB_BRANCHING) {
-    PersistentVectorNode *new = PersistentVectorNode_allocate(self->count + 1, internalNode);
+    PersistentVectorNode *new = PersistentVectorNode_allocate(self->count + 1, internalNode, vectorTransientID);
     memcpy(new, self, sizeof(PersistentVectorNode) + self->count * sizeof(PersistentVectorNode *));
     new->array[self->count] = super(subtree);
     new->count++;
@@ -147,16 +149,16 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
 
   if(parent == NULL) { 
     /* Root node, we create a new root and merge */
-    PersistentVectorNode *new = PersistentVectorNode_allocate(2, internalNode);
+    PersistentVectorNode *new = PersistentVectorNode_allocate(2, internalNode, vectorTransientID);
     new->array[0] = super(self);
-    PersistentVectorNode *newDown = PersistentVectorNode_allocate(1, internalNode);
+    PersistentVectorNode *newDown = PersistentVectorNode_allocate(1, internalNode, vectorTransientID);
     new->array[1] = super(newDown);
     newDown->array[0] = super(subtree);
     *copied = FALSE;
     return new;
   }
 
-  PersistentVectorNode *new = PersistentVectorNode_allocate(1, internalNode);
+  PersistentVectorNode *new = PersistentVectorNode_allocate(1, internalNode, vectorTransientID);
   new->array[0] = super(subtree);
   *copied = FALSE;
   release(self);
@@ -164,3 +166,46 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
   return new;
 } 
 
+PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode * restrict self, PersistentVectorNode ** restrict poppedLeaf, BOOL allowsReuse, uint64_t vectorTransientID) {
+  if (self->type == leafNode) {
+    retain(self);
+    *poppedLeaf = self;
+    return NULL;
+  }
+
+  // self->type == internalNode
+  uint64_t transientID = self->transientID;
+  BOOL reusable = allowsReuse && (isReusable(self) || (transientID && (transientID == vectorTransientID)));
+  uint64_t lastPos = self->count - 1; // Invariant: count > 0
+  PersistentVectorNode *lastChild = Object_data(self->array[lastPos]);
+  PersistentVectorNode *newSubtree = PersistentVectorNode_popTail(lastChild, poppedLeaf, reusable, vectorTransientID);
+  BOOL modifiedInPlace = lastChild == newSubtree; // compare addresses!
+  PersistentVectorNode *newTree;
+  if (reusable) {
+    newTree = self;
+  } else {
+    newTree = PersistentVectorNode_allocate(self->count, self->type, vectorTransientID);
+    memcpy(newTree, self, sizeof(PersistentVectorNode) + self->count * sizeof(Object *));
+    newTree->transientID = vectorTransientID;
+    for (int i = 0; i < lastPos; ++i) Object_retain(newTree->array[i]); // do not retain last object
+  }
+
+  if (newSubtree) {
+    if (reusable && !modifiedInPlace) release(lastChild);
+    newTree->array[lastPos] = super(newSubtree);
+    return newTree;
+  }
+  
+  // newSubtree == NULL
+  --newTree->count;
+  newTree->array[lastPos] = NULL;
+  if (reusable) release(lastChild);
+  
+  if (lastPos) {
+    return newTree;
+  }
+  
+  // self->count == 1
+  if (!reusable) release(newTree);
+  return NULL;
+}

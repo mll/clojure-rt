@@ -16,6 +16,7 @@ set(CMAKE_C_FLAGS_DEBUG "-g")
 set(CMAKE_C_FLAGS_RELEASE "-Ofast")
 
 set(SOURCES
+    Transient.c
     Object.c 
     Integer.c 
     PersistentList.c 

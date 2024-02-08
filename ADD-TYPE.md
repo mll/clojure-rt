@@ -1,6 +1,6 @@
 A manual for adding an additional basic type to the runtime:
 
-I. Create NewType.h and NewType.c files in backend/runtime (You can base on Boolean.h/c)
+I. Create NewType.h and NewType.c files in backend/runtime (You can base on Boolean.h/c) and add .c file in runtime/CMakeLists.txt
 II. The new type has to have the following functions witten in their h/c files:
    a) NewType_equals
    b) NewType_hash
@@ -18,7 +18,7 @@ II. The new type has to have the following functions witten in their h/c files:
   2. Memory alignment offset (sometimes 0)
   3. Fields typical of our NewType
 
-III. Add the desired types enum to defines.h
+III. Add the desired types enum to defines.h (add it before last type, which should remain persistentArrayMapType)
 
 IV. Edit Object.h and add appropriate clauses to 
    a) Object_destroy 
@@ -43,4 +43,4 @@ V. Go to compiler and modify
       2. You may need to introspect your type in LLVM generated code. If so, add the appropriate 
          'runtimeNewTypeType' that creates LLVM type that should be 100% compatible with what you did in         I.
 
-VI. Add your new type to the compiler in node generators (ops/...). The usage will depend on the purpose of your new type. 
+VI. Add your new type to the compiler in node generators (ops/...). The usage will depend on the purpose of your new type. Make warnings should guide you when in doubt.

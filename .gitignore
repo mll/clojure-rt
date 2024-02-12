@@ -23,3 +23,4 @@ frontend/.lsp
 frontend/.calva
 .vscode
 backend/.vscode
+build

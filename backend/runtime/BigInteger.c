@@ -83,10 +83,24 @@ BigInteger *BigInteger_mul(BigInteger *self, BigInteger *other) {
   return retVal;
 }
 
-BigInteger *BigInteger_div(BigInteger *self, BigInteger *other) {
-  // TODO: zero checks, creating ratio out of division of two integers
-  BigInteger *retVal = BigInteger_createUnassigned();
-  mpz_cdiv_q(retVal->value, self->value, other->value);
+void *BigInteger_div(BigInteger *self, BigInteger *other) {
+  if (!mpz_cmp_si(other->value, 0)) {
+    release(self);
+    release(other);
+    return NULL; // Exception: divide by zero
+  }
+  void *retVal = NULL;
+  if (mpz_divisible_p(self->value, other->value)) {
+    BigInteger *result = BigInteger_createUnassigned();
+    mpz_divexact(result->value, self->value, other->value);
+    retVal = result;
+  } else {
+    Ratio *ratio = Ratio_createUnassigned();
+    mpq_set_num(ratio->value, self->value);
+    mpq_set_den(ratio->value, other->value);
+    mpq_canonicalize(ratio->value);
+    retVal = ratio;
+  }
   release(self);
   release(other);
   return retVal;

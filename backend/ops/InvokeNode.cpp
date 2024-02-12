@@ -104,6 +104,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     case nilType:
     case stringType:
     case bigIntegerType:
+    case ratioType:
     case persistentListType:
     case persistentVectorNodeType:
     case concurrentHashMapType:

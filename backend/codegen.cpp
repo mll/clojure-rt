@@ -213,6 +213,7 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
     if (typeName == "K") return ObjectTypeSet(keywordType);
     if (typeName == "F") return ObjectTypeSet(functionType);
     if (typeName == "I") return ObjectTypeSet(bigIntegerType);
+    if (typeName == "R") return ObjectTypeSet(ratioType);
     if (typeName == "A") return ObjectTypeSet(persistentArrayMapType);
 
     throw CodeGenerationException(string("Unknown class: ")+ typeName + string(" Full string: ") + typeString, node);

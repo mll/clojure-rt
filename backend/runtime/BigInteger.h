@@ -23,7 +23,7 @@ double BigInteger_toDouble(BigInteger *self);
 BigInteger *BigInteger_add(BigInteger *self, BigInteger *other);
 BigInteger *BigInteger_sub(BigInteger *self, BigInteger *other);
 BigInteger *BigInteger_mul(BigInteger *self, BigInteger *other);
-BigInteger *BigInteger_div(BigInteger *self, BigInteger *other);
+void *BigInteger_div(BigInteger *self, BigInteger *other);
 BOOL BigInteger_gte(BigInteger *self, BigInteger *other);
 BOOL BigInteger_lt(BigInteger *self, BigInteger *other);
 

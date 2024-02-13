@@ -31,7 +31,12 @@ CodeGenerator::CodeGenerator(std::shared_ptr<ProgrammeState> programme, ClojureJ
 
 void CodeGenerator::printDebugValue(Value *v) {  
   Type *t = v->getType();
-  string pf = t == Type::getInt8Ty(*TheContext) ? "printChar" : "printInt";
+  string pf ;
+  if (Type::getInt8Ty(*TheContext) == t) pf = "printChar";
+  if (Type::getInt64Ty(*TheContext) == t) pf = "printInt";
+  if (Type::getInt8Ty(*TheContext)->getPointerTo() == t) pf = "printPointer";
+  assert(pf.length() > 0);
+
   Function *p1 = TheModule->getFunction(pf); 
   if(!p1) {
     vector<Type *> p1at;
@@ -42,7 +47,7 @@ void CodeGenerator::printDebugValue(Value *v) {
   }
   vector<Value *> p1av;
   p1av.push_back(v);
-  Builder->CreateCall(p1, p1av, string("debug"));
+  Builder->CreateCall(p1, p1av);
 }
 
 string CodeGenerator::codegenTopLevel(const Node &node, int i) {

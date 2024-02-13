@@ -28,8 +28,8 @@ else
 fi
 mv $BINARY ../backend
 cd ../backend
-#arch -arm64 lldb ./clojure-rt 
 echo "Executing..."
+#arch -arm64 lldb ./clojure-rt 
 ./clojure-rt $BINARY
 #rm $BINARY
 cd ..

@@ -21,7 +21,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
   }
 
   bool determinedArgs = true;
-  for(auto a: args) if(!a.first.isDetermined()) determinedArgs = false;
+  for(auto a: args) if(!a.first.isDetermined()) { determinedArgs = false; break; }
       
   if(functionRef.op() == opVar) { /* Static var holding a fuction */
     auto var = functionRef.subnode().var();
@@ -39,7 +39,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     uniqueId  = dynamic_cast<ConstantFunction *>(funType.getConstant())->value;
     fName = getMangledUniqueFunctionName(uniqueId);
   }
-
+    
   /* All args are determined on compile time, we go static route. This means we build the function 
      with appropriate input types during compile time and just put a call into the node implementation.
        
@@ -68,34 +68,41 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
       if(nodes[i].first.fixedarity() <= args.size() && nodes[i].first.isvariadic()) { foundIdx = i; break;}
     }
     if(foundIdx == -1) throw CodeGenerationException(string("Function ") + (refName.size() > 0 ? refName : fName) + " has been called with wrong arity: " + to_string(args.size()), node);
-
-    pair<FnMethodNode, uint64_t> method = nodes[foundIdx];
-
-    vector<ObjectTypeSet> argTypes;
-    for(int i=0; i<method.first.fixedarity(); i++) argTypes.push_back(args[i].first);
- // TODO: For now we just use a vector, in the future a faster sequable data structure will be used here */
-    if(method.first.isvariadic()) argTypes.push_back(ObjectTypeSet(persistentVectorType));
-
-    string rName = ObjectTypeSet::recursiveMethodKey(fName, argTypes);
-    string rqName = ObjectTypeSet::fullyQualifiedMethodKey(fName, argTypes, type);
     
-    
-    if(TheModule->getFunction(rqName) == Builder->GetInsertBlock()->getParent()) {
-      refName = ""; // This blocks dynamic entry checks - we do not want them for directly recursive functions */
+    auto closedOvers =  TheProgramme->ClosedOverTypes.find(ProgrammeState::closedOverKey(uniqueId, foundIdx))->second;
+    for (auto c : closedOvers) if(!c.isDetermined()) { determinedArgs = false; break; }
+    /* Short circut - if it turns out that after all closed overs are not determined at compile time we go the dynamic route */
+
+    if (!determinedArgs) {
+      pair<FnMethodNode, uint64_t> method = nodes[foundIdx];
+      
+      vector<ObjectTypeSet> argTypes;
+      for(int i=0; i<method.first.fixedarity(); i++) argTypes.push_back(args[i].first);
+      // TODO: For now we just use a vector, in the future a faster sequable data structure will be used here */
+      if(method.first.isvariadic()) argTypes.push_back(ObjectTypeSet(persistentVectorType));
+      
+      string rName = ObjectTypeSet::recursiveMethodKey(fName, argTypes);
+      string rqName = ObjectTypeSet::fullyQualifiedMethodKey(fName, argTypes, type);
+      
+      
+      if(TheModule->getFunction(rqName) == Builder->GetInsertBlock()->getParent()) {
+        refName = ""; // This blocks dynamic entry checks - we do not want them for directly recursive functions */
+      }
+      
+      /* We leave the return type cached, maybe in the future it needs to be removed here */
+      TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
+      
+      auto callObject = codegen(functionRef, ObjectTypeSet::all());
+      auto retVal = callStaticFun(node, functionBody, method, fName, type, args, refName, callObject, closedOvers);
+      return retVal;
     }
-
-    /* We leave the return type cached, maybe in the future it needs to be removed here */
-    TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
-
-    auto retVal = callStaticFun(node, method, fName, type, args, refName);
-    
-    return retVal;
   }
 
 /* 
-  If at least one arg is indetermined - we need to go the dynamic route.
+  If at least one arg is undetermined - we need to go the dynamic route.
   First, we try to check if we can establish the type of callee during compilation. If so, we can generate much simpler and more taylored code.
 */
+
   if(funType.isDetermined()) {
     switch(funType.determinedType()) {
     case integerType:
@@ -110,7 +117,11 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
       throw CodeGenerationException("This type cannot be invoked.", node);
     case symbolType:
       /* Strange clojure behaviour, we just imitate */
-      return TypedValue(ObjectTypeSet(nilType), dynamicNil());
+      {
+        auto funObj = codegen(functionRef, ObjectTypeSet::all());
+        dynamicRelease(funObj.second, false);
+        return TypedValue(ObjectTypeSet(nilType), dynamicNil());
+      }
     case persistentArrayMapType:
       {
         if(args.size() != 1) throw CodeGenerationException("Wrong number of args passed to invokation", node);
@@ -151,7 +162,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
         auto argType = args[0].first;
         /* Todo - what about big integer? */
 
-        
         if(args[0].first.isUnboxedType(integerType)) {
           finalArgs.push_back(args[0]);          
           callName = "PersistentVector_nth";
@@ -175,7 +185,6 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
   auto function = subnode.fn();
   auto type = getType(function, ObjectTypeSet::all());
   uint64_t uniqueId = 0;
-
   if(function.op() == opVar) { /* Static var holding a fuction */
     auto var = function.subnode().var();
     string name = var.var().substr(2);
@@ -195,7 +204,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     auto t = getType(subnode.args(i), ObjectTypeSet::all());
     args.push_back(t.removeConst());
   }
-  
+   
   bool determinedArgs = true;
   for(auto a: args) if(!a.isDetermined()) determinedArgs = false;
 
@@ -216,17 +225,16 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     });
 
     const FnMethodNode *method = nullptr;
+    int methodId = -1;
     for(int i=0; i<nodes.size(); i++) {
-      if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; break;}
-      if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; break;}
+      if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; methodId = i; break;}
+      if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; methodId = i; break;}
     }
 
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
-    
-
-    return determineMethodReturn(*method, uniqueId, args, typeRestrictions);
+    auto closedOvers = TheProgramme->ClosedOverTypes.find(ProgrammeState::closedOverKey(uniqueId, methodId))->second;    
+    return determineMethodReturn(*method, uniqueId, args, closedOvers, typeRestrictions);
   }
-  
   /* Unable to find function body, it has gone through generic path and type has to be resolved at runtime */
   return ObjectTypeSet::all().restriction(typeRestrictions);
 }

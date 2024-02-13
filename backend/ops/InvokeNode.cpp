@@ -72,36 +72,37 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     auto closedOvers =  TheProgramme->ClosedOverTypes.find(ProgrammeState::closedOverKey(uniqueId, foundIdx))->second;
     for (auto c : closedOvers) if(!c.isDetermined()) { determinedArgs = false; break; }
     /* Short circut - if it turns out that after all closed overs are not determined at compile time we go the dynamic route */
-    if (!determinedArgs) goto undetermined; 
 
-    pair<FnMethodNode, uint64_t> method = nodes[foundIdx];
-
-    vector<ObjectTypeSet> argTypes;
-    for(int i=0; i<method.first.fixedarity(); i++) argTypes.push_back(args[i].first);
- // TODO: For now we just use a vector, in the future a faster sequable data structure will be used here */
-    if(method.first.isvariadic()) argTypes.push_back(ObjectTypeSet(persistentVectorType));
-
-    string rName = ObjectTypeSet::recursiveMethodKey(fName, argTypes);
-    string rqName = ObjectTypeSet::fullyQualifiedMethodKey(fName, argTypes, type);
-    
-    
-    if(TheModule->getFunction(rqName) == Builder->GetInsertBlock()->getParent()) {
-      refName = ""; // This blocks dynamic entry checks - we do not want them for directly recursive functions */
+    if (!determinedArgs) {
+      pair<FnMethodNode, uint64_t> method = nodes[foundIdx];
+      
+      vector<ObjectTypeSet> argTypes;
+      for(int i=0; i<method.first.fixedarity(); i++) argTypes.push_back(args[i].first);
+      // TODO: For now we just use a vector, in the future a faster sequable data structure will be used here */
+      if(method.first.isvariadic()) argTypes.push_back(ObjectTypeSet(persistentVectorType));
+      
+      string rName = ObjectTypeSet::recursiveMethodKey(fName, argTypes);
+      string rqName = ObjectTypeSet::fullyQualifiedMethodKey(fName, argTypes, type);
+      
+      
+      if(TheModule->getFunction(rqName) == Builder->GetInsertBlock()->getParent()) {
+        refName = ""; // This blocks dynamic entry checks - we do not want them for directly recursive functions */
+      }
+      
+      /* We leave the return type cached, maybe in the future it needs to be removed here */
+      TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
+      
+      auto callObject = codegen(functionRef, ObjectTypeSet::all());
+      auto retVal = callStaticFun(node, functionBody, method, fName, type, args, refName, callObject, closedOvers);
+      return retVal;
     }
-
-    /* We leave the return type cached, maybe in the future it needs to be removed here */
-    TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
-
-    auto callObject = codegen(functionRef, ObjectTypeSet::all());
-    auto retVal = callStaticFun(node, functionBody, method, fName, type, args, refName, callObject, closedOvers);
-    return retVal;
   }
 
 /* 
   If at least one arg is undetermined - we need to go the dynamic route.
   First, we try to check if we can establish the type of callee during compilation. If so, we can generate much simpler and more taylored code.
 */
-  undetermined:
+
   if(funType.isDetermined()) {
     switch(funType.determinedType()) {
     case integerType:

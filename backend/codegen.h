@@ -41,6 +41,8 @@
 #include "jit/jit.h"
 #include "FunctionJIT.h"
 
+#define RUNTIME_MEMORY_TRACKING
+
 using namespace clojure::rt::protobuf::bytecode;
 
 

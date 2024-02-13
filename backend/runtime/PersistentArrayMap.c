@@ -61,7 +61,7 @@ BOOL PersistentArrayMap_equals(PersistentArrayMap *self, PersistentArrayMap *oth
     void *val = self->values[i];
     retain(self);
     retain(key);
-    void *otherVal = PersistentArrayMap_get(self, key);
+    void *otherVal = PersistentArrayMap_get(other, key);
     if(!equals(otherVal, val)) return FALSE;
   }
   return TRUE;
@@ -82,14 +82,15 @@ uint64_t PersistentArrayMap_hash(PersistentArrayMap *self) {
 String *PersistentArrayMap_toString(PersistentArrayMap *self) {
   String *retVal = String_create("{");
   String *space = String_create(" ");
+  String *comma = String_create(", ");
   String *closing = String_create("}");
 
   BOOL hasAtLeastOne = FALSE;
   for(int i=0; i<self->count; i++) {
       void *key = self->keys[i];
       if(hasAtLeastOne) {
-        retain(space);
-        retVal = String_concat(retVal, space);
+        retain(comma);
+        retVal = String_concat(retVal, comma);
       }
       hasAtLeastOne = TRUE;
       retain(key);
@@ -104,6 +105,7 @@ String *PersistentArrayMap_toString(PersistentArrayMap *self) {
   
   retVal = String_concat(retVal, closing); 
   release(space);
+  release(comma);
   release(self);
   return retVal;
 }

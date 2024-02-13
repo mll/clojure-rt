@@ -23,7 +23,8 @@ enum objectType {
    concurrentHashMapType,
    keywordType,
    functionType,
-   persistentArrayMapType
+   bigIntegerType,
+   persistentArrayMapType,
 };
 
 typedef enum objectType objectType;

@@ -41,7 +41,11 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   case keywordType:
     retVal = dynamicKeyword((name[0] == ':' ? name.substr(1) : name).c_str());
     dynamicRetain(retVal);
-    break;    
+    break;
+  case bigIntegerType:
+    retVal = dynamicBigInteger(subnode.val().c_str());
+    dynamicRetain(retVal);
+    break; 
   case persistentListType:
   case persistentVectorType:
   case persistentVectorNodeType:
@@ -64,6 +68,10 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
     if (node.tag() == "double" || node.otag() == "double" || node.tag() == "class java.lang.Double") {
       return ObjectTypeSet(doubleType, false, new ConstantDouble(stod(subnode.val()))).restriction(typeRestrictions);
     } 
+
+    if (node.tag() == "clojure.lang.BigInt" || node.otag() == "clojure.lang.BigInt" || node.tag() == "class clojure.lang.BigInt" || node.otag() == "class clojure.lang.BigInt") {
+      return ObjectTypeSet(bigIntegerType, true, new ConstantBigInteger(subnode.val())).restriction(typeRestrictions);
+    }
 
     throw CodeGenerationException(string("Compiler only supports 64 bit integers at this time. "), node);
 

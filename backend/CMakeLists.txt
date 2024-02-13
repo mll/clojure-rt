@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.26)
 project(clojure-rt)
 
-set(CMAKE_OSX_ARCHITECTURES "arm64")
+#set(CMAKE_OSX_ARCHITECTURES "arm64")
 #set(CMAKE_OPTIMIZE_DEPENDENCIES TRUE)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -73,6 +73,7 @@ set(SOURCES
      RuntimeInterop.cpp
      ObjectTypeSet.cpp
      static/Utils.cpp
+     static/Vector.cpp
      jit/Materialisation.cpp
      jit/ASTLayer.cpp
      DynamicRuntime.cpp

@@ -54,6 +54,7 @@ extern "C" {
 // //===----------------------------------------------------------------------===//
 
 int main(int argc, char *argv[]) {
+  setbuf(stdout, NULL);
   if(argc != 2) {
     cout << "Please specify the filename for compilation" << endl;
     return -1;

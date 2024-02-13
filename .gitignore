@@ -21,3 +21,5 @@ frontend/.clj-kondo/babashka
 frontend/.clj-kondo/.cache
 frontend/.lsp
 frontend/.calva
+.vscode
+backend/.vscode

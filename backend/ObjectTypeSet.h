@@ -364,6 +364,10 @@ class ObjectTypeSet {
     return all;
   }
   
+  static ObjectTypeSet empty() {
+    return ObjectTypeSet();
+  }
+
   static ObjectTypeSet all() {
     ObjectTypeSet retVal;
     retVal.insert(integerType);

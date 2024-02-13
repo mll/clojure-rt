@@ -24,9 +24,9 @@ Keyword* Keyword_create(String *string) {
     release(retVal);
     retain(string);
     Keyword *new = Keyword_allocate(string);
+    retain(new);
     /* TODO - what if another thread has interned first? */
     ConcurrentHashMap_assoc(keywords, string, new);
-    retain(new);
     return new;
   }
   release(string);
@@ -36,6 +36,7 @@ Keyword* Keyword_create(String *string) {
 /* outside refcount system */
 BOOL Keyword_equals(Keyword *self, Keyword *other) {
   /* What if another thread interns? */
+  /* what is here does not matter - keyword equality is checked based on a pointer only */
   return FALSE; //equals(self->string, other->string);
 }
 

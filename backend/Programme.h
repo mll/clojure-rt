@@ -46,6 +46,7 @@ class ProgrammeState {
   public:
   /* TODO: thread safety? locks? */
   std::unordered_map<uint64_t, Node> Functions;
+  std::unordered_map<std::string, std::vector<ObjectTypeSet> > ClosedOverTypes;
   std::unordered_map<std::string, uint64_t> RecurTargets;
   std::unordered_map<std::string, uint64_t> StaticFunctions;
   std::unordered_map<std::string, ObjectTypeSet> RecursiveFunctionsRetValGuesses;
@@ -66,6 +67,8 @@ class ProgrammeState {
   uint64_t lastFunctionUniqueId = 0;
 
   ProgrammeState();
+  
+  static std::string closedOverKey(uint64_t functionId, uint64_t methodId);
 };
 
 #endif

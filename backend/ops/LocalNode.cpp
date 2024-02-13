@@ -12,7 +12,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const LocalNode &subnode, co
       for(int i=VariableBindingStack.size() - 1; i >= 0; i--) {
         auto args = VariableBindingStack[i];
         auto it = args.find(name);
-        if(it == args.end()) continue;
+        if(it == args.end()) continue;        
         return it->second;
       }
       throw CodeGenerationException(string("Unknown variable: ") + name, node);         

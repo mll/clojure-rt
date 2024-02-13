@@ -33,15 +33,18 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
     break;
   case stringType:    
     retVal = dynamicString(subnode.val().c_str());
+    dynamicRetain(retVal);
     break;
   case symbolType:
     retVal = dynamicSymbol(name.c_str());
     break;
   case keywordType:
     retVal = dynamicKeyword((name[0] == ':' ? name.substr(1) : name).c_str());
+    dynamicRetain(retVal);
     break;
   case bigIntegerType:
     retVal = dynamicBigInteger(subnode.val().c_str());
+    dynamicRetain(retVal);
     break; 
   case ratioType:
     retVal = dynamicRatio(subnode.val().c_str());

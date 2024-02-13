@@ -14,23 +14,8 @@ inline BOOL logicalValue(void * restrict self) {
 }
 
 inline void logException(const char *description) {
-  void *array[1000];
-  char **strings;
-  int size, i;
-
   printf("%s\n", description);
-
-  size = backtrace (array, 1000);
-  strings = backtrace_symbols (array, size);
-  if (strings != NULL)
-  {
-
-    printf ("Obtained %d stack frames:\n", size);
-    for (i = 0; i < size; i++)
-      printf ("%s\n", strings[i]);
-  }
-
-  free (strings);
+  logBacktrace();
   exit(1);
 }
 

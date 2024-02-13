@@ -4,7 +4,8 @@
             [clojure.tools.analyzer.ast :as ast]
             [clojure.tools.analyzer.passes
              [uniquify :refer [uniquify-locals]]
-             [collect-closed-overs :refer [collect-closed-overs]]]
+             [collect-closed-overs :refer [collect-closed-overs]]
+             [trim :refer [trim]]]
             [clojure.walk :refer [postwalk]]))
 
 (defn remove-env
@@ -12,8 +13,20 @@
   [ast]
   (if (and (map? ast)
            (contains? ast :env))
-    (dissoc ast :env)
+    (-> ast
+        (update-in [:env] #(dissoc % :context :locals)))
     ast))
+
+(defn simplify-closed-overs
+  {:pass-info {:walk :pre :depends #{#'collect-closed-overs}}}
+  [ast]  
+  (if (and (map? ast)
+           (contains? ast :closed-overs))    
+    (-> ast 
+        (update :closed-overs vals)
+        (update :closed-overs #(map remove-env %)))
+    ast))
+
 
 (defn rewrite-loops
   "Rewrite loop nodes `(loop [bindings] body)` to `(let [G (loop [bindings] body)] G)` and tag those lets."
@@ -45,6 +58,8 @@
     (assert (not (#{:case-test} op))
             (str "-fresh-vars: " op " should never occur"))
     op))
+    
+
 
 (defmethod -fresh-vars :local
   [node _recur-this]
@@ -215,7 +230,7 @@
         (assoc :fresh all-fresh))))
 
 (defn fresh-vars
-  ^{:pass-info {:walk :none :depends #{#'uniquify-locals}}}
+  {:pass-info {:walk :none :depends #{#'uniquify-locals #'trim}}}
   [ast]
   (-fresh-vars ast {}))
 
@@ -693,7 +708,7 @@
       (set-unwind unwind-owned)))
 
 (defn memory-management-pass
-  ^{:pass-info {:walk :none :depends #{#'uniquify-locals #'fresh-vars}}}
+  {:pass-info {:walk :none :depends #{#'uniquify-locals #'fresh-vars}}}
   [ast]
   (let [f #(mapv (fn [[k v]] [(name k) v]) %)]
     (postwalk

@@ -4,7 +4,8 @@
             [clojure.tools.analyzer.ast :as ast]
             [clojure.tools.analyzer.passes
              [uniquify :refer [uniquify-locals]]
-             [collect-closed-overs :refer [collect-closed-overs]]]
+             [collect-closed-overs :refer [collect-closed-overs]]
+             [trim :refer [trim]]]
             [clojure.walk :refer [postwalk]]))
 
 (defn remove-env
@@ -13,8 +14,7 @@
   (if (and (map? ast)
            (contains? ast :env))
     (-> ast
-        (update-in [:env] #(dissoc % :context))
-        (update-in [:env] #(dissoc % :locals)))
+        (update-in [:env] #(dissoc % :context :locals)))
     ast))
 
 (defn simplify-closed-overs
@@ -229,7 +229,7 @@
         (assoc :fresh all-fresh))))
 
 (defn fresh-vars
-  {:pass-info {:walk :none :depends #{#'uniquify-locals}}}
+  {:pass-info {:walk :none :depends #{#'uniquify-locals #'trim}}}
   [ast]
   (-fresh-vars ast {}))
 

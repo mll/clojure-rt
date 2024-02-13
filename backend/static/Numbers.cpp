@@ -160,9 +160,9 @@ ObjectTypeSet Numbers_generic_op_type(
       if (division) {
         if (rval) {
           if (lval % rval) {
-            return ObjectTypeSet(integerType, false, new ConstantInteger(integerOp(lval, rval)));
-          } else {
             return ObjectTypeSet(ratioType, false, new ConstantRatio(lval, rval));
+          } else {
+            return ObjectTypeSet(integerType, false, new ConstantInteger(integerOp(lval, rval)));
           }
         } else {
           throw CodeGenerationException(string("Division by 0"), node);
@@ -175,7 +175,7 @@ ObjectTypeSet Numbers_generic_op_type(
   
   if (left.isDetermined() && left.determinedType() == integerType && right == left) {
     auto retVal = ObjectTypeSet(integerType);
-    if (division) retVal.insert(ratioType);
+    if (division) {retVal.boxed(); retVal.insert(ratioType);}
     return retVal;
   }
   if (left.isDetermined() && left.determinedType() == bigIntegerType && right == left) {
@@ -184,7 +184,7 @@ ObjectTypeSet Numbers_generic_op_type(
     return retVal;
   }
   if (left.isDetermined() && left.determinedType() == ratioType && right == left) {
-    auto retVal = ObjectTypeSet(bigIntegerType);
+    auto retVal = ObjectTypeSet(bigIntegerType, true);
     retVal.insert(ratioType);
     return retVal;
   }
@@ -333,8 +333,9 @@ TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node
   auto left = args[0]; 
   auto right = args[1];
   
+  printf("AAAA\n%s\n%s\n%d %d\n", left.first.toString().c_str(), right.first.toString().c_str(), left.first.isDetermined(), right.first.isDetermined());
   if (!left.first.isDetermined() || !right.first.isDetermined()) {
-    throw CodeGenerationException(string("Wrong types for minus call"), node);
+    throw CodeGenerationException(string("Wrong types for minus call EX 1"), node);
   }
   
   auto ltype = left.first.determinedType();
@@ -414,7 +415,7 @@ TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node
     }
   }
 
-  throw CodeGenerationException(string("Wrong types for minus call"), node);
+  throw CodeGenerationException(string("Wrong types for minus call EX 2"), node);
 }
 
 TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
@@ -594,7 +595,6 @@ TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Nod
       auto typeSet = ObjectTypeSet(ratioType, true);
       typeSet.insert(integerType);
       return gen->callRuntimeFun("Integer_div", typeSet, {left, right});
-      TypedValue(typeSet, gen->Builder->CreateSDiv(left.second, right.second, "div_ii_tmp"));
     }
   }
 
@@ -810,7 +810,7 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
           argsF.push_back(left.second);
           break;
         case integerType:
-          argsF.push_back(gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i"));
+          argsF.push_back(gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*gen->TheContext), "convert_d_i"));
           break;
         case bigIntegerType:
           argsF.push_back(gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left}).second);
@@ -822,11 +822,59 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
           // TODO - generic types 
           break;
       }
-
+    } else {
+      // REVIEW TODO
+      BasicBlock *doubleBB = llvm::BasicBlock::Create(*gen->TheContext, "type_double");
+      BasicBlock *integerBB = llvm::BasicBlock::Create(*gen->TheContext, "type_integer");
+      BasicBlock *bigIntegerBB = llvm::BasicBlock::Create(*gen->TheContext, "type_bigInteger");
+      BasicBlock *ratioBB = llvm::BasicBlock::Create(*gen->TheContext, "type_ratio");
+      BasicBlock *mergeBB = llvm::BasicBlock::Create(*gen->TheContext, "merge");
+      BasicBlock *failedBB = llvm::BasicBlock::Create(*gen->TheContext, "failed");
+      
+      Value *objectType = gen->getRuntimeObjectType(left.second);
+      SwitchInst *cond = gen->Builder->CreateSwitch(objectType, failedBB, 4);
+      cond->addCase(ConstantInt::get(*gen->TheContext, APInt(32, doubleType, false)), doubleBB);
+      cond->addCase(ConstantInt::get(*gen->TheContext, APInt(32, integerType, false)), integerBB);
+      cond->addCase(ConstantInt::get(*gen->TheContext, APInt(32, bigIntegerType, false)), bigIntegerBB);
+      cond->addCase(ConstantInt::get(*gen->TheContext, APInt(32, ratioType, false)), ratioBB);
+      
+      gen->Builder->SetInsertPoint(doubleBB);
+      printf("EEE 1\n");
+      auto unpackedDouble = gen->dynamicUnbox(node, left, doubleType);
+      printf("EEE 2\n");
+      doubleBB = unpackedDouble.first;
+      gen->dynamicRelease(left.second, false);
+      gen->Builder->CreateBr(mergeBB);
+      
+      gen->Builder->SetInsertPoint(integerBB);
+      auto unpackedInt = gen->dynamicUnbox(node, left, integerType);
+      integerBB = unpackedInt.first;
+      gen->dynamicRelease(left.second, false);
+      Value *intToDouble = gen->Builder->CreateSIToFP(unpackedInt.second, Type::getDoubleTy(*gen->TheContext), "convert_d_i");
+      gen->Builder->CreateBr(mergeBB);
+      
+      gen->Builder->SetInsertPoint(bigIntegerBB);
+      Value *bigIntToDouble = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left}).second;
+      gen->Builder->CreateBr(mergeBB);
+      
+      gen->Builder->SetInsertPoint(ratioBB);
+      Value *ratioToDouble = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {left}).second;
+      gen->Builder->CreateBr(mergeBB);
+      
+      gen->Builder->SetInsertPoint(failedBB);
+      gen->runtimeException(CodeGenerationException(string("Wrong types for calling ") + fname, node));
+      
+      gen->Builder->SetInsertPoint(mergeBB);
+      PHINode *phiNode = gen->Builder->CreatePHI(Type::getDoubleTy(*gen->TheContext), 5, "phi");
+      phiNode->addIncoming(unpackedDouble.second, doubleBB);
+      phiNode->addIncoming(intToDouble, integerBB);
+      phiNode->addIncoming(bigIntToDouble, bigIntegerBB);
+      phiNode->addIncoming(ratioToDouble, ratioBB);
+      argsF.push_back(phiNode);
     }
   }
 
-  if (argsF.size() != args.size()) throw CodeGenerationException(string("Wrong types for calling") + fname, node);
+  if (argsF.size() != args.size()) throw CodeGenerationException(string("Wrong types for calling ") + fname, node);
 
   return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateCall(CalleeF, argsF, string("call_") + fname));
 }

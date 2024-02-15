@@ -5,7 +5,7 @@ using namespace llvm;
 
 TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto uniqueId = TheProgramme->RecurTargets.find(subnode.loopid())->second;
-  auto &functionBody = TheProgramme->Functions.find(uniqueId)->second;
+  auto &functionBody = TheProgramme->Functions.find(uniqueId)->second; // TODO: Fix functionBody
   
   InvokeNode *invoke = new InvokeNode();
   Node *bodyCopy = new Node(functionBody);

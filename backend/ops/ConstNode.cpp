@@ -48,6 +48,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
     break; 
   case ratioType:
     retVal = dynamicRatio(subnode.val().c_str());
+    dynamicRetain(retVal);
     break;
   case persistentListType:
   case persistentVectorType:

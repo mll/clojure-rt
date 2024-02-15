@@ -532,10 +532,6 @@ Value *CodeGenerator::dynamicZero(const ObjectTypeSet &type) {
       return ConstantInt::get(*TheContext, APInt(1, 0, false));
     case doubleType:
       return ConstantFP::get(*TheContext, APFloat(0.0));
-    case bigIntegerType:
-      return dynamicBigInteger("0");
-    case ratioType:
-      return dynamicRatio("0");
     default:
       break;
   }

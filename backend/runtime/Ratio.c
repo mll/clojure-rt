@@ -24,6 +24,13 @@ Ratio* Ratio_createFromStr(char * value) {
 }
 
 /* mem done */
+Ratio* Ratio_createFromMpq(mpq_t value) {
+  Ratio *self = Ratio_createUnassigned();
+  mpq_set(self->value, value);
+  return self;
+}
+
+/* mem done */
 Ratio* Ratio_createFromInts(int64_t numerator, int64_t denominator) {
   if (!denominator) return NULL; // Exception: divide by zero
   Ratio *self = Ratio_createUnassigned();

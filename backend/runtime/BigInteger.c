@@ -23,6 +23,13 @@ BigInteger* BigInteger_createFromStr(char * value) {
 }
 
 /* mem done */
+BigInteger* BigInteger_createFromMpz(mpz_t value) {
+  BigInteger *self = BigInteger_createUninitialized();
+  mpz_init_set(self->value, value);
+  return self;
+}
+
+/* mem done */
 BigInteger* BigInteger_createFromInt(int64_t value) {
   BigInteger *self = BigInteger_createUninitialized();
   mpz_init_set_si(self->value, value);

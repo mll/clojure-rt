@@ -1,6 +1,11 @@
 #include "Numbers.h"
 #include <math.h>
+#include <algorithm>
 #include <functional>
+extern "C" {
+  #include "runtime/BigInteger.h"
+  #include "runtime/Ratio.h"
+}
 
 using namespace std;
 using namespace std::placeholders;
@@ -225,20 +230,62 @@ ObjectTypeSet Numbers_divide_type(CodeGenerator *gen, const string &signature, c
   return Numbers_generic_op_type(gen, signature, node, args,
     [](double x, double y) { return x / y; },
     mpq_div,
-    mpz_cdiv_q,
+    mpz_divexact,
     [](int64_t x, int64_t y) { return x / y; },
     true
   );
 }
 
-TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+TypedValue Numbers_generic_op(
+  CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args,
+  std::function<ObjectTypeSet(CodeGenerator *, const string &, const Node &, const vector<ObjectTypeSet> &)> Numbers_op_type,
+  std::function<Value *(CodeGenerator *, Value *, Value *)> doubleOp_LLVMgen,
+  std::string ratioOp_LLVMgen_name,
+  std::string bigIntegerOp_LLVMgen_name,
+  std::function<Value *(CodeGenerator *, Value *, Value *)> integerOp_LLVMgen,
+  BOOL division
+) {
+  std::vector<ObjectTypeSet> type_args;
+  for (auto t: args) {
+    type_args.push_back(t.first);
+  }
+  auto type = Numbers_op_type(gen, signature, node, type_args);
+  auto pointerType = Type::getInt8Ty(*gen->TheContext)->getPointerTo();
+  ObjectTypeConstant *constant = type.getConstant();
+  void *value;
+  Value *mpPointer;
+  if (constant) {
+    switch (constant->constantType) {
+      case doubleType:
+        return TypedValue(
+          ObjectTypeSet(doubleType),
+          ConstantFP::get(*gen->TheContext, APFloat(dynamic_cast<ConstantDouble *>(constant)->value))
+        );
+      case ratioType:
+        value = Ratio_createFromMpq(std::move(dynamic_cast<ConstantRatio *>(constant)->value));
+        mpPointer = gen->Builder->CreateBitOrPointerCast(ConstantInt::get(*gen->TheContext, APInt(64, (int64_t) value, false)), pointerType, "void_to_unboxed");
+        return TypedValue(ObjectTypeSet(ratioType), mpPointer);
+      case bigIntegerType:
+        value = BigInteger_createFromMpz(dynamic_cast<ConstantBigInteger *>(constant)->value);
+        mpPointer = gen->Builder->CreateBitOrPointerCast(ConstantInt::get(*gen->TheContext, APInt(64, (int64_t) value, false)), pointerType, "void_to_unboxed");
+        return TypedValue(ObjectTypeSet(bigIntegerType), mpPointer);
+      case integerType:
+        return TypedValue(
+          ObjectTypeSet(integerType),
+          ConstantInt::get(*gen->TheContext, APInt(64, dynamic_cast<ConstantInteger *>(constant)->value, true))
+        );
+      default: // Unreachable?
+        break;
+    }
+  }
+  
   if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
   
   auto left = args[0]; 
   auto right = args[1];
   
   if (!left.first.isDetermined() || !right.first.isDetermined()) {
-    throw CodeGenerationException(string("Wrong types for add call"), node);
+    throw CodeGenerationException(string("Wrong types for static call"), node);
   }
   
   auto ltype = left.first.determinedType();
@@ -246,359 +293,142 @@ TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &
   
   if (ltype == doubleType) {
     if (rtype == doubleType) {
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(left.second, right.second, "add_dd_tmp"));
+      return TypedValue(ObjectTypeSet(doubleType), doubleOp_LLVMgen(gen, left.second, right.second));
     }
+    
     if (rtype == ratioType) {
       auto converted = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {right});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(left.second, converted.second, "add_dd_tmp"));
+      return TypedValue(ObjectTypeSet(doubleType), doubleOp_LLVMgen(gen, left.second, converted.second));
     }
+    
     if (rtype == bigIntegerType) {
       auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {right});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(left.second, converted.second, "add_dd_tmp"));
+      return TypedValue(ObjectTypeSet(doubleType), doubleOp_LLVMgen(gen, left.second, converted.second));
     }
+    
     if (rtype == integerType) {
       auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)), "convert_d_i");
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(left.second, converted, "add_dd_tmp"));
+      return TypedValue(ObjectTypeSet(doubleType), doubleOp_LLVMgen(gen, left.second, converted));
     }
   }
   
+  auto ratioTypeSet = ObjectTypeSet(ratioType, true);
+  ratioTypeSet.insert(bigIntegerType);
   if (ltype == ratioType) {
     if (rtype == doubleType) {
       auto converted = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {left});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(converted.second, right.second, "add_dd_tmp"));
+      return TypedValue(ObjectTypeSet(doubleType), doubleOp_LLVMgen(gen, converted.second, right.second));
     }
+    
     if (rtype == ratioType) {
-      auto typeSet = ObjectTypeSet(ratioType, true);
-      typeSet.insert(bigIntegerType);
-      return gen->callRuntimeFun("Ratio_add", typeSet, args);
+      return gen->callRuntimeFun(ratioOp_LLVMgen_name, ratioTypeSet, args);
     }
-    // [BRR]: Ratio + Ratio (or Ratio - Ratio) might be Ratio or BigInteger, but
-    // Ratio + BigInteger/Integer promoted to Ratio will always be Ratio because of invariant
-    // ,,Ratio accesible by user should always be non-integer''
-    // Either use ObjectTypeSet(ratioType, true) in return statements or typeSet from above
-    // Lines related to this comment are marked with [BRR]
-    // This is only for + and -, not for * or /
+    
     if (rtype == bigIntegerType) {
       auto converted = gen->callRuntimeFun("Ratio_createFromBigInteger", ObjectTypeSet(ratioType), {right});
-      return gen->callRuntimeFun("Ratio_add", ObjectTypeSet(ratioType, true), {left, converted}); // [BRR]
+      return gen->callRuntimeFun(ratioOp_LLVMgen_name, ratioTypeSet, {left, converted});
     }
+    
     if (rtype == integerType) {
       auto converted = gen->callRuntimeFun("Ratio_createFromInt", ObjectTypeSet(ratioType), {right});
-      return gen->callRuntimeFun("Ratio_add", ObjectTypeSet(ratioType, true), {left, converted}); // [BRR]
+      return gen->callRuntimeFun(ratioOp_LLVMgen_name, ratioTypeSet, {left, converted});
     }
   }
   
+  auto bigIntegerTypeSet = division ? ratioTypeSet : ObjectTypeSet(bigIntegerType);
   if (ltype == bigIntegerType) {
     if (rtype == doubleType) {
       auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(converted.second, right.second, "add_dd_tmp"));
+      return TypedValue(ObjectTypeSet(doubleType), doubleOp_LLVMgen(gen, converted.second, right.second));
     }
+    
     if (rtype == ratioType) {
       auto converted = gen->callRuntimeFun("Ratio_createFromBigInteger", ObjectTypeSet(ratioType), {left});
-      return gen->callRuntimeFun("Ratio_add", ObjectTypeSet(ratioType, true), {converted, right}); // [BRR]
+      return gen->callRuntimeFun(ratioOp_LLVMgen_name, ratioTypeSet, {converted, right});
     }
+    
     if (rtype == bigIntegerType) {
-      return gen->callRuntimeFun("BigInteger_add", ObjectTypeSet(bigIntegerType), args);
+      return gen->callRuntimeFun(bigIntegerOp_LLVMgen_name, bigIntegerTypeSet, args);
     }
+    
     if (rtype == integerType) {
       auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {right});
-      return gen->callRuntimeFun("BigInteger_add", ObjectTypeSet(bigIntegerType), {left, converted});
+      return gen->callRuntimeFun(bigIntegerOp_LLVMgen_name, bigIntegerTypeSet, {left, converted});
     }
   }
   
   if (ltype == integerType) {
     if (rtype == doubleType) {
       auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFAdd(converted, right.second, "add_dd_tmp"));
+      return TypedValue(ObjectTypeSet(doubleType), doubleOp_LLVMgen(gen, converted, right.second));
     }
+    
     if (rtype == ratioType) {
       auto converted = gen->callRuntimeFun("Ratio_createFromInt", ObjectTypeSet(ratioType), {left});
-      return gen->callRuntimeFun("Ratio_add", ObjectTypeSet(ratioType, true), {converted, right}); // [BRR]
+      return gen->callRuntimeFun(ratioOp_LLVMgen_name, ratioTypeSet, {converted, right});
     }
+    
     if (rtype == bigIntegerType) {
       auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {left});
-      return gen->callRuntimeFun("BigInteger_add", ObjectTypeSet(bigIntegerType), {converted, right});
+      return gen->callRuntimeFun(bigIntegerOp_LLVMgen_name, bigIntegerTypeSet, {converted, right});
     }
+    
     if (rtype == integerType) {
-      return TypedValue(ObjectTypeSet(integerType), gen->Builder->CreateAdd(left.second, right.second, "add_ii_tmp"));
+      if (division) {
+        auto integerTypeSet = ObjectTypeSet(ratioType, true);
+        ratioTypeSet.insert(integerType);
+        return gen->callRuntimeFun("Integer_div", ratioTypeSet, {left, right});
+      } else {
+        return TypedValue(ObjectTypeSet(integerType), integerOp_LLVMgen(gen, left.second, right.second));
+      }
     }
   }
 
-  throw CodeGenerationException(string("Wrong types for add call"), node);
+  throw CodeGenerationException(string("Wrong types for static call"), node);
+}
+
+TypedValue Numbers_add(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+  return Numbers_generic_op(gen, signature, node, args,
+    Numbers_add_type,
+    [](CodeGenerator *gen, Value * x, Value * y) { return gen->Builder->CreateFAdd(x, y, "add_dd_tmp"); },
+    "Ratio_add",
+    "BigInteger_add",
+    [](CodeGenerator *gen, Value * x, Value * y) { return gen->Builder->CreateAdd(x, y, "add_ii_tmp"); },
+    false
+  );
 }
 
 TypedValue Numbers_minus(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
-  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  
-  auto left = args[0]; 
-  auto right = args[1];
-  
-  printf("AAAA\n%s\n%s\n%d %d\n", left.first.toString().c_str(), right.first.toString().c_str(), left.first.isDetermined(), right.first.isDetermined());
-  if (!left.first.isDetermined() || !right.first.isDetermined()) {
-    throw CodeGenerationException(string("Wrong types for minus call EX 1"), node);
-  }
-  
-  auto ltype = left.first.determinedType();
-  auto rtype = right.first.determinedType();
-  
-  if (ltype == doubleType) {
-    if (rtype == doubleType) {
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(left.second, right.second, "sub_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto converted = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {right});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(left.second, converted.second, "sub_dd_tmp"));
-    }
-    if (rtype == bigIntegerType) {
-      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {right});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(left.second, converted.second, "sub_dd_tmp"));
-    }
-    if (rtype == integerType) {
-      auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)), "convert_d_i");
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(left.second, converted, "sub_dd_tmp"));
-    }
-  }
-  
-  if (ltype == ratioType) {
-    if (rtype == doubleType) {
-      auto converted = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {left});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(converted.second, right.second, "sub_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto typeSet = ObjectTypeSet(ratioType, true);
-      typeSet.insert(bigIntegerType);
-      return gen->callRuntimeFun("Ratio_sub", typeSet, args);
-    }
-    if (rtype == bigIntegerType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromBigInteger", ObjectTypeSet(ratioType), {right});
-      return gen->callRuntimeFun("Ratio_sub", ObjectTypeSet(ratioType, true), {left, converted}); // [BRR]
-    }
-    if (rtype == integerType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromInt", ObjectTypeSet(ratioType), {right});
-      return gen->callRuntimeFun("Ratio_sub", ObjectTypeSet(ratioType, true), {left, converted}); // [BRR]
-    }
-  }
-  
-  if (ltype == bigIntegerType) {
-    if (rtype == doubleType) {
-      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(converted.second, right.second, "sub_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromBigInteger", ObjectTypeSet(ratioType), {left});
-      return gen->callRuntimeFun("Ratio_sub", ObjectTypeSet(ratioType, true), {converted, right}); // [BRR]
-    }
-    if (rtype == bigIntegerType) {
-      return gen->callRuntimeFun("BigInteger_sub", ObjectTypeSet(bigIntegerType), args);
-    }
-    if (rtype == integerType) {
-      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {right});
-      return gen->callRuntimeFun("BigInteger_sub", ObjectTypeSet(bigIntegerType), {left, converted});
-    }
-  }
-  
-  if (ltype == integerType) {
-    if (rtype == doubleType) {
-      auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFSub(converted, right.second, "sub_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromInt", ObjectTypeSet(ratioType), {left});
-      return gen->callRuntimeFun("Ratio_sub", ObjectTypeSet(ratioType, true), {converted, right}); // [BRR]
-    }
-    if (rtype == bigIntegerType) {
-      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {left});
-      return gen->callRuntimeFun("BigInteger_sub", ObjectTypeSet(bigIntegerType), {converted, right});
-    }
-    if (rtype == integerType) {
-      return TypedValue(ObjectTypeSet(integerType), gen->Builder->CreateSub(left.second, right.second, "sub_ii_tmp"));
-    }
-  }
-
-  throw CodeGenerationException(string("Wrong types for minus call EX 2"), node);
+  return Numbers_generic_op(gen, signature, node, args,
+    Numbers_minus_type,
+    [](CodeGenerator *gen, Value * x, Value * y) { return gen->Builder->CreateFSub(x, y, "sub_dd_tmp"); },
+    "Ratio_sub",
+    "BigInteger_sub",
+    [](CodeGenerator *gen, Value * x, Value * y) { return gen->Builder->CreateSub(x, y, "sub_ii_tmp"); },
+    false
+  );
 }
 
 TypedValue Numbers_multiply(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
-  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  
-  auto left = args[0]; 
-  auto right = args[1];
-  
-  if (!left.first.isDetermined() || !right.first.isDetermined()) {
-    throw CodeGenerationException(string("Wrong types for multiply call"), node);
-  }
-  
-  auto ltype = left.first.determinedType();
-  auto rtype = right.first.determinedType();
-  
-  if (ltype == doubleType) {
-    if (rtype == doubleType) {
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(left.second, right.second, "mul_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto converted = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {right});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(left.second, converted.second, "mul_dd_tmp"));
-    }
-    if (rtype == bigIntegerType) {
-      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {right});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(left.second, converted.second, "mul_dd_tmp"));
-    }
-    if (rtype == integerType) {
-      auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)), "convert_d_i");
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(left.second, converted, "mul_dd_tmp"));
-    }
-  }
-  
-  auto typeSet = ObjectTypeSet(ratioType, true);
-  typeSet.insert(bigIntegerType);
-  if (ltype == ratioType) {
-    if (rtype == doubleType) {
-      auto converted = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {left});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(converted.second, right.second, "mul_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      return gen->callRuntimeFun("Ratio_mul", typeSet, args);
-    }
-    if (rtype == bigIntegerType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromBigInteger", ObjectTypeSet(ratioType), {right});
-      return gen->callRuntimeFun("Ratio_mul", typeSet, {left, converted});
-    }
-    if (rtype == integerType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromInt", ObjectTypeSet(ratioType), {right});
-      return gen->callRuntimeFun("Ratio_mul", typeSet, {left, converted});
-    }
-  }
-  
-  if (ltype == bigIntegerType) {
-    if (rtype == doubleType) {
-      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(converted.second, right.second, "mul_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromBigInteger", ObjectTypeSet(ratioType), {left});
-      return gen->callRuntimeFun("Ratio_mul", typeSet, {converted, right});
-    }
-    if (rtype == bigIntegerType) {
-      return gen->callRuntimeFun("BigInteger_mul", ObjectTypeSet(bigIntegerType), args);
-    }
-    if (rtype == integerType) {
-      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {right});
-      return gen->callRuntimeFun("BigInteger_mul", ObjectTypeSet(bigIntegerType), {left, converted});
-    }
-  }
-  
-  if (ltype == integerType) {
-    if (rtype == doubleType) {
-      auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFMul(converted, right.second, "mul_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromInt", ObjectTypeSet(ratioType), {left});
-      return gen->callRuntimeFun("Ratio_mul", typeSet, {converted, right});
-    }
-    if (rtype == bigIntegerType) {
-      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {left});
-      return gen->callRuntimeFun("BigInteger_mul", ObjectTypeSet(bigIntegerType), {converted, right});
-    }
-    if (rtype == integerType) {
-      return TypedValue(ObjectTypeSet(integerType), gen->Builder->CreateMul(left.second, right.second, "mul_ii_tmp"));
-    }
-  }
-
-  throw CodeGenerationException(string("Wrong types for multiply call"), node);
+  return Numbers_generic_op(gen, signature, node, args,
+    Numbers_multiply_type,
+    [](CodeGenerator *gen, Value * x, Value * y) { return gen->Builder->CreateFMul(x, y, "mul_dd_tmp"); },
+    "Ratio_mul",
+    "BigInteger_mul",
+    [](CodeGenerator *gen, Value * x, Value * y) { return gen->Builder->CreateMul(x, y, "mul_ii_tmp"); },
+    false
+  );
 }
 
 TypedValue Numbers_divide(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
-  // TODO: Division by zero: unchecked for primitive types
-  if (args.size() != 2) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
-  
-  auto left = args[0]; 
-  auto right = args[1];
-  
-  if (!left.first.isDetermined() || !right.first.isDetermined()) {
-    throw CodeGenerationException(string("Wrong types for divide call"), node);
-  }
-  
-  auto ltype = left.first.determinedType();
-  auto rtype = right.first.determinedType();
-  
-  if (ltype == doubleType) {
-    if (rtype == doubleType) {
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(left.second, right.second, "div_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto converted = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {right});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(left.second, converted.second, "div_dd_tmp"));
-    }
-    if (rtype == bigIntegerType) {
-      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {right});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(left.second, converted.second, "div_dd_tmp"));
-    }
-    if (rtype == integerType) {
-      auto converted = gen->Builder->CreateSIToFP(right.second, Type::getDoubleTy(*(gen->TheContext)), "convert_d_i");
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(left.second, converted, "div_dd_tmp"));
-    }
-  }
-  
-  auto typeSet = ObjectTypeSet(ratioType, true);
-  typeSet.insert(bigIntegerType);
-  if (ltype == ratioType) {
-    if (rtype == doubleType) {
-      auto converted = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {left});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(converted.second, right.second, "add_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      return gen->callRuntimeFun("Ratio_div", typeSet, args);
-    }
-    if (rtype == bigIntegerType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromBigInteger", ObjectTypeSet(ratioType), {right});
-      return gen->callRuntimeFun("Ratio_div", typeSet, {left, converted});
-    }
-    if (rtype == integerType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromInt", ObjectTypeSet(ratioType), {right});
-      return gen->callRuntimeFun("Ratio_div", typeSet, {left, converted});
-    }
-  }
-  
-  if (ltype == bigIntegerType) {
-    if (rtype == doubleType) {
-      auto converted = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left});
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(converted.second, right.second, "div_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromBigInteger", ObjectTypeSet(ratioType), {left});
-      return gen->callRuntimeFun("Ratio_div", typeSet, {converted, right});
-    }
-    if (rtype == bigIntegerType) {
-      return gen->callRuntimeFun("BigInteger_div", typeSet, args);
-    }
-    if (rtype == integerType) {
-      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {right});
-      return gen->callRuntimeFun("BigInteger_div", typeSet, {left, converted});
-    }
-  }
-  
-  if (ltype == integerType) {
-    if (rtype == doubleType) {
-      auto converted = gen->Builder->CreateSIToFP(left.second, Type::getDoubleTy(*(gen->TheContext)) , "convert_d_i");
-      return TypedValue(ObjectTypeSet(doubleType), gen->Builder->CreateFDiv(converted, right.second, "div_dd_tmp"));
-    }
-    if (rtype == ratioType) {
-      auto converted = gen->callRuntimeFun("Ratio_createFromInt", ObjectTypeSet(ratioType), {left});
-      return gen->callRuntimeFun("Ratio_div", typeSet, {converted, right});
-    }
-    if (rtype == bigIntegerType) {
-      auto converted = gen->callRuntimeFun("BigInteger_createFromInt", ObjectTypeSet(bigIntegerType), {left});
-      return gen->callRuntimeFun("BigInteger_div", typeSet, {converted, right});
-    }
-    if (rtype == integerType) {
-      auto typeSet = ObjectTypeSet(ratioType, true);
-      typeSet.insert(integerType);
-      return gen->callRuntimeFun("Integer_div", typeSet, {left, right});
-    }
-  }
-
-  throw CodeGenerationException(string("Wrong types for divide call"), node);
+  return Numbers_generic_op(gen, signature, node, args,
+    Numbers_divide_type,
+    [](CodeGenerator *gen, Value * x, Value * y) { return gen->Builder->CreateFDiv(x, y, "div_dd_tmp"); },
+    "Ratio_div",
+    "BigInteger_div",
+    [](CodeGenerator *gen, Value * x, Value * y) { return gen->Builder->CreateSDiv(x, y, "div_ii_tmp"); },
+    true
+  );
 }
 
 ObjectTypeSet Numbers_compare_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
@@ -822,55 +652,6 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
           // TODO - generic types 
           break;
       }
-    } else {
-      // REVIEW TODO
-      BasicBlock *doubleBB = llvm::BasicBlock::Create(*gen->TheContext, "type_double");
-      BasicBlock *integerBB = llvm::BasicBlock::Create(*gen->TheContext, "type_integer");
-      BasicBlock *bigIntegerBB = llvm::BasicBlock::Create(*gen->TheContext, "type_bigInteger");
-      BasicBlock *ratioBB = llvm::BasicBlock::Create(*gen->TheContext, "type_ratio");
-      BasicBlock *mergeBB = llvm::BasicBlock::Create(*gen->TheContext, "merge");
-      BasicBlock *failedBB = llvm::BasicBlock::Create(*gen->TheContext, "failed");
-      
-      Value *objectType = gen->getRuntimeObjectType(left.second);
-      SwitchInst *cond = gen->Builder->CreateSwitch(objectType, failedBB, 4);
-      cond->addCase(ConstantInt::get(*gen->TheContext, APInt(32, doubleType, false)), doubleBB);
-      cond->addCase(ConstantInt::get(*gen->TheContext, APInt(32, integerType, false)), integerBB);
-      cond->addCase(ConstantInt::get(*gen->TheContext, APInt(32, bigIntegerType, false)), bigIntegerBB);
-      cond->addCase(ConstantInt::get(*gen->TheContext, APInt(32, ratioType, false)), ratioBB);
-      
-      gen->Builder->SetInsertPoint(doubleBB);
-      printf("EEE 1\n");
-      auto unpackedDouble = gen->dynamicUnbox(node, left, doubleType);
-      printf("EEE 2\n");
-      doubleBB = unpackedDouble.first;
-      gen->dynamicRelease(left.second, false);
-      gen->Builder->CreateBr(mergeBB);
-      
-      gen->Builder->SetInsertPoint(integerBB);
-      auto unpackedInt = gen->dynamicUnbox(node, left, integerType);
-      integerBB = unpackedInt.first;
-      gen->dynamicRelease(left.second, false);
-      Value *intToDouble = gen->Builder->CreateSIToFP(unpackedInt.second, Type::getDoubleTy(*gen->TheContext), "convert_d_i");
-      gen->Builder->CreateBr(mergeBB);
-      
-      gen->Builder->SetInsertPoint(bigIntegerBB);
-      Value *bigIntToDouble = gen->callRuntimeFun("BigInteger_toDouble", ObjectTypeSet(doubleType), {left}).second;
-      gen->Builder->CreateBr(mergeBB);
-      
-      gen->Builder->SetInsertPoint(ratioBB);
-      Value *ratioToDouble = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {left}).second;
-      gen->Builder->CreateBr(mergeBB);
-      
-      gen->Builder->SetInsertPoint(failedBB);
-      gen->runtimeException(CodeGenerationException(string("Wrong types for calling ") + fname, node));
-      
-      gen->Builder->SetInsertPoint(mergeBB);
-      PHINode *phiNode = gen->Builder->CreatePHI(Type::getDoubleTy(*gen->TheContext), 5, "phi");
-      phiNode->addIncoming(unpackedDouble.second, doubleBB);
-      phiNode->addIncoming(intToDouble, integerBB);
-      phiNode->addIncoming(bigIntToDouble, bigIntegerBB);
-      phiNode->addIncoming(ratioToDouble, ratioBB);
-      argsF.push_back(phiNode);
     }
   }
 

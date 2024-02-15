@@ -13,6 +13,7 @@ typedef struct BigInteger BigInteger;
 BigInteger* BigInteger_createUninitialized();
 BigInteger* BigInteger_createUnassigned();
 BigInteger* BigInteger_createFromStr(char * value);
+BigInteger* BigInteger_createFromMpz(mpz_t value);
 BigInteger* BigInteger_createFromInt(int64_t value);
 BOOL BigInteger_equals(BigInteger *self, BigInteger *other);
 uint64_t BigInteger_hash(BigInteger *self);

@@ -134,7 +134,9 @@ class ConstantSymbol: public ObjectTypeConstant {
 class ConstantBigInteger: public ObjectTypeConstant {
   public:
   mpz_t value;
-  ConstantBigInteger(mpz_t val) : ObjectTypeConstant(bigIntegerType) { value[0] = val[0]; }
+  ConstantBigInteger(mpz_t val) : ObjectTypeConstant(bigIntegerType) {
+    mpz_init_set(value, val);
+  }
   ConstantBigInteger(mpq_t val) : ObjectTypeConstant(bigIntegerType) { 
     assert(mpz_cmp_si(mpq_denref(val), 1) == 0);
     mpz_init_set(value, mpq_numref(val));
@@ -144,7 +146,7 @@ class ConstantBigInteger: public ObjectTypeConstant {
     assert(mpz_init_set_str(value, val.c_str(), 10) == 0 && "Failed to initialize BigInteger");
   }
   ~ConstantBigInteger() {
-    // mpz_clear(value); // Why does enabling this cause segfault?
+    mpz_clear(value);
   }
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantBigInteger(value)); }
   virtual std::string toString() { return std::string(mpz_get_str(NULL, 10, value)); }
@@ -159,7 +161,10 @@ class ConstantBigInteger: public ObjectTypeConstant {
 class ConstantRatio: public ObjectTypeConstant {
   public:
   mpq_t value;
-  ConstantRatio(mpq_t val) : ObjectTypeConstant(ratioType) { value[0] = val[0]; }
+  ConstantRatio(mpq_t val) : ObjectTypeConstant(ratioType) { 
+    mpq_init(value);
+    mpq_set(value, val);
+  }
   ConstantRatio(std::string val) : ObjectTypeConstant(ratioType) {
     mpq_init(value);
     assert(mpq_set_str(value, val.c_str(), 10) == 0 && "Failed to initialize Ratio");
@@ -182,7 +187,7 @@ class ConstantRatio: public ObjectTypeConstant {
     mpq_clear(den2);
   }
   ~ConstantRatio() {
-    // mpq_clear(value); // Why does enabling this cause segfault?
+    mpq_clear(value);
   }
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantRatio(value)); }
   virtual std::string toString() { return std::string(mpq_get_str(NULL, 10, value)); }

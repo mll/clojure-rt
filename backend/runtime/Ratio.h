@@ -14,6 +14,7 @@ typedef struct Ratio Ratio;
 Ratio* Ratio_createUninitialized();
 Ratio* Ratio_createUnassigned();
 Ratio* Ratio_createFromStr(char * value);
+Ratio* Ratio_createFromMpq(mpq_t value);
 Ratio* Ratio_createFromInts(int64_t numerator, int64_t denominator);
 Ratio* Ratio_createFromInt(int64_t value);
 Ratio* Ratio_createFromBigInteger(BigInteger * value);

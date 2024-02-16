@@ -80,3 +80,13 @@
  (clojure.lang.Numbers/lt 4 1/2)
  (clojure.lang.Numbers/lt 4 9N)
  (clojure.lang.Numbers/lt 4 4)]
+
+
+(defn f []
+  (let [x 1N
+        y (+ x 2N)
+        z (+ y 3N)]
+    (+ z 4N)))
+
+(f)
+(f)

@@ -113,9 +113,9 @@ ObjectTypeSet Numbers_generic_op_type(
       ratioOp(lval, lval, rval);
       mpq_clear(rval);
       if (mpz_cmp_si(mpq_denref(lval), 1)) { // denominator not equal to 1
-        return ObjectTypeSet(ratioType, false, new ConstantRatio(lval));
+        return ObjectTypeSet(ratioType, true, new ConstantRatio(lval));
       } else {
-        return ObjectTypeSet(bigIntegerType, false, new ConstantBigInteger(lval));
+        return ObjectTypeSet(bigIntegerType, true, new ConstantBigInteger(lval));
       }
     }
     
@@ -151,12 +151,12 @@ ObjectTypeSet Numbers_generic_op_type(
           throw CodeGenerationException(string("Division by 0"), node);
         }
         if (!mpz_divisible_p(lval, rval)) {
-          return ObjectTypeSet(ratioType, false, new ConstantRatio(lval, rval));
+          return ObjectTypeSet(ratioType, true, new ConstantRatio(lval, rval));
         }
       }
       bigIntegerOp(lval, lval, rval);
       mpz_clear(rval);
-      return ObjectTypeSet(bigIntegerType, false, new ConstantBigInteger(lval));
+      return ObjectTypeSet(bigIntegerType, true, new ConstantBigInteger(lval));
     }
     
     if (ltype == integerType && rtype == integerType) {
@@ -165,7 +165,7 @@ ObjectTypeSet Numbers_generic_op_type(
       if (division) {
         if (rval) {
           if (lval % rval) {
-            return ObjectTypeSet(ratioType, false, new ConstantRatio(lval, rval));
+            return ObjectTypeSet(ratioType, true, new ConstantRatio(lval, rval));
           } else {
             return ObjectTypeSet(integerType, false, new ConstantInteger(integerOp(lval, rval)));
           }
@@ -178,18 +178,18 @@ ObjectTypeSet Numbers_generic_op_type(
     }
   }
   
-  if (left.isDetermined() && left.determinedType() == integerType && right == left) {
+  if (left.isDetermined() && left.determinedType() == integerType && right.isDetermined() && right.determinedType() == integerType) {
     auto retVal = ObjectTypeSet(integerType);
     if (division) {retVal.boxed(); retVal.insert(ratioType);}
     return retVal;
   }
-  if (left.isDetermined() && left.determinedType() == bigIntegerType && right == left) {
+  if (left.isDetermined() && left.determinedType() == bigIntegerType && right.isDetermined() && right.determinedType() == bigIntegerType) {
     auto retVal = ObjectTypeSet(bigIntegerType);
     if (division) retVal.insert(ratioType);
     return retVal;
   }
-  if (left.isDetermined() && left.determinedType() == ratioType && right == left) {
-    auto retVal = ObjectTypeSet(bigIntegerType, true);
+  if (left.isDetermined() && left.determinedType() == ratioType && right.isDetermined() && right.determinedType() == ratioType) {
+    auto retVal = ObjectTypeSet(bigIntegerType);
     retVal.insert(ratioType);
     return retVal;
   }
@@ -266,7 +266,7 @@ TypedValue Numbers_generic_op(
         mpPointer = gen->Builder->CreateBitOrPointerCast(ConstantInt::get(*gen->TheContext, APInt(64, (int64_t) value, false)), pointerType, "void_to_unboxed");
         return TypedValue(ObjectTypeSet(ratioType), mpPointer);
       case bigIntegerType:
-        value = BigInteger_createFromMpz(dynamic_cast<ConstantBigInteger *>(constant)->value);
+        value = BigInteger_createFromMpz(std::move(dynamic_cast<ConstantBigInteger *>(constant)->value));
         mpPointer = gen->Builder->CreateBitOrPointerCast(ConstantInt::get(*gen->TheContext, APInt(64, (int64_t) value, false)), pointerType, "void_to_unboxed");
         return TypedValue(ObjectTypeSet(bigIntegerType), mpPointer);
       case integerType:

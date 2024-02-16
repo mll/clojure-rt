@@ -103,30 +103,45 @@ double Ratio_toDouble(Ratio *self) {
 }
 
 void *Ratio_add(Ratio *self, Ratio *other) {
-  Ratio *addVal = Ratio_createUnassigned();
-  mpq_add(addVal->value, self->value, other->value);
-  void *retVal = Ratio_simplify(addVal);
-  release(self);
-  release(other);
-  return retVal;
+  BOOL selfReusable = isReusable(self);
+  BOOL otherReusable = isReusable(other);
+  Ratio *retVal;
+  if (selfReusable) retVal = self;
+  else if (otherReusable) retVal = other;
+  else retVal = Ratio_createUnassigned();
+  mpq_add(retVal->value, self->value, other->value);
+  if (selfReusable) release(other);
+  else if (otherReusable) release(self);
+  else { release(self); release(other); }
+  return Ratio_simplify(retVal);
 }
 
 void *Ratio_sub(Ratio *self, Ratio *other) {
-  Ratio *subVal = Ratio_createUnassigned();
-  mpq_sub(subVal->value, self->value, other->value);
-  void *retVal = Ratio_simplify(subVal);
-  release(self);
-  release(other);
-  return retVal;
+  BOOL selfReusable = isReusable(self);
+  BOOL otherReusable = isReusable(other);
+  Ratio *retVal;
+  if (selfReusable) retVal = self;
+  else if (otherReusable) retVal = other;
+  else retVal = Ratio_createUnassigned();
+  mpq_sub(retVal->value, self->value, other->value);
+  if (selfReusable) release(other);
+  else if (otherReusable) release(self);
+  else { release(self); release(other); }
+  return Ratio_simplify(retVal);
 }
 
 void *Ratio_mul(Ratio *self, Ratio *other) {
-  Ratio *mulVal = Ratio_createUnassigned();
-  mpq_mul(mulVal->value, self->value, other->value);
-  void *retVal = Ratio_simplify(mulVal);
-  release(self);
-  release(other);
-  return retVal;
+  BOOL selfReusable = isReusable(self);
+  BOOL otherReusable = isReusable(other);
+  Ratio *retVal;
+  if (selfReusable) retVal = self;
+  else if (otherReusable) retVal = other;
+  else retVal = Ratio_createUnassigned();
+  mpq_mul(retVal->value, self->value, other->value);
+  if (selfReusable) release(other);
+  else if (otherReusable) release(self);
+  else { release(self); release(other); }
+  return Ratio_simplify(retVal);
 }
 
 void *Ratio_div(Ratio *self, Ratio *other) {
@@ -135,12 +150,17 @@ void *Ratio_div(Ratio *self, Ratio *other) {
     release(other);
     return NULL; // Exception: divide by zero
   }
-  Ratio *divVal = Ratio_createUnassigned();
-  mpq_div(divVal->value, self->value, other->value);
-  void *retVal = Ratio_simplify(divVal);
-  release(self);
-  release(other);
-  return retVal;
+  BOOL selfReusable = isReusable(self);
+  BOOL otherReusable = isReusable(other);
+  Ratio *retVal;
+  if (selfReusable) retVal = self;
+  else if (otherReusable) retVal = other;
+  else retVal = Ratio_createUnassigned();
+  mpq_div(retVal->value, self->value, other->value);
+  if (selfReusable) release(other);
+  else if (otherReusable) release(self);
+  else { release(self); release(other); }
+  return Ratio_simplify(retVal);
 }
 
 BOOL Ratio_gte(Ratio *self, Ratio *other) {

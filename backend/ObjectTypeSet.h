@@ -140,7 +140,6 @@ class ConstantBigInteger: public ObjectTypeConstant {
   ConstantBigInteger(mpq_t val) : ObjectTypeConstant(bigIntegerType) { 
     assert(mpz_cmp_si(mpq_denref(val), 1) == 0);
     mpz_init_set(value, mpq_numref(val));
-    mpq_clear(val);
   }
   ConstantBigInteger(std::string val) : ObjectTypeConstant(bigIntegerType) {
     assert(mpz_init_set_str(value, val.c_str(), 10) == 0 && "Failed to initialize BigInteger");

@@ -255,23 +255,26 @@ TypedValue Numbers_generic_op(
   void *value;
   Value *mpPointer;
   if (constant) {
+    for (auto t: args) gen->dynamicRelease(t.second, false);
     switch (constant->constantType) {
       case doubleType:
         return TypedValue(
-          ObjectTypeSet(doubleType),
+          ObjectTypeSet(doubleType, false, constant->copy()),
           ConstantFP::get(*gen->TheContext, APFloat(dynamic_cast<ConstantDouble *>(constant)->value))
         );
       case ratioType:
-        value = Ratio_createFromMpq(std::move(dynamic_cast<ConstantRatio *>(constant)->value));
+        value = Ratio_createFromMpq(dynamic_cast<ConstantRatio *>(constant)->value);
         mpPointer = gen->Builder->CreateBitOrPointerCast(ConstantInt::get(*gen->TheContext, APInt(64, (int64_t) value, false)), pointerType, "void_to_unboxed");
-        return TypedValue(ObjectTypeSet(ratioType), mpPointer);
+        gen->dynamicRetain(mpPointer);
+        return TypedValue(ObjectTypeSet(ratioType, true, constant->copy()), mpPointer);
       case bigIntegerType:
-        value = BigInteger_createFromMpz(std::move(dynamic_cast<ConstantBigInteger *>(constant)->value));
+        value = BigInteger_createFromMpz(dynamic_cast<ConstantBigInteger *>(constant)->value);
         mpPointer = gen->Builder->CreateBitOrPointerCast(ConstantInt::get(*gen->TheContext, APInt(64, (int64_t) value, false)), pointerType, "void_to_unboxed");
-        return TypedValue(ObjectTypeSet(bigIntegerType), mpPointer);
+        gen->dynamicRetain(mpPointer);
+        return TypedValue(ObjectTypeSet(bigIntegerType, true, constant->copy()), mpPointer);
       case integerType:
         return TypedValue(
-          ObjectTypeSet(integerType),
+          ObjectTypeSet(integerType, false, constant->copy()),
           ConstantInt::get(*gen->TheContext, APInt(64, dynamic_cast<ConstantInteger *>(constant)->value, true))
         );
       default: // Unreachable?

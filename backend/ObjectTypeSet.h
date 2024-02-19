@@ -215,7 +215,7 @@ class ObjectTypeSet {
     if(!constant && type == nilType) { 
       constant = static_cast<ObjectTypeConstant *>(new ConstantNil()); 
     } 
-    if(!isScalar()) isBoxed = true;
+    if(!isScalar()) this->isBoxed = true;
   }
   ObjectTypeSet() {
   }

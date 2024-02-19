@@ -73,7 +73,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     for (auto c : closedOvers) if(!c.isDetermined()) { determinedArgs = false; break; }
     /* Short circut - if it turns out that after all closed overs are not determined at compile time we go the dynamic route */
 
-    if (!determinedArgs) {
+    if (determinedArgs) {
       pair<FnMethodNode, uint64_t> method = nodes[foundIdx];
       
       vector<ObjectTypeSet> argTypes;

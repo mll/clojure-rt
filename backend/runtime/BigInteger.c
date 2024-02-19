@@ -83,7 +83,7 @@ BigInteger *BigInteger_add(BigInteger *self, BigInteger *other) {
 BigInteger *BigInteger_sub(BigInteger *self, BigInteger *other) {
   BOOL selfReusable = isReusable(self);
   BOOL otherReusable = isReusable(other);
-  BigInteger *retVal = BigInteger_createUnassigned();
+  BigInteger *retVal;
   if (selfReusable) retVal = self;
   else if (otherReusable) retVal = other;
   else retVal = BigInteger_createUnassigned();
@@ -97,7 +97,7 @@ BigInteger *BigInteger_sub(BigInteger *self, BigInteger *other) {
 BigInteger *BigInteger_mul(BigInteger *self, BigInteger *other) {
   BOOL selfReusable = isReusable(self);
   BOOL otherReusable = isReusable(other);
-  BigInteger *retVal = BigInteger_createUnassigned();
+  BigInteger *retVal;
   if (selfReusable) retVal = self;
   else if (otherReusable) retVal = other;
   else retVal = BigInteger_createUnassigned();

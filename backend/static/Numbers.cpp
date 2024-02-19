@@ -255,7 +255,7 @@ TypedValue Numbers_generic_op(
   void *value;
   Value *mpPointer;
   if (constant) {
-    for (auto t: args) gen->dynamicRelease(t.second, false);
+    for (auto t: args) if (!t.first.isScalar()) gen->dynamicRelease(t.second, false);
     switch (constant->constantType) {
       case doubleType:
         return TypedValue(

@@ -94,7 +94,8 @@ TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<F
 
   llvm::Value *callDynamicFun(const Node &node, llvm::Value *rtFnPointer, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args);
   llvm::Value *dynamicInvoke(const Node &node, llvm::Value *objectToInvoke, llvm::Value* objectType, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, llvm::Value *uniqueFunctionId = nullptr, llvm::Function *staticFunctionToCall = nullptr);    
-ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const std::vector<ObjectTypeSet> &args, const std::vector<ObjectTypeSet> &closedOvers, const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const std::vector<ObjectTypeSet> &args, const std::vector<ObjectTypeSet> &closedOvers, const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet inferMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const std::vector<ObjectTypeSet> &args, const std::vector<ObjectTypeSet> &closedOvers, const ObjectTypeSet &typeRestrictions);
 
   /* Runtime types */
 

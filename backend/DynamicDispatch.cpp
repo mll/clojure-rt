@@ -391,22 +391,27 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
 
 
 ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const vector<ObjectTypeSet> &args, const std::vector<ObjectTypeSet> &closedOvers, const ObjectTypeSet &typeRestrictions) {
+  string name = getMangledUniqueFunctionName(uniqueId);
+  string rName = ObjectTypeSet::recursiveMethodKey(name, args);
+  auto functionInference = TheProgramme->FunctionsRetValInfers.find(rName);
 
-    string name = getMangledUniqueFunctionName(uniqueId);
-    string rName = ObjectTypeSet::recursiveMethodKey(name, args);
-    auto recursiveGuess = TheProgramme->RecursiveFunctionsRetValGuesses.find(rName);
+  if (functionInference == TheProgramme->FunctionsRetValInfers.end()) {
+    TheProgramme->FunctionsRetValInfers.insert({rName, ObjectTypeSet()});
+  } else {
+    return functionInference->second;
+  }
+  
+  auto returnType = ObjectTypeSet(), newReturnType = ObjectTypeSet();
+  do {
+    returnType = newReturnType;
+    newReturnType = inferMethodReturn(method, uniqueId, args, closedOvers, typeRestrictions);
+    TheProgramme->FunctionsRetValInfers.insert_or_assign(rName, newReturnType);
+  } while (!(returnType == newReturnType));
+  
+  return newReturnType;
+}
 
-    if(recursiveGuess != TheProgramme->RecursiveFunctionsRetValGuesses.end()) {
-      return recursiveGuess->second;
-    }
-
-    auto recursiveName = TheProgramme->RecursiveFunctionsNameMap.find(rName);
-    if(recursiveName != TheProgramme->RecursiveFunctionsNameMap.end()) {
-      throw UnaccountedRecursiveFunctionEncounteredException(rName);
-    }
-
-    TheProgramme->RecursiveFunctionsNameMap.insert({rName, true});    
-    
+ObjectTypeSet CodeGenerator::inferMethodReturn(const FnMethodNode &method, const uint64_t uniqueId, const vector<ObjectTypeSet> &args, const std::vector<ObjectTypeSet> &closedOvers, const ObjectTypeSet &typeRestrictions) {
     unordered_map<string, ObjectTypeSet> namedArgs;
 
     for(int i=0; i<method.fixedarity(); i++) {
@@ -430,37 +435,17 @@ ObjectTypeSet CodeGenerator::determineMethodReturn(const FnMethodNode &method, c
 
     VariableBindingTypesStack.push_back(namedArgs);
     ObjectTypeSet retVal;
-    bool found = false;
-    bool foundSpecific = false;
     vector<CodeGenerationException> exceptions;
     try {
       retVal = getType(method.body(), typeRestrictions);
-      if(!retVal.isEmpty()) found = true;
-    } catch(UnaccountedRecursiveFunctionEncounteredException e) {
-      if(e.functionName != rName) throw e;
-      auto guesses = ObjectTypeSet::allGuesses();
-      for(auto guess : guesses) {
-        auto inserted = TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, guess});
-        inserted.first->second = guess;
-        try {
-          retVal = getType(method.body(), typeRestrictions).unboxed();
-          if(!retVal.isEmpty()) found = true;
-          if(retVal.isDetermined()) foundSpecific = true;
-        } catch(CodeGenerationException e) {
-          exceptions.push_back(e);
-        }
-        if(foundSpecific) break;
-      }
     } catch(CodeGenerationException e) {
       exceptions.push_back(e);
     }
 
     VariableBindingTypesStack.pop_back();
 
-    TheProgramme->RecursiveFunctionsNameMap.erase(rName);
-    TheProgramme->RecursiveFunctionsRetValGuesses.erase(rName);
     // TODO: better error here, maybe use the exceptions vector? 
-    if(!found) {
+    if(retVal.isEmpty()) {
       std::string exceptionString;
       for(auto e : exceptions) exceptionString += e.toString() + "\n";
       throw CodeGenerationException("Unable to create function with given params: "+ exceptionString , method.body());

@@ -134,15 +134,65 @@ class ConstantSymbol: public ObjectTypeConstant {
 class ConstantBigInteger: public ObjectTypeConstant {
   public:
   mpz_t value;
-  ConstantBigInteger(mpz_t val) : ObjectTypeConstant(bigIntegerType) { mpz_init_set(value, val); }
+  ConstantBigInteger(mpz_t val) : ObjectTypeConstant(bigIntegerType) {
+    mpz_init_set(value, val);
+  }
+  ConstantBigInteger(mpq_t val) : ObjectTypeConstant(bigIntegerType) { 
+    assert(mpz_cmp_si(mpq_denref(val), 1) == 0);
+    mpz_init_set(value, mpq_numref(val));
+  }
   ConstantBigInteger(std::string val) : ObjectTypeConstant(bigIntegerType) {
     assert(mpz_init_set_str(value, val.c_str(), 10) == 0 && "Failed to initialize BigInteger");
+  }
+  ~ConstantBigInteger() {
+    mpz_clear(value);
   }
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantBigInteger(value)); }
   virtual std::string toString() { return std::string(mpz_get_str(NULL, 10, value)); }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantBigInteger *i = dynamic_cast<ConstantBigInteger *>(other)) {
       return mpz_cmp(i->value, value) == 0;
+    }
+    return false;
+  }
+};
+
+class ConstantRatio: public ObjectTypeConstant {
+  public:
+  mpq_t value;
+  ConstantRatio(mpq_t val) : ObjectTypeConstant(ratioType) { 
+    mpq_init(value);
+    mpq_set(value, val);
+  }
+  ConstantRatio(std::string val) : ObjectTypeConstant(ratioType) {
+    mpq_init(value);
+    assert(mpq_set_str(value, val.c_str(), 10) == 0 && "Failed to initialize Ratio");
+    mpq_canonicalize(value);
+  }
+  ConstantRatio(int64_t num, int64_t den) : ObjectTypeConstant(ratioType) {
+    mpq_init(value);
+    mpq_set_si(value, num, den);
+    mpq_canonicalize(value);
+  }
+  ConstantRatio(mpz_t num, mpz_t den) : ObjectTypeConstant(ratioType) {
+    mpq_init(value);
+    mpq_set_z(value, num);
+    mpz_clear(num);
+    mpq_t den2;
+    mpq_init(den2);
+    mpq_set_z(den2, den);
+    mpz_clear(den);
+    mpq_div(value, value, den2);
+    mpq_clear(den2);
+  }
+  ~ConstantRatio() {
+    mpq_clear(value);
+  }
+  virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantRatio(value)); }
+  virtual std::string toString() { return std::string(mpq_get_str(NULL, 10, value)); }
+  virtual bool equals(ObjectTypeConstant *other) {   
+    if(ConstantRatio *i = dynamic_cast<ConstantRatio *>(other)) {
+      return mpq_equal(i->value, value);
     }
     return false;
   }
@@ -165,7 +215,7 @@ class ObjectTypeSet {
     if(!constant && type == nilType) { 
       constant = static_cast<ObjectTypeConstant *>(new ConstantNil()); 
     } 
-    if(!isScalar()) isBoxed = true;
+    if(!isScalar()) this->isBoxed = true;
   }
   ObjectTypeSet() {
   }
@@ -335,6 +385,7 @@ class ObjectTypeSet {
     retVal.insert(keywordType);
     retVal.insert(functionType);
     retVal.insert(bigIntegerType);
+    retVal.insert(ratioType);
     retVal.insert(persistentArrayMapType);
     retVal.isBoxed = true;
     return retVal;
@@ -382,6 +433,8 @@ class ObjectTypeSet {
         return "LF";
       case bigIntegerType:
         return "LI";
+      case ratioType:
+        return "LR";
       case persistentArrayMapType:
         return "LA";
       }

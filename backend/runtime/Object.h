@@ -27,6 +27,7 @@
 #include <execinfo.h>
 #include "Function.h"
 #include "BigInteger.h"
+#include "Ratio.h"
 #include "PersistentArrayMap.h"
 
 typedef struct String String; 
@@ -130,6 +131,9 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
   case bigIntegerType:
     BigInteger_destroy(Object_data(self));
     break;
+  case ratioType:
+    Ratio_destroy(Object_data(self));
+    break;
   case persistentArrayMapType:
     PersistentArrayMap_destroy(Object_data(self), deallocateChildren);
     break;
@@ -211,6 +215,8 @@ inline uint64_t Object_hash(Object * restrict self) {
         return Function_hash(Object_data(self));
       case bigIntegerType:
         return BigInteger_hash(Object_data(self));
+      case ratioType:
+        return Ratio_hash(Object_data(self));
       case persistentArrayMapType:
         return PersistentArrayMap_hash(Object_data(self));        
       }
@@ -268,6 +274,9 @@ inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   case bigIntegerType:
     return BigInteger_equals(selfData, otherData);
     break;
+  case ratioType:
+    return Ratio_equals(selfData, otherData);
+    break;
   case persistentArrayMapType:
     return PersistentArrayMap_equals(selfData, otherData);
     break;
@@ -315,6 +324,8 @@ inline String *Object_toString(Object * restrict self) {
     return Function_toString(Object_data(self));
   case bigIntegerType:
     return BigInteger_toString(Object_data(self));
+  case ratioType:
+    return Ratio_toString(Object_data(self));
   case persistentArrayMapType:
     return PersistentArrayMap_toString(Object_data(self));
   }

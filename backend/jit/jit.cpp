@@ -92,7 +92,7 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
   TSM.withModuleDo([](Module &M) {
     // Create a function pass manager.
 
-//    M.print(errs(), nullptr);
+  //  M.print(errs(), nullptr);
 
     auto TheFPM = std::make_unique<legacy::FunctionPassManager>(&M);
     verifyModule(M);

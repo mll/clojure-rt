@@ -31,7 +31,8 @@ set(SOURCES
     Interface.c 
     Keyword.c 
     Function.c
-    BigInteger.c 
+    BigInteger.c
+    Ratio.c
     PersistentArrayMap.c)
 
 add_library(runtime STATIC ${SOURCES})

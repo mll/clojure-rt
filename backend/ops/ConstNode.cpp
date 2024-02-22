@@ -46,6 +46,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
     retVal = dynamicBigInteger(subnode.val().c_str());
     dynamicRetain(retVal);
     break; 
+  case ratioType:
+    retVal = dynamicRatio(subnode.val().c_str());
+    dynamicRetain(retVal);
+    break;
   case persistentListType:
   case persistentVectorType:
   case persistentVectorNodeType:
@@ -61,17 +65,21 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
 ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode, const ObjectTypeSet &typeRestrictions) {
   switch(subnode.type()) {
   case ConstNode_ConstType_constTypeNumber:
-    if (node.tag() == "long" || node.otag() == "long" || node.tag() == "class java.lang.Long") {
-      return ObjectTypeSet(integerType, false, new ConstantInteger(stoi(subnode.val()))).restriction(typeRestrictions);
-    } 
-
-    if (node.tag() == "double" || node.otag() == "double" || node.tag() == "class java.lang.Double") {
-      return ObjectTypeSet(doubleType, false, new ConstantDouble(stod(subnode.val()))).restriction(typeRestrictions);
-    } 
+    if (node.tag() == "clojure.lang.Ratio" || node.otag() == "clojure.lang.Ratio" || node.tag() == "class clojure.lang.Ratio" || node.otag() == "class clojure.lang.Ratio") {
+      return ObjectTypeSet(ratioType, true, new ConstantRatio(subnode.val())).restriction(typeRestrictions);
+    }
 
     if (node.tag() == "clojure.lang.BigInt" || node.otag() == "clojure.lang.BigInt" || node.tag() == "class clojure.lang.BigInt" || node.otag() == "class clojure.lang.BigInt") {
       return ObjectTypeSet(bigIntegerType, true, new ConstantBigInteger(subnode.val())).restriction(typeRestrictions);
     }
+
+    if (node.tag() == "double" || node.otag() == "double" || node.tag() == "class java.lang.Double") {
+      return ObjectTypeSet(doubleType, false, new ConstantDouble(stod(subnode.val()))).restriction(typeRestrictions);
+    }
+    
+    if (node.tag() == "long" || node.otag() == "long" || node.tag() == "class java.lang.Long") {
+      return ObjectTypeSet(integerType, false, new ConstantInteger(stoi(subnode.val()))).restriction(typeRestrictions);
+    } 
 
     throw CodeGenerationException(string("Compiler only supports 64 bit integers at this time. "), node);
 

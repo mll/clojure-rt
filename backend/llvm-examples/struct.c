@@ -15,6 +15,8 @@ enum objectType {
    concurrentHashMapType,
    keywordType,
    functionType,
+   bigIntegerType,
+   ratioType,
    peristsentArrayMap,
 };
 

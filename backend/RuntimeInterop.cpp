@@ -8,6 +8,7 @@ extern "C" {
 #include "runtime/String.h"
 #include "runtime/Keyword.h"
   #include "runtime/BigInteger.h"
+  #include "runtime/Ratio.h"
   objectType getType(void *obj);
   objectType getTypeC(void *obj)  {
     return getType(obj);
@@ -137,6 +138,9 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     break;
   case bigIntegerType:
     fname = "BigInteger_createFromStr";
+    break;
+  case ratioType:
+    fname = "Ratio_createFromStr";
     break;
   case functionType:
     fname = "Function_create";
@@ -422,6 +426,12 @@ Value * CodeGenerator::dynamicBigInteger(const char *value) {
   return bigIntegerPointer;
 }
 
+Value * CodeGenerator::dynamicRatio(const char *value) {
+  Ratio * retVal = Ratio_createFromStr((char *)value);
+  Value *ratioPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
+  return ratioPointer;
+}
+
 TypedValue CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false) {
 #ifdef RUNTIME_MEMORY_TRACKING
   vector<Type *> typess;
@@ -498,6 +508,7 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case booleanType:
       return Type::getInt1Ty(*TheContext);
     case bigIntegerType:
+    case ratioType:
     case stringType:
     case persistentListType:
     case persistentVectorType:
@@ -521,8 +532,6 @@ Value *CodeGenerator::dynamicZero(const ObjectTypeSet &type) {
       return ConstantInt::get(*TheContext, APInt(1, 0, false));
     case doubleType:
       return ConstantFP::get(*TheContext, APFloat(0.0));
-    case bigIntegerType:
-      return dynamicBigInteger("0");
     default:
       break;
   }
@@ -651,6 +660,7 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
     args.push_back(Builder->CreateIntCast(value.second, Type::getInt8Ty(*TheContext), false));
     break;
   case bigIntegerType:
+  case ratioType:
   case stringType:
   case persistentListType:
   case persistentVectorType:

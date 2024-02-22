@@ -24,6 +24,7 @@ enum objectType {
    keywordType,
    functionType,
    bigIntegerType,
+   ratioType,
    persistentArrayMapType,
 };
 

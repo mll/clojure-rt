@@ -23,6 +23,13 @@ BigInteger* BigInteger_createFromStr(char * value) {
 }
 
 /* mem done */
+BigInteger* BigInteger_createFromMpz(mpz_t value) {
+  BigInteger *self = BigInteger_createUninitialized();
+  mpz_init_set(self->value, value);
+  return self;
+}
+
+/* mem done */
 BigInteger* BigInteger_createFromInt(int64_t value) {
   BigInteger *self = BigInteger_createUninitialized();
   mpz_init_set_si(self->value, value);
@@ -60,36 +67,75 @@ double BigInteger_toDouble(BigInteger *self) {
 }
 
 BigInteger *BigInteger_add(BigInteger *self, BigInteger *other) {
-  BigInteger *retVal = BigInteger_createUnassigned();
+  BOOL selfReusable = isReusable(self);
+  BOOL otherReusable = isReusable(other);
+  BigInteger *retVal;
+  if (selfReusable) retVal = self;
+  else if (otherReusable) retVal = other;
+  else retVal = BigInteger_createUnassigned();
   mpz_add(retVal->value, self->value, other->value);
-  release(self);
-  release(other);
+  if (selfReusable) release(other);
+  else if (otherReusable) release(self);
+  else { release(self); release(other); }
   return retVal;
 }
 
 BigInteger *BigInteger_sub(BigInteger *self, BigInteger *other) {
-  BigInteger *retVal = BigInteger_createUnassigned();
+  BOOL selfReusable = isReusable(self);
+  BOOL otherReusable = isReusable(other);
+  BigInteger *retVal;
+  if (selfReusable) retVal = self;
+  else if (otherReusable) retVal = other;
+  else retVal = BigInteger_createUnassigned();
   mpz_sub(retVal->value, self->value, other->value);
-  release(self);
-  release(other);
+  if (selfReusable) release(other);
+  else if (otherReusable) release(self);
+  else { release(self); release(other); }
   return retVal;
 }
 
 BigInteger *BigInteger_mul(BigInteger *self, BigInteger *other) {
-  BigInteger *retVal = BigInteger_createUnassigned();
+  BOOL selfReusable = isReusable(self);
+  BOOL otherReusable = isReusable(other);
+  BigInteger *retVal;
+  if (selfReusable) retVal = self;
+  else if (otherReusable) retVal = other;
+  else retVal = BigInteger_createUnassigned();
   mpz_mul(retVal->value, self->value, other->value);
-  release(self);
-  release(other);
+  if (selfReusable) release(other);
+  else if (otherReusable) release(self);
+  else { release(self); release(other); }
   return retVal;
 }
 
-BigInteger *BigInteger_div(BigInteger *self, BigInteger *other) {
-  // TODO: zero checks, creating ratio out of division of two integers
-  BigInteger *retVal = BigInteger_createUnassigned();
-  mpz_cdiv_q(retVal->value, self->value, other->value);
-  release(self);
-  release(other);
-  return retVal;
+void *BigInteger_div(BigInteger *self, BigInteger *other) {
+  if (!mpz_cmp_si(other->value, 0)) {
+    release(self);
+    release(other);
+    return NULL; // Exception: divide by zero
+  }
+  void *retVal = NULL;
+  if (mpz_divisible_p(self->value, other->value)) {
+    BOOL selfReusable = isReusable(self);
+    BOOL otherReusable = isReusable(other);
+    BigInteger * retVal;
+    if (selfReusable) retVal = self;
+    else if (otherReusable) retVal = other;
+    else retVal = BigInteger_createUnassigned();
+    mpz_divexact(retVal->value, self->value, other->value);
+    if (selfReusable) release(other);
+    else if (otherReusable) release(self);
+    else { release(self); release(other); }
+    return retVal;
+  } else {
+    Ratio *ratio = Ratio_createUnassigned();
+    mpq_set_num(ratio->value, self->value);
+    mpq_set_den(ratio->value, other->value);
+    mpq_canonicalize(ratio->value);
+    release(self);
+    release(other);
+    return ratio;
+  }
 }
 
 BOOL BigInteger_gte(BigInteger *self, BigInteger *other) {

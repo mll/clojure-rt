@@ -1,23 +1,3 @@
-;; (defn branch [n x y]
-;;   (if (= n 0)
-;;     (+ x y)
-;;     (let [v0 (branch (- n 1) x y)
-;;           v1 (branch (- n 1) v0 y)
-;;           v2 (branch (- n 1) v1 y)
-;;           v3 (branch (- n 1) v2 y)
-;;           v4 (branch (- n 1) v3 y)
-;;           v5 (branch (- n 1) v4 y)
-;;           v6 (branch (- n 1) v5 y)
-;;           v7 (branch (- n 1) v6 y)
-;;           v8 (branch (- n 1) v7 y)
-;;           v9 (branch (- n 1) v8 y)]
-;;       v9)))
-
-;; ;; Clojre execution time ~2,5s
-;; ;; Our compiler compiles for 7 seconds can't generate module even if n = 0!
-;; (branch 8 0N 2N)
-
-;; LLVM error
 (defn stick [n x y]
   (if (= n 0)
     (+ x y)
@@ -25,4 +5,57 @@
           v1 (stick (- n 1) v0 y)]
       v1)))
 
-(stick 0 0N 2N)
+(stick 25 0N 1N)
+
+(stick 25 0 1)
+
+
+(defn stick2 [n y]
+  (if (= n 0)
+    y
+    (let [v0 (stick2 (- n 1) y)
+          v1 (stick2 (- n 1) y)]
+      (+ v0 v1))))
+
+(stick2 25 1N)
+
+(stick2 25 1)
+
+
+(defn fib-acc
+  [n x y]
+  (if (= n 0)
+    x
+    (if (= n 100)
+      12345678890N
+      (fib-acc (- n 1) y (+ x y)))))
+
+(+ (fib-acc 42 0N 1N) 3N)
+(fib-acc 142 0N 1N)
+
+
+(defn fib-acc-2
+  [n x y]
+  (if (= n 0)
+    x
+    (if (= n 100)
+      "kuku"
+      (fib-acc-2 (- n 1) y (+ x y)))))
+
+(+ (fib-acc-2 42 0N 1N) 3N)
+(fib-acc-2 142 0N 1N)
+
+(defn noop
+  [n]
+  (if (= n 0)
+    (let [v0 (* 1234567890N 1234567890N)
+          v1 (* 1234567890N v0)
+          v2 (* 1234567890N v1)
+          v3 (* 1234567890N v2)
+          v4 (* 1234567890N v3)]
+      0)
+    (do (noop (- n 1))
+        (noop (- n 1)))))
+
+(noop 25)
+

@@ -102,7 +102,7 @@ extern "C" {
       return NULL;
     }
    
-    struct InvokationCache *entry = NULL;
+    struct InvokationCache *entry = NULL, *cachePosition = NULL;
     for(int i=0; i<INVOKATION_CACHE_SIZE; i++) { 
       /* Fast cache access */
       entry = &(method->invokations[i]);
@@ -111,7 +111,7 @@ extern "C" {
          entry->signature[2] == argSignature[2] && 
          entry->packed == packedArg &&
          entry->returnType == retValType) return entry->fptr;
-      if(entry->signature[0] != 0) entry = NULL;
+      if(entry->signature[0] == 0) cachePosition = entry;
     } 
 
     std::vector<ObjectTypeSet> argT;
@@ -151,13 +151,13 @@ extern "C" {
     auto ExprSymbol = eo(jit->lookup(rqName));
     void *retVal = (void *)ExprSymbol.getAddress();
       
-    if(entry) { /* Store in cache if free entries available */
-      entry->signature[0] = argSignature[0];
-      entry->signature[1] = argSignature[1];
-      entry->signature[2] = argSignature[2];
-      entry->packed = packedArg;
-      entry->returnType = retValType;
-      entry->fptr = retVal;
+    if(cachePosition) { /* Store in cache if free entries available */
+      cachePosition->signature[0] = argSignature[0];
+      cachePosition->signature[1] = argSignature[1];
+      cachePosition->signature[2] = argSignature[2];
+      cachePosition->packed = packedArg;
+      cachePosition->returnType = retValType;
+      cachePosition->fptr = retVal;
     }
 
     return retVal;

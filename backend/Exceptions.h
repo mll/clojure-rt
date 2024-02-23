@@ -19,10 +19,4 @@ class InternalInconsistencyException: public std::exception {
   std::string toString() const { return errorMessage; } 
 };
 
-class UnaccountedRecursiveFunctionEncounteredException: public std::exception {
-  public:
-  std::string functionName;
-  UnaccountedRecursiveFunctionEncounteredException(const std::string &functionName): functionName(functionName) { }
-};
-
 #endif

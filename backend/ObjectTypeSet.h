@@ -320,7 +320,7 @@ class ObjectTypeSet {
     /* Expansion removes all constants */
     auto retVal = ObjectTypeSet(*this);
     retVal.internal.insert(other.internal.begin(), other.internal.end());
-    retVal.isBoxed = isBoxed || other.isBoxed || retVal.size() > 1;
+    retVal.isBoxed = (isBoxed && !isEmpty()) || (other.isBoxed && !other.isEmpty()) || retVal.size() > 1;
     if(retVal.constant) delete retVal.constant;
     retVal.constant = nullptr;
     return retVal;

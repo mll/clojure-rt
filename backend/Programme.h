@@ -50,6 +50,7 @@ class ProgrammeState {
   std::unordered_map<std::string, uint64_t> RecurTargets;
   std::unordered_map<std::string, uint64_t> StaticFunctions;
   std::unordered_map<std::string, ObjectTypeSet> RecursiveFunctionsRetValGuesses;
+  std::unordered_map<std::string, ObjectTypeSet> FunctionsRetValInfers;
   std::unordered_map<std::string, bool> RecursiveFunctionsNameMap;
   std::unordered_map<std::string, std::vector<std::pair<std::string, std::pair<StaticCallType, StaticCall>>>> StaticCallLibrary;
   std::unordered_map<std::string, ObjectTypeSet> StaticVarTypes;

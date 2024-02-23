@@ -1,5 +1,6 @@
 #include "jit.h"
 #include <iostream>
+#include "llvm-passes/RetainRelease.h"
 
 using namespace std;
 using namespace llvm::orc;
@@ -99,6 +100,8 @@ Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, cons
 
     // The vetification pass is much stronger than just "verify" on the module 
     TheFPM->add(createVerifierPass());    
+    
+    TheFPM->add(createRetainReleasePass());
 
     // Add some optimizations.
     TheFPM->add(llvm::createPromoteMemoryToRegisterPass());

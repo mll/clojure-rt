@@ -26,6 +26,7 @@ set(SOURCES
      main.cpp 
      codegen.cpp 
      jit/jit.cpp 
+     llvm-passes/RetainRelease.cpp
      ops/BindingNode.cpp 
      ops/CaseNode.cpp 
      ops/CaseTestNode.cpp 

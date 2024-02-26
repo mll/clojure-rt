@@ -53,24 +53,6 @@ bool RetainReleasePass::runOnFunction(Function &F) {
             auto arg = call->arg_begin();
             assert(arg != call->arg_end());
             val = dyn_cast<Value>(arg);
-            if (val) {
-              auto instructions = retains.find(val);
-              if (instructions != retains.end()) {
-                auto retains = &instructions->second;
-                if (!retains->empty()) {
-                  Instruction* lastRelease = retains->back();
-                  retains->pop_back();
-                  lastRelease->eraseFromParent();
-                  instrIt = instrIt->eraseFromParent();
-                } else {
-                  ++instrIt;
-                }
-              } else {
-                ++instrIt;
-              }
-            } else {
-              ++instrIt;
-            }
           } else if (dec) {
             val = dec->getPointerOperand();
           }

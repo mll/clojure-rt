@@ -332,13 +332,19 @@ StructType *CodeGenerator::runtimeBooleanType() {
 
 
 void CodeGenerator::dynamicRetain(Value *objectPtr) {
+  Metadata * metaPtr = dyn_cast<Metadata>(MDString::get(*TheContext, "retain"));
+  MDNode * meta = MDNode::get(*TheContext, metaPtr);
+  
 #ifdef RUNTIME_MEMORY_TRACKING
   vector<Type *> t;
   vector<Value * > v;
   //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
   t.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   v.push_back(objectPtr);
-  callRuntimeFun("retain", Type::getVoidTy(*TheContext),t, v);
+  auto retain = callRuntimeFun("retain", Type::getVoidTy(*TheContext),t, v);
+  if (auto *i = dyn_cast<Instruction>(retain)) {
+    i->setMetadata("memory_management", meta);
+  }
   return ;
 #endif
 // -----------------------------
@@ -348,6 +354,9 @@ void CodeGenerator::dynamicRetain(Value *objectPtr) {
   Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 1, "get_type");  
   auto rmw = Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Add, gepPtr, ConstantInt::get(*TheContext, APInt(64, 1)), MaybeAlign(), AtomicOrdering::Monotonic);
   rmw->setVolatile(true);
+  if (auto *i = dyn_cast<Instruction>(rmw)) {
+    i->setMetadata("memory_management", meta);
+  }
   //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
 }
 
@@ -433,12 +442,18 @@ Value * CodeGenerator::dynamicRatio(const char *value) {
 }
 
 TypedValue CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false) {
+  Metadata * metaPtr = dyn_cast<Metadata>(MDString::get(*TheContext, "release"));
+  MDNode * meta = MDNode::get(*TheContext, ArrayRef(metaPtr));
+  
 #ifdef RUNTIME_MEMORY_TRACKING
   vector<Type *> typess;
   vector<Value *> argss;
   typess.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
   argss.push_back(what);    
-  callRuntimeFun(isAutorelease ? "autorelease" : "release", Type::getVoidTy(*TheContext), typess, argss); 
+  auto release = callRuntimeFun(isAutorelease ? "autorelease" : "release", Type::getVoidTy(*TheContext), typess, argss); 
+  if (auto *i = dyn_cast<Instruction>(release)) {
+    i->setMetadata("memory_management", meta);
+  }
   return TypedValue(ObjectTypeSet(booleanType), ConstantInt::get(*TheContext, APInt(1, 0, false)));
 #endif
 // *****************
@@ -448,6 +463,9 @@ TypedValue CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false
   Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), object, 1, "get_type");
   auto oldValue = Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Sub, gepPtr, ConstantInt::get(*TheContext, APInt(64, 1, false)), MaybeAlign(), AtomicOrdering::Monotonic);
   oldValue->setVolatile(true);
+  if (auto *i = dyn_cast<Instruction>(oldValue)) {
+    i->setMetadata("memory_management", meta);
+  }
   Value *condValue = Builder->CreateICmpEQ(oldValue, ConstantInt::get(*TheContext, APInt(64, 1, false)), "cmp_jj");
   
   BasicBlock *destroyBB = llvm::BasicBlock::Create(*TheContext, "destroy", parentFunction);  

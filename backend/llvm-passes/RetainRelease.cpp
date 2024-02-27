@@ -57,7 +57,6 @@ bool RetainReleasePass::runOnFunction(Function &F) {
               instructions->second.push_back(&(*instrIt));
             }
           }
-          ++instrIt;
         } else if (mmType.equals("release")) {
           CallBase* call = dyn_cast<CallBase>(instrIt);
           AtomicRMWInst* dec = dyn_cast<AtomicRMWInst>(instrIt);
@@ -80,7 +79,7 @@ bool RetainReleasePass::runOnFunction(Function &F) {
                 isChanged = true;
                 if (call) {
                   instrIt = instrIt->eraseFromParent(); // call release
-                } else if (dec) {
+                } else { // dec
                   // current_block:
                   //   ...
                   //   %0 = atomicrmw volatile sub ... <- instrIt
@@ -118,17 +117,10 @@ bool RetainReleasePass::runOnFunction(Function &F) {
                   cont->eraseFromParent();
                   instrIt = contIt;
                 }
-              } else {
-                ++instrIt;
+                continue; // skip ++instrIt, it was manually updated
               }
-            } else {
-              ++instrIt;
             }
-          } else {
-            ++instrIt;
           }
-        } else {
-          ++instrIt;
         }
       } else { // any other instruction
         if (User* user = dyn_cast<User>(instrIt)) {
@@ -139,8 +131,8 @@ bool RetainReleasePass::runOnFunction(Function &F) {
             }
           }
         }
-        ++instrIt;
       }
+      ++instrIt;
     }
     ++blockIt;
   }

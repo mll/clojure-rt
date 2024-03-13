@@ -391,6 +391,13 @@ class ObjectTypeSet {
     return retVal;
   }
   
+  static ObjectTypeSet fromVector(std::vector<objectType> types) {
+    ObjectTypeSet retVal;
+    for (auto t: types) retVal.insert(t);
+    retVal.isBoxed = true;
+    return retVal;
+  }
+  
   static std::vector<ObjectTypeSet> allGuesses() {
     auto allTypes = ObjectTypeSet::all();
     std::vector<ObjectTypeSet> guesses;

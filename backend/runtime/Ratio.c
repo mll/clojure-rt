@@ -75,7 +75,8 @@ void* Ratio_simplify(Ratio * self) {
 
 /* outside refcount system */
 BOOL Ratio_equals(Ratio *self, Ratio *other) {
-  return mpq_equal(self->value, other->value);
+  int cmp = mpq_equal(self->value, other->value);
+  return cmp == 0;
 }
 
 /* outside refcount system */
@@ -164,15 +165,15 @@ void *Ratio_div(Ratio *self, Ratio *other) {
 }
 
 BOOL Ratio_gte(Ratio *self, Ratio *other) {
-  BOOL retVal = mpq_cmp(self->value, other->value);
+  int cmp = mpq_cmp(self->value, other->value);
   release(self);
   release(other);
-  return retVal >= 0;
+  return cmp >= 0;
 }
 
 BOOL Ratio_lt(Ratio *self, Ratio *other) {
-  BOOL retVal = mpq_cmp(self->value, other->value);
+  int cmp = mpq_cmp(self->value, other->value);
   release(self);
   release(other);
-  return retVal < 0;
+  return cmp < 0;
 }

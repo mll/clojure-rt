@@ -90,7 +90,7 @@ extern "C" {
 
     for(int i=0; i<fun->methodCount; i++) {
       struct FunctionMethod *candidate = &(fun->methods[i]);
-      if(argCount == candidate->fixedArity || (argCount > candidate->fixedArity && method->isVariadic)) {
+      if(argCount == candidate->fixedArity || (argCount > candidate->fixedArity && candidate->isVariadic)) {
         method = candidate;
         break;
       }

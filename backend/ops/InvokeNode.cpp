@@ -89,9 +89,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
         refName = ""; // This blocks dynamic entry checks - we do not want them for directly recursive functions */
       }
       
-      /* We leave the return type cached, maybe in the future it needs to be removed here */
-      TheProgramme->RecursiveFunctionsRetValGuesses.insert({rName, type});
-      
       auto callObject = codegen(functionRef, ObjectTypeSet::all());
       auto retVal = callStaticFun(node, functionBody, method, fName, type, args, refName, callObject, closedOvers);
       return retVal;

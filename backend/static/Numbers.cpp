@@ -178,20 +178,24 @@ ObjectTypeSet Numbers_generic_op_type(
     }
   }
   
-  if (left.isDetermined() && left.determinedType() == integerType && right.isDetermined() && right.determinedType() == integerType) {
+  ObjectTypeSet constraint = ObjectTypeSet(integerType);
+  if (left.isDetermined() && !left.restriction(constraint).isEmpty() && right.isDetermined() && !right.restriction(constraint).isEmpty()) {
     auto retVal = ObjectTypeSet(integerType);
     if (division) {retVal.boxed(); retVal.insert(ratioType);}
     return retVal;
   }
-  if (left.isDetermined() && left.determinedType() == bigIntegerType && right.isDetermined() && !right.restriction(ObjectTypeSet::fromVector({integerType, bigIntegerType})).isEmpty()) {
+  constraint.insert(bigIntegerType);
+  if (left.isDetermined() && !left.restriction(constraint).isEmpty() && right.isDetermined() && !right.restriction(constraint).isEmpty()) {
     auto retVal = ObjectTypeSet(bigIntegerType);
     if (division) retVal.insert(ratioType);
     return retVal;
   }
-  if (left.isDetermined() && left.determinedType() == ratioType && right.isDetermined() && !right.restriction(ObjectTypeSet::fromVector({integerType, bigIntegerType, ratioType})).isEmpty()) {
+  constraint.insert(ratioType);
+  if (left.isDetermined() && !left.restriction(constraint).isEmpty() && right.isDetermined() && !right.restriction(constraint).isEmpty()) {
     return ObjectTypeSet::fromVector({bigIntegerType, ratioType});
   }
-  if (left.isDetermined() && left.determinedType() == doubleType && right.isDetermined() && !right.restriction(ObjectTypeSet::fromVector({integerType, bigIntegerType, ratioType, doubleType})).isEmpty()) {
+  constraint.insert(doubleType);
+  if (left.isDetermined() && !left.restriction(constraint).isEmpty() && right.isDetermined() && !right.restriction(constraint).isEmpty()) {
     return ObjectTypeSet(doubleType);
   }
   throw CodeGenerationException(string("Wrong type of arguments to a static call: ") + signature, node);

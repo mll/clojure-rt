@@ -392,6 +392,7 @@ class ObjectTypeSet {
   }
   
   static ObjectTypeSet fromVector(std::vector<objectType> types) {
+    assert((types.size() > 1) && "ObjectTypeSet::fromVector requires vector of length at least 2");
     ObjectTypeSet retVal;
     for (auto t: types) retVal.insert(t);
     retVal.isBoxed = true;

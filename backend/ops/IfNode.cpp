@@ -59,9 +59,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
 
   //  create basic blocks
   BasicBlock *thenBB = llvm::BasicBlock::Create(*TheContext, "then", parentFunction);
-  
-  BasicBlock *elseBB = llvm::BasicBlock::Create(*TheContext, "else");
-  BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext, "ifcont");
+  BasicBlock *elseBB = llvm::BasicBlock::Create(*TheContext, "else", parentFunction);
     
   Builder->CreateCondBr(condValue, thenBB, elseBB);
     
@@ -75,12 +73,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   // note that the recursive thenExpr codegen call could change block we're
   // emitting code into.
   thenBB = Builder->GetInsertBlock();
+  // Check that block does not return prematurely (in case of recur)
+  bool thenShortCircuits = !thenWithType.second || thenWithType.second->getType()->isVoidTy(); // thenBB->getTerminator() && isa<ReturnInst>(thenBB->getTerminator());
   /* we leave the then block incomplete so that we can do a cast if types do not match */
   //Builder->CreateBr(mergeBB);
-    
+  
   // else block
-  parentFunction->insert(parentFunction->end(), elseBB);
-
   Builder->SetInsertPoint(elseBB);
   // release test value
   if (!test.first.isScalar()) dynamicRelease(test.second, false);
@@ -98,6 +96,17 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
         
   // ditto reasoning to then block
   elseBB = Builder->GetInsertBlock();
+  bool elseShortCircuits = !elseWithType.second || elseWithType.second->getType()->isVoidTy();
+  bool noShortCircuits = !thenShortCircuits && !elseShortCircuits;
+  
+  BasicBlock *mergeBB = nullptr;
+  if (noShortCircuits) {
+    mergeBB = llvm::BasicBlock::Create(*TheContext, "ifcont", parentFunction);
+  } else if (thenShortCircuits && !elseShortCircuits) {
+    mergeBB = elseBB;
+  } else if (!thenShortCircuits && elseShortCircuits) {
+    mergeBB = thenBB;
+  }
 
   TypedValue returnTypedValue;
   
@@ -105,17 +114,23 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
     if (elseWithType.first == thenWithType.first) {
       /* we just close off both blocks, same types detected - but const needs to be removed */
       returnTypedValue.first = elseWithType.first.removeConst();
-      Builder->CreateBr(mergeBB);  
+      // If there is one short circuit: in short circuiting block ret, so no br | in the other block no need to jump (only one predecessor)
+      if (noShortCircuits) Builder->CreateBr(mergeBB);
       Builder->SetInsertPoint(thenBB);
-      Builder->CreateBr(mergeBB);  
+      if (noShortCircuits) Builder->CreateBr(mergeBB);
     } else {
       /* We box any fast types (boxing leaves complex types unaffected) */ 
-      elseWithType = box(elseWithType);
-      Builder->CreateBr(mergeBB);  
+      if (!elseShortCircuits) {
+        elseWithType = box(elseWithType);
+        if (noShortCircuits) Builder->CreateBr(mergeBB);
+        returnTypedValue.first = returnTypedValue.first.expansion(elseWithType.first);
+      }
       Builder->SetInsertPoint(thenBB);
-      thenWithType = box(thenWithType);
-      Builder->CreateBr(mergeBB);
-      returnTypedValue.first = elseWithType.first.expansion(thenWithType.first);
+      if (!thenShortCircuits) {
+        thenWithType = box(thenWithType);
+        if (noShortCircuits) Builder->CreateBr(mergeBB);
+        returnTypedValue.first = returnTypedValue.first.expansion(thenWithType.first);
+      }
     }
   } else {
     if(elseWithType.first.isEmpty() && thenWithType.first.isEmpty()) throw CodeGenerationException(string("Both branches of if cannot fulfil restrictions: ") + typeRestrictions.toString(), node);
@@ -125,28 +140,26 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
       
       runtimeException(CodeGenerationException(string("Runtime exception: 'else' branch of if expression contains a value that does not match allowed types: ") + typeRestrictions.toString(), node));
       
-      Builder->CreateBr(mergeBB);  
+      if (noShortCircuits) Builder->CreateBr(mergeBB);  
       Builder->SetInsertPoint(thenBB);
-      Builder->CreateBr(mergeBB);  
+      if (noShortCircuits) Builder->CreateBr(mergeBB);  
     }
 
     if(thenWithType.first.isEmpty()) {
       returnTypedValue = elseWithType;
       
-      Builder->CreateBr(mergeBB);  
+      if (noShortCircuits) Builder->CreateBr(mergeBB);  
       Builder->SetInsertPoint(thenBB);
 
       runtimeException(CodeGenerationException(string("Runtime exception: 'then' branch of if expression contains a value that does not match allowed types: ") + typeRestrictions.toString(), node));
 
-      Builder->CreateBr(mergeBB);  
+      if (noShortCircuits) Builder->CreateBr(mergeBB);  
     }
   }
 
   // merge block
-  parentFunction->insert(parentFunction->end(), mergeBB);
-
   Builder->SetInsertPoint(mergeBB);
-  if(thenWithType.second && elseWithType.second) {        
+  if(noShortCircuits && thenWithType.second && elseWithType.second) {        
     llvm::PHINode *phiNode = Builder->CreatePHI(thenWithType.second->getType(), 2, "iftmp");
     phiNode->addIncoming(thenWithType.second, thenBB);
     phiNode->addIncoming(elseWithType.second, elseBB);

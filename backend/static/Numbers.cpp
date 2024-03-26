@@ -178,22 +178,27 @@ ObjectTypeSet Numbers_generic_op_type(
     }
   }
   
-  if (left.isDetermined() && left.determinedType() == integerType && right.isDetermined() && right.determinedType() == integerType) {
+  ObjectTypeSet constraint = ObjectTypeSet(integerType);
+  if (left.isDetermined() && !left.restriction(constraint).isEmpty() && right.isDetermined() && !right.restriction(constraint).isEmpty()) {
     auto retVal = ObjectTypeSet(integerType);
     if (division) {retVal.boxed(); retVal.insert(ratioType);}
     return retVal;
   }
-  if (left.isDetermined() && left.determinedType() == bigIntegerType && right.isDetermined() && right.determinedType() == bigIntegerType) {
+  constraint.insert(bigIntegerType);
+  if (left.isDetermined() && !left.restriction(constraint).isEmpty() && right.isDetermined() && !right.restriction(constraint).isEmpty()) {
     auto retVal = ObjectTypeSet(bigIntegerType);
     if (division) retVal.insert(ratioType);
     return retVal;
   }
-  if (left.isDetermined() && left.determinedType() == ratioType && right.isDetermined() && right.determinedType() == ratioType) {
-    auto retVal = ObjectTypeSet(bigIntegerType);
-    retVal.insert(ratioType);
-    return retVal;
+  constraint.insert(ratioType);
+  if (left.isDetermined() && !left.restriction(constraint).isEmpty() && right.isDetermined() && !right.restriction(constraint).isEmpty()) {
+    return ObjectTypeSet::fromVector({bigIntegerType, ratioType});
   }
-  return ObjectTypeSet(doubleType);
+  constraint.insert(doubleType);
+  if (left.isDetermined() && !left.restriction(constraint).isEmpty() && right.isDetermined() && !right.restriction(constraint).isEmpty()) {
+    return ObjectTypeSet(doubleType);
+  }
+  throw CodeGenerationException(string("Wrong type of arguments to a static call: ") + signature, node);
 }
 
 ObjectTypeSet Numbers_add_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
@@ -315,8 +320,7 @@ TypedValue Numbers_generic_op(
     }
   }
   
-  auto ratioTypeSet = ObjectTypeSet(ratioType, true);
-  ratioTypeSet.insert(bigIntegerType);
+  auto ratioTypeSet = ObjectTypeSet::fromVector({ratioType, bigIntegerType});
   if (ltype == ratioType) {
     if (rtype == doubleType) {
       auto converted = gen->callRuntimeFun("Ratio_toDouble", ObjectTypeSet(doubleType), {left});
@@ -378,9 +382,7 @@ TypedValue Numbers_generic_op(
     
     if (rtype == integerType) {
       if (division) {
-        auto integerTypeSet = ObjectTypeSet(ratioType, true);
-        ratioTypeSet.insert(integerType);
-        return gen->callRuntimeFun("Integer_div", ratioTypeSet, {left, right});
+        return gen->callRuntimeFun("Integer_div", ObjectTypeSet::fromVector({ratioType, integerType}), {left, right});
       } else {
         return TypedValue(ObjectTypeSet(integerType), integerOp_LLVMgen(gen, left.second, right.second));
       }

@@ -38,7 +38,8 @@ BigInteger* BigInteger_createFromInt(int64_t value) {
 
 /* outside refcount system */
 BOOL BigInteger_equals(BigInteger *self, BigInteger *other) {
-  return (mpz_cmp(self->value, other->value) == 0);
+  int cmp = mpz_cmp(self->value, other->value);
+  return cmp == 0;
 }
 
 /* outside refcount system */
@@ -139,15 +140,15 @@ void *BigInteger_div(BigInteger *self, BigInteger *other) {
 }
 
 BOOL BigInteger_gte(BigInteger *self, BigInteger *other) {
-  BOOL retVal = mpz_cmp(self->value, other->value);
+  int cmp = mpz_cmp(self->value, other->value);
   release(self);
   release(other);
-  return retVal >= 0;
+  return cmp >= 0;
 }
 
 BOOL BigInteger_lt(BigInteger *self, BigInteger *other) {
-  BOOL retVal = mpz_cmp(self->value, other->value);
+  int cmp = mpz_cmp(self->value, other->value);
   release(self);
   release(other);
-  return retVal < 0;
+  return cmp < 0;
 }

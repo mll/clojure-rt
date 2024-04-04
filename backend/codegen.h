@@ -51,6 +51,7 @@ class CodeGenerator {
 
   std::vector<std::unordered_map<std::string, TypedValue>> VariableBindingStack;
   std::vector<std::unordered_map<std::string, ObjectTypeSet>> VariableBindingTypesStack;
+  std::unordered_map<std::string, std::pair<llvm::BasicBlock *, std::vector<llvm::PHINode *>>> LoopInsertPoints;
 
   std::unordered_map<std::string, TypedValue> StaticVars;
 

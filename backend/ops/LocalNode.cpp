@@ -7,6 +7,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const LocalNode &subnode, co
   switch(subnode.local()) {
   case localTypeArg:
   case localTypeLet:
+  case localTypeLoop:
     {
       auto name = subnode.name();
       for(int i=VariableBindingStack.size() - 1; i >= 0; i--) {
@@ -28,6 +29,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const LocalNode &subnode,
   switch(subnode.local()) {
   case localTypeArg:      
   case localTypeLet:
+  case localTypeLoop:
     {
       auto name = subnode.name();
       for(int i=VariableBindingTypesStack.size() - 1; i >= 0; i--) {

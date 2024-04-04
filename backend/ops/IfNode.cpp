@@ -168,7 +168,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const IfNode &subnode, const
   }
 
   if(thenWithType.second) return thenWithType;
-  if(!elseWithType.second) throw CodeGenerationException(string("Internal error 2"), node);
   return elseWithType;
 }
 

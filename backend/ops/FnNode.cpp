@@ -40,6 +40,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
   vector<pair<FnMethodNode, uint64_t>> nodes;
   for(int i=0; i<subnode.methods_size(); i++) {
     auto &method = subnode.methods(i).subnode().fnmethod();
+    TheProgramme->RecurType.insert({method.loopid(), opFn});
     TheProgramme->RecurTargets.insert({method.loopid(), funId});
     nodes.push_back({method, i});
   }
@@ -101,6 +102,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const FnNode &subnode, co
   if(idEntry == TheProgramme->RecurTargets.end()) {
     funId = getUniqueFunctionId();  
     TheProgramme->Functions.insert({funId, node});
+    TheProgramme->RecurType.insert({firstMethodLoopId, opFn});
     TheProgramme->RecurTargets.insert({firstMethodLoopId, funId});
   } else funId = idEntry->second;
 

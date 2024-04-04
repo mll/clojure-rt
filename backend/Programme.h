@@ -47,9 +47,11 @@ class ProgrammeState {
   /* TODO: thread safety? locks? */
   std::unordered_map<uint64_t, Node> Functions;
   std::unordered_map<std::string, std::vector<ObjectTypeSet> > ClosedOverTypes;
+  std::unordered_map<std::string, Op> RecurType;
   std::unordered_map<std::string, uint64_t> RecurTargets;
   std::unordered_map<std::string, uint64_t> StaticFunctions;
   std::unordered_map<std::string, ObjectTypeSet> FunctionsRetValInfers;
+  std::unordered_map<std::string, std::pair<std::vector<ObjectTypeSet>, ObjectTypeSet>> LoopsBindingsAndRetValInfers;
   std::unordered_map<std::string, bool> RecursiveFunctionsNameMap;
   std::unordered_map<std::string, std::vector<std::pair<std::string, std::pair<StaticCallType, StaticCall>>>> StaticCallLibrary;
   std::unordered_map<std::string, ObjectTypeSet> StaticVarTypes;

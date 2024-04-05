@@ -1,17 +1,19 @@
-#include "../codegen.h"  
+#include "../codegen.h"
 
 using namespace std;
 using namespace llvm;
 
 TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto type = getType(node, typeRestrictions);
-  auto uniqueId = TheProgramme->RecurTargets.find(subnode.loopid())->second;
-  auto recurPoint = TheProgramme->Functions.find(uniqueId)->second;
-  auto op = recurPoint.op();
-  
-  if (op == opFn) {
+  auto loopId = subnode.loopid();
+  auto op = TheProgramme->RecurType.find(loopId);
+  if (op == TheProgramme->RecurType.end()) {
+    throw CodeGenerationException("Unexpected recur!", node);
+  } else if (op->second == opFn) {
     // TODO: Recur in once - throw exception
     
+    auto uniqueId = TheProgramme->RecurTargets.find(loopId)->second;
+    auto recurPoint = TheProgramme->Functions.find(uniqueId)->second;
     // Pass fn pointer
     auto callObjectIterator = Builder->GetInsertBlock()->getParent()->arg_end();
     callObjectIterator--;
@@ -127,9 +129,22 @@ TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, co
     Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, FT->getPointerTo());
     auto finalRetVal = Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("recur_call_dynamic"));
     return TypedValue(type, Builder->CreateRet(finalRetVal));
-  } else if (op == opLoop) {
-    throw CodeGenerationException("Recur not implemented yet for loop!", node);
-  } else if (op == opMethod) {
+  } else if (op->second == opLoop) { 
+    auto loopRecurPoint = LoopInsertPoints.find(loopId)->second;
+    std::vector<TypedValue> values;
+    for (int i = 0; i < subnode.exprs_size(); ++i) {
+      auto value = codegen(subnode.exprs(i), ObjectTypeSet::all());
+      if (value.second->getType() != loopRecurPoint.second[i]->getType()) value = box(value);
+      values.push_back(value);
+    }
+    BasicBlock *currentBB = Builder->GetInsertBlock();
+    for (int i = 0; i < subnode.exprs_size(); ++i) {
+      loopRecurPoint.second[i]->addIncoming(values[i].second, currentBB);
+    }
+    Builder->CreateBr(loopRecurPoint.first);
+    auto retType = TheProgramme->LoopsBindingsAndRetValInfers.find(loopId)->second.second;
+    return TypedValue(retType, nullptr);
+  } else if (op->second == opMethod) {
     throw CodeGenerationException("Recur not implemented yet for method!", node);
   }
   
@@ -137,12 +152,15 @@ TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, co
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const RecurNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  auto uniqueId = TheProgramme->RecurTargets.find(subnode.loopid())->second;
-  auto &recurPoint = TheProgramme->Functions.find(uniqueId)->second;
-  auto op = recurPoint.op();
+  string loopId = subnode.loopid();
   
-  if (op == opFn) {
+  auto op = TheProgramme->RecurType.find(loopId);
+  if (op == TheProgramme->RecurType.end()) {
+    throw CodeGenerationException("Unexpected recur!", node);
+  } else if (op->second == opFn) {
     // TODO: Recur in once - throw exception
+    auto uniqueId = TheProgramme->RecurTargets.find(loopId)->second;
+    auto &recurPoint = TheProgramme->Functions.find(uniqueId)->second;
     InvokeNode *invoke = new InvokeNode();
     Node *bodyCopy = new Node(recurPoint);
     invoke->set_allocated_fn(bodyCopy);
@@ -158,9 +176,13 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const RecurNode &subnode,
     invokeNode.set_op(opInvoke);
     invokeNode.set_allocated_subnode(invokeSubnode);
     return getType(invokeNode, *invoke, typeRestrictions);
-  } else if (op == opLoop) {
-    throw CodeGenerationException("Recur not implemented yet for loop!", node);
-  } else if (op == opMethod) {
+  } else if (op->second == opLoop) {
+    // Update loop binding types
+    auto recurPoint = TheProgramme->LoopsBindingsAndRetValInfers.find(loopId);
+    for (int i = 0; i < subnode.exprs_size(); ++i)
+      recurPoint->second.first[i] = recurPoint->second.first[i].expansion(getType(subnode.exprs(i), ObjectTypeSet::all()));
+    return recurPoint->second.second;
+  } else if (op->second == opMethod) {
     throw CodeGenerationException("Recur not implemented yet for method!", node);
   }
   

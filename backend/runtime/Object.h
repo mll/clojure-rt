@@ -194,7 +194,7 @@ inline uint64_t Object_hash(Object * restrict self) {
         return PersistentVector_hash(Object_data(self));
         break;
       case persistentVectorNodeType:
-        return PersistentVector_hash(Object_data(self));
+        return PersistentVectorNode_hash(Object_data(self));
         break;
       case doubleType:
         return Double_hash(Object_data(self));

@@ -42,3 +42,11 @@
     (recur (- n 1) (* x x) 2)))
 
 (vararg-recur 3 2N :a :b :c)
+
+(defn map-abn
+  "a * b ^ n"
+  [a b n]
+  (if (= (:n n) 0)
+    a
+    (recur {:a (* (:a a) (:b b))} b {:n (- (:n n) 1)})))
+(map-abn {:a 9N} {:b 2} {:n 1000000})

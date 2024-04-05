@@ -47,3 +47,12 @@
         (recur [] (- n 1))))))
 
 (hard-bounce [] 1000000)
+
+(defn map-abn
+  "a * b ^ n"
+  [a b n]
+  (loop [a a n n]
+    (if (= (:n n) 0)
+      a
+      (recur {:a (* (:a a) (:b b))} {:n (- (:n n) 1)}))))
+(map-abn {:a 9N} {:b 2} {:n 1000000})

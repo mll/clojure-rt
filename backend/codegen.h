@@ -107,6 +107,7 @@ TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<F
   llvm::StructType *runtimeDoubleType();
   llvm::StructType *runtimeInvokationCacheType();
   llvm::StructType *runtimeFunctionMethodType();
+  llvm::StructType *runtimeClassType();
 
   llvm::Value *getRuntimeObjectType(llvm::Value *objectPtr);
 
@@ -149,6 +150,9 @@ TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<F
   llvm::Type *dynamicBoxedType(objectType type);
   llvm::PointerType *dynamicBoxedType();
   llvm::Type *dynamicType(const ObjectTypeSet &type);
+  
+  void registerClass(String *className, Class *_class);
+  Class *getClass(String *className);
 
   /* Code generation */
 

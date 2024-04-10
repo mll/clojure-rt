@@ -20,6 +20,8 @@ enum objectType {
    nilType,
    booleanType,
    symbolType,
+   classType,
+   deftypeType,
    concurrentHashMapType,
    keywordType,
    functionType,

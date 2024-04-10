@@ -38,6 +38,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   case symbolType:
     retVal = dynamicSymbol(name.c_str());
     break;
+  case classType:
+    // TODO
+    break;
+  case deftypeType:
+    // TODO
+    break;
   case keywordType:
     retVal = dynamicKeyword((name[0] == ':' ? name.substr(1) : name).c_str());
     dynamicRetain(retVal);
@@ -94,6 +100,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
     return ObjectTypeSet(symbolType, false, new ConstantSymbol(subnode.val())).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeKeyword:
     return ObjectTypeSet(keywordType, false, new ConstantKeyword(subnode.val())).restriction(typeRestrictions);
+  case ConstNode_ConstType_constTypeClass: // TODO
+    return ObjectTypeSet(classType, false).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeType:
   case ConstNode_ConstType_constTypeRecord:
   case ConstNode_ConstType_constTypeMap:
@@ -102,7 +110,6 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
   case ConstNode_ConstType_constTypeSeq:
   case ConstNode_ConstType_constTypeChar:
   case ConstNode_ConstType_constTypeRegex:
-  case ConstNode_ConstType_constTypeClass:
   case ConstNode_ConstType_constTypeVar:
   case ConstNode_ConstType_constTypeUnknown:
   default:

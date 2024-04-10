@@ -382,6 +382,8 @@ class ObjectTypeSet {
     retVal.insert(nilType);
     retVal.insert(booleanType);
     retVal.insert(symbolType);
+    retVal.insert(classType);
+    retVal.insert(deftypeType);
     retVal.insert(keywordType);
     retVal.insert(functionType);
     retVal.insert(bigIntegerType);
@@ -423,6 +425,10 @@ class ObjectTypeSet {
         return "LL";
       case persistentVectorType:
         return "LV";
+      case classType:
+        return "LC";
+      case deftypeType:
+        return "LT";
       case symbolType:
         return "LY";
       case persistentVectorNodeType:

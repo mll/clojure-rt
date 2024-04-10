@@ -732,12 +732,14 @@
   (cond (map? node)
         (if (= (:op node) :case) node
           (let [important-keys (concat (:children node)
-                                       [:children :op :loop-let :fresh :form :name :drop-memory
+                                       [:children :op :loop-let :fresh :form :name :drop-memory :tag
                                         :unwind-memory :local :closed-overs :loops :loop-id :recur-this])]
             (->> (select-keys node important-keys)
                  (map (fn [[k v]] [k (case k
                                        (:drop-memory :unwind-memory :all-catches-owned :loops :loop-id :form) v
-                                       :closed-overs (set (keys v))
+                                       :closed-overs (cond (map? v) (set (keys v))
+                                                           (sequential? v) (set (map :name v))
+                                                           :else v)
                                        (clean-tree v))]))
                  (into {}))))
         (vector? node)

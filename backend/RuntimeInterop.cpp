@@ -5,6 +5,7 @@ using namespace std;
 using namespace llvm;
 
 extern "C" {
+#include "runtime/Class.h"
 #include "runtime/String.h"
 #include "runtime/Keyword.h"
   #include "runtime/BigInteger.h"
@@ -13,6 +14,7 @@ extern "C" {
   objectType getTypeC(void *obj)  {
     return getType(obj);
   }
+  void retain(void *obj);
 } 
 
 
@@ -122,6 +124,12 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     throw InternalInconsistencyException("We never allow creation of subtypes here, only runtime can do it");
   case nilType:
     fname = "Nil_create";
+    break;
+  case classType:
+    fname = "Class_create";
+    break;
+  case deftypeType:
+    fname = "Deftype_create";
     break;
   case symbolType:
     fname = "Symbol_create";
@@ -330,6 +338,26 @@ StructType *CodeGenerator::runtimeBooleanType() {
      }, "Boolean");
 }
 
+/* struct Class {
+  String *name;
+  String *className;
+  
+  uint64_t fieldCount;
+  String *fields[];
+}; */
+
+StructType *CodeGenerator::runtimeClassType() {
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Class");
+  if(retVal) return retVal;
+
+   return StructType::create(*TheContext, {
+       /* name */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* className */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* fieldCount */ Type::getInt64Ty(*TheContext),
+       /* fields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+     }, "Class");
+}
+
 
 void CodeGenerator::dynamicRetain(Value *objectPtr) {
   Metadata * metaPtr = dyn_cast<Metadata>(MDString::get(*TheContext, "retain"));
@@ -533,6 +561,8 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case persistentVectorNodeType:
     case nilType:
     case symbolType:
+    case classType:
+    case deftypeType:
     case keywordType:
     case persistentArrayMapType:
     case functionType:
@@ -685,6 +715,8 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
   case persistentVectorNodeType:
   case nilType:
   case symbolType:
+  case classType:
+  case deftypeType:
   case keywordType:
   case concurrentHashMapType:
   case persistentArrayMapType:
@@ -741,6 +773,28 @@ void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidan
   }  
 } 
 
+void CodeGenerator::registerClass(String *className, Class *_class) {
+  TheProgramme->DefinedClasses.insert({{className->value}, _class});
+}
+
+extern "C" {
+  void registerClass(CodeGenerator *gen, String *className, Class *_class) {
+    gen->registerClass(className, _class);
+  }
+}
+
+Class *CodeGenerator::getClass(String *className) {
+  auto foundClass = TheProgramme->DefinedClasses.find({className->value});
+  if (foundClass == TheProgramme->DefinedClasses.end()) return nullptr;
+  retain(foundClass->second);
+  return foundClass->second;
+}
+
+extern "C" {
+  void getClass(CodeGenerator *gen, String *className) {
+    gen->getClass(className);
+  }
+}
 
 
 /* LOAD-STORE examples */

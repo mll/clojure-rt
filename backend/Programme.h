@@ -33,6 +33,10 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 
+extern "C" {
+  #include "runtime/Class.h"
+}
+
 class CodeGenerator;
 using namespace clojure::rt::protobuf::bytecode;
 
@@ -46,6 +50,7 @@ class ProgrammeState {
   public:
   /* TODO: thread safety? locks? */
   std::unordered_map<uint64_t, Node> Functions;
+  std::unordered_map<std::string, Class *> DefinedClasses; // namespaced name -> ??
   std::unordered_map<std::string, std::vector<ObjectTypeSet> > ClosedOverTypes;
   std::unordered_map<std::string, Op> RecurType;
   std::unordered_map<std::string, uint64_t> RecurTargets;

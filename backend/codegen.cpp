@@ -87,6 +87,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRes
     return codegen(node, node.subnode().const_(), typeRestrictions);    
   case opDef:
     return codegen(node, node.subnode().def(), typeRestrictions);    
+  case opDeftype:
+    return codegen(node, node.subnode().deftype(), typeRestrictions);
   case opDo:
     return codegen(node, node.subnode().do_(), typeRestrictions);    
   case opFn:
@@ -215,6 +217,8 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
     if (typeName == "V") return ObjectTypeSet(persistentVectorType);
     if (typeName == "N") return ObjectTypeSet(nilType);
     if (typeName == "Y") return ObjectTypeSet(symbolType);
+    if (typeName == "C") return ObjectTypeSet(classType);
+    if (typeName == "T") return ObjectTypeSet(deftypeType);
     if (typeName == "K") return ObjectTypeSet(keywordType);
     if (typeName == "F") return ObjectTypeSet(functionType);
     if (typeName == "I") return ObjectTypeSet(bigIntegerType);

@@ -1,3 +1,4 @@
+#include "static/Class.h"
 #include "static/Numbers.h"
 #include "static/Utils.h"
 #include "static/Vector.h"
@@ -17,4 +18,5 @@ ProgrammeState::ProgrammeState() {
   StaticCallLibrary.insert(utils.begin(), utils.end());
   StaticCallLibrary.insert(vector.first.begin(), vector.first.end());
   InstanceCallLibrary.insert(vector.second.begin(), vector.second.end());
+  DefinedClasses = std::move(getStaticClasses());
 }

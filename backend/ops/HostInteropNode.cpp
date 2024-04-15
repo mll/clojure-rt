@@ -99,7 +99,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
           Builder->SetInsertPoint(classBB);
           auto classIt = TheProgramme->DefinedClasses.find(classId);
           if (classIt == TheProgramme->DefinedClasses.end()) {
-            runtimeException(CodeGenerationException("Class " + to_string(classId) + "not found!", node));
+            runtimeException(CodeGenerationException("Class " + to_string(classId) + "not found", node));
             Builder->CreateUnreachable();
           } else {
             int64_t fieldIndex = Class_fieldIndex(classIt->second, String_createDynamicStr(methodOrFieldName.c_str()));
@@ -134,7 +134,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
       
       Builder->SetInsertPoint(methodMissing);
       Value *fieldValue = callRuntimeFun("getPrimitiveField", ptrT, {ptrT, Type::getInt64Ty(*TheContext), ptrT}, {thisPtr, typeValue, methodOrFieldNameValue});
-      Value *fieldNotFoundValue = Builder->CreateICmpEQ(methodValue, Constant::getNullValue(ptrT));
+      Value *fieldNotFoundValue = Builder->CreateICmpEQ(fieldValue, Constant::getNullValue(ptrT));
       BasicBlock *fieldMissing = BasicBlock::Create(*TheContext, "field_missing", parentFunction);
       Builder->CreateCondBr(fieldNotFoundValue, fieldMissing, finalBB);
       phiNode->addIncoming(fieldValue, methodMissing);
@@ -181,5 +181,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const HostInteropNode &su
       return ObjectTypeSet::dynamicType();
     }
   }
+  
+  // Field can be any type
   return ObjectTypeSet::all();
 }

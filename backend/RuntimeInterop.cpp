@@ -778,12 +778,7 @@ void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidan
 } 
 
 uint64_t CodeGenerator::registerClass(Class *_class) {
-  std::string string_className {String_c_str(_class->className)};
-  auto classId = getUniqueClassId();
-  _class->registerId = classId;
-  TheProgramme->ClassesByName.insert({string_className, classId});
-  TheProgramme->DefinedClasses.insert({classId, _class});
-  return classId;
+  return TheProgramme->registerClass(_class);
 }
 
 extern "C" {

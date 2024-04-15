@@ -27,8 +27,6 @@ CodeGenerator::CodeGenerator(std::shared_ptr<ProgrammeState> programme, ClojureJ
     gVar->setExternallyInitialized(true);
     StaticVars.insert({name, TypedValue(type, gVar)});
   }
-  
-  registerClass(javaLangClass());
 }
 
 
@@ -276,8 +274,7 @@ uint64_t CodeGenerator::getUniqueFunctionId() {
 }
 
 uint64_t CodeGenerator::getUniqueClassId() {
-  /* TODO - this might require threadsafe precautions, like std::Atomic */
-  return ++TheProgramme->lastClassUniqueId;
+  return TheProgramme->getUniqueClassId();
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const ObjectTypeSet &typeRestrictions) {

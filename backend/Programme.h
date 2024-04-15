@@ -59,7 +59,7 @@ class ProgrammeState {
   std::unordered_map<std::string, ObjectTypeSet> FunctionsRetValInfers;
   std::unordered_map<std::string, std::pair<std::vector<ObjectTypeSet>, ObjectTypeSet>> LoopsBindingsAndRetValInfers;
   std::unordered_map<std::string, bool> RecursiveFunctionsNameMap;
-  std::unordered_map<std::string, std::vector<std::pair<std::string, std::pair<StaticCallType, StaticCall>>>> StaticCallLibrary;
+  std::unordered_map<std::string, std::vector<std::pair<std::string, std::pair<StaticCallType, StaticCall>>>> StaticCallLibrary; // DEPRECATED?
   std::unordered_map<std::string, ObjectTypeSet> StaticVarTypes;
   
   // TODO: Keep structure dynamic (updated as defrecord + others is used)
@@ -87,6 +87,8 @@ class ProgrammeState {
   ProgrammeState();
   
   static std::string closedOverKey(uint64_t functionId, uint64_t methodId);
+  uint64_t getUniqueClassId();
+  uint64_t registerClass(Class *_class);
 };
 
 #endif

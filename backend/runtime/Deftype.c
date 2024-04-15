@@ -42,8 +42,9 @@ String *Deftype_toString(Deftype *self) {
   retain(self->_class->className);
   retVal = String_concat(retVal, self->_class->className);
   retVal = String_concat(retVal, String_create(" 0x"));
-  String *address = String_createDynamic(21);
-  address->count = snprintf(address->value, 20, "%llx", (uint64_t) self); // address in hex, without 0x prefix
+  char *raw_address = allocate(sizeof(char) * 21);
+  snprintf(raw_address, 20, "%llx", (uint64_t) self); // address in hex, without 0x prefix
+  String *address = String_create(raw_address);
   retain(address);
   retVal = String_concat(retVal, address);
   retVal = String_concat(retVal, String_create(" \""));
@@ -68,7 +69,24 @@ void *Deftype_getField(Deftype *self, String *field) {
     ++i;
   }
   if (i == self->_class->fieldCount) {release(self); return NULL;} // field not found exception
-  void *retVal = self->values[i];
+  void *retVal = Object_data(self->values[i]);
+  retain(retVal);
+  release(self);
+  return retVal;
+}
+
+Class *Deftype_getClass(Deftype *self) {
+  Class *_class = self->_class;
+  retain(_class);
+  release(self);
+  return _class;
+}
+
+void *Deftype_getIndexedField(Deftype *self, int64_t i) {
+  if (i < 0 || i >= self->_class->fieldCount) {
+    release(self); return NULL; // unsafe index exception - field not found?
+  }
+  void *retVal = Object_data(self->values[i]);
   retain(retVal);
   release(self);
   return retVal;

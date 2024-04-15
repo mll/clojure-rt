@@ -14,54 +14,49 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   Value *retVal;
 
   auto name = subnode.val();
-
-  switch(types.determinedType()) {
-  case integerType:
+  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto t = types.determinedType();
+  
+  if (t == integerType) {
     retVal = ConstantInt::get(*TheContext, APInt(64, StringRef(subnode.val().c_str()), 10));
-    break;
-  case doubleType:
+  } else if (t == doubleType) {
     retVal = ConstantFP::get(*TheContext, 
                            APFloat(APFloatBase::EnumToSemantics
                                    (llvm::APFloatBase::Semantics::S_IEEEdouble), 
                                    StringRef(subnode.val().c_str())));
-    break;
-  case nilType:   
+  } else if (t == nilType) {
     retVal = dynamicNil();
-    break;
-  case booleanType:          
+  } else if (t == booleanType) {
     retVal = ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext), subnode.val() == "true" ? 1 : 0);
-    break;
-  case stringType:    
+  } else if (t == stringType) {
     retVal = dynamicString(subnode.val().c_str());
     dynamicRetain(retVal);
-    break;
-  case symbolType:
+  } else if (t == symbolType) {
     retVal = dynamicSymbol(name.c_str());
-    break;
-  case classType:
+  } else if (t == classType) {
+    Value *className = dynamicString(subnode.val().c_str());
+    dynamicRetain(className);
+    Value *thisPtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) this, false)), ptrT);
+    retVal = callRuntimeFun("getClassByName", ptrT, {ptrT, ptrT}, {thisPtr, className});
     // TODO
-    break;
-  case deftypeType:
-    // TODO
-    break;
-  case keywordType:
+  } else if (t == deftypeType) {
+    // TODO/not possible?
+  } else if (t == keywordType) {
     retVal = dynamicKeyword((name[0] == ':' ? name.substr(1) : name).c_str());
     dynamicRetain(retVal);
-    break;
-  case bigIntegerType:
+  } else if (t == bigIntegerType) {
     retVal = dynamicBigInteger(subnode.val().c_str());
     dynamicRetain(retVal);
-    break; 
-  case ratioType:
+  } else if (t == ratioType) {
     retVal = dynamicRatio(subnode.val().c_str());
     dynamicRetain(retVal);
-    break;
-  case persistentListType:
-  case persistentVectorType:
-  case persistentVectorNodeType:
-  case concurrentHashMapType:
-  case persistentArrayMapType:
-  case functionType:
+  } else {
+    // case persistentListType:
+    // case persistentVectorType:
+    // case persistentVectorNodeType:
+    // case concurrentHashMapType:
+    // case persistentArrayMapType:
+    // case functionType:
     throw CodeGenerationException(string("Compiler does not support the following const type yet: ") + ConstNode_ConstType_Name(subnode.type()), node);
   }
   return TypedValue(types, retVal);
@@ -101,7 +96,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
   case ConstNode_ConstType_constTypeKeyword:
     return ObjectTypeSet(keywordType, false, new ConstantKeyword(subnode.val())).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeClass: // TODO
-    return ObjectTypeSet(classType, false).restriction(typeRestrictions);
+    return ObjectTypeSet(classType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeType:
   case ConstNode_ConstType_constTypeRecord:
   case ConstNode_ConstType_constTypeMap:

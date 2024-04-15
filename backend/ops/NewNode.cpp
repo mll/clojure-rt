@@ -5,10 +5,11 @@ using namespace llvm;
 
 TypedValue CodeGenerator::codegen(const Node &node, const NewNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto className = subnode.class_().subnode().const_().val();
-  auto stringPtr = dynamicString(className.c_str());
+  auto classId = getClassId(className); // TODO: What if == 0?
+  Value *classIdValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, classId, false));
   auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
-  auto selfPtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) this, false)), ptrT);
-  Value *classValue = callRuntimeFun("getClass", ptrT, {ptrT, ptrT}, {selfPtr, stringPtr});
+  auto thisPtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) this, false)), ptrT);
+  Value *classValue = callRuntimeFun("getClassById", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {thisPtr, classIdValue});
   Function *parentFunction = Builder->GetInsertBlock()->getParent();
   BasicBlock *classFound = BasicBlock::Create(*TheContext, "class_found", parentFunction);
   BasicBlock *classMissing = BasicBlock::Create(*TheContext, "class_missing", parentFunction);
@@ -23,7 +24,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const NewNode &subnode, cons
   BasicBlock *arityFound = BasicBlock::Create(*TheContext, "arity_found", parentFunction);
   BasicBlock *arityMissing = BasicBlock::Create(*TheContext, "arity_missing", parentFunction);
   Value *calledArity = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, subnode.args_size(), false));
-  Value *expectedArityPtr = Builder->CreateStructGEP(runtimeClassType(), classValue, 2, "expected_arity_ptr");
+  Value *expectedArityPtr = Builder->CreateStructGEP(runtimeClassType(), classValue, 3, "expected_arity_ptr");
   Value *expectedArity = Builder->CreateLoad(Type::getInt64Ty(*TheContext), expectedArityPtr, "expected_arity");
   Value *correctArity = Builder->CreateICmpEQ(expectedArity, calledArity);
   Builder->CreateCondBr(correctArity, arityFound, arityMissing);
@@ -41,9 +42,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const NewNode &subnode, cons
   }
   
   Value *deftypeValue = callRuntimeFun("Deftype_create", ptrT, types, args, true);
-  return TypedValue(ObjectTypeSet(deftypeType), deftypeValue);
+  return TypedValue(ObjectTypeSet(classId), deftypeValue);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const NewNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  return ObjectTypeSet(deftypeType);
+  return ObjectTypeSet(getClassId(subnode.class_().subnode().const_().val()));
 }

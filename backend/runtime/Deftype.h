@@ -23,6 +23,8 @@ uint64_t Deftype_hash(Deftype *self);
 String *Deftype_toString(Deftype *self);
 void Deftype_destroy(Deftype *self);
 
-void* Deftype_getField(Deftype *self, String *field);
+Class *Deftype_getClass(Deftype *self);
+void *Deftype_getField(Deftype *self, String *field);
+void *Deftype_getIndexedField(Deftype *self, int64_t i);
 
 #endif

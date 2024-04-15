@@ -3,21 +3,25 @@
 #include "../codegen.h"
 
 std::pair<
-  std::unordered_map<std::string,
+  std::unordered_map<
+    std::string, // static method name
     std::vector<
       std::pair<
-        std::string,
-        std::pair<
-          StaticCallType,
-          StaticCall>>>>,
-  std::unordered_map<std::string,
-    std::unordered_map<std::string,
-      std::vector<
-        std::pair<
-          std::string,
+        std::string, // signature
+        std::pair<StaticCallType, StaticCall>>>>,
+  std::pair<
+    std::unordered_map<uint64_t, // classId
+      std::unordered_map<std::string, // methodName
+        std::vector<
           std::pair<
-            StaticCallType,
-            StaticCall>>>>>>
-getVectorStaticAndInstanceFunctions();
+            std::string, // signature
+            void *>>>>,
+    std::unordered_map<uint64_t, // classId
+      std::unordered_map<std::string, // methodName
+        std::vector<
+          std::pair<
+            std::string, // signature
+            std::pair<StaticCallType, StaticCall>>>>>>>
+getVectorFunctions();
 
 #endif

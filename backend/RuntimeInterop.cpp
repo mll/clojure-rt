@@ -10,10 +10,12 @@ extern "C" {
 #include "runtime/Keyword.h"
   #include "runtime/BigInteger.h"
   #include "runtime/Ratio.h"
+  #include "runtime/Deftype.h"
   objectType getType(void *obj);
   objectType getTypeC(void *obj)  {
     return getType(obj);
   }
+  void release(void *obj);
   void retain(void *obj);
 } 
 
@@ -126,7 +128,7 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     fname = "Nil_create";
     break;
   case classType:
-    fname = "Class_create";
+    fname = "Class_create"; // CONSIDER: Not possible/throw exception? Unregistered class
     break;
   case deftypeType:
     fname = "Deftype_create";
@@ -339,6 +341,7 @@ StructType *CodeGenerator::runtimeBooleanType() {
 }
 
 /* struct Class {
+  uint64_t registerId;
   String *name;
   String *className;
   
@@ -351,6 +354,7 @@ StructType *CodeGenerator::runtimeClassType() {
   if(retVal) return retVal;
 
    return StructType::create(*TheContext, {
+       /* registerId */ Type::getInt64Ty(*TheContext),
        /* name */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* className */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* fieldCount */ Type::getInt64Ty(*TheContext),
@@ -451,7 +455,7 @@ TypedValue CodeGenerator::dynamicIsReusable(Value *what) {
 }
 
 Value * CodeGenerator::dynamicString(const char *str) {
-  String * retVal = String_createDynamicStr((char *)str);
+  String * retVal = String_createDynamicStr(str);
   /* TODO: uniquing? */
   Value *strPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_boxed");
   return strPointer;
@@ -538,7 +542,7 @@ Value * CodeGenerator::dynamicSymbol(const char *name) {
 }
 
 Value * CodeGenerator::dynamicKeyword(const char *name) {
-  String *names = String_createDynamicStr((char *)name);
+  String *names = String_createDynamicStr(name);
   
   Keyword * retVal = Keyword_create(names);
   Value *ptrKeyword =  Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
@@ -773,29 +777,94 @@ void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidan
   }  
 } 
 
-void CodeGenerator::registerClass(String *className, Class *_class) {
-  TheProgramme->DefinedClasses.insert({{className->value}, _class});
+uint64_t CodeGenerator::registerClass(Class *_class) {
+  std::string string_className {String_c_str(_class->className)};
+  auto classId = getUniqueClassId();
+  _class->registerId = classId;
+  TheProgramme->ClassesByName.insert({string_className, classId});
+  TheProgramme->DefinedClasses.insert({classId, _class});
+  return classId;
 }
 
 extern "C" {
-  void registerClass(CodeGenerator *gen, String *className, Class *_class) {
-    gen->registerClass(className, _class);
+  uint64_t registerClass(CodeGenerator *gen, Class *_class) {
+    return gen->registerClass(_class);
   }
 }
 
-Class *CodeGenerator::getClass(String *className) {
-  auto foundClass = TheProgramme->DefinedClasses.find({className->value});
+uint64_t CodeGenerator::getClassId(const std::string &className) {
+  auto foundClass = TheProgramme->ClassesByName.find(className);
+  if (foundClass == TheProgramme->ClassesByName.end()) return 0; // CONSIDER: exception?
+  return foundClass->second;
+}
+
+Class *CodeGenerator::getClass(uint64_t classId) {
+  auto foundClass = TheProgramme->DefinedClasses.find(classId);
   if (foundClass == TheProgramme->DefinedClasses.end()) return nullptr;
   retain(foundClass->second);
   return foundClass->second;
 }
 
 extern "C" {
-  void getClass(CodeGenerator *gen, String *className) {
-    gen->getClass(className);
+  Class* getClassById(CodeGenerator *gen, uint64_t classId) {
+    return gen->getClass(classId);
+  }
+  
+  Class* getClassByName(CodeGenerator *gen, String *className) {
+    std::string string_className {String_c_str(className)};
+    release(className);
+    uint64_t id = gen->getClassId(string_className);
+    return gen->getClass(id);
   }
 }
 
+void *CodeGenerator::getPrimitiveMethod(objectType target, const std::string &methodName) {
+  auto classMethods = TheProgramme->DynamicCallLibrary.find((uint64_t) target);
+  if (classMethods == TheProgramme->DynamicCallLibrary.end()) return nullptr;
+  
+  vector<ObjectTypeSet> types {target};
+  string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
+  
+  auto methods = classMethods->second.find(methodName);
+  if (methods != classMethods->second.end()) { // class and method found
+    for (auto method: methods->second) {
+      if (method.first != requiredTypes) continue; 
+      return method.second;
+    }
+  }
+  
+  return nullptr;
+}
+
+extern "C" {
+  void *getPrimitiveMethod(CodeGenerator *gen, objectType t, String* methodName) { // TODO: this is only for 0-arg methods at the moment
+    std::string string_methodName {String_c_str(methodName)};
+    release(methodName);
+    return gen->getPrimitiveMethod(t, string_methodName);
+  }
+}
+
+void *CodeGenerator::getPrimitiveField(objectType target, void * object, const std::string &fieldName) {
+  if (target == deftypeType) {
+    auto classIt = TheProgramme->DefinedClasses.find((uint64_t) target);
+    if (classIt == TheProgramme->DefinedClasses.end()) return nullptr;
+    Class *_class = classIt->second;
+    int fieldIndex = Class_fieldIndex(_class, String_createDynamicStr(fieldName.c_str()));
+    if (fieldIndex == -1) return nullptr;
+    return Deftype_getIndexedField((Deftype *) object, fieldIndex);
+  } else {
+    // CONSIDER: Primitive classes don't have fields, only 0-arg methods?
+    return nullptr;
+  } 
+}
+
+extern "C" {
+  void *getPrimitiveField(CodeGenerator *gen, objectType t, void * object, String* fieldName) {
+    std::string string_fieldName {String_c_str(fieldName)};
+    release(fieldName);
+    return gen->getPrimitiveField(t, object, string_fieldName);
+  }
+}
 
 /* LOAD-STORE examples */
 

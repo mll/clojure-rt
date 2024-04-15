@@ -50,7 +50,8 @@ class ProgrammeState {
   public:
   /* TODO: thread safety? locks? */
   std::unordered_map<uint64_t, Node> Functions;
-  std::unordered_map<std::string, Class *> DefinedClasses; // namespaced name -> ??
+  std::unordered_map<uint64_t, Class *> DefinedClasses;
+  std::unordered_map<std::string, uint64_t> ClassesByName;
   std::unordered_map<std::string, std::vector<ObjectTypeSet> > ClosedOverTypes;
   std::unordered_map<std::string, Op> RecurType;
   std::unordered_map<std::string, uint64_t> RecurTargets;
@@ -63,15 +64,25 @@ class ProgrammeState {
   
   // TODO: Keep structure dynamic (updated as defrecord + others is used)
   std::unordered_map<
-    std::string, // className
+    uint64_t, // classId
     std::unordered_map<
       std::string, // methodName
       std::vector<
         std::pair<
           std::string, // signature
           std::pair<StaticCallType, StaticCall>>>>> InstanceCallLibrary;
+          
+  std::unordered_map<
+    uint64_t, // classId
+    std::unordered_map<
+      std::string, // methodName
+      std::vector<
+        std::pair<
+          std::string, // signature
+          void *>>>> DynamicCallLibrary;
 
   uint64_t lastFunctionUniqueId = 0;
+  uint64_t lastClassUniqueId = 100; // reserved for ANY and primitive types
 
   ProgrammeState();
   

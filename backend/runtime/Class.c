@@ -7,6 +7,7 @@ Class* Class_create(String *name, String *typeName, uint64_t fieldCount, ...) {
   va_start(args, fieldCount);
   Object *super = allocate(sizeof(Object) + sizeof(Class) + fieldCount * sizeof(String *)); 
   Class *self = (Class *)(super + 1);
+  self->registerId = 0; // unregistered
   self->name = name;
   self->className = typeName;
   self->fieldCount = fieldCount;
@@ -31,9 +32,8 @@ uint64_t Class_hash(Class *self) { // CONSIDER: Ignoring fields for now, is it w
 }
 
 String *Class_toString(Class *self) {
-  String *prefix = String_create("class ");
-  retain(self->className);
-  String *retVal = String_concat(prefix, self->className);
+  String *retVal = self->className;
+  retain(retVal);
   release(self);
   return retVal;
 }
@@ -42,4 +42,17 @@ void Class_destroy(Class *self) {
   release(self->className);
   release(self->name);
   for (int i = 0; i < self->fieldCount; ++i) release(self->fields[i]);
+}
+
+int64_t Class_fieldIndex(Class *self, String *field) {
+  for (int i = 0; i < self->fieldCount; ++i) {
+    if (String_equals(field, self->fields[i])) {
+      release(self);
+      release(field);
+      return i;
+    }
+  }
+  release(self);
+  release(field);
+  return -1;
 }

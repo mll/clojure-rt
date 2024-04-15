@@ -6,6 +6,6 @@ extern "C" {
   #include "runtime/Class.h"
 }
 
-std::unordered_map<std::string, Class *> getStaticClasses();
+Class *javaLangClass();
 
 #endif

@@ -45,6 +45,7 @@
 
 using namespace clojure::rt::protobuf::bytecode;
 
+#define REPORT_EX(runtime, EX) ((runtime) ? runtimeException(EX) : (throw (EX)))
 
 class CodeGenerator {
   std::shared_ptr<ProgrammeState> TheProgramme;
@@ -77,6 +78,7 @@ public:
   static std::string globalNameForVar(std::string var);
   static std::string getMangledUniqueFunctionName(uint64_t num) ;
   uint64_t getUniqueFunctionId();
+  uint64_t getUniqueClassId();
 
   TypedValue staticFalse();
   TypedValue staticTrue();
@@ -108,6 +110,7 @@ TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<F
   llvm::StructType *runtimeInvokationCacheType();
   llvm::StructType *runtimeFunctionMethodType();
   llvm::StructType *runtimeClassType();
+  llvm::StructType *runtimeDeftypeType();
 
   llvm::Value *getRuntimeObjectType(llvm::Value *objectPtr);
 
@@ -151,8 +154,11 @@ TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<F
   llvm::PointerType *dynamicBoxedType();
   llvm::Type *dynamicType(const ObjectTypeSet &type);
   
-  void registerClass(String *className, Class *_class);
-  Class *getClass(String *className);
+  uint64_t registerClass(Class *_class);
+  Class *getClass(uint64_t classId);
+  uint64_t getClassId(const std::string &className);
+  void *getPrimitiveMethod(objectType t, const std::string &methodName);
+  void *getPrimitiveField(objectType t, void * object, const std::string &fieldName);
 
   /* Code generation */
 

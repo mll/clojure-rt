@@ -11,6 +11,7 @@
 #include "PersistentArrayMap.h"
 
 struct Class {
+  uint64_t registerId;
   String *name;
   String *className;
   
@@ -25,5 +26,7 @@ BOOL Class_equals(Class *self, Class *other);
 uint64_t Class_hash(Class *self);
 String *Class_toString(Class *self);
 void Class_destroy(Class *self);
+
+int64_t Class_fieldIndex(Class *self, String *field);
 
 #endif

@@ -7,13 +7,13 @@ using namespace llvm;
 
 TypedValue CodeGenerator::codegen(const Node &node, const InstanceCallNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto methodName = subnode.method();
-  string className = "vector"; // TODO: How to get that value at runtime?
+  uint64_t classId = persistentVectorType;
   
-  auto classMethods = TheProgramme->InstanceCallLibrary.find(className);
-  if (classMethods == TheProgramme->InstanceCallLibrary.end()) throw CodeGenerationException(string("Class ") + className + string(" not implemented"), node);
+  auto classMethods = TheProgramme->InstanceCallLibrary.find(classId);
+  if (classMethods == TheProgramme->InstanceCallLibrary.end()) throw CodeGenerationException(string("Class ") + to_string(classId) + string(" not implemented"), node);
   
   auto methods = classMethods->second.find(methodName);
-  if (methods == classMethods->second.end()) throw CodeGenerationException(string("Instance call ") + methodName + string(" of class ") + className + string(" not implemented"), node);
+  if (methods == classMethods->second.end()) throw CodeGenerationException(string("Instance call ") + methodName + string(" of class ") + to_string(classId) + string(" not implemented"), node);
   
   vector<ObjectTypeSet> types;
   bool dynamic = false;
@@ -90,21 +90,21 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceCallNode &subn
     parentFunction->insert(parentFunction->end(), failure);
     parentFunction->insert(parentFunction->end(), merge);
     Builder->SetInsertPoint(failure);
-    runtimeException(CodeGenerationException(string("Instance call ") + methodName + string(" of class ") + className + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node));
+    runtimeException(CodeGenerationException(string("Instance call ") + methodName + string(" of class ") + to_string(classId) + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node));
     Builder->CreateUnreachable();
     Builder->SetInsertPoint(merge);
     Value *v = Builder->CreateLoad(dynamicBoxedType(), retVal);
     return TypedValue(ObjectTypeSet::dynamicType(), v);
   }
   
-  throw CodeGenerationException(string("Instance call ") + methodName + string(" of class ") + className + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node);
+  throw CodeGenerationException(string("Instance call ") + methodName + string(" of class ") + to_string(classId) + string(" not implemented for types: ") + requiredTypes + "_" + ObjectTypeSet::typeStringForArg(typeRestrictions), node);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const InstanceCallNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  string className = "vector";
+  uint64_t classId = persistentVectorType;
   auto methodName = subnode.method();
   
-  auto classMethods = TheProgramme->InstanceCallLibrary.find(className);
+  auto classMethods = TheProgramme->InstanceCallLibrary.find(classId);
   if (classMethods == TheProgramme->InstanceCallLibrary.end()) return ObjectTypeSet::dynamicType();
   
   auto methods = classMethods->second.find(methodName);

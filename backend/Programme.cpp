@@ -13,10 +13,10 @@ std::string ProgrammeState::closedOverKey(uint64_t functionId, uint64_t methodId
 ProgrammeState::ProgrammeState() {
   auto numbers = getNumbersStaticFunctions();
   auto utils = getUtilsStaticFunctions();
-  auto vector = getVectorStaticAndInstanceFunctions();
+  auto vector = getVectorFunctions();
   StaticCallLibrary.insert(numbers.begin(), numbers.end());
   StaticCallLibrary.insert(utils.begin(), utils.end());
   StaticCallLibrary.insert(vector.first.begin(), vector.first.end());
-  InstanceCallLibrary.insert(vector.second.begin(), vector.second.end());
-  DefinedClasses = std::move(getStaticClasses());
+  DynamicCallLibrary.insert(vector.second.first.begin(), vector.second.first.end());
+  InstanceCallLibrary.insert(vector.second.second.begin(), vector.second.second.end());
 }

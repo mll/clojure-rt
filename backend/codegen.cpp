@@ -293,6 +293,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ObjectTypeSet &type
     return getType(node, node.subnode().const_(), typeRestrictions);    
   case opDef:
     return getType(node, node.subnode().def(), typeRestrictions);    
+  case opDeftype:
+    return getType(node, node.subnode().deftype(), typeRestrictions);
   case opDo:
     return getType(node, node.subnode().do_(), typeRestrictions);    
   case opFn:

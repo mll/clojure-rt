@@ -36,8 +36,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   } else if (t == classType) {
     Value *className = dynamicString(subnode.val().c_str());
     dynamicRetain(className);
-    Value *thisPtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) this, false)), ptrT);
-    retVal = callRuntimeFun("getClassByName", ptrT, {ptrT, ptrT}, {thisPtr, className});
+    Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
+    retVal = callRuntimeFun("getClassByName", ptrT, {ptrT, ptrT}, {statePtr, className});
     // TODO
   } else if (t == deftypeType) {
     // TODO/not possible?

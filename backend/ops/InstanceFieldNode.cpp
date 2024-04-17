@@ -3,6 +3,11 @@
 using namespace std;
 using namespace llvm;
 
+extern "C" {
+  void release(void *obj);
+  void retain(void *obj);
+} 
+
 TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &subnode, const ObjectTypeSet &typeRestrictions) {
   auto type = getType(node, typeRestrictions);
   auto target = codegen(subnode.instance(), ObjectTypeSet::all());
@@ -24,6 +29,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
       auto classIt = TheProgramme->DefinedClasses.find(classId);
       if (classIt == TheProgramme->DefinedClasses.end()) throw CodeGenerationException(string("Class ") + to_string(classId) + string(" not found"), node); // class not found
       Class *_class = classIt->second;
+      retain(_class);
       int64_t fieldIndex = Class_fieldIndex(_class, String_createDynamicStr(fieldName.c_str()));
       if (fieldIndex == -1) {
         throw CodeGenerationException(string("Field ") + fieldName + string(" of class ") + to_string(classId) + string(" not found"), node); // class not found
@@ -43,6 +49,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
   BasicBlock *failedBB = llvm::BasicBlock::Create(*TheContext, "instance_field_failed", parentFunction);
   BasicBlock *finalBB = llvm::BasicBlock::Create(*TheContext, "instance_field_final", parentFunction);
   Value *fieldNameValue = dynamicString(fieldName.c_str()); // CONSIDER: Pass std::string instead of building runtime String and then immediately discarding it?
+  dynamicRetain(fieldNameValue);
   SwitchInst *cond = Builder->CreateSwitch(targetRuntimeType, failedBB, targetType.size());
   Builder->SetInsertPoint(failedBB);
   runtimeException(CodeGenerationException(string("Unexpected type!"), node));
@@ -65,7 +72,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
         BasicBlock *classFieldFailedBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup_failed", parentFunction);
         Builder->CreateCondBr(indexValidator, classFieldFailedBB, classFieldFoundBB);
         Builder->SetInsertPoint(classFieldFailedBB);
-        runtimeException(CodeGenerationException("Field " + fieldName + "not found!", node));
+        runtimeException(CodeGenerationException("Field " + fieldName + " not found!", node));
         Builder->CreateUnreachable();
         Builder->SetInsertPoint(classFieldFoundBB);
         Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndex});
@@ -83,12 +90,13 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
           Builder->SetInsertPoint(classBB);
           auto classIt = TheProgramme->DefinedClasses.find(classId);
           if (classIt == TheProgramme->DefinedClasses.end()) {
-            runtimeException(CodeGenerationException("Class " + to_string(classId) + "not found", node));
+            runtimeException(CodeGenerationException("Class " + to_string(classId) + " not found", node));
             Builder->CreateUnreachable();
           } else {
+            retain(classIt->second);
             int64_t fieldIndex = Class_fieldIndex(classIt->second, String_createDynamicStr(fieldName.c_str()));
             if (fieldIndex == -1) {
-              runtimeException(CodeGenerationException("Field " + fieldName + " in class " + to_string(classId) + "not found!", node));
+              runtimeException(CodeGenerationException("Field " + fieldName + " in class " + to_string(classId) + " not found!", node));
               Builder->CreateUnreachable();
             } else {
               Value *fieldIndexValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, fieldIndex, true));
@@ -100,9 +108,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
         }
       }
     } else {
-      Value *thisPtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) this, false)), ptrT);
+      Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
       Value *typeValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, t, false));
-      Value *fieldValue = callRuntimeFun("getPrimitiveField", ptrT, {ptrT, Type::getInt64Ty(*TheContext), ptrT}, {thisPtr, typeValue, fieldNameValue});
+      Value *fieldValue = callRuntimeFun("getPrimitiveField", ptrT, {ptrT, Type::getInt64Ty(*TheContext), ptrT}, {statePtr, typeValue, fieldNameValue});
       Value *fieldNotFoundValue = Builder->CreateICmpEQ(fieldValue, Constant::getNullValue(ptrT));
       BasicBlock *fieldMissing = BasicBlock::Create(*TheContext, "field_missing", parentFunction);
       Builder->CreateCondBr(fieldNotFoundValue, fieldMissing, finalBB);

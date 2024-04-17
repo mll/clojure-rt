@@ -1,5 +1,6 @@
 #include "Object.h"
 #include "Class.h"
+#include "Hash.h"
 #include <stdarg.h>
 
 Class* Class_create(String *name, String *typeName, uint64_t fieldCount, ...) {
@@ -22,13 +23,13 @@ Class* Class_create(String *name, String *typeName, uint64_t fieldCount, ...) {
 
 /* outside refcount system */
 BOOL Class_equals(Class *self, Class *other) {
-  // Two classes with the same name and field names don't have to be equal
-  return self == other; // Pointer comparison, COMPARE anything else?
+  // Unregistered classes should never appear here
+  return self->registerId == other->registerId;
 }
 
 /* outside refcount system */
 uint64_t Class_hash(Class *self) { // CONSIDER: Ignoring fields for now, is it wise?
-  return combineHash(hash(self->className), hash(self->name));
+  return combineHash(avalanche_64(self->registerId), hash(self->name));
 }
 
 String *Class_toString(Class *self) {

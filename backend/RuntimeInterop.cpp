@@ -777,87 +777,38 @@ void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidan
   }  
 } 
 
-uint64_t CodeGenerator::registerClass(Class *_class) {
-  return TheProgramme->registerClass(_class);
-}
-
 extern "C" {
-  uint64_t registerClass(CodeGenerator *gen, Class *_class) {
-    return gen->registerClass(_class);
+  uint64_t registerClass(ProgrammeState *TheProgramme, Class *_class) {
+    return TheProgramme->registerClass(_class);
   }
 }
 
-uint64_t CodeGenerator::getClassId(const std::string &className) {
-  auto foundClass = TheProgramme->ClassesByName.find(className);
-  if (foundClass == TheProgramme->ClassesByName.end()) return 0; // CONSIDER: exception?
-  return foundClass->second;
-}
-
-Class *CodeGenerator::getClass(uint64_t classId) {
-  auto foundClass = TheProgramme->DefinedClasses.find(classId);
-  if (foundClass == TheProgramme->DefinedClasses.end()) return nullptr;
-  retain(foundClass->second);
-  return foundClass->second;
-}
 
 extern "C" {
-  Class* getClassById(CodeGenerator *gen, uint64_t classId) {
-    return gen->getClass(classId);
+  Class* getClassById(ProgrammeState *TheProgramme, uint64_t classId) {
+    return TheProgramme->getClass(classId);
   }
   
-  Class* getClassByName(CodeGenerator *gen, String *className) {
+  Class* getClassByName(ProgrammeState *TheProgramme, String *className) {
     std::string string_className {String_c_str(className)};
     release(className);
-    uint64_t id = gen->getClassId(string_className);
-    return gen->getClass(id);
+    return TheProgramme->getClass(TheProgramme->getClassId(string_className));
   }
-}
-
-void *CodeGenerator::getPrimitiveMethod(objectType target, const std::string &methodName) {
-  auto classMethods = TheProgramme->DynamicCallLibrary.find((uint64_t) target);
-  if (classMethods == TheProgramme->DynamicCallLibrary.end()) return nullptr;
-  
-  vector<ObjectTypeSet> types {target};
-  string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
-  
-  auto methods = classMethods->second.find(methodName);
-  if (methods != classMethods->second.end()) { // class and method found
-    for (auto method: methods->second) {
-      if (method.first != requiredTypes) continue; 
-      return method.second;
-    }
-  }
-  
-  return nullptr;
 }
 
 extern "C" {
-  void *getPrimitiveMethod(CodeGenerator *gen, objectType t, String* methodName) { // TODO: this is only for 0-arg methods at the moment
+  void *getPrimitiveMethod(ProgrammeState *TheProgramme, objectType t, String* methodName) { // TODO: this is only for 0-arg methods at the moment
     std::string string_methodName {String_c_str(methodName)};
     release(methodName);
-    return gen->getPrimitiveMethod(t, string_methodName);
+    return TheProgramme->getPrimitiveMethod(t, string_methodName);
   }
 }
 
-void *CodeGenerator::getPrimitiveField(objectType target, void * object, const std::string &fieldName) {
-  if (target == deftypeType) {
-    auto classIt = TheProgramme->DefinedClasses.find((uint64_t) target);
-    if (classIt == TheProgramme->DefinedClasses.end()) return nullptr;
-    Class *_class = classIt->second;
-    int fieldIndex = Class_fieldIndex(_class, String_createDynamicStr(fieldName.c_str()));
-    if (fieldIndex == -1) return nullptr;
-    return Deftype_getIndexedField((Deftype *) object, fieldIndex);
-  } else {
-    // CONSIDER: Primitive classes don't have fields, only 0-arg methods?
-    return nullptr;
-  } 
-}
-
 extern "C" {
-  void *getPrimitiveField(CodeGenerator *gen, objectType t, void * object, String* fieldName) {
+  void *getPrimitiveField(ProgrammeState *TheProgramme, objectType t, void * object, String* fieldName) {
     std::string string_fieldName {String_c_str(fieldName)};
     release(fieldName);
-    return gen->getPrimitiveField(t, object, string_fieldName);
+    return TheProgramme->getPrimitiveField(t, object, string_fieldName);
   }
 }
 

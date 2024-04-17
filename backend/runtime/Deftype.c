@@ -21,11 +21,8 @@ Deftype* Deftype_create(Class *_class, uint64_t fieldCount, ...) {
 
 /* outside refcount system */
 BOOL Deftype_equals(Deftype *self, Deftype *other) {
-  if (!equals(self->_class, other->_class)) return FALSE;
-  for (int i = 0; i < self->_class->fieldCount; ++i)
-    if (!Object_equals(self->values[i], other->values[i]))
-      return FALSE;
-  return TRUE;
+  // Pointer equality
+  return self == other;
 }
 
 /* outside refcount system */

@@ -89,6 +89,12 @@ class ProgrammeState {
   static std::string closedOverKey(uint64_t functionId, uint64_t methodId);
   uint64_t getUniqueClassId();
   uint64_t registerClass(Class *_class);
+  
+  uint64_t getClassId(const std::string &className);
+  Class *getClass(uint64_t classId);
+  
+  void *getPrimitiveMethod(objectType target, const std::string &methodName);
+  void *getPrimitiveField(objectType target, void * object, const std::string &fieldName);
 };
 
 #endif

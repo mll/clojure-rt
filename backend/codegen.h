@@ -153,12 +153,6 @@ TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<F
   llvm::Type *dynamicBoxedType(objectType type);
   llvm::PointerType *dynamicBoxedType();
   llvm::Type *dynamicType(const ObjectTypeSet &type);
-  
-  uint64_t registerClass(Class *_class);
-  Class *getClass(uint64_t classId);
-  uint64_t getClassId(const std::string &className);
-  void *getPrimitiveMethod(objectType t, const std::string &methodName);
-  void *getPrimitiveField(objectType t, void * object, const std::string &fieldName);
 
   /* Code generation */
 

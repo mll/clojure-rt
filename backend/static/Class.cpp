@@ -5,7 +5,7 @@ extern "C" {
 }
 
 Class *javaLangClass() {
-    const char* s = "java.lang.Class";
+    const char* s = "class java.lang.Class";
     String* name = String_createDynamicStr(s);
     retain(name);
     return Class_create(name, name, 0);

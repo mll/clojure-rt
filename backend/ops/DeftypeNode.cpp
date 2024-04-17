@@ -21,8 +21,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const DeftypeNode &subnode, 
   }
   
   Value *classValue = callRuntimeFun("Class_create", ptrT, types, args, true);
-  Value *thisPtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) this, false)), ptrT);
-  callRuntimeFun("registerClass", Type::getVoidTy(*TheContext), {ptrT, ptrT}, {thisPtr, classValue});
+  Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
+  callRuntimeFun("registerClass", Type::getVoidTy(*TheContext), {ptrT, ptrT}, {statePtr, classValue});
   return TypedValue(ObjectTypeSet(nilType), dynamicNil());
 }
 

@@ -16,6 +16,7 @@ struct Class {
   String *className;
   
   uint64_t fieldCount;
+  uint64_t *indexPermutation;
   String *fields[];
 };
 

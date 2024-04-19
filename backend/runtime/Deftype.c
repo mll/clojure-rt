@@ -12,7 +12,7 @@ Deftype* Deftype_create(Class *_class, uint64_t fieldCount, ...) {
   va_start(args, fieldCount);
   for (int i = 0; i < fieldCount; ++i) {
     void *field = va_arg(args, void *);
-    self->values[i] = super(field);
+    self->values[_class->indexPermutation[i]] = super(field);
   }
   va_end(args);
   Object_create(superObject, deftypeType);
@@ -60,12 +60,9 @@ void Deftype_destroy(Deftype *self) {
 }
 
 void *Deftype_getField(Deftype *self, String *field) {
-  uint64_t i = 0;
-  while (i < self->_class->fieldCount) {
-    if (equals(self->_class->fields[i], field)) break;
-    ++i;
-  }
-  if (i == self->_class->fieldCount) {release(self); return NULL;} // field not found exception
+  retain(self->_class);
+  int64_t i = Class_fieldIndex(self->_class, field);
+  if (i == -1) {release(self); return NULL;} // field not found exception
   void *retVal = Object_data(self->values[i]);
   retain(retVal);
   release(self);

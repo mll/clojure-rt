@@ -31,7 +31,7 @@ std::pair<
           std::pair<
             std::string, // signature
             std::pair<StaticCallType, StaticCall>>>>>>
-getDeftypeStaticFunctions() { // TODO: getClass should eventually work for any type
+getDeftypeStaticFunctions() { // TODO: getClass should eventually work for any type, but we need to define classes like java.lang.Long etc. first
   unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> instanceCalls;
   unordered_map<string, vector<pair<string, void *>>> dynamicCalls;
   

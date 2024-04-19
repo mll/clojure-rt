@@ -131,7 +131,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
     Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
     Value *nodePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &node, false)), ptrT);
     Value *typeValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, t, false));
-    Value *methodValue = callRuntimeFun("getPrimitiveMethod", ptrT, {ptrT, Type::getInt64Ty(*TheContext), ptrT}, {statePtr, typeValue, methodOrFieldNameValue});
+    Value *noExtraArgs = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, 0, false));
+    std::vector<Type *> primitiveMethodTypes {ptrT, ptrT, Type::getInt64Ty(*TheContext), Type::getInt64Ty(*TheContext)};
+    std::vector<Value *> primitiveMethodValues {statePtr, methodOrFieldNameValue, typeValue, noExtraArgs};
+    Value *methodValue = callRuntimeFun("getPrimitiveMethod", ptrT, primitiveMethodTypes, primitiveMethodValues, true);
     Value *methodNotFoundValue = Builder->CreateICmpEQ(methodValue, Constant::getNullValue(ptrT));
     BasicBlock *methodFound = BasicBlock::Create(*TheContext, "method_found", parentFunction);
     BasicBlock *methodMissing = BasicBlock::Create(*TheContext, "method_missing", parentFunction);

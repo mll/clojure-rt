@@ -72,11 +72,12 @@ Class *ProgrammeState::getClass(uint64_t classId) {
   return foundClass->second;
 }
 
-void *ProgrammeState::getPrimitiveMethod(objectType target, const std::string &methodName) {
+void *ProgrammeState::getPrimitiveMethod(objectType target, const std::string &methodName, const std::vector<objectType> &argTypes) {
   auto classMethods = DynamicCallLibrary.find((uint64_t) target);
   if (classMethods == DynamicCallLibrary.end()) return nullptr;
   
   std::vector<ObjectTypeSet> types {target};
+  types.insert(types.end(), argTypes.begin(), argTypes.end());
   std::string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
   
   auto methods = classMethods->second.find(methodName);

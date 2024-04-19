@@ -93,7 +93,7 @@ class ProgrammeState {
   uint64_t getClassId(const std::string &className);
   Class *getClass(uint64_t classId);
   
-  void *getPrimitiveMethod(objectType target, const std::string &methodName);
+  void *getPrimitiveMethod(objectType target, const std::string &methodName, const std::vector<objectType> &argTypes);
 };
 
 #endif

@@ -797,10 +797,15 @@ extern "C" {
 }
 
 extern "C" {
-  void *getPrimitiveMethod(ProgrammeState *TheProgramme, objectType target, String* methodName) { // TODO: this is only for 0-arg methods at the moment
+  void *getPrimitiveMethod(ProgrammeState *TheProgramme, String* methodName, objectType target, uint64_t argCount, ...) {
     std::string string_methodName {String_c_str(methodName)};
     release(methodName);
-    return TheProgramme->getPrimitiveMethod(target, string_methodName);
+    std::vector<objectType> argTypes;
+    va_list args;
+    va_start(args, argCount);
+    for (uint64_t i = 0; i < argCount; ++i) argTypes.push_back(va_arg(args, objectType));
+    va_end(args);
+    return TheProgramme->getPrimitiveMethod(target, string_methodName, argTypes);
   }
 }
 

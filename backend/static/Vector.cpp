@@ -126,7 +126,7 @@ pair<
   
   unordered_map<uint64_t, unordered_map<string, vector<pair<string, void *>>>> methodPointers;
 
-  vector<string> types {"J", "D", "Z", "LS", "LV", "LL", "LY", "LK", "LF", "LN", "LO"};
+  vector<string> types {"J", "D", "Z", "LS", "LV", "LL", "LY", "LK", "LF", "LN", "LO", "LT", "LC"};
   
   transient.push_back({"LV", {&Transient_type, &Transient}});
   instanceCalls.insert({"asTransient", transient});

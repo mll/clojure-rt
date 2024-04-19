@@ -38,8 +38,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
       Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndexValue});
       
       return TypedValue(ObjectTypeSet::all(), fieldValue);
-    } else {
-      // TODO: Primitive types
+    } else { // Primitive types don't have fields, only methods
       throw CodeGenerationException(string("Field access to primitive type ") + to_string(classId) + string(" not implemented"), node); // class not found
     }
   }
@@ -59,26 +58,25 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
   
   for (auto it = targetType.internalBegin(); it != targetType.internalEnd(); ++it) {
     objectType t = *it;
-    BasicBlock *typeBB = llvm::BasicBlock::Create(*TheContext, "objectType_" + to_string(t), parentFunction);
-    cond->addCase(ConstantInt::get(*TheContext, APInt(32, t, false)), typeBB);
-    Builder->SetInsertPoint(typeBB);
+    BasicBlock *inTypeBB = llvm::BasicBlock::Create(*TheContext, "objectType_" + to_string(t), parentFunction);
+    BasicBlock *outTypeBB = (t == deftypeType) ? llvm::BasicBlock::Create(*TheContext, "objectType_deftype_only", parentFunction) : inTypeBB;
+    cond->addCase(ConstantInt::get(*TheContext, APInt(32, t, false)), inTypeBB);
+    Builder->SetInsertPoint(inTypeBB);
+    
+    // In case of deftype, check class fields first
     if (t == deftypeType) {
       dynamicRetain(target.second);
       Value *classRuntimeValue = callRuntimeFun("Deftype_getClass", ptrT, {ptrT}, {target.second});
-      if (targetType.anyClass()) {
+      if (targetType.anyClass()) { // Totally unknown class, can't switch
         Value *fieldIndex = callRuntimeFun("Class_fieldIndex", Type::getInt64Ty(*TheContext), {ptrT, ptrT}, {classRuntimeValue, fieldNameValue});
         Value *indexValidator = Builder->CreateICmpEQ(fieldIndex, ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, -1, true)));
-        BasicBlock *classFieldFoundBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup", parentFunction);
-        BasicBlock *classFieldFailedBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup_failed", parentFunction);
-        Builder->CreateCondBr(indexValidator, classFieldFailedBB, classFieldFoundBB);
-        Builder->SetInsertPoint(classFieldFailedBB);
-        runtimeException(CodeGenerationException("Field " + fieldName + " not found!", node));
-        Builder->CreateUnreachable();
+        BasicBlock *classFieldFoundBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup_successful", parentFunction);
+        Builder->CreateCondBr(indexValidator, outTypeBB, classFieldFoundBB);
         Builder->SetInsertPoint(classFieldFoundBB);
         Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndex});
         phiNode->addIncoming(fieldValue, classFieldFoundBB);
         Builder->CreateBr(finalBB);
-      } else {
+      } else { // One of N classes, switch on them
         Value *classIdPtr = Builder->CreateStructGEP(runtimeClassType(), classRuntimeValue, 0, "get_class_id");
         Value *classIdValue = Builder->CreateLoad(Type::getInt64Ty(*TheContext), classIdPtr, "class_id");
         BasicBlock *failedClassSwitchBB = llvm::BasicBlock::Create(*TheContext, "host_interop_class_switch_failed", parentFunction);
@@ -90,14 +88,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
           Builder->SetInsertPoint(classBB);
           auto classIt = TheProgramme->DefinedClasses.find(classId);
           if (classIt == TheProgramme->DefinedClasses.end()) {
-            runtimeException(CodeGenerationException("Class " + to_string(classId) + " not found", node));
-            Builder->CreateUnreachable();
+            Builder->CreateBr(outTypeBB);
           } else {
             retain(classIt->second);
             int64_t fieldIndex = Class_fieldIndex(classIt->second, String_createDynamicStr(fieldName.c_str()));
             if (fieldIndex == -1) {
-              runtimeException(CodeGenerationException("Field " + fieldName + " in class " + to_string(classId) + " not found!", node));
-              Builder->CreateUnreachable();
+              Builder->CreateBr(outTypeBB);
             } else {
               Value *fieldIndexValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, fieldIndex, true));
               Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndexValue});
@@ -107,19 +103,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
           }
         }
       }
-    } else {
-      Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
-      Value *typeValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, t, false));
-      Value *fieldValue = callRuntimeFun("getPrimitiveField", ptrT, {ptrT, Type::getInt64Ty(*TheContext), ptrT}, {statePtr, typeValue, fieldNameValue});
-      Value *fieldNotFoundValue = Builder->CreateICmpEQ(fieldValue, Constant::getNullValue(ptrT));
-      BasicBlock *fieldMissing = BasicBlock::Create(*TheContext, "field_missing", parentFunction);
-      Builder->CreateCondBr(fieldNotFoundValue, fieldMissing, finalBB);
-      phiNode->addIncoming(fieldValue, typeBB);
-      
-      Builder->SetInsertPoint(fieldMissing);
-      runtimeException(CodeGenerationException(string("Field ") + fieldName + string(" of class ") + to_string(t) + string(" not found"), node));
-      Builder->CreateUnreachable();
     }
+    
+    // Primitive fields don't exist
+    Builder->SetInsertPoint(outTypeBB);
+    runtimeException(CodeGenerationException(string("Field ") + fieldName + string(" of class ") + to_string(t) + string(" not found"), node));
+    Builder->CreateUnreachable();
   }
   Builder->SetInsertPoint(finalBB);
   return TypedValue(ObjectTypeSet::all(), phiNode);

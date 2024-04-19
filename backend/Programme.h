@@ -94,7 +94,6 @@ class ProgrammeState {
   Class *getClass(uint64_t classId);
   
   void *getPrimitiveMethod(objectType target, const std::string &methodName);
-  void *getPrimitiveField(objectType target, void * object, const std::string &fieldName);
 };
 
 #endif

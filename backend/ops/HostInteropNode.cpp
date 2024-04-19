@@ -25,38 +25,42 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
   }
   
   if (classId) { // Static dispatch
-    auto classMethods = TheProgramme->InstanceCallLibrary.find(classId);
-    if (classMethods == TheProgramme->InstanceCallLibrary.end()) throw CodeGenerationException(string("Class ") + to_string(classId) + string(" not found"), node); // class not found
+    std::vector<uint64_t> candidateClasses {classId};
+    if (targetType.isDeterminedClass()) candidateClasses.push_back(deftypeType);
     
-    auto methods = classMethods->second.find(methodOrFieldName);
-    if (methods != classMethods->second.end()) { // class and method found
-      vector<ObjectTypeSet> types {targetType};
-      string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
-      for (auto method: methods->second) {
-        auto methodTypes = typesForArgString(node, method.first);
-        if(method.first != requiredTypes) continue; 
-        return method.second.second(this, methodOrFieldName + " " + requiredTypes, node, {target});
+    // Static method
+    for (uint64_t classId: candidateClasses) {
+      auto classMethods = TheProgramme->InstanceCallLibrary.find(classId);
+      if (classMethods == TheProgramme->InstanceCallLibrary.end()) throw CodeGenerationException(string("Class ") + to_string(classId) + string(" not found"), node); // class not found
+      
+      auto methods = classMethods->second.find(methodOrFieldName);
+      if (methods != classMethods->second.end()) { // class and method found
+        vector<ObjectTypeSet> types {targetType};
+        string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
+        for (auto method: methods->second) {
+          auto methodTypes = typesForArgString(node, method.first);
+          if(method.first != requiredTypes) continue; 
+          return method.second.second(this, methodOrFieldName + " " + requiredTypes, node, {target});
+        }
       }
     }
     // class found, method not found or found, but does not expect arity 0 - field or not present at all
     
-    if (targetType.determinedType() == deftypeType) {
+    if (targetType.determinedType() == deftypeType) { // Fields of class
       auto classIt = TheProgramme->DefinedClasses.find(classId);
       if (classIt == TheProgramme->DefinedClasses.end()) throw CodeGenerationException(string("Class ") + to_string(classId) + string(" not found"), node); // class not found
       Class *_class = classIt->second;
       retain(_class);
       int64_t fieldIndex = Class_fieldIndex(_class, String_createDynamicStr(methodOrFieldName.c_str()));
-      if (fieldIndex == -1) {
-        throw CodeGenerationException(string("Method or field ") + methodOrFieldName + string(" of class ") + to_string(classId) + string(" not found"), node); // class not found
+      if (fieldIndex > -1) {
+        Value *fieldIndexValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, fieldIndex, true));
+        Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndexValue});
+        return TypedValue(ObjectTypeSet::all(), fieldValue); 
       }
-      Value *fieldIndexValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, fieldIndex, true));
-      Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndexValue});
-      
-      return TypedValue(ObjectTypeSet::all(), fieldValue);
-    } else {
-      // TODO: Primitive types
-      throw CodeGenerationException(string("Field access to primitive type ") + to_string(classId) + string(" not implemented"), node); // class not found
     }
+    
+    // Primitive types don't have fields, only methods
+    throw CodeGenerationException(string("Field access to primitive type ") + to_string(classId) + string(" not implemented"), node); // class not found
   }
   
   // Reflection
@@ -75,26 +79,25 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
   
   for (auto it = targetType.internalBegin(); it != targetType.internalEnd(); ++it) {
     objectType t = *it;
-    BasicBlock *typeBB = llvm::BasicBlock::Create(*TheContext, "objectType_" + to_string(t), parentFunction);
-    cond->addCase(ConstantInt::get(*TheContext, APInt(32, t, false)), typeBB);
-    Builder->SetInsertPoint(typeBB);
+    BasicBlock *inTypeBB = llvm::BasicBlock::Create(*TheContext, "objectType_" + to_string(t), parentFunction);
+    BasicBlock *outTypeBB = (t == deftypeType) ? llvm::BasicBlock::Create(*TheContext, "objectType_deftype_only", parentFunction) : inTypeBB;
+    cond->addCase(ConstantInt::get(*TheContext, APInt(32, t, false)), inTypeBB);
+    Builder->SetInsertPoint(inTypeBB);
+    
+    // In case of deftype, check class fields and methods first
     if (t == deftypeType) {
       dynamicRetain(target.second);
       Value *classRuntimeValue = callRuntimeFun("Deftype_getClass", ptrT, {ptrT}, {target.second});
-      if (targetType.anyClass()) {
+      if (targetType.anyClass()) { // Totally unknown class, can't switch
         Value *fieldIndex = callRuntimeFun("Class_fieldIndex", Type::getInt64Ty(*TheContext), {ptrT, ptrT}, {classRuntimeValue, methodOrFieldNameValue});
         Value *indexValidator = Builder->CreateICmpEQ(fieldIndex, ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, -1, true)));
-        BasicBlock *classFieldFoundBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup", parentFunction);
-        BasicBlock *classFieldFailedBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup_failed", parentFunction);
-        Builder->CreateCondBr(indexValidator, classFieldFailedBB, classFieldFoundBB);
-        Builder->SetInsertPoint(classFieldFailedBB);
-        runtimeException(CodeGenerationException("Field " + methodOrFieldName + " not found!", node));
-        Builder->CreateUnreachable();
+        BasicBlock *classFieldFoundBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup_successful", parentFunction);
+        Builder->CreateCondBr(indexValidator, outTypeBB, classFieldFoundBB);
         Builder->SetInsertPoint(classFieldFoundBB);
         Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndex});
         phiNode->addIncoming(fieldValue, classFieldFoundBB);
         Builder->CreateBr(finalBB);
-      } else {
+      } else { // One of N classes, switch on them
         Value *classIdPtr = Builder->CreateStructGEP(runtimeClassType(), classRuntimeValue, 0, "get_class_id");
         Value *classIdValue = Builder->CreateLoad(Type::getInt64Ty(*TheContext), classIdPtr, "class_id");
         BasicBlock *failedClassSwitchBB = llvm::BasicBlock::Create(*TheContext, "host_interop_class_switch_failed", parentFunction);
@@ -106,14 +109,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
           Builder->SetInsertPoint(classBB);
           auto classIt = TheProgramme->DefinedClasses.find(classId);
           if (classIt == TheProgramme->DefinedClasses.end()) {
-            runtimeException(CodeGenerationException("Class " + to_string(classId) + " not found", node));
-            Builder->CreateUnreachable();
+            Builder->CreateBr(outTypeBB);
           } else {
             retain(classIt->second);
             int64_t fieldIndex = Class_fieldIndex(classIt->second, String_createDynamicStr(methodOrFieldName.c_str()));
             if (fieldIndex == -1) {
-              runtimeException(CodeGenerationException("Field " + methodOrFieldName + " in class " + to_string(classId) + " not found!", node));
-              Builder->CreateUnreachable();
+              Builder->CreateBr(outTypeBB);
             } else {
               Value *fieldIndexValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, fieldIndex, true));
               Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndexValue});
@@ -123,34 +124,29 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
           }
         }
       }
-    } else {
-      Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
-      Value *nodePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &node, false)), ptrT);
-      Value *typeValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, t, false));
-      Value *methodValue = callRuntimeFun("getPrimitiveMethod", ptrT, {ptrT, Type::getInt64Ty(*TheContext), ptrT}, {statePtr, typeValue, methodOrFieldNameValue});
-      Value *methodNotFoundValue = Builder->CreateICmpEQ(methodValue, Constant::getNullValue(ptrT));
-      BasicBlock *methodFound = BasicBlock::Create(*TheContext, "method_found", parentFunction);
-      BasicBlock *methodMissing = BasicBlock::Create(*TheContext, "method_missing", parentFunction);
-      Builder->CreateCondBr(methodNotFoundValue, methodMissing, methodFound);
-      
-      Builder->SetInsertPoint(methodFound);
-      FunctionType *FT = FunctionType::get(ptrT, {ptrT}, false);
-      Value *callablePointer = Builder->CreatePointerCast(methodValue, FT->getPointerTo());
-      Value *methodCalledValue = Builder->CreateCall(FunctionCallee(FT, callablePointer), {target.second}, "method_call");
-      phiNode->addIncoming(methodCalledValue, methodFound);
-      Builder->CreateBr(finalBB);
-      
-      Builder->SetInsertPoint(methodMissing);
-      Value *fieldValue = callRuntimeFun("getPrimitiveField", ptrT, {ptrT, Type::getInt64Ty(*TheContext), ptrT}, {statePtr, typeValue, methodOrFieldNameValue});
-      Value *fieldNotFoundValue = Builder->CreateICmpEQ(fieldValue, Constant::getNullValue(ptrT));
-      BasicBlock *fieldMissing = BasicBlock::Create(*TheContext, "field_missing", parentFunction);
-      Builder->CreateCondBr(fieldNotFoundValue, fieldMissing, finalBB);
-      phiNode->addIncoming(fieldValue, methodMissing);
-      
-      Builder->SetInsertPoint(fieldMissing);
-      runtimeException(CodeGenerationException(string("Method or field ") + methodOrFieldName + string(" of class ") + to_string(t) + string(" not found"), node));
-      Builder->CreateUnreachable();
     }
+    
+    // Primitive method
+    Builder->SetInsertPoint(outTypeBB);
+    Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
+    Value *nodePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &node, false)), ptrT);
+    Value *typeValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, t, false));
+    Value *methodValue = callRuntimeFun("getPrimitiveMethod", ptrT, {ptrT, Type::getInt64Ty(*TheContext), ptrT}, {statePtr, typeValue, methodOrFieldNameValue});
+    Value *methodNotFoundValue = Builder->CreateICmpEQ(methodValue, Constant::getNullValue(ptrT));
+    BasicBlock *methodFound = BasicBlock::Create(*TheContext, "method_found", parentFunction);
+    BasicBlock *methodMissing = BasicBlock::Create(*TheContext, "method_missing", parentFunction);
+    Builder->CreateCondBr(methodNotFoundValue, methodMissing, methodFound);
+    
+    Builder->SetInsertPoint(methodFound);
+    FunctionType *FT = FunctionType::get(ptrT, {ptrT}, false);
+    Value *callablePointer = Builder->CreatePointerCast(methodValue, FT->getPointerTo());
+    Value *methodCalledValue = Builder->CreateCall(FunctionCallee(FT, callablePointer), {target.second}, "method_call");
+    phiNode->addIncoming(methodCalledValue, methodFound);
+    Builder->CreateBr(finalBB);
+    
+    Builder->SetInsertPoint(methodMissing);
+    runtimeException(CodeGenerationException(string("Method or field ") + methodOrFieldName + string(" of class ") + to_string(t) + string(" not found"), node));
+    Builder->CreateUnreachable();
   }
   Builder->SetInsertPoint(finalBB);
   return TypedValue(ObjectTypeSet::all(), phiNode);
@@ -172,24 +168,28 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const HostInteropNode &su
   }
   
   if (classId) { // Static dispatch
-    auto classMethods = TheProgramme->InstanceCallLibrary.find(classId);
-    if (classMethods == TheProgramme->InstanceCallLibrary.end()) return ObjectTypeSet::dynamicType(); // class not found
+    std::vector<uint64_t> candidateClasses {classId};
+    if (targetType.isDeterminedClass()) candidateClasses.push_back(deftypeType);
     
-    auto methods = classMethods->second.find(methodOrFieldName);
-    if (methods != classMethods->second.end()) { // class and method found
-      vector<ObjectTypeSet> types {targetType};
-      string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
-      for (auto method: methods->second) {
-        auto methodTypes = typesForArgString(node, method.first);
-        if(method.first != requiredTypes) continue;
-        return method.second.first(this, methodOrFieldName + " " + requiredTypes, node, types).restriction(typeRestrictions);
+    for (uint64_t classId: candidateClasses) {
+      auto classMethods = TheProgramme->InstanceCallLibrary.find(classId);
+      if (classMethods == TheProgramme->InstanceCallLibrary.end()) return ObjectTypeSet::dynamicType(); // class not found
+      
+      auto methods = classMethods->second.find(methodOrFieldName);
+      if (methods != classMethods->second.end()) { // class and method found
+        vector<ObjectTypeSet> types {targetType};
+        string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
+        for (auto method: methods->second) {
+          auto methodTypes = typesForArgString(node, method.first);
+          if(method.first != requiredTypes) continue;
+          return method.second.first(this, methodOrFieldName + " " + requiredTypes, node, types).restriction(typeRestrictions);
+        }
+        return ObjectTypeSet::dynamicType(); // class found, static method found, but does not expect given arity
+      } else { // class found, static method not found - field, dynamic method or not present at all
+        return ObjectTypeSet::dynamicType();
       }
-      return ObjectTypeSet::dynamicType(); // class found, method found, but does not expect arity 0
-    } else { // class found, method not found - field or not present at all
-      return ObjectTypeSet::dynamicType();
     }
   }
-  
-  // Field can be any type
+
   return ObjectTypeSet::all();
 }

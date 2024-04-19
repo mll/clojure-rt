@@ -99,7 +99,7 @@ unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> ge
   unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> vals;
   vector<pair<string, pair<StaticCallType, StaticCall>>> equiv;
 
-  vector<string> types {"J", "D", "Z", "LS", "LV", "LL", "LY", "LK", "LF", "LN", "LO"};
+  vector<string> types {"J", "D", "Z", "LS", "LV", "LL", "LY", "LK", "LF", "LN", "LO", "LT", "LC"};
   for(auto type1: types)
     for(auto type2: types) {
       equiv.push_back({type1+type2, {&Utils_compare_type, &Utils_compare}});

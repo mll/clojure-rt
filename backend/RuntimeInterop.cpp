@@ -797,18 +797,10 @@ extern "C" {
 }
 
 extern "C" {
-  void *getPrimitiveMethod(ProgrammeState *TheProgramme, objectType t, String* methodName) { // TODO: this is only for 0-arg methods at the moment
+  void *getPrimitiveMethod(ProgrammeState *TheProgramme, objectType target, String* methodName) { // TODO: this is only for 0-arg methods at the moment
     std::string string_methodName {String_c_str(methodName)};
     release(methodName);
-    return TheProgramme->getPrimitiveMethod(t, string_methodName);
-  }
-}
-
-extern "C" {
-  void *getPrimitiveField(ProgrammeState *TheProgramme, objectType t, void * object, String* fieldName) {
-    std::string string_fieldName {String_c_str(fieldName)};
-    release(fieldName);
-    return TheProgramme->getPrimitiveField(t, object, string_fieldName);
+    return TheProgramme->getPrimitiveMethod(target, string_methodName);
   }
 }
 

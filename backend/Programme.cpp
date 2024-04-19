@@ -2,6 +2,7 @@
 #include "static/Numbers.h"
 #include "static/Utils.h"
 #include "static/Vector.h"
+#include "static/Deftype.h"
 #include "Programme.h"
 
 extern "C" {
@@ -40,11 +41,14 @@ ProgrammeState::ProgrammeState() {
   auto numbers = getNumbersStaticFunctions();
   auto utils = getUtilsStaticFunctions();
   auto vector = getVectorFunctions();
+  auto deftype = getDeftypeStaticFunctions();
   StaticCallLibrary.insert(numbers.begin(), numbers.end());
   StaticCallLibrary.insert(utils.begin(), utils.end());
   StaticCallLibrary.insert(vector.first.begin(), vector.first.end());
   DynamicCallLibrary.insert(vector.second.first.begin(), vector.second.first.end());
   InstanceCallLibrary.insert(vector.second.second.begin(), vector.second.second.end());
+  DynamicCallLibrary.insert(deftype.first.begin(), deftype.first.end());
+  InstanceCallLibrary.insert(deftype.second.begin(), deftype.second.end());
   
   // C++ insert semantics: if key is already present in map, insert will be ignored
   for (uint64_t t = integerType; t <= persistentArrayMapType; ++t) {
@@ -84,19 +88,4 @@ void *ProgrammeState::getPrimitiveMethod(objectType target, const std::string &m
   }
   
   return nullptr;
-}
-
-void *ProgrammeState::getPrimitiveField(objectType target, void * object, const std::string &fieldName) {
-  if (target == deftypeType) {
-    auto classIt = DefinedClasses.find((uint64_t) target);
-    if (classIt == DefinedClasses.end()) return nullptr;
-    Class *_class = classIt->second;
-    retain(_class);
-    int fieldIndex = Class_fieldIndex(_class, String_createDynamicStr(fieldName.c_str()));
-    if (fieldIndex == -1) return nullptr;
-    return Deftype_getIndexedField((Deftype *) object, fieldIndex);
-  } else {
-    // CONSIDER: Primitive classes don't have fields, only 0-arg methods?
-    return nullptr;
-  } 
 }

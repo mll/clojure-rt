@@ -298,10 +298,7 @@ class ObjectTypeSet {
   }
 
   bool isDetermined() const {
-    if (internal.size() != 1) return false;
-    if (*(internal.begin()) != deftypeType) return true;
-    if (anyClass()) return false;
-    return internalClasses.size() == 1;
+    return internal.size() == 1;
   }
   
   bool isDeterminedClass() const {
@@ -511,7 +508,7 @@ class ObjectTypeSet {
       case doubleType:
         return (arg.isBoxed ? "LD" : "D");
       case booleanType:
-        return (arg.isBoxed ? "LB" : "B");
+        return (arg.isBoxed ? "LZ" : "Z");
       case nilType:
         return "LN";
       case keywordType:

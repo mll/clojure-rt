@@ -11,6 +11,7 @@
             [clojure.rt.passes :as passes]
             [clojure.pprint :refer [pprint]]
             [clojure.rt.quote :as quote]
+            [clojure.rt.closed-overs :refer [collect-closed-overs]]
             [clojure.tools.analyzer :as ana]
             [clojure.tools.analyzer
              [utils :refer [ctx resolve-sym -source-info resolve-ns obj? dissoc-env butlast+last mmerge]]
@@ -25,8 +26,7 @@
              [trim :refer [trim]]
              [elide-meta :refer [elide-meta elides]]
              [warn-earmuff :refer [warn-earmuff]]
-             [uniquify :refer [uniquify-locals]]
-             [collect-closed-overs :refer [collect-closed-overs]]]
+             [uniquify :refer [uniquify-locals]]]
 
             [clojure.tools.analyzer.passes.jvm
              [analyze-host-expr :refer [analyze-host-expr]]
@@ -89,10 +89,10 @@
     (with-redefs [ana/parse-quote quote/parse-quote]
       (let [reader (t/source-logging-push-back-reader s 1 filename)]
         (loop [form (r/read {:eof :eof} reader) ret-val []]
-          (if (= :eof form) (do #_(clojure.pprint/pprint (passes/clean-tree ret-val)) ;; uncomment to see simple tree
+          (if (= :eof form) (do #_(clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) ;; uncomment to see simple tree
                                 ret-val)
               (do
-                (eval form)
+                ;; (eval form)
                 (recur (r/read {:eof :eof} reader)
                      (->> 
                       (a/analyze form (a/empty-env) {:passes-opts passes-opts})      

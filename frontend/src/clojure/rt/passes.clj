@@ -1,10 +1,10 @@
 (ns clojure.rt.passes
   (:refer-clojure :exclude [compile])
   (:require [clojure.set :as set]
+            [clojure.rt.closed-overs :refer [collect-closed-overs]]
             [clojure.tools.analyzer.ast :as ast]
             [clojure.tools.analyzer.passes
              [uniquify :refer [uniquify-locals]]
-             [collect-closed-overs :refer [collect-closed-overs]]
              [trim :refer [trim]]]
             [clojure.walk :refer [postwalk]]))
 

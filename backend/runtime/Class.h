@@ -17,17 +17,17 @@ struct Class {
   
   uint64_t fieldCount;
   uint64_t *indexPermutation;
-  String *fields[];
+  Keyword *fields[];
 };
 
 typedef struct Class Class;
 
-Class* Class_create(String *name, String *className, uint64_t fieldCount, ...); // String*
+Class* Class_create(String *name, String *className, uint64_t fieldCount, ...); // Keyword*
 BOOL Class_equals(Class *self, Class *other);
 uint64_t Class_hash(Class *self);
 String *Class_toString(Class *self);
 void Class_destroy(Class *self);
 
-int64_t Class_fieldIndex(Class *self, String *field);
+int64_t Class_fieldIndex(Class *self, Keyword *field);
 
 #endif

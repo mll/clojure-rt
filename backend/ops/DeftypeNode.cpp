@@ -15,8 +15,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DeftypeNode &subnode, 
   std::vector<Value *> args {name, className, ConstantInt::get(*TheContext, APInt(64, subnode.fields_size(), false))};
   for (auto field: subnode.fields()) {
     types.push_back(ptrT);
-    auto fieldName = dynamicString(field.subnode().binding().name().c_str());
-    dynamicRetain(fieldName);
+    auto fieldName = dynamicKeyword(field.subnode().binding().name().c_str());
     args.push_back(fieldName);
   }
   

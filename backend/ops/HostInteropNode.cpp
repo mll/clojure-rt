@@ -51,7 +51,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
       if (classIt == TheProgramme->DefinedClasses.end()) throw CodeGenerationException(string("Class ") + to_string(classId) + string(" not found"), node); // class not found
       Class *_class = classIt->second;
       retain(_class);
-      int64_t fieldIndex = Class_fieldIndex(_class, String_createDynamicStr(methodOrFieldName.c_str()));
+      int64_t fieldIndex = Class_fieldIndex(_class, Keyword_create(String_createDynamicStr(methodOrFieldName.c_str())));
       if (fieldIndex > -1) {
         Value *fieldIndexValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, fieldIndex, true));
         Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndexValue});
@@ -68,8 +68,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
   Value *targetRuntimeType = getRuntimeObjectType(target.second);
   BasicBlock *failedBB = llvm::BasicBlock::Create(*TheContext, "host_interop_failed", parentFunction);
   BasicBlock *finalBB = llvm::BasicBlock::Create(*TheContext, "host_interop_final", parentFunction);
-  Value *methodOrFieldNameValue = dynamicString(methodOrFieldName.c_str()); // CONSIDER: Pass std::string instead of building runtime String and then immediately discarding it?
-  dynamicRetain(methodOrFieldNameValue);
   SwitchInst *cond = Builder->CreateSwitch(targetRuntimeType, failedBB, targetType.size());
   Builder->SetInsertPoint(failedBB);
   runtimeException(CodeGenerationException(string("Unexpected type!"), node));
@@ -89,7 +87,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
       dynamicRetain(target.second);
       Value *classRuntimeValue = callRuntimeFun("Deftype_getClass", ptrT, {ptrT}, {target.second});
       if (targetType.anyClass()) { // Totally unknown class, can't switch
-        Value *fieldIndex = callRuntimeFun("Class_fieldIndex", Type::getInt64Ty(*TheContext), {ptrT, ptrT}, {classRuntimeValue, methodOrFieldNameValue});
+        Value *fieldNameAsKeyword = dynamicKeyword(methodOrFieldName.c_str());
+        Value *fieldIndex = callRuntimeFun("Class_fieldIndex", Type::getInt64Ty(*TheContext), {ptrT, ptrT}, {classRuntimeValue, fieldNameAsKeyword});
         Value *indexValidator = Builder->CreateICmpEQ(fieldIndex, ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, -1, true)));
         BasicBlock *classFieldFoundBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup_successful", parentFunction);
         Builder->CreateCondBr(indexValidator, outTypeBB, classFieldFoundBB);
@@ -112,7 +111,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
             Builder->CreateBr(outTypeBB);
           } else {
             retain(classIt->second);
-            int64_t fieldIndex = Class_fieldIndex(classIt->second, String_createDynamicStr(methodOrFieldName.c_str()));
+            int64_t fieldIndex = Class_fieldIndex(classIt->second, Keyword_create(String_createDynamicStr(methodOrFieldName.c_str())));
             if (fieldIndex == -1) {
               Builder->CreateBr(outTypeBB);
             } else {
@@ -132,6 +131,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
     Value *nodePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &node, false)), ptrT);
     Value *typeValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, t, false));
     Value *noExtraArgs = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, 0, false));
+    Value *methodOrFieldNameValue = dynamicString(methodOrFieldName.c_str());
     std::vector<Type *> primitiveMethodTypes {ptrT, ptrT, Type::getInt64Ty(*TheContext), Type::getInt64Ty(*TheContext)};
     std::vector<Value *> primitiveMethodValues {statePtr, methodOrFieldNameValue, typeValue, noExtraArgs};
     Value *methodValue = callRuntimeFun("getPrimitiveMethod", ptrT, primitiveMethodTypes, primitiveMethodValues, true);

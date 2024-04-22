@@ -59,7 +59,7 @@ void Deftype_destroy(Deftype *self) {
   release(self->_class);
 }
 
-void *Deftype_getField(Deftype *self, String *field) {
+void *Deftype_getField(Deftype *self, Keyword *field) {
   retain(self->_class);
   int64_t i = Class_fieldIndex(self->_class, field);
   if (i == -1) {release(self); return NULL;} // field not found exception

@@ -30,7 +30,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
       if (classIt == TheProgramme->DefinedClasses.end()) throw CodeGenerationException(string("Class ") + to_string(classId) + string(" not found"), node); // class not found
       Class *_class = classIt->second;
       retain(_class);
-      int64_t fieldIndex = Class_fieldIndex(_class, String_createDynamicStr(fieldName.c_str()));
+      int64_t fieldIndex = Class_fieldIndex(_class, Keyword_create(String_createDynamicStr(fieldName.c_str())));
       if (fieldIndex == -1) {
         throw CodeGenerationException(string("Field ") + fieldName + string(" of class ") + to_string(classId) + string(" not found"), node); // class not found
       }
@@ -47,8 +47,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
   Value *targetRuntimeType = getRuntimeObjectType(target.second);
   BasicBlock *failedBB = llvm::BasicBlock::Create(*TheContext, "instance_field_failed", parentFunction);
   BasicBlock *finalBB = llvm::BasicBlock::Create(*TheContext, "instance_field_final", parentFunction);
-  Value *fieldNameValue = dynamicString(fieldName.c_str()); // CONSIDER: Pass std::string instead of building runtime String and then immediately discarding it?
-  dynamicRetain(fieldNameValue);
   SwitchInst *cond = Builder->CreateSwitch(targetRuntimeType, failedBB, targetType.size());
   Builder->SetInsertPoint(failedBB);
   runtimeException(CodeGenerationException(string("Unexpected type!"), node));
@@ -68,6 +66,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
       dynamicRetain(target.second);
       Value *classRuntimeValue = callRuntimeFun("Deftype_getClass", ptrT, {ptrT}, {target.second});
       if (targetType.anyClass()) { // Totally unknown class, can't switch
+        Value *fieldNameValue = dynamicKeyword(fieldName.c_str());
         Value *fieldIndex = callRuntimeFun("Class_fieldIndex", Type::getInt64Ty(*TheContext), {ptrT, ptrT}, {classRuntimeValue, fieldNameValue});
         Value *indexValidator = Builder->CreateICmpEQ(fieldIndex, ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, -1, true)));
         BasicBlock *classFieldFoundBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup_successful", parentFunction);
@@ -91,7 +90,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
             Builder->CreateBr(outTypeBB);
           } else {
             retain(classIt->second);
-            int64_t fieldIndex = Class_fieldIndex(classIt->second, String_createDynamicStr(fieldName.c_str()));
+            int64_t fieldIndex = Class_fieldIndex(classIt->second, Keyword_create(String_createDynamicStr(fieldName.c_str())));
             if (fieldIndex == -1) {
               Builder->CreateBr(outTypeBB);
             } else {

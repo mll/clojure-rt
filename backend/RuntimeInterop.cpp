@@ -345,8 +345,16 @@ StructType *CodeGenerator::runtimeBooleanType() {
   String *name;
   String *className;
   
+  // Static fields: HashMap vs list?
+  uint64_t staticFieldCount;
+  Keyword **staticFieldNames;
+  Object **staticFields;
+  
+  // Static methods are in global map
+  
   uint64_t fieldCount;
-  String *fields[];
+  uint64_t *indexPermutation;
+  Keyword *fields[];
 }; */
 
 StructType *CodeGenerator::runtimeClassType() {
@@ -357,7 +365,11 @@ StructType *CodeGenerator::runtimeClassType() {
        /* registerId */ Type::getInt64Ty(*TheContext),
        /* name */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* className */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* staticFieldCount */ Type::getInt64Ty(*TheContext),
+       /* staticFieldNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* staticFields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* fieldCount */ Type::getInt64Ty(*TheContext),
+       /* indexPermutation */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* fields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
      }, "Class");
 }

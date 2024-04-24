@@ -7,14 +7,18 @@ static inline uint64_t inc_mod(uint64_t n, uint64_t mod) {
   return (n == mod - 1) ? 0 : ++n;
 }
 
-Class* Class_create(String *name, String *typeName, uint64_t fieldCount, ...) {
+// CONSIDER: Enforce static fields hash redistribution?
+Class* Class_create(String *name, String *typeName, uint64_t staticFieldCount, Keyword **staticFieldNames, Object **staticFields, uint64_t fieldCount, ...) {
   va_list args;
   va_start(args, fieldCount);
-  Object *super = allocate(sizeof(Object) + sizeof(Class) + sizeof(uint64_t *) + fieldCount * sizeof(Keyword *));
+  Object *super = allocate(sizeof(Object) + sizeof(Class) + fieldCount * sizeof(Keyword *));
   Class *self = (Class *)(super + 1);
   self->registerId = 0; // unregistered
   self->name = name;
   self->className = typeName;
+  self->staticFieldCount = staticFieldCount;
+  self->staticFieldNames = staticFieldNames;
+  self->staticFields = staticFields;
   self->indexPermutation = fieldCount > 0 ? allocate(fieldCount * sizeof(uint64_t)) : NULL;
   self->fieldCount = fieldCount;
   memset(self->fields, 0, fieldCount * sizeof(Keyword *));
@@ -53,6 +57,12 @@ void Class_destroy(Class *self) {
   release(self->className);
   release(self->name);
   for (int i = 0; i < self->fieldCount; ++i) release(self->fields[i]);
+  for (int i = 0; i < self->staticFieldCount; ++i) {
+    release(self->staticFieldNames[i]);
+    // release(self->staticFields[i]);
+  }
+  if (self->staticFieldNames) deallocate(self->staticFieldNames);
+  if (self->staticFields) deallocate(self->staticFields);
 }
 
 int64_t Class_fieldIndex(Class *self, Keyword *field) {
@@ -72,4 +82,45 @@ int64_t Class_fieldIndex(Class *self, Keyword *field) {
   release(self);
   // release(field);
   return -1;
+}
+
+int64_t Class_staticFieldIndex(Class *self, Keyword *staticField) {
+  uint64_t initialGuess = Keyword_hash(staticField) % self->staticFieldCount;
+  if (equals(staticField, self->staticFieldNames[initialGuess])) {
+    release(self);
+    // release(field);
+    return initialGuess;
+  }
+  for (uint64_t i = inc_mod(initialGuess, self->staticFieldCount); i != initialGuess; i = inc_mod(i, self->staticFieldCount)) {
+    if (equals(staticField, self->staticFieldNames[i])) {
+      release(self);
+      // release(field);
+      return i;
+    }
+  }
+  release(self);
+  // release(field);
+  return -1;
+}
+
+void *Class_setIndexedStaticField(Class *self, int64_t i, void *value) {
+  if (i < 0 || i >= self->staticFieldCount) {
+    release(self); release(value); return NULL; // unsafe index exception - field not found?
+  }
+  Object *oldValue = self->staticFields[i];
+  self->staticFields[i] = super(value);
+  retain(value);
+  Object_release(oldValue);
+  release(self);
+  return value;
+}
+
+void *Class_getIndexedStaticField(Class *self, int64_t i) {
+  if (i < 0 || i >= self->staticFieldCount) {
+    release(self); return NULL; // unsafe index exception - field not found?
+  }
+  void *retVal = Object_data(self->staticFields[i]);
+  retain(retVal);
+  release(self);
+  return retVal;
 }

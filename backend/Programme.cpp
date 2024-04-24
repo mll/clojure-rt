@@ -57,6 +57,7 @@ ProgrammeState::ProgrammeState() {
   }
   
   uint64_t javaLangClassId = registerClass(javaLangClass());
+  uint64_t javaLangLongId = registerClass(javaLangLong());
 }
 
 uint64_t ProgrammeState::getClassId(const std::string &className) {

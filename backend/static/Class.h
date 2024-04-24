@@ -7,5 +7,6 @@ extern "C" {
 }
 
 Class *javaLangClass();
+Class *javaLangLong();
 
 #endif

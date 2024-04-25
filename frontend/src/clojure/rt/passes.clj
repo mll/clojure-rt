@@ -1,10 +1,10 @@
 (ns clojure.rt.passes
   (:refer-clojure :exclude [compile])
   (:require [clojure.set :as set]
+            [clojure.rt.closed-overs :refer [collect-closed-overs]]
             [clojure.tools.analyzer.ast :as ast]
             [clojure.tools.analyzer.passes
              [uniquify :refer [uniquify-locals]]
-             [collect-closed-overs :refer [collect-closed-overs]]
              [trim :refer [trim]]]
             [clojure.walk :refer [postwalk]]))
 
@@ -732,12 +732,14 @@
   (cond (map? node)
         (if (= (:op node) :case) node
           (let [important-keys (concat (:children node)
-                                       [:children :op :loop-let :fresh :form :name :drop-memory
+                                       [:children :op :loop-let :fresh :form :name :drop-memory :tag
                                         :unwind-memory :local :closed-overs :loops :loop-id :recur-this])]
             (->> (select-keys node important-keys)
                  (map (fn [[k v]] [k (case k
                                        (:drop-memory :unwind-memory :all-catches-owned :loops :loop-id :form) v
-                                       :closed-overs (set (keys v))
+                                       :closed-overs (cond (map? v) (set (keys v))
+                                                           (sequential? v) (set (map :name v))
+                                                           :else v)
                                        (clean-tree v))]))
                  (into {}))))
         (vector? node)

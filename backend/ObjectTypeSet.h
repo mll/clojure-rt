@@ -198,11 +198,15 @@ class ConstantRatio: public ObjectTypeConstant {
   }
 };
 
-
 class ObjectTypeSet {
   private:
   std::set<objectType> internal;
   ObjectTypeConstant *constant = nullptr;
+  inline static const uint64_t ANY = 0;
+  // internalClasses might contain mysterious value ANY, which means, that it can be any class
+  // set might contain either normal class names or one value ANY
+  // internalClasses is nonempty iff internal contains deftypeType
+  std::set<uint64_t> internalClasses;
   bool isBoxed;
   public:
 
@@ -216,6 +220,12 @@ class ObjectTypeSet {
       constant = static_cast<ObjectTypeConstant *>(new ConstantNil()); 
     } 
     if(!isScalar()) this->isBoxed = true;
+    if (type == deftypeType) internalClasses.insert(ANY);
+  }
+  ObjectTypeSet(uint64_t classId) : constant(nullptr), isBoxed(true) {
+    internal.insert(deftypeType);
+    isBoxed = true;
+    internalClasses.insert(classId);
   }
   ObjectTypeSet() {
   }
@@ -224,13 +234,39 @@ class ObjectTypeSet {
     constant = nullptr;
   }
 
-  ObjectTypeSet(const ObjectTypeSet &other) : internal(other.internal), isBoxed(other.isBoxed) {
+  ObjectTypeSet(const ObjectTypeSet &other) : internal(other.internal), isBoxed(other.isBoxed), internalClasses(other.internalClasses) {
     if(other.constant) constant = other.constant->copy();
     else constant = nullptr;
+  }
+  
+  std::set<objectType>::const_iterator internalBegin() const {
+    return internal.begin();
+  }
+  
+  std::set<objectType>::const_iterator internalEnd() const {
+    return internal.end();
+  }
+  
+  std::set<uint64_t>::const_iterator internalClassesBegin() const {
+    return internalClasses.begin();
+  }
+  
+  std::set<uint64_t>::const_iterator internalClassesEnd() const {
+    return internalClasses.end();
   }
     
   void insert(objectType type) {
     internal.emplace(type);
+    if (type == deftypeType) internalClasses = {ANY};
+  }
+  
+  bool anyClass() const {
+    return internalClasses.find(ANY) != internalClasses.end();
+  }
+  
+  void insertClass(uint64_t classId) {
+    internal.emplace(deftypeType);
+    if (!anyClass()) internalClasses.emplace(classId);
   }
 
   bool isEmpty() const {
@@ -241,8 +277,16 @@ class ObjectTypeSet {
     return internal.size();
   }
 
+  int classesSize() const {
+    return internalClasses.size();
+  }
+
   bool contains(objectType type) const {
     return internal.find(type) != internal.end();
+  }
+
+  bool containsClass(uint64_t classId) const {
+    return contains(deftypeType) && (anyClass() || (internalClasses.find(classId) != internalClasses.end()));
   }
 
   bool isBoxedType(objectType type) const {
@@ -256,13 +300,17 @@ class ObjectTypeSet {
   bool isDetermined() const {
     return internal.size() == 1;
   }
+  
+  bool isDeterminedClass() const {
+    return internal.size() == 1 && determinedType() == deftypeType && internalClasses.size() == 1 && !anyClass();
+  }
 
   bool isDynamic() const {
     if(internal.size() > 1) {
       assert(isBoxed == true && "Internal error");
       return true;
     }
-    return false;
+    return contains(deftypeType);
   }
 
   ObjectTypeSet unboxed() const {
@@ -310,16 +358,35 @@ class ObjectTypeSet {
     return *(internal.begin());
   }
 
+  uint64_t determinedClass() const {
+    assert(isDeterminedClass() && "Class not determined");
+    return *(internalClasses.begin());
+  }
+
   void remove(objectType type) {
     auto pos = internal.find(type);
     if (pos == internal.end()) return;
     internal.erase(pos);
+    if (type == deftypeType) internalClasses.clear();
+  }
+  
+  void removeClass(uint64_t classId) {
+    assert(classId != ANY);
+    auto pos = internalClasses.find(classId);
+    if (pos == internalClasses.end()) return;
+    internalClasses.erase(pos);
+    if (internalClasses.empty()) remove(deftypeType);
   }
   
   ObjectTypeSet expansion(const ObjectTypeSet &other) const {
     /* Expansion removes all constants */
     auto retVal = ObjectTypeSet(*this);
     retVal.internal.insert(other.internal.begin(), other.internal.end());
+    if (other.anyClass() || retVal.anyClass()) {
+      retVal.internalClasses = {ANY};
+    } else {
+      retVal.internalClasses.insert(other.internalClasses.begin(), other.internalClasses.end());
+    }
     retVal.isBoxed = (isBoxed && !isEmpty()) || (other.isBoxed && !other.isEmpty()) || retVal.size() > 1;
     if(retVal.constant) delete retVal.constant;
     retVal.constant = nullptr;
@@ -330,6 +397,7 @@ class ObjectTypeSet {
     /* Expansion removes all constants */
     auto retVal = ObjectTypeSet();
     retVal.internal = internal;
+    retVal.internalClasses = internalClasses;
     retVal.isBoxed = isBoxed; 
     return retVal;
   }
@@ -339,20 +407,33 @@ class ObjectTypeSet {
     /* Restriction preserves constant type for this */
     auto retVal = ObjectTypeSet();
     std::set_intersection(internal.begin(), internal.end(),
-                   other.internal.begin(), other.internal.end(),                  
-                   std::inserter(retVal.internal, retVal.internal.begin()));
+                          other.internal.begin(), other.internal.end(),                  
+                          std::inserter(retVal.internal, retVal.internal.begin()));
+    if (!retVal.contains(deftypeType)) {
+      retVal.internalClasses = {};
+    } else if (anyClass()) {
+      retVal.internalClasses = other.internalClasses;
+    } else if (other.anyClass()) {
+      retVal.internalClasses = internalClasses;
+    } else {
+      std::set_intersection(internalClasses.begin(), internalClasses.end(),
+                            other.internalClasses.begin(), other.internalClasses.end(),                  
+                            std::inserter(retVal.internalClasses, retVal.internalClasses.begin()));
+    }
     retVal.isBoxed = isBoxed;
     if (constant != nullptr && retVal.contains(constant->constantType)) {
       retVal.constant = constant->copy();
     } else {
       retVal.constant = nullptr;
     }
+    if (retVal.internalClasses.empty()) retVal.remove(deftypeType);
     return retVal;
   }
 
   ObjectTypeSet& operator=(const ObjectTypeSet &other) {
     isBoxed = other.isBoxed;
     internal = other.internal;
+    internalClasses = other.internalClasses;
     if(constant) delete constant;
     constant = nullptr;
     if(other.constant) constant = other.constant->copy();
@@ -363,7 +444,7 @@ class ObjectTypeSet {
   friend bool operator<(const ObjectTypeSet &first, const ObjectTypeSet &second);
 
   static ObjectTypeSet dynamicType() {
-    auto all = ObjectTypeSet:: all();
+    auto all = ObjectTypeSet::all();
     all.isBoxed = true;
     return all;
   }
@@ -382,11 +463,14 @@ class ObjectTypeSet {
     retVal.insert(nilType);
     retVal.insert(booleanType);
     retVal.insert(symbolType);
+    retVal.insert(classType);
+    retVal.insert(deftypeType);
     retVal.insert(keywordType);
     retVal.insert(functionType);
     retVal.insert(bigIntegerType);
     retVal.insert(ratioType);
     retVal.insert(persistentArrayMapType);
+    retVal.internalClasses = {ANY};
     retVal.isBoxed = true;
     return retVal;
   }
@@ -397,19 +481,6 @@ class ObjectTypeSet {
     for (auto t: types) retVal.insert(t);
     retVal.isBoxed = true;
     return retVal;
-  }
-  
-  static std::vector<ObjectTypeSet> allGuesses() {
-    auto allTypes = ObjectTypeSet::all();
-    std::vector<ObjectTypeSet> guesses;
-    guesses.push_back(ObjectTypeSet(booleanType));
-    guesses.push_back(ObjectTypeSet(integerType));
-    guesses.push_back(ObjectTypeSet(doubleType));
-    for(auto it: allTypes.internal) {
-      guesses.push_back(ObjectTypeSet(it));
-    }
-    guesses.push_back(allTypes);
-    return guesses;
   }
   
   static std::string typeStringForArg(const ObjectTypeSet &arg) {
@@ -423,6 +494,11 @@ class ObjectTypeSet {
         return "LL";
       case persistentVectorType:
         return "LV";
+      case classType:
+        return "LC";
+      case deftypeType:
+        if (arg.isDeterminedClass()) return "C" + std::to_string(arg.determinedClass()) + ";";
+        return "LT";
       case symbolType:
         return "LY";
       case persistentVectorNodeType:
@@ -432,7 +508,7 @@ class ObjectTypeSet {
       case doubleType:
         return (arg.isBoxed ? "LD" : "D");
       case booleanType:
-        return (arg.isBoxed ? "LB" : "B");
+        return (arg.isBoxed ? "LZ" : "Z");
       case nilType:
         return "LN";
       case keywordType:

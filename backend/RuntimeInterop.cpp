@@ -5,14 +5,18 @@ using namespace std;
 using namespace llvm;
 
 extern "C" {
+#include "runtime/Class.h"
 #include "runtime/String.h"
 #include "runtime/Keyword.h"
   #include "runtime/BigInteger.h"
   #include "runtime/Ratio.h"
+  #include "runtime/Deftype.h"
   objectType getType(void *obj);
   objectType getTypeC(void *obj)  {
     return getType(obj);
   }
+  void release(void *obj);
+  void retain(void *obj);
 } 
 
 
@@ -122,6 +126,12 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     throw InternalInconsistencyException("We never allow creation of subtypes here, only runtime can do it");
   case nilType:
     fname = "Nil_create";
+    break;
+  case classType:
+    fname = "Class_create"; // CONSIDER: Not possible/throw exception? Unregistered class
+    break;
+  case deftypeType:
+    fname = "Deftype_create";
     break;
   case symbolType:
     fname = "Symbol_create";
@@ -330,6 +340,28 @@ StructType *CodeGenerator::runtimeBooleanType() {
      }, "Boolean");
 }
 
+/* struct Class {
+  uint64_t registerId;
+  String *name;
+  String *className;
+  
+  uint64_t fieldCount;
+  String *fields[];
+}; */
+
+StructType *CodeGenerator::runtimeClassType() {
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Class");
+  if(retVal) return retVal;
+
+   return StructType::create(*TheContext, {
+       /* registerId */ Type::getInt64Ty(*TheContext),
+       /* name */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* className */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* fieldCount */ Type::getInt64Ty(*TheContext),
+       /* fields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+     }, "Class");
+}
+
 
 void CodeGenerator::dynamicRetain(Value *objectPtr) {
   Metadata * metaPtr = dyn_cast<Metadata>(MDString::get(*TheContext, "retain"));
@@ -423,7 +455,7 @@ TypedValue CodeGenerator::dynamicIsReusable(Value *what) {
 }
 
 Value * CodeGenerator::dynamicString(const char *str) {
-  String * retVal = String_createDynamicStr((char *)str);
+  String * retVal = String_createDynamicStr(str);
   /* TODO: uniquing? */
   Value *strPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_boxed");
   return strPointer;
@@ -510,7 +542,7 @@ Value * CodeGenerator::dynamicSymbol(const char *name) {
 }
 
 Value * CodeGenerator::dynamicKeyword(const char *name) {
-  String *names = String_createDynamicStr((char *)name);
+  String *names = String_createDynamicStr(name);
   
   Keyword * retVal = Keyword_create(names);
   Value *ptrKeyword =  Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
@@ -533,6 +565,8 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case persistentVectorNodeType:
     case nilType:
     case symbolType:
+    case classType:
+    case deftypeType:
     case keywordType:
     case persistentArrayMapType:
     case functionType:
@@ -685,6 +719,8 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
   case persistentVectorNodeType:
   case nilType:
   case symbolType:
+  case classType:
+  case deftypeType:
   case keywordType:
   case concurrentHashMapType:
   case persistentArrayMapType:
@@ -741,7 +777,37 @@ void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidan
   }  
 } 
 
+extern "C" {
+  uint64_t registerClass(ProgrammeState *TheProgramme, Class *_class) {
+    return TheProgramme->registerClass(_class);
+  }
+}
 
+
+extern "C" {
+  Class* getClassById(ProgrammeState *TheProgramme, uint64_t classId) {
+    return TheProgramme->getClass(classId);
+  }
+  
+  Class* getClassByName(ProgrammeState *TheProgramme, String *className) {
+    std::string string_className {String_c_str(className)};
+    release(className);
+    return TheProgramme->getClass(TheProgramme->getClassId(string_className));
+  }
+}
+
+extern "C" {
+  void *getPrimitiveMethod(ProgrammeState *TheProgramme, String* methodName, objectType target, uint64_t argCount, ...) {
+    std::string string_methodName {String_c_str(methodName)};
+    release(methodName);
+    std::vector<objectType> argTypes;
+    va_list args;
+    va_start(args, argCount);
+    for (uint64_t i = 0; i < argCount; ++i) argTypes.push_back(va_arg(args, objectType));
+    va_end(args);
+    return TheProgramme->getPrimitiveMethod(target, string_methodName, argTypes);
+  }
+}
 
 /* LOAD-STORE examples */
 

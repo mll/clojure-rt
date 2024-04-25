@@ -14,7 +14,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   Value *retVal;
 
   auto name = subnode.val();
-
+  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  
   switch(types.determinedType()) {
   case integerType:
     retVal = ConstantInt::get(*TheContext, APInt(64, StringRef(subnode.val().c_str()), 10));
@@ -25,18 +26,31 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
                                    (llvm::APFloatBase::Semantics::S_IEEEdouble), 
                                    StringRef(subnode.val().c_str())));
     break;
-  case nilType:   
+  case nilType:
     retVal = dynamicNil();
     break;
-  case booleanType:          
+  case booleanType:
     retVal = ConstantInt::getSigned(llvm::Type::getInt1Ty(*TheContext), subnode.val() == "true" ? 1 : 0);
     break;
-  case stringType:    
+  case stringType:
     retVal = dynamicString(subnode.val().c_str());
     dynamicRetain(retVal);
     break;
   case symbolType:
     retVal = dynamicSymbol(name.c_str());
+    break;
+  case classType:
+    {
+      Value *className = dynamicString(subnode.val().c_str());
+      dynamicRetain(className);
+      Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
+      retVal = callRuntimeFun("getClassByName", ptrT, {ptrT, ptrT}, {statePtr, className});
+    }
+    break;
+    // TODO
+  case deftypeType:
+    // TODO/not possible?
+    throw CodeGenerationException(string("Not possible to create const of type: ") + ConstNode_ConstType_Name(subnode.type()), node);
     break;
   case keywordType:
     retVal = dynamicKeyword((name[0] == ':' ? name.substr(1) : name).c_str());
@@ -45,7 +59,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   case bigIntegerType:
     retVal = dynamicBigInteger(subnode.val().c_str());
     dynamicRetain(retVal);
-    break; 
+    break;
   case ratioType:
     retVal = dynamicRatio(subnode.val().c_str());
     dynamicRetain(retVal);
@@ -94,6 +108,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
     return ObjectTypeSet(symbolType, false, new ConstantSymbol(subnode.val())).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeKeyword:
     return ObjectTypeSet(keywordType, false, new ConstantKeyword(subnode.val())).restriction(typeRestrictions);
+  case ConstNode_ConstType_constTypeClass: // TODO
+    return ObjectTypeSet(classType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeType:
   case ConstNode_ConstType_constTypeRecord:
   case ConstNode_ConstType_constTypeMap:
@@ -102,7 +118,6 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
   case ConstNode_ConstType_constTypeSeq:
   case ConstNode_ConstType_constTypeChar:
   case ConstNode_ConstType_constTypeRegex:
-  case ConstNode_ConstType_constTypeClass:
   case ConstNode_ConstType_constTypeVar:
   case ConstNode_ConstType_constTypeUnknown:
   default:

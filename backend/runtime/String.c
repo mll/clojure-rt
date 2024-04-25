@@ -5,7 +5,7 @@
 #include "PersistentVector.h"
 
 /* outside refcount system */
-uint64_t String_computeHash(char *str) {
+uint64_t String_computeHash(const char *str) {
     uint64_t h = 5381;
     int64_t c;
 
@@ -68,7 +68,7 @@ String* String_createDynamic(size_t size) {
   return self;
 }
 
-String* String_createDynamicStr(char *str) {
+String* String_createDynamicStr(const char *str) {
   size_t len = strlen(str);
   Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char) * (len + 1)); 
   String *self = (String *)(super + 1);

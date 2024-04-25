@@ -1,6 +1,7 @@
 #include "codegen.h"  
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <sstream>
+#include "static/Class.h"
 
 using namespace std;
 using namespace llvm;
@@ -87,6 +88,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRes
     return codegen(node, node.subnode().const_(), typeRestrictions);    
   case opDef:
     return codegen(node, node.subnode().def(), typeRestrictions);    
+  case opDeftype:
+    return codegen(node, node.subnode().deftype(), typeRestrictions);
   case opDo:
     return codegen(node, node.subnode().do_(), typeRestrictions);    
   case opFn:
@@ -201,10 +204,10 @@ string CodeGenerator::pointerName(void *ptr) {
 
 ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &typeString) {
   auto s = typeString.size();
-  if(s > 2 || s == 0) throw CodeGenerationException(string("Unknown type code: ")+ typeString, node);
+  if(s == 0) throw CodeGenerationException(string("Unknown type code: ")+ typeString, node);
   auto currentChar = typeString[0];
   if (currentChar == 'L') {
-    if(s!=2) throw CodeGenerationException(string("Unknown type code: ")+ typeString, node);
+    if(s == 1) throw CodeGenerationException(string("Unknown type code: ")+ typeString, node);
     string typeName(&typeString[1]);      
     if (typeName == "D") return ObjectTypeSet(doubleType, true);
     if (typeName == "J") return ObjectTypeSet(integerType, true);
@@ -215,6 +218,8 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
     if (typeName == "V") return ObjectTypeSet(persistentVectorType);
     if (typeName == "N") return ObjectTypeSet(nilType);
     if (typeName == "Y") return ObjectTypeSet(symbolType);
+    if (typeName == "C") return ObjectTypeSet(classType);
+    if (typeName == "T") return ObjectTypeSet(deftypeType);
     if (typeName == "K") return ObjectTypeSet(keywordType);
     if (typeName == "F") return ObjectTypeSet(functionType);
     if (typeName == "I") return ObjectTypeSet(bigIntegerType);
@@ -223,6 +228,7 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
 
     throw CodeGenerationException(string("Unknown class: ")+ typeName + string(" Full string: ") + typeString, node);
   }
+  if (currentChar == 'C') return ObjectTypeSet(std::stoi(typeString.substr(1)));
   if (currentChar == 'D') return ObjectTypeSet(doubleType);
   if (currentChar == 'J') return ObjectTypeSet(integerType);
   if (currentChar == 'Z') return ObjectTypeSet(booleanType);
@@ -240,6 +246,12 @@ vector<ObjectTypeSet> CodeGenerator::typesForArgString(const Node &node, const s
       currentChar[0] = typeString[i++];
       string typeName(currentChar);      
       types.push_back(typeForArgString(node, string("L") + typeName));
+      continue;
+    } else if (currentChar[0] == 'C') { // CclassName;
+      int j = i;
+      while (typeString[j] != ';') ++j;
+      types.push_back(typeForArgString(node, string("C") + typeString.substr(i, j)));
+      i = ++j;
       continue;
     }
     types.push_back(typeForArgString(node, string(currentChar)));
@@ -261,6 +273,10 @@ uint64_t CodeGenerator::getUniqueFunctionId() {
   return ++TheProgramme->lastFunctionUniqueId;
 }
 
+uint64_t CodeGenerator::getUniqueClassId() {
+  return TheProgramme->getUniqueClassId();
+}
+
 ObjectTypeSet CodeGenerator::getType(const Node &node, const ObjectTypeSet &typeRestrictions) {
   switch (node.op()) {
   case opBinding:
@@ -277,6 +293,8 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ObjectTypeSet &type
     return getType(node, node.subnode().const_(), typeRestrictions);    
   case opDef:
     return getType(node, node.subnode().def(), typeRestrictions);    
+  case opDeftype:
+    return getType(node, node.subnode().deftype(), typeRestrictions);
   case opDo:
     return getType(node, node.subnode().do_(), typeRestrictions);    
   case opFn:

@@ -23,6 +23,8 @@
 #include "ConcurrentHashMap.h"
 #include "Symbol.h"
 #include "Keyword.h"
+#include "Class.h"
+#include "Deftype.h"
 #include <assert.h>
 #include <execinfo.h>
 #include "Function.h"
@@ -116,6 +118,12 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
   case symbolType:
     Symbol_destroy(Object_data(self));
     break;
+  case classType:
+    Class_destroy(Object_data(self));
+    break;
+  case deftypeType:
+    Deftype_destroy(Object_data(self));
+    break;
   case nilType:
     Nil_destroy(Object_data(self));
     break;
@@ -207,6 +215,10 @@ inline uint64_t Object_hash(Object * restrict self) {
         break;
       case symbolType:
         return Symbol_hash(Object_data(self));
+      case classType:
+        return Class_hash(Object_data(self));
+      case deftypeType:
+        return Deftype_hash(Object_data(self));
       case concurrentHashMapType:
         return ConcurrentHashMap_hash(Object_data(self));
       case keywordType:
@@ -262,6 +274,12 @@ inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   case symbolType:
     return Symbol_equals(selfData, otherData);
     break;
+  case classType:
+    return Class_equals(selfData, otherData);
+    break;
+  case deftypeType:
+    return Deftype_equals(selfData, otherData);
+    break;
   case concurrentHashMapType:
     return ConcurrentHashMap_equals(selfData, otherData);
     break;
@@ -316,6 +334,10 @@ inline String *Object_toString(Object * restrict self) {
     break;
   case symbolType:
     return Symbol_toString(Object_data(self));
+  case classType:
+    return Class_toString(Object_data(self));
+  case deftypeType:
+    return Deftype_toString(Object_data(self));
   case concurrentHashMapType:
     return ConcurrentHashMap_toString(Object_data(self));
   case keywordType:

@@ -71,6 +71,8 @@ set(SOURCES
      ops/VectorNode.cpp
      ops/WithMetaNode.cpp
      static/Numbers.cpp
+     static/Class.cpp
+     static/Deftype.cpp
      RuntimeInterop.cpp
      ObjectTypeSet.cpp
      static/Utils.cpp

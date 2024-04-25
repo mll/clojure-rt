@@ -45,6 +45,7 @@
 
 using namespace clojure::rt::protobuf::bytecode;
 
+#define REPORT_EX(runtime, EX) ((runtime) ? runtimeException(EX) : (throw (EX)))
 
 class CodeGenerator {
   std::shared_ptr<ProgrammeState> TheProgramme;
@@ -77,6 +78,7 @@ public:
   static std::string globalNameForVar(std::string var);
   static std::string getMangledUniqueFunctionName(uint64_t num) ;
   uint64_t getUniqueFunctionId();
+  uint64_t getUniqueClassId();
 
   TypedValue staticFalse();
   TypedValue staticTrue();
@@ -107,6 +109,8 @@ TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<F
   llvm::StructType *runtimeDoubleType();
   llvm::StructType *runtimeInvokationCacheType();
   llvm::StructType *runtimeFunctionMethodType();
+  llvm::StructType *runtimeClassType();
+  llvm::StructType *runtimeDeftypeType();
 
   llvm::Value *getRuntimeObjectType(llvm::Value *objectPtr);
 

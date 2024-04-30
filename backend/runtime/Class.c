@@ -59,7 +59,7 @@ void Class_destroy(Class *self) {
   for (int i = 0; i < self->fieldCount; ++i) release(self->fields[i]);
   for (int i = 0; i < self->staticFieldCount; ++i) {
     release(self->staticFieldNames[i]);
-    // release(self->staticFields[i]);
+    Object_release(self->staticFields[i]);
   }
   if (self->staticFieldNames) deallocate(self->staticFieldNames);
   if (self->staticFields) deallocate(self->staticFields);
@@ -69,18 +69,18 @@ int64_t Class_fieldIndex(Class *self, Keyword *field) {
   uint64_t initialGuess = Keyword_hash(field) % self->fieldCount;
   if (equals(field, self->fields[initialGuess])) {
     release(self);
-    // release(field);
+    release(field);
     return initialGuess;
   }
   for (uint64_t i = inc_mod(initialGuess, self->fieldCount); i != initialGuess; i = inc_mod(i, self->fieldCount)) {
     if (equals(field, self->fields[i])) {
       release(self);
-      // release(field);
+      release(field);
       return i;
     }
   }
   release(self);
-  // release(field);
+  release(field);
   return -1;
 }
 
@@ -88,18 +88,18 @@ int64_t Class_staticFieldIndex(Class *self, Keyword *staticField) {
   uint64_t initialGuess = Keyword_hash(staticField) % self->staticFieldCount;
   if (equals(staticField, self->staticFieldNames[initialGuess])) {
     release(self);
-    // release(field);
+    release(staticField);
     return initialGuess;
   }
   for (uint64_t i = inc_mod(initialGuess, self->staticFieldCount); i != initialGuess; i = inc_mod(i, self->staticFieldCount)) {
     if (equals(staticField, self->staticFieldNames[i])) {
       release(self);
-      // release(field);
+      release(staticField);
       return i;
     }
   }
   release(self);
-  // release(field);
+  release(staticField);
   return -1;
 }
 

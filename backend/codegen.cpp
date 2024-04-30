@@ -15,18 +15,6 @@ CodeGenerator::CodeGenerator(std::shared_ptr<ProgrammeState> programme, ClojureJ
   // Create a new builder for the module.
   Builder = std::make_unique<IRBuilder<>>(*TheContext);
   TheProgramme = programme;
-  for(auto it : TheProgramme->StaticVarTypes) {
-    auto name = it.first;
-    auto type = it.second;
-    auto mangled = globalNameForVar(name);
-
-    auto llvmType = type.isDetermined() ? dynamicUnboxedType(type.determinedType()) : dynamicBoxedType();
-
-    TheModule->getOrInsertGlobal(mangled, llvmType);
-    GlobalVariable *gVar = TheModule->getNamedGlobal(mangled);
-    gVar->setExternallyInitialized(true);
-    StaticVars.insert({name, TypedValue(type, gVar)});
-  }
 }
 
 
@@ -222,6 +210,7 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
     if (typeName == "T") return ObjectTypeSet(deftypeType);
     if (typeName == "K") return ObjectTypeSet(keywordType);
     if (typeName == "F") return ObjectTypeSet(functionType);
+    if (typeName == "Q") return ObjectTypeSet(varType);
     if (typeName == "I") return ObjectTypeSet(bigIntegerType);
     if (typeName == "R") return ObjectTypeSet(ratioType);
     if (typeName == "A") return ObjectTypeSet(persistentArrayMapType);

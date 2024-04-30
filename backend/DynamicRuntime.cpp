@@ -55,17 +55,6 @@ extern "C" {
   }
 
 
-/* Used in DefNode to assign a function to a var during runtime */
-  void setFunForVar(void *jitPtr, void *funPtr, const char *varName) {
-    ClojureJIT *jit = (ClojureJIT *)jitPtr;
-    struct Function *fun = (struct Function *)funPtr;
-    auto mangled = CodeGenerator::globalNameForVar(varName);
-    auto programme = jit->getProgramme();
-    programme->StaticFunctions.erase(mangled);
-    programme->StaticFunctions.insert({mangled, fun->uniqueId});
-  }
-
-
 /* Used in CodeGenerator::callDynamicFun to allow for runtime dynamic dispatch.
    The function receives argument types determined at runtime and therefore can 
    produce JIT body of a called function much more accurately and performantly than relying on 
@@ -106,7 +95,8 @@ extern "C" {
     for(int i=0; i<INVOKATION_CACHE_SIZE; i++) { 
       /* Fast cache access */
       entry = &(method->invokations[i]);
-      if(entry->signature[0] == argSignature[0] && 
+      if(entry->fptr &&
+         entry->signature[0] == argSignature[0] && 
          entry->signature[1] == argSignature[1] && 
          entry->signature[2] == argSignature[2] && 
          entry->packed == packedArg &&

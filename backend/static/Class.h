@@ -8,5 +8,8 @@ extern "C" {
 
 Class *javaLangClass();
 Class *javaLangLong();
+Class *clojureAsmOpcodes();
+Class *clojureLangVar();
+Class *clojureLangVar__DOLLAR__Unbound();
 
 #endif

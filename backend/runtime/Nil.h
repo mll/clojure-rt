@@ -8,6 +8,8 @@ struct Nil {
 
 typedef struct Nil Nil;
 
+Nil *UNIQUE_NIL;
+
 Nil* Nil_create();
 BOOL Nil_equals(Nil *self, Nil *other);
 uint64_t Nil_hash(Nil *self);

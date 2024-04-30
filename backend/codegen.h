@@ -54,8 +54,6 @@ class CodeGenerator {
   std::vector<std::unordered_map<std::string, ObjectTypeSet>> VariableBindingTypesStack;
   std::unordered_map<std::string, std::pair<llvm::BasicBlock *, std::vector<llvm::PHINode *>>> LoopInsertPoints;
 
-  std::unordered_map<std::string, TypedValue> StaticVars;
-
 public:
   std::unique_ptr<llvm::IRBuilder<>> Builder;
   std::unique_ptr<llvm::LLVMContext> TheContext;
@@ -110,7 +108,6 @@ TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<F
   llvm::StructType *runtimeInvokationCacheType();
   llvm::StructType *runtimeFunctionMethodType();
   llvm::StructType *runtimeClassType();
-  llvm::StructType *runtimeDeftypeType();
 
   llvm::Value *getRuntimeObjectType(llvm::Value *objectPtr);
 

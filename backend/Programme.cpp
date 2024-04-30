@@ -3,12 +3,17 @@
 #include "static/Utils.h"
 #include "static/Vector.h"
 #include "static/Deftype.h"
+#include "static/Var.h"
 #include "Programme.h"
 
 extern "C" {
   #include "runtime/Deftype.h"
-  void release(void *obj);
+  typedef struct Var Var;
+  typedef struct Keyword Keyword;
+  typedef struct Object Object;
+  Var *Var_create(Keyword *keyword);
   void retain(void *obj);
+  void release(void *obj);
 }
 
 uint64_t ProgrammeState::getUniqueClassId() {
@@ -42,6 +47,7 @@ ProgrammeState::ProgrammeState() {
   auto utils = getUtilsStaticFunctions();
   auto vector = getVectorFunctions();
   auto deftype = getDeftypeStaticFunctions();
+  auto var = getVarStaticFunctions();
   StaticCallLibrary.insert(numbers.begin(), numbers.end());
   StaticCallLibrary.insert(utils.begin(), utils.end());
   StaticCallLibrary.insert(vector.first.begin(), vector.first.end());
@@ -49,6 +55,8 @@ ProgrammeState::ProgrammeState() {
   InstanceCallLibrary.insert(vector.second.second.begin(), vector.second.second.end());
   DynamicCallLibrary.insert(deftype.first.begin(), deftype.first.end());
   InstanceCallLibrary.insert(deftype.second.begin(), deftype.second.end());
+  DynamicCallLibrary.insert(var.first.begin(), var.first.end());
+  InstanceCallLibrary.insert(var.second.begin(), var.second.end());
   
   // C++ insert semantics: if key is already present in map, insert will be ignored
   for (uint64_t t = integerType; t <= persistentArrayMapType; ++t) {
@@ -56,9 +64,14 @@ ProgrammeState::ProgrammeState() {
     InstanceCallLibrary.insert({t, {}});
   }
   
-  uint64_t javaLangClassId = registerClass(javaLangClass());
-  uint64_t javaLangLongId = registerClass(javaLangLong());
+  std::vector<Class *> classes { javaLangClass(), javaLangLong(), clojureAsmOpcodes(), clojureLangVar(), clojureLangVar__DOLLAR__Unbound() };
+  for (auto _class: classes) registerClass(_class);
 }
+
+// ProgrammeState::~ProgrammeState() {
+//   for (auto var: DefinedClasses) release(var.second);
+//   for (auto var: DefinedVarsByName) release(var.second);
+// }
 
 uint64_t ProgrammeState::getClassId(const std::string &className) {
   auto foundClass = ClassesByName.find(className);
@@ -90,4 +103,21 @@ void *ProgrammeState::getPrimitiveMethod(objectType target, const std::string &m
   }
   
   return nullptr;
+}
+
+Var *ProgrammeState::getVarByName(const std::string &varName) {
+  auto var = DefinedVarsByName.find(varName);
+  if (var == DefinedVarsByName.end()) return nullptr;
+  retain(var->second);
+  return var->second;
+}
+
+std::pair<Var *, BOOL> ProgrammeState::getVar(const std::string &varName) {
+  auto varIt = DefinedVarsByName.find(varName);
+  if (varIt == DefinedVarsByName.end()) {
+    Var *var = Var_create(Keyword_create(String_createDynamicStr(varName.c_str())));
+    DefinedVarsByName.insert({varName, var});
+    return {var, TRUE};
+  }
+  return {varIt->second, FALSE};
 }

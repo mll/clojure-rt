@@ -155,6 +155,9 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
   case functionType:
     fname = "Function_create";
     break;
+  case varType:
+    fname = "Var_create";
+    break;
   }
   
   return callRuntimeFun(fname, dynamicBoxedType(type), argTypes, args, isVariadic);
@@ -582,6 +585,7 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case keywordType:
     case persistentArrayMapType:
     case functionType:
+    case varType:
     case concurrentHashMapType:
       return Type::getInt8Ty(*TheContext)->getPointerTo();
   }
@@ -737,6 +741,7 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
   case concurrentHashMapType:
   case persistentArrayMapType:
   case functionType:
+  case varType:
     return TypedValue(retType, value.second);
   }
   return TypedValue(retType, dynamicCreate(type.determinedType(), argTypes, args));
@@ -757,22 +762,6 @@ Value *CodeGenerator::dynamicCond(Value *cond) {
 void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidance) {
   auto name = guidance.variablename();
   auto change = guidance.requiredrefcountchange();
-  auto found = StaticVars.find(name);
-  
-  if(found != StaticVars.end()) {      
-    auto type = found->second.first;
-    if(type.isScalar()) return;
-    
-    Type *t = dynamicType(found->second.first);
-    
-    LoadInst * load = Builder->CreateLoad(t, found->second.second, "load_var");
-    load->setAtomic(AtomicOrdering::Monotonic);
-    while(change != 0) {
-      if(change > 0) { dynamicRetain(load); change--; }
-      else { dynamicRelease(load, false); change++; }
-    }
-    return;
-  }
   
   for(int j=VariableBindingStack.size() - 1; j >= 0; j--) {
     auto stack = VariableBindingStack[j];
@@ -818,6 +807,14 @@ extern "C" {
     for (uint64_t i = 0; i < argCount; ++i) argTypes.push_back(va_arg(args, objectType));
     va_end(args);
     return TheProgramme->getPrimitiveMethod(target, string_methodName, argTypes);
+  }
+}
+
+extern "C" {
+  Var *getVarByName(ProgrammeState *TheProgramme, Keyword* varName) {
+    std::string string_varName {String_c_str(varName->string)};
+    release(varName);
+    return TheProgramme->getVarByName(string_varName);
   }
 }
 

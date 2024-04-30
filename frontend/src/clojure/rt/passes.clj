@@ -8,6 +8,8 @@
              [trim :refer [trim]]]
             [clojure.walk :refer [postwalk]]))
 
+(defn assoc-maybe [m k v] (if v (assoc m k v) m))
+
 (defn remove-env
   {:pass-info {:walk :pre :depends #{}}}
   [ast]
@@ -332,19 +334,25 @@
 
 (defmethod -memory-management-pass :invoke
   [node borrowed owned unwind-owned]
-  (let [nodes (concat [(:fn node)] (:args node))
-        [updated-fn & updated-args] (application-usage nodes borrowed owned unwind-owned)]
+  (let [nodes (concat (keep identity [(:meta node)]) [(:fn node)] (:args node))
+        [updated-meta updated-fn & updated-args]
+        (cond->> (application-usage nodes borrowed owned unwind-owned)
+          (not (:meta node)) (concat [nil]))]
     (-> node
         (set-unwind unwind-owned)
+        (assoc-maybe :meta updated-meta)
         (assoc :fn updated-fn
                :args (vec updated-args)))))
 
 (defmethod -memory-management-pass :prim-invoke
   [node borrowed owned unwind-owned]
-  (let [nodes (concat [(:fn node)] (:args node))
-        [updated-fn & updated-args] (application-usage nodes borrowed owned unwind-owned)]
+  (let [nodes (concat (keep identity [(:meta node)]) [(:fn node)] (:args node))
+        [updated-meta updated-fn & updated-args]
+        (cond->> (application-usage nodes borrowed owned unwind-owned)
+          (not (:meta node)) (concat [nil]))]
     (-> node
         (set-unwind unwind-owned)
+        (assoc-maybe :meta updated-meta)
         (assoc :fn updated-fn
                :args (vec updated-args)))))
 
@@ -433,6 +441,17 @@
         (set-unwind unwind-owned)
         (assoc :meta updated-meta
                :expr updated-expr))))
+
+(defmethod -memory-management-pass :def
+  [node borrowed owned unwind-owned]
+  (let [nodes (keep identity (map node [:meta :init]))
+        [updated-meta updated-init]
+        (cond->> (application-usage nodes borrowed owned unwind-owned)
+          (not (:meta node)) (concat [nil]))]
+    (-> node
+        (set-unwind unwind-owned)
+        (assoc-maybe :meta updated-meta)
+        (assoc :init updated-init))))
 
 (defmethod -memory-management-pass :map
   ;; Order of evaluation is key1, val1, key2, val2, ...
@@ -698,7 +717,7 @@
         (assoc :thens updated-branches))))
 
 ;; Handled by default:
-;; case-then, const, def, host-interop, import, instance-field, instance?,
+;; case-then, const, host-interop, import, instance-field, instance?,
 ;; monitor-enter, monitor-exit, prim-invoke, protocol-invoke, quote, set, static-field, the-var,
 ;; var, with-meta
 (defmethod -memory-management-pass :default

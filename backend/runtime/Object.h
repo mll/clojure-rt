@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <execinfo.h>
 #include "Function.h"
+#include "Var.h"
 #include "BigInteger.h"
 #include "Ratio.h"
 #include "PersistentArrayMap.h"
@@ -49,6 +50,7 @@ struct Object {
 typedef struct Object Object; 
 
 extern _Atomic uint64_t allocationCount[256]; 
+extern _Atomic uint64_t objectCount[256]; 
 
 void initialise_memory();
 
@@ -136,6 +138,9 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
   case functionType:
     Function_destroy(Object_data(self));
     break;
+  case varType:
+    Var_destroy(Object_data(self));
+    break;
   case bigIntegerType:
     BigInteger_destroy(Object_data(self));
     break;
@@ -180,6 +185,10 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
   uint64_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_relaxed);  
   assert(relVal >= 1 && "Memory corruption!");
   if (relVal == 1) {
+#ifdef REFCOUNT_TRACING
+    uint64_t countVal = atomic_fetch_sub_explicit(&(objectCount[self->type -1 ]), 1, memory_order_relaxed);
+    assert(countVal >= 1 && "Memory corruption!");
+#endif
 #endif
     Object_destroy(self, deallocateChildren);
     return TRUE;
@@ -225,6 +234,8 @@ inline uint64_t Object_hash(Object * restrict self) {
         return Keyword_hash(Object_data(self));
       case functionType:
         return Function_hash(Object_data(self));
+      case varType:
+        return Var_hash(Object_data(self));
       case bigIntegerType:
         return BigInteger_hash(Object_data(self));
       case ratioType:
@@ -289,6 +300,9 @@ inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   case functionType:
     return Function_equals(selfData, otherData);
     break;
+  case varType:
+    return Var_equals(selfData, otherData);
+    break;
   case bigIntegerType:
     return BigInteger_equals(selfData, otherData);
     break;
@@ -344,6 +358,8 @@ inline String *Object_toString(Object * restrict self) {
     return Keyword_toString(Object_data(self));
   case functionType:
     return Function_toString(Object_data(self));
+  case varType:
+    return Var_toString(Object_data(self));
   case bigIntegerType:
     return BigInteger_toString(Object_data(self));
   case ratioType:
@@ -398,6 +414,7 @@ inline void Object_create(Object * restrict self, objectType type) {
   self->type = type;
 #ifdef REFCOUNT_TRACING
   atomic_fetch_add_explicit(&(allocationCount[self->type-1]), 1, memory_order_relaxed);
+  atomic_fetch_add_explicit(&(objectCount[self->type-1]), 1, memory_order_relaxed);
 #endif
 //  printf("--> Allocating type %d addres %p\n", self->type, Object_data(self));
 }

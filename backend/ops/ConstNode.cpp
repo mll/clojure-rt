@@ -47,7 +47,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
       retVal = callRuntimeFun("getClassByName", ptrT, {ptrT, ptrT}, {statePtr, className});
     }
     break;
-    // TODO
   case deftypeType:
     // TODO/not possible?
     throw CodeGenerationException(string("Not possible to create const of type: ") + ConstNode_ConstType_Name(subnode.type()), node);
@@ -64,6 +63,14 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
     retVal = dynamicRatio(subnode.val().c_str());
     dynamicRetain(retVal);
     break;
+  case varType:
+    {
+      Var *var = TheProgramme->getVarByName(subnode.val());
+      if (!var) throw CodeGenerationException("Unable to resolve var: " + subnode.val() + " in this context", node);
+      retVal = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) var, false)), ptrT);
+      dynamicRetain(retVal);
+      break;
+    }
   case persistentListType:
   case persistentVectorType:
   case persistentVectorNodeType:
@@ -108,8 +115,10 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
     return ObjectTypeSet(symbolType, false, new ConstantSymbol(subnode.val())).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeKeyword:
     return ObjectTypeSet(keywordType, false, new ConstantKeyword(subnode.val())).restriction(typeRestrictions);
-  case ConstNode_ConstType_constTypeClass: // TODO
+  case ConstNode_ConstType_constTypeClass:
     return ObjectTypeSet(classType).restriction(typeRestrictions);
+  case ConstNode_ConstType_constTypeVar:
+    return ObjectTypeSet(varType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeType:
   case ConstNode_ConstType_constTypeRecord:
   case ConstNode_ConstType_constTypeMap:
@@ -118,7 +127,6 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const ConstNode &subnode,
   case ConstNode_ConstType_constTypeSeq:
   case ConstNode_ConstType_constTypeChar:
   case ConstNode_ConstType_constTypeRegex:
-  case ConstNode_ConstType_constTypeVar:
   case ConstNode_ConstType_constTypeUnknown:
   default:
     throw CodeGenerationException(string("Compiler does not support the following const type yet: ") + ConstNode_ConstType_Name(subnode.type()), node);

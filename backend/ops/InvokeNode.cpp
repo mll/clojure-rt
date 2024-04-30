@@ -22,17 +22,6 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
 
   bool determinedArgs = true;
   for(auto a: args) if(!a.first.isDetermined()) { determinedArgs = false; break; }
-      
-  if(functionRef.op() == opVar) { /* Static var holding a fuction */
-    auto var = functionRef.subnode().var();
-    refName = var.var().substr(2);
-    auto mangled = globalNameForVar(refName);
-    auto idIt = TheProgramme->StaticFunctions.find(mangled);
-    if(idIt != TheProgramme->StaticFunctions.end()) {
-      uniqueId = idIt->second;
-      fName = getMangledUniqueFunctionName(uniqueId);
-    }
-  }
   
   if(fName == "" && funType.isBoxedType(functionType) && funType.getConstant()) {
     /* Direct call to a constant function  */
@@ -148,6 +137,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
         }
         return callRuntimeFun(callName, ObjectTypeSet::dynamicType(), finalArgs); 
       }
+    case varType:
     case functionType:
       /* Function without constant value must be interpreted in the runtime, just like 
          indetermined object */
@@ -185,15 +175,6 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
   auto function = subnode.fn();
   auto type = getType(function, ObjectTypeSet::all());
   uint64_t uniqueId = 0;
-  if(function.op() == opVar) { /* Static var holding a fuction */
-    auto var = function.subnode().var();
-    string name = var.var().substr(2);
-    auto mangled = globalNameForVar(name);
-    auto idIt = TheProgramme->StaticFunctions.find(mangled);
-    if(idIt != TheProgramme->StaticFunctions.end()) {
-      uniqueId = idIt->second;
-    }
-  }
 
   if(type.isBoxedType(functionType) && type.getConstant()) {
     uniqueId = dynamic_cast<ConstantFunction *>(type.getConstant())->value;
@@ -232,7 +213,11 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
     }
 
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);
-    auto closedOvers = TheProgramme->ClosedOverTypes.find(ProgrammeState::closedOverKey(uniqueId, methodId))->second;    
+    std::vector<ObjectTypeSet> closedOvers;
+    auto closedOversIt = TheProgramme->ClosedOverTypes.find(ProgrammeState::closedOverKey(uniqueId, methodId)); // TODO: What does it mean when iterator is end?
+    if (closedOversIt != TheProgramme->ClosedOverTypes.end())
+      closedOvers = closedOversIt->second;
+
     return determineMethodReturn(*method, uniqueId, args, closedOvers, typeRestrictions);
   }
   /* Unable to find function body, it has gone through generic path and type has to be resolved at runtime */

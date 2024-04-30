@@ -22,7 +22,7 @@ void Interface_initialise() {
 void printReferenceCounts() {
   printf("Ref counters: ");  
   for(int i= integerType; i<=persistentArrayMapType; i++) {
-    printf("%llu ", allocationCount[i-1]);    
+    printf("%llu/%llu ", allocationCount[i-1], objectCount[i-1]);    
   }
   printf("\n");
 }

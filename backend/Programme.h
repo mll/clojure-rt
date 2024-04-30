@@ -35,6 +35,7 @@
 
 extern "C" {
   #include "runtime/Class.h"
+  typedef struct Var Var;
 }
 
 class CodeGenerator;
@@ -60,7 +61,7 @@ class ProgrammeState {
   std::unordered_map<std::string, std::pair<std::vector<ObjectTypeSet>, ObjectTypeSet>> LoopsBindingsAndRetValInfers;
   std::unordered_map<std::string, bool> RecursiveFunctionsNameMap;
   std::unordered_map<std::string, std::vector<std::pair<std::string, std::pair<StaticCallType, StaticCall>>>> StaticCallLibrary; // DEPRECATED?
-  std::unordered_map<std::string, ObjectTypeSet> StaticVarTypes;
+  std::unordered_map<std::string, Var *> DefinedVarsByName;
   
   // TODO: Keep structure dynamic (updated as defrecord + others is used)
   std::unordered_map<
@@ -85,6 +86,7 @@ class ProgrammeState {
   uint64_t lastClassUniqueId = 100; // reserved for ANY and primitive types
 
   ProgrammeState();
+  // ~ProgrammeState();
   
   static std::string closedOverKey(uint64_t functionId, uint64_t methodId);
   uint64_t getUniqueClassId();
@@ -94,6 +96,8 @@ class ProgrammeState {
   Class *getClass(uint64_t classId);
   
   void *getPrimitiveMethod(objectType target, const std::string &methodName, const std::vector<objectType> &argTypes);
+  Var *getVarByName(const std::string &varName);
+  std::pair<Var *, BOOL> getVar(const std::string &varName); // second is TRUE if new (unbound) var was created
 };
 
 #endif

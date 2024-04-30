@@ -89,7 +89,7 @@
     (with-redefs [ana/parse-quote quote/parse-quote]
       (let [reader (t/source-logging-push-back-reader s 1 filename)]
         (loop [form (r/read {:eof :eof} reader) ret-val []]
-          (if (= :eof form) (do #_(clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) ;; uncomment to see simple tree
+          (if (= :eof form) (do #_(clojure.pprint/pprint (passes/clean-tree ret-val)) ;; uncomment to see simple tree
                                 ret-val)
               (do
                 ;; (eval form)

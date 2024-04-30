@@ -33,6 +33,7 @@ set(SOURCES
     Interface.c 
     Keyword.c 
     Function.c
+    Var.c
     BigInteger.c
     Ratio.c
     PersistentArrayMap.c)

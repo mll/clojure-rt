@@ -5,28 +5,18 @@ using namespace llvm;
 
 TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, const ObjectTypeSet &typeRestrictions) {
   string name = subnode.var().substr(2);
-  auto found = StaticVars.find(name);
-  if(found == StaticVars.end()) {
-    throw CodeGenerationException(string("Undeclared var: ") + name, node);
-  }
-
-  auto type = found->second.first;
-  Type *t = dynamicType(found->second.first);
-
-  LoadInst * load = Builder->CreateLoad(t, found->second.second, "load_var");
-  load->setAtomic(AtomicOrdering::Monotonic);
-  if(type.isDynamic()) dynamicRetain(load);
-
-  return TypedValue(found->second.first.restriction(typeRestrictions), load);
+  auto type = getType(node, typeRestrictions);
+  Var *var = TheProgramme->DefinedVarsByName.find(name)->second; // getType verifies that it exists
+  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  Value *varPtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) var, false)), ptrT);
+  dynamicRetain(varPtr);
+  Value *varValue = callRuntimeFun("Var_deref", ptrT, {ptrT}, {varPtr});
+  return TypedValue(type, varValue);
 }
 
 ObjectTypeSet CodeGenerator::getType(const Node &node, const VarNode &subnode, const ObjectTypeSet &typeRestrictions) {
   string name = subnode.var().substr(2);
-  auto found = StaticVars.find(name);
-  if(found != StaticVars.end()) {
-    auto t = found->second.first.restriction(typeRestrictions);
-    return t;
-  }
-  throw CodeGenerationException(string("Undeclared var: ") + name, node);
-  return ObjectTypeSet();
+  auto found = TheProgramme->DefinedVarsByName.find(name);
+  if (found == TheProgramme->DefinedVarsByName.end()) throw CodeGenerationException(string("Undeclared var: ") + name, node);
+  return ObjectTypeSet::all();
 }

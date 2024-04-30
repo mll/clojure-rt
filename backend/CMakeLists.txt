@@ -73,6 +73,7 @@ set(SOURCES
      static/Numbers.cpp
      static/Class.cpp
      static/Deftype.cpp
+     static/Var.cpp
      RuntimeInterop.cpp
      ObjectTypeSet.cpp
      static/Utils.cpp

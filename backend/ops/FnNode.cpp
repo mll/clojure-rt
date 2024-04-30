@@ -106,5 +106,22 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const FnNode &subnode, co
     TheProgramme->RecurTargets.insert({firstMethodLoopId, funId});
   } else funId = idEntry->second;
 
+  // trigger getType of methods' body, create unbound vars
+  for (auto methodNode: subnode.methods()) {
+    auto method = methodNode.subnode().fnmethod();
+    std::unordered_map<std::string, ObjectTypeSet> bindings;
+
+    for (int i=0; i < method.params_size(); i++) {
+      auto paramNode = method.params(i);
+      auto binding = paramNode.subnode().binding();
+      auto name = binding.name();
+      bindings.insert({name, ObjectTypeSet::all()});
+    }
+    
+    VariableBindingTypesStack.push_back(bindings);
+    getType(method.body(), typeRestrictions);
+    VariableBindingTypesStack.pop_back();
+  }
+  
   return ObjectTypeSet(functionType, true, new ConstantFunction(funId)).restriction(typeRestrictions); 
 }

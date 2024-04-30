@@ -467,12 +467,17 @@ class ObjectTypeSet {
     retVal.insert(deftypeType);
     retVal.insert(keywordType);
     retVal.insert(functionType);
+    retVal.insert(varType);
     retVal.insert(bigIntegerType);
     retVal.insert(ratioType);
     retVal.insert(persistentArrayMapType);
     retVal.internalClasses = {ANY};
     retVal.isBoxed = true;
     return retVal;
+  }
+  
+  static std::vector<std::string> allTypes() {
+    return {"J", "D", "Z", "LS", "LV", "LL", "LY", "LK", "LF", "LN", "LO", "LT", "LC", "LQ"};
   }
   
   static ObjectTypeSet fromVector(std::vector<objectType> types) {
@@ -515,6 +520,8 @@ class ObjectTypeSet {
         return "LK";
       case functionType:
         return "LF";
+      case varType:
+        return "LQ";
       case bigIntegerType:
         return "LI";
       case ratioType:

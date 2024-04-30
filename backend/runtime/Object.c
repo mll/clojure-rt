@@ -7,6 +7,7 @@
 #include "Interface.h"
 
 _Atomic uint64_t allocationCount[256]; 
+_Atomic uint64_t objectCount[256];
 /* pool globalPool1; */
 /* pool globalPool2; */
 /* pool globalPool3; */
@@ -19,7 +20,7 @@ void PersistentVector_initialise();
 void Nil_initialise();
 
 void initialise_memory() {
-  for(int i=0; i<10; i++) atomic_exchange(&(allocationCount[i]), 0); 
+  for(int i=0; i<200; i++) atomic_exchange(&(allocationCount[i]), 0); 
   /* poolInitialize(&globalPool1, BLOCK_SIZE, 100000); */
   /* poolInitialize(&globalPool2, 128, 100000); */
   /* poolInitialize(&globalPool3, 64, 100000); */

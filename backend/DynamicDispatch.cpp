@@ -77,15 +77,6 @@ TypedValue CodeGenerator::callStaticFun(const Node &node,
   
   ExitOnErr(TheJIT->addAST(std::move(f)));
 
-  auto found = StaticVars.find(refName);
-  if(found != StaticVars.end()) {
-    LoadInst * load = Builder->CreateLoad(dynamicBoxedType(), found->second.second, "load_var");
-    load->setAtomic(AtomicOrdering::Monotonic);
-    Value *type = getRuntimeObjectType(load);
-    Value *uniqueId = ConstantInt::get(*TheContext, APInt(64, getUniqueFunctionIdFromName(name), false));   
-    return TypedValue(retValType, dynamicInvoke(node, load, type, retValType, finalArgs, uniqueId, CalleeF));  
-  }
-  
   auto retVal = TypedValue(retValType, Builder->CreateCall(CalleeF, argVals, string("call_") + rName));  
   if(body.once()) {
     vector<TypedValue> cleanupArgs;
@@ -110,15 +101,35 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
                                     const vector<TypedValue> &args, 
                                     Value *uniqueFunctionId, 
                                     Function *staticFunctionToCall) {
-  Function *parentFunction = Builder->GetInsertBlock()->getParent();
+  BasicBlock *initialBB = Builder->GetInsertBlock();
+  Function *parentFunction = initialBB->getParent();
   
+  BasicBlock *varTypeBB = llvm::BasicBlock::Create(*TheContext, "type_var", parentFunction);
+  BasicBlock *derefedBB = llvm::BasicBlock::Create(*TheContext, "derefed", parentFunction);
   BasicBlock *functionTypeBB = llvm::BasicBlock::Create(*TheContext, "type_function");
   BasicBlock *vectorTypeBB = llvm::BasicBlock::Create(*TheContext, "type_vector");
   BasicBlock *persistentArrayMapTypeBB = llvm::BasicBlock::Create(*TheContext, "type_persistentArrayMap");
   BasicBlock *keywordTypeBB = llvm::BasicBlock::Create(*TheContext, "type_keyword");
   BasicBlock *failedBB = llvm::BasicBlock::Create(*TheContext, "failed");
 
-  SwitchInst *cond = Builder->CreateSwitch(objectType, failedBB, 2); 
+  // Calling var is the same as calling whatever is inside the var, deref if necessary
+  Value *isVar = Builder->CreateICmpEQ(objectType, ConstantInt::get(*TheContext, APInt(32, varType, false)), "cmp_var_type");
+  Builder->CreateCondBr(isVar, varTypeBB, derefedBB);
+  
+  Builder->SetInsertPoint(varTypeBB);
+  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  Value *derefedVar = callRuntimeFun("Var_deref", ptrT, {ptrT}, {objectToInvoke});
+  Value *derefedType = getRuntimeObjectType(derefedVar);
+  Builder->CreateBr(derefedBB);
+
+  Builder->SetInsertPoint(derefedBB);
+  PHINode *actualObjectType = Builder->CreatePHI(objectType->getType(), 2, "object_type");
+  actualObjectType->addIncoming(derefedType, varTypeBB);
+  actualObjectType->addIncoming(objectType, initialBB);
+  PHINode *actualObjectToInvoke = Builder->CreatePHI(objectToInvoke->getType(), 2, "object_to_invoke");
+  actualObjectToInvoke->addIncoming(derefedVar, varTypeBB);
+  actualObjectToInvoke->addIncoming(objectToInvoke, initialBB);
+  SwitchInst *cond = Builder->CreateSwitch(actualObjectType, failedBB, 2); 
   cond->addCase(ConstantInt::get(*TheContext, APInt(32, functionType, false)), functionTypeBB);
   cond->addCase(ConstantInt::get(*TheContext, APInt(32, persistentVectorType, false)), vectorTypeBB);
   cond->addCase(ConstantInt::get(*TheContext, APInt(32, persistentArrayMapType, false)), persistentArrayMapTypeBB);
@@ -136,7 +147,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
     BasicBlock *uniqueIdOkBB = llvm::BasicBlock::Create(*TheContext, "unique_id_ok");
     BasicBlock *uniqueIdFailedBB = llvm::BasicBlock::Create(*TheContext, "unique_id_failed");
     
-    Value *uniqueIdPtr = Builder->CreateStructGEP(runtimeFunctionType(), objectToInvoke, 0, "get_unique_id");
+    Value *uniqueIdPtr = Builder->CreateStructGEP(runtimeFunctionType(), actualObjectToInvoke, 0, "get_unique_id");
     Value *uniqueId = Builder->CreateLoad(Type::getInt64Ty(*TheContext), uniqueIdPtr, "load_unique_id");    
         
     Value *cond2 = Builder->CreateICmpEQ(uniqueId, uniqueFunctionId, "cmp_unique_id");
@@ -147,11 +158,11 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
     vector<Value *> argVals;
     for(auto v : args) argVals.push_back(v.second);
     /* The last arg is always function object, so that we can extract the closed overs inside the function */
-    argVals.push_back(objectToInvoke);
+    argVals.push_back(actualObjectToInvoke);
 
     Value *uniqueIdOkVal = Builder->CreateCall(staticFunctionToCall, argVals, string("call_dynamic"));
     
-    Value *oncePtr = Builder->CreateStructGEP(runtimeFunctionType(), objectToInvoke, 3, "get_once");
+    Value *oncePtr = Builder->CreateStructGEP(runtimeFunctionType(), actualObjectToInvoke, 3, "get_once");
     Value *once = Builder->CreateLoad(Type::getInt8Ty(*TheContext), oncePtr, "load_once");
     Value *onceCond = Builder->CreateIntCast(once, dynamicUnboxedType(booleanType), false);
     
@@ -162,7 +173,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
     Builder->SetInsertPoint(cleanupBB);
 
     vector<TypedValue> cleanupArgs;
-    cleanupArgs.push_back(TypedValue(ObjectTypeSet(functionType), objectToInvoke));    
+    cleanupArgs.push_back(TypedValue(ObjectTypeSet(functionType), actualObjectToInvoke));    
     callRuntimeFun("Function_cleanupOnce", ObjectTypeSet::empty(), cleanupArgs);       
 
     Builder->CreateBr(ccBB);
@@ -172,7 +183,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
   
     parentFunction->insert(parentFunction->end(), uniqueIdFailedBB); 
     Builder->SetInsertPoint(uniqueIdFailedBB);
-    Value *uniqueIdFailedVal = callDynamicFun(node, objectToInvoke, retValType, args);
+    Value *uniqueIdFailedVal = callDynamicFun(node, actualObjectToInvoke, retValType, args);
     uniqueIdFailedBB = Builder->GetInsertBlock();
 
     Builder->CreateBr(uniqueIdMergeBB);
@@ -185,7 +196,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
     funRetVal = phiNode;
     funRetValBlock = Builder->GetInsertBlock();
   } else { 
-    funRetVal = callDynamicFun(node, objectToInvoke, retValType, args); 
+    funRetVal = callDynamicFun(node, actualObjectToInvoke, retValType, args); 
     funRetValBlock = Builder->GetInsertBlock();
   }
   
@@ -202,7 +213,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
   else {
     vector<TypedValue> finalArgs;
     string callName;
-    finalArgs.push_back(TypedValue(ObjectTypeSet(persistentVectorType), objectToInvoke));
+    finalArgs.push_back(TypedValue(ObjectTypeSet(persistentVectorType), actualObjectToInvoke));
     auto argType = args[0].first;
     bool matched = false;
 
@@ -244,7 +255,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
   else {
     vector<TypedValue> finalArgs;
     string callName;
-    finalArgs.push_back(TypedValue(ObjectTypeSet(persistentArrayMapType), objectToInvoke));
+    finalArgs.push_back(TypedValue(ObjectTypeSet(persistentArrayMapType), actualObjectToInvoke));
     auto argType = args[0].first;
 
     finalArgs.push_back(box(args[0]));          
@@ -272,7 +283,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
     vector<TypedValue> finalArgs;
     string callName;
     finalArgs.push_back(box(args[0]));          
-    finalArgs.push_back(TypedValue(ObjectTypeSet(keywordType), objectToInvoke));
+    finalArgs.push_back(TypedValue(ObjectTypeSet(keywordType), actualObjectToInvoke));
     auto argType = args[0].first;
 
     callName = "PersistentArrayMap_dynamic_get";

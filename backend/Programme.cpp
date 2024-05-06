@@ -4,6 +4,7 @@
 #include "static/Vector.h"
 #include "static/Deftype.h"
 #include "static/Var.h"
+#include "static/String.h"
 #include "Programme.h"
 
 extern "C" {
@@ -48,6 +49,7 @@ ProgrammeState::ProgrammeState() {
   auto vector = getVectorFunctions();
   auto deftype = getDeftypeStaticFunctions();
   auto var = getVarStaticFunctions();
+  auto string = getStringStaticFunctions();
   StaticCallLibrary.insert(numbers.begin(), numbers.end());
   StaticCallLibrary.insert(utils.begin(), utils.end());
   StaticCallLibrary.insert(vector.first.begin(), vector.first.end());
@@ -57,6 +59,8 @@ ProgrammeState::ProgrammeState() {
   InstanceCallLibrary.insert(deftype.second.begin(), deftype.second.end());
   DynamicCallLibrary.insert(var.first.begin(), var.first.end());
   InstanceCallLibrary.insert(var.second.begin(), var.second.end());
+  DynamicCallLibrary.insert(string.first.begin(), string.first.end());
+  InstanceCallLibrary.insert(string.second.begin(), string.second.end());
   
   // C++ insert semantics: if key is already present in map, insert will be ignored
   for (uint64_t t = integerType; t <= persistentArrayMapType; ++t) {

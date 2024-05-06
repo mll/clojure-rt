@@ -46,8 +46,8 @@ String* String_createDynamic(size_t size);
 String* String_createStatic(char *string);
 
 StringIterator String_iterator(String *self);
-char String_iteratorGetChar(String *self, StringIterator *it);
-char String_iteratorNext(String *self, StringIterator *it);
+char *String_iteratorGetChar(String *self, StringIterator *it);
+char *String_iteratorNext(String *self, StringIterator *it);
 
 String *String_concat(String *self, String *other);
 /* Creates a version of the string that has guaranteed 'value' field */
@@ -60,7 +60,10 @@ uint64_t String_hash(String *self);
 String *String_toString(String *self);
 void String_destroy(String *self);
 
+BOOL String_contains(String *self, String *other);
+int64_t String_indexOf(String *self, String *other);
+int64_t String_indexOfFrom(String *self, String *other, int64_t fromIndex);
 
-
+String *String_replace(String *self, String *target, String *replacement);
 
 #endif

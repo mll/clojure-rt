@@ -101,7 +101,7 @@ extern "C" {
          entry->signature[2] == argSignature[2] && 
          entry->packed == packedArg &&
          entry->returnType == retValType) return entry->fptr;
-      if(entry->signature[0] == 0) cachePosition = entry;
+      if(!entry->fptr) cachePosition = entry;
     } 
 
     std::vector<ObjectTypeSet> argT;

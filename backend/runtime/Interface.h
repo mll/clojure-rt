@@ -50,5 +50,7 @@ inline BOOL unboxedEqualsBoolean(void *left, BOOL right) {
 
 void printReferenceCounts();
 
+void **packPointerArgs(uint64_t count, ...);
+
 #endif
 

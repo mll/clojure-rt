@@ -312,8 +312,9 @@ String *String_replace(String *self, String *target, String *replacement) {
   release(replacement);
   char *retValChar = String_iteratorGetChar(retVal, &retValIterator);
   while (retValChar) {
-    if (*retValChar == targetChar)
+    if (*retValChar == targetChar) {
       *retValChar = replacementChar;
+    }
     retValChar = String_iteratorNext(retVal, &retValIterator);
   }
   return retVal;

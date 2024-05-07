@@ -19,6 +19,15 @@ extern "C" {
   void retain(void *obj);
 } 
 
+Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, const vector<pair<Type *, Value *>> &args) {
+  vector<Type *> argTypes;
+  vector<Value *> argValues;
+  for (auto pair: args) {
+    argTypes.push_back(pair.first);
+    argValues.push_back(pair.second);
+  }
+  return callRuntimeFun(fname, retValType, argTypes, argValues, false);
+}
 
 TypedValue CodeGenerator::callRuntimeFun(const string &fname, const ObjectTypeSet &retVal, const vector<TypedValue> &args) {
   Function *CalleeF = TheModule->getFunction(fname);
@@ -128,8 +137,7 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     fname = "Nil_create";
     break;
   case classType:
-    fname = "Class_create"; // CONSIDER: Not possible/throw exception? Unregistered class
-    break;
+    throw InternalInconsistencyException("We never allow creation of subtypes here, only runtime can do it");
   case deftypeType:
     fname = "Deftype_create";
     break;
@@ -368,12 +376,23 @@ StructType *CodeGenerator::runtimeClassType() {
        /* registerId */ Type::getInt64Ty(*TheContext),
        /* name */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* className */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* isInterface */ Type::getInt8Ty(*TheContext),
+       
        /* staticFieldCount */ Type::getInt64Ty(*TheContext),
        /* staticFieldNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* staticFields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       
+       /* staticMethodCount */ Type::getInt64Ty(*TheContext),
+       /* staticMethodNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* staticMethods */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       
        /* fieldCount */ Type::getInt64Ty(*TheContext),
        /* indexPermutation */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* fields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       
+       /* methodCount */ Type::getInt64Ty(*TheContext),
+       /* methodNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* methods */ Type::getInt8Ty(*TheContext)->getPointerTo(),
      }, "Class");
 }
 

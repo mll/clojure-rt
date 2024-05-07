@@ -1,6 +1,7 @@
 #include "Interface.h"
 #include "ConcurrentHashMap.h"
 #include <stdio.h>
+#include <stdarg.h>
 
 ConcurrentHashMap *keywords = NULL;
 ConcurrentHashMap *vars = NULL;
@@ -44,5 +45,17 @@ void logBacktrace() {
   }
 
   free (strings);
+}
+
+void **packPointerArgs(uint64_t count, ...) {
+  if (!count) return NULL;
+  void **ptr = allocate(sizeof(void *) * count);
+  va_list args;
+  va_start(args, count);
+  for (int i = 0; i < count; ++i) {
+    ptr[i] = va_arg(args, void *);
+  }
+  va_end(args);
+  return ptr;
 }
 

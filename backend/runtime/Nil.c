@@ -40,5 +40,10 @@ String *Nil_toString(Nil *self) {
 }
 
 /* outside refcount system */
+Nil * const Nil_getUnique() {
+    return UNIQUE_NIL;
+}
+
+/* outside refcount system */
 void Nil_destroy(Nil *self) {
 }

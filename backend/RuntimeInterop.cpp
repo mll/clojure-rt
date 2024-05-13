@@ -119,6 +119,9 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     isVariadic = true;      
     break;
   case persistentVectorNodeType:
+  case containerNodeType:
+  case bitmapIndexedNodeType:
+  case hashCollisionNodeType:
     throw InternalInconsistencyException("We never allow creation of subtypes here, only runtime can do it");
   case nilType:
     fname = "Nil_create";
@@ -128,6 +131,9 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     break;
   case keywordType:
     fname = "Keyword_create";
+    break;
+  case persistentHashMapType:
+    fname = "PersistentHashMap_create";
     break;
   case persistentArrayMapType:
     fname = "PersistentArrayMap_createMany";
@@ -382,7 +388,11 @@ Value *CodeGenerator::dynamicSuper(Value *objectPtr) {
   // return objPtr;
   Value *funcPtr = Builder->CreateBitOrPointerCast(objectPtr, Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
 // TODO: The -16 is only valid on 64 bit machines
-  Value *gep = Builder->CreateGEP(Type::getInt8Ty(*TheContext), funcPtr, ArrayRef((Value *)ConstantInt::get(*TheContext, APInt(64, -16))));
+#ifdef OBJECT_DEBUG
+    Value *gep = Builder->CreateGEP(Type::getInt8Ty(*TheContext), funcPtr, ArrayRef((Value *)ConstantInt::get(*TheContext, APInt(64, -24))));
+#else
+    Value *gep = Builder->CreateGEP(Type::getInt8Ty(*TheContext), funcPtr, ArrayRef((Value *)ConstantInt::get(*TheContext, APInt(64, -16))));
+#endif
   return Builder->CreateIntToPtr(gep, runtimeObjectType()->getPointerTo() , "sub_size");
 }
 
@@ -535,6 +545,10 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case symbolType:
     case keywordType:
     case persistentArrayMapType:
+    case persistentHashMapType:
+    case bitmapIndexedNodeType:
+    case containerNodeType:
+    case hashCollisionNodeType:
     case functionType:
     case concurrentHashMapType:
       return Type::getInt8Ty(*TheContext)->getPointerTo();
@@ -688,6 +702,10 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
   case keywordType:
   case concurrentHashMapType:
   case persistentArrayMapType:
+  case persistentHashMapType:
+  case bitmapIndexedNodeType:
+  case containerNodeType:
+  case hashCollisionNodeType:
   case functionType:
     return TypedValue(retType, value.second);
   }

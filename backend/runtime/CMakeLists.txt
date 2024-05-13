@@ -3,9 +3,9 @@ project(runtime)
 
 #set(CMAKE_OSX_ARCHITECTURES "arm64")
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif ()
 
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
@@ -16,24 +16,29 @@ set(CMAKE_C_FLAGS_DEBUG "-g")
 set(CMAKE_C_FLAGS_RELEASE "-Ofast")
 
 set(SOURCES
-    Transient.c
-    Object.c 
-    Integer.c 
-    PersistentList.c 
-    PersistentVector.c 
-    PersistentVectorNode.c 
-    String.c 
-    Double.c 
-    Nil.c 
-    Boolean.c 
-    Symbol.c 
-    ConcurrentHashMap.c 
-    Interface.c 
-    Keyword.c 
-    Function.c
-    BigInteger.c
-    Ratio.c
-    PersistentArrayMap.c)
+        Transient.c
+        Object.c
+        Integer.c
+        PersistentList.c
+        PersistentVector.c
+        PersistentVectorNode.c
+        String.c
+        Double.c
+        Nil.c
+        Boolean.c
+        Symbol.c
+        ConcurrentHashMap.c
+        Interface.c
+        Keyword.c
+        Function.c
+        BigInteger.c
+        Ratio.c
+        PersistentArrayMap.c
+        BitmapIndexedNode.c
+        ContainerNode.c
+        HashCollisionNode.c
+        PersistentHashMap.c
+)
 
 add_library(runtime STATIC ${SOURCES})
 

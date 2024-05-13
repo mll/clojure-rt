@@ -2,6 +2,7 @@
 #define RT_TRANSIENT
 
 #include <stdatomic.h>
+#include <stdint.h>
 
 #define PERSISTENT 0
 

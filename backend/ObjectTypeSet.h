@@ -29,7 +29,7 @@ class ConstantInteger: public ObjectTypeConstant {
   ConstantInteger(int64_t val) : ObjectTypeConstant(integerType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantInteger(value)); }
   virtual std::string toString() { return std::to_string(value); }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     if(ConstantInteger *i = dynamic_cast<ConstantInteger *>(other)) {
       return i->value == value;
     }
@@ -42,7 +42,7 @@ class ConstantNil: public ObjectTypeConstant {
   ConstantNil() : ObjectTypeConstant(nilType) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantNil()); }
   virtual std::string toString() { return "nil"; }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     return dynamic_cast<ConstantNil *>(other);
   }
 };
@@ -53,7 +53,7 @@ class ConstantDouble: public ObjectTypeConstant {
   ConstantDouble(double val) : ObjectTypeConstant(doubleType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantDouble(value)); }
   virtual std::string toString() { return std::to_string(value); }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     if(ConstantDouble *i = dynamic_cast<ConstantDouble *>(other)) {
       return i->value == value;
     }
@@ -67,7 +67,7 @@ class ConstantString: public ObjectTypeConstant {
   ConstantString(std::string val) : ObjectTypeConstant(stringType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantString(value)); }
   virtual std::string toString() { return value; }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     if(ConstantString *i = dynamic_cast<ConstantString *>(other)) {
       return i->value == value;
     }
@@ -81,7 +81,7 @@ class ConstantBoolean: public ObjectTypeConstant {
   ConstantBoolean(bool val) : ObjectTypeConstant(booleanType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantBoolean(value)); }
   virtual std::string toString() { return std::to_string(value); }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     if(ConstantBoolean *i = dynamic_cast<ConstantBoolean *>(other)) {
       return i->value == value;
     }
@@ -109,7 +109,7 @@ class ConstantKeyword: public ObjectTypeConstant {
   ConstantKeyword(std::string val) : ObjectTypeConstant(keywordType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantKeyword(value)); }
   virtual std::string toString() { return value; }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     if(ConstantKeyword *i = dynamic_cast<ConstantKeyword *>(other)) {
       return i->value == value;
     }
@@ -123,7 +123,7 @@ class ConstantSymbol: public ObjectTypeConstant {
   ConstantSymbol(std::string val) : ObjectTypeConstant(symbolType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantSymbol(value)); }
   virtual std::string toString() { return value; }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     if(ConstantSymbol *i = dynamic_cast<ConstantSymbol *>(other)) {
       return i->value == value;
     }
@@ -137,7 +137,7 @@ class ConstantBigInteger: public ObjectTypeConstant {
   ConstantBigInteger(mpz_t val) : ObjectTypeConstant(bigIntegerType) {
     mpz_init_set(value, val);
   }
-  ConstantBigInteger(mpq_t val) : ObjectTypeConstant(bigIntegerType) { 
+  ConstantBigInteger(mpq_t val) : ObjectTypeConstant(bigIntegerType) {
     assert(mpz_cmp_si(mpq_denref(val), 1) == 0);
     mpz_init_set(value, mpq_numref(val));
   }
@@ -149,7 +149,7 @@ class ConstantBigInteger: public ObjectTypeConstant {
   }
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantBigInteger(value)); }
   virtual std::string toString() { return std::string(mpz_get_str(NULL, 10, value)); }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     if(ConstantBigInteger *i = dynamic_cast<ConstantBigInteger *>(other)) {
       return mpz_cmp(i->value, value) == 0;
     }
@@ -160,7 +160,7 @@ class ConstantBigInteger: public ObjectTypeConstant {
 class ConstantRatio: public ObjectTypeConstant {
   public:
   mpq_t value;
-  ConstantRatio(mpq_t val) : ObjectTypeConstant(ratioType) { 
+  ConstantRatio(mpq_t val) : ObjectTypeConstant(ratioType) {
     mpq_init(value);
     mpq_set(value, val);
   }
@@ -190,7 +190,7 @@ class ConstantRatio: public ObjectTypeConstant {
   }
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantRatio(value)); }
   virtual std::string toString() { return std::string(mpq_get_str(NULL, 10, value)); }
-  virtual bool equals(ObjectTypeConstant *other) {   
+  virtual bool equals(ObjectTypeConstant *other) {
     if(ConstantRatio *i = dynamic_cast<ConstantRatio *>(other)) {
       return mpq_equal(i->value, value);
     }
@@ -212,9 +212,9 @@ class ObjectTypeSet {
 
   ObjectTypeSet(objectType type, bool isBoxed = false, ObjectTypeConstant *cons = nullptr) : constant(cons), isBoxed(isBoxed) {
     internal.insert(type);
-    if(!constant && type == nilType) { 
-      constant = static_cast<ObjectTypeConstant *>(new ConstantNil()); 
-    } 
+    if(!constant && type == nilType) {
+      constant = static_cast<ObjectTypeConstant *>(new ConstantNil());
+    }
     if(!isScalar()) this->isBoxed = true;
   }
   ObjectTypeSet() {
@@ -228,7 +228,7 @@ class ObjectTypeSet {
     if(other.constant) constant = other.constant->copy();
     else constant = nullptr;
   }
-    
+
   void insert(objectType type) {
     internal.emplace(type);
   }
@@ -315,7 +315,7 @@ class ObjectTypeSet {
     if (pos == internal.end()) return;
     internal.erase(pos);
   }
-  
+
   ObjectTypeSet expansion(const ObjectTypeSet &other) const {
     /* Expansion removes all constants */
     auto retVal = ObjectTypeSet(*this);
@@ -330,16 +330,16 @@ class ObjectTypeSet {
     /* Expansion removes all constants */
     auto retVal = ObjectTypeSet();
     retVal.internal = internal;
-    retVal.isBoxed = isBoxed; 
+    retVal.isBoxed = isBoxed;
     return retVal;
   }
-  
+
 
   ObjectTypeSet restriction(const ObjectTypeSet &other) const {
     /* Restriction preserves constant type for this */
     auto retVal = ObjectTypeSet();
     std::set_intersection(internal.begin(), internal.end(),
-                   other.internal.begin(), other.internal.end(),                  
+                   other.internal.begin(), other.internal.end(),
                    std::inserter(retVal.internal, retVal.internal.begin()));
     retVal.isBoxed = isBoxed;
     if (constant != nullptr && retVal.contains(constant->constantType)) {
@@ -367,7 +367,7 @@ class ObjectTypeSet {
     all.isBoxed = true;
     return all;
   }
-  
+
   static ObjectTypeSet empty() {
     return ObjectTypeSet();
   }
@@ -386,11 +386,17 @@ class ObjectTypeSet {
     retVal.insert(functionType);
     retVal.insert(bigIntegerType);
     retVal.insert(ratioType);
+
+    retVal.insert(bitmapIndexedNodeType);
+    retVal.insert(hashCollisionNodeType);
+    retVal.insert(containerNodeType);
+    retVal.insert(persistentHashMapType);
+
     retVal.insert(persistentArrayMapType);
     retVal.isBoxed = true;
     return retVal;
   }
-  
+
   static std::vector<ObjectTypeSet> allGuesses() {
     auto allTypes = ObjectTypeSet::all();
     std::vector<ObjectTypeSet> guesses;
@@ -403,7 +409,7 @@ class ObjectTypeSet {
     guesses.push_back(allTypes);
     return guesses;
   }
-  
+
   static std::string typeStringForArg(const ObjectTypeSet &arg) {
     if(!arg.isDetermined()) return "LO";
     else switch (arg.determinedType()) {
@@ -435,14 +441,20 @@ class ObjectTypeSet {
         return "LI";
       case ratioType:
         return "LR";
+      case bitmapIndexedNodeType:
+      case containerNodeType:
+      case hashCollisionNodeType:
+        assert(false && "Node cannot be used as an argument");
+      case persistentHashMapType:
+        return "LH";
       case persistentArrayMapType:
         return "LA";
       }
   }
-  
+
   static std::string typeStringForArgs(const std::vector<ObjectTypeSet> &args) {
     std::stringstream retval;
-    for (auto i: args) retval << typeStringForArg(i);    
+    for (auto i: args) retval << typeStringForArg(i);
     return retval.str();
   }
 
@@ -452,10 +464,10 @@ class ObjectTypeSet {
 
   static std::string recursiveMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args) {
     return name + "_" + typeStringForArgs(args);
-  }  
+  }
 
   std::string toString() const {
-    std::string retVal = typeStringForArg(*this);    
+    std::string retVal = typeStringForArg(*this);
     if(constant) retVal += " constant value: " + constant->toString() + " of " + std::to_string(constant->constantType);
     return retVal;
   }

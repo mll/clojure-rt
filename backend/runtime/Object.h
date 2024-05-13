@@ -1,10 +1,12 @@
 #ifndef RT_OBJECT
 #define RT_OBJECT
+#define OBJECT_DEBUG 1
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
 #pragma clang diagnostic ignored "-Wexpansion-to-defined"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
@@ -28,14 +30,21 @@
 #include "Function.h"
 #include "BigInteger.h"
 #include "Ratio.h"
+#include "PersistentHashMap.h"
 #include "PersistentArrayMap.h"
+#include "BitmapIndexedNode.h"
+#include "HashCollisionNode.h"
+#include "ContainerNode.h"
 
-typedef struct String String; 
+typedef struct String String;
 
 extern void logBacktrace();
 void printReferenceCounts();
 
 struct Object {
+#ifdef OBJECT_DEBUG
+    uint64_t magic;
+#endif
   objectType type;
 #ifdef REFCOUNT_NONATOMIC
   uint64_t refCount;
@@ -44,9 +53,9 @@ struct Object {
 #endif
 };
 
-typedef struct Object Object; 
+typedef struct Object Object;
 
-extern _Atomic uint64_t allocationCount[256]; 
+extern _Atomic uint64_t allocationCount[256];
 
 void initialise_memory();
 
@@ -56,7 +65,7 @@ inline void *allocate(size_t size) {
   /* if (size <= 128) return poolMalloc(&globalPool2);  */
   /* if (size > 64 && size <= BLOCK_SIZE) return poolMalloc(&globalPool1);    */
   assert(size > 0 && "Size = 0");
-  void * retVal = malloc(size);  
+  void * retVal = malloc(size);
   assert(retVal && "Could not aloocate that much! ");
   return retVal;
 }
@@ -65,42 +74,55 @@ inline void deallocate(void * restrict ptr) {
  /* if (poolFreeCheck(ptr, &globalPool3)) { poolFree(&globalPool3, ptr); return; } */
  /* if (poolFreeCheck(ptr, &globalPool2)) { poolFree(&globalPool2, ptr); return; } */
  /* if (poolFreeCheck(ptr, &globalPool1)) { poolFree(&globalPool1, ptr); return; }  */
- free(ptr);  
+ free(ptr);
 }
 
 inline void *Object_data(Object * restrict self) {
+//#ifdef OBJECT_DEBUG
+//    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+//#endif
   return self + 1;
 }
 
-inline Object *super(void * restrict self) {
-  return (Object *)(self - sizeof(Object));  
+inline Object *super(void * const restrict self) {
+#ifdef OBJECT_DEBUG
+    Object * obj = (Object *)(self - sizeof(Object));
+    assert(obj->magic == 0xdeadbeef && "Memory corruption!");
+#endif
+  return (Object *)(self - sizeof(Object));
 }
 
 inline void Object_retain(Object * restrict self) {
+#ifdef OBJECT_DEBUG
+    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+#endif
 //  printf("RETAIN!!! %d\n", self->type);
 #ifdef REFCOUNT_TRACING
   atomic_fetch_add_explicit(&(allocationCount[self->type-1]), 1, memory_order_relaxed);
 #endif
 #ifdef REFCOUNT_NONATOMIC
   self->refCount++;
-#else    
+#else
   atomic_fetch_add_explicit(&(self->atomicRefCount), 1, memory_order_relaxed);
 #endif
 }
 
 inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
+#ifdef OBJECT_DEBUG
+    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+#endif
 //  printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t)Object_data(self));
  // printReferenceCounts();
   switch((objectType)self->type) {
   case integerType:
     Integer_destroy(Object_data(self));
-    break;          
+    break;
   case stringType:
     String_destroy(Object_data(self));
-    break;          
+    break;
   case persistentListType:
     PersistentList_destroy(Object_data(self), deallocateChildren);
-    break;          
+    break;
   case persistentVectorType:
     PersistentVector_destroy(Object_data(self), deallocateChildren);
     break;
@@ -109,7 +131,7 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
     break;
   case doubleType:
     Double_destroy(Object_data(self));
-    break;          
+    break;
   case booleanType:
     Boolean_destroy(Object_data(self));
     break;
@@ -134,6 +156,18 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
   case ratioType:
     Ratio_destroy(Object_data(self));
     break;
+  case bitmapIndexedNodeType:
+    BitmapIndexedNode_destroy(Object_data(self), deallocateChildren);
+    break;
+  case hashCollisionNodeType:
+    HashCollisionNode_destroy(Object_data(self), deallocateChildren);
+    break;
+  case containerNodeType:
+    ContainerNode_destroy(Object_data(self), deallocateChildren);
+    break;
+  case persistentHashMapType:
+    PersistentHashMap_destroy(Object_data(self), deallocateChildren);
+    break;
   case persistentArrayMapType:
     PersistentArrayMap_destroy(Object_data(self), deallocateChildren);
     break;
@@ -146,11 +180,11 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
 
 inline BOOL Object_isReusable(Object *restrict self) {
   uint64_t refCount = atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
-  // Multithreading - is it really safe to assume it is reusable if refcount is 1? 
-  /*  The reasoning here is that passing object to another thread is an operation that by 
-      itself increases its reference count. Therefore it is assumed that if recount is 1 at 
-      a point in time this means other threads have no knowledge of this object's existence 
-      at this particular moment. Therefore, if only our thread knows of it, it can pass it to another 
+  // Multithreading - is it really safe to assume it is reusable if refcount is 1?
+  /*  The reasoning here is that passing object to another thread is an operation that by
+      itself increases its reference count. Therefore it is assumed that if recount is 1 at
+      a point in time this means other threads have no knowledge of this object's existence
+      at this particular moment. Therefore, if only our thread knows of it, it can pass it to another
       but only after it completes current operation.
       */
   return refCount == 1;
@@ -161,6 +195,9 @@ inline BOOL isReusable(void *restrict self) {
 }
 
 inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChildren) {
+#ifdef OBJECT_DEBUG
+    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+#endif
 #ifdef REFCOUNT_TRACING
 //    printf("RELEASE!!! %p %d %d\n", self, self->type, deallocateChildren);
     atomic_fetch_sub_explicit(&(allocationCount[self->type -1 ]), 1, memory_order_relaxed);
@@ -169,7 +206,7 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
 #ifdef REFCOUNT_NONATOMIC
   if (--self->refCount == 0) {
 #else
-  uint64_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_relaxed);  
+  uint64_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_relaxed);
   assert(relVal >= 1 && "Memory corruption!");
   if (relVal == 1) {
 #endif
@@ -180,31 +217,26 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
 }
 
 inline uint64_t Object_hash(Object * restrict self) {
+#ifdef OBJECT_DEBUG
+    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+#endif
       switch((objectType)self->type) {
       case integerType:
         return Integer_hash(Object_data(self));
-        break;          
       case stringType:
         return String_hash(Object_data(self));
-        break;          
       case persistentListType:
         return PersistentList_hash(Object_data(self));
-        break;          
       case persistentVectorType:
         return PersistentVector_hash(Object_data(self));
-        break;
       case persistentVectorNodeType:
         return PersistentVector_hash(Object_data(self));
-        break;
       case doubleType:
         return Double_hash(Object_data(self));
-        break;          
       case booleanType:
         return Boolean_hash(Object_data(self));
-        break;
       case nilType:
         return Nil_hash(Object_data(self));
-        break;
       case symbolType:
         return Symbol_hash(Object_data(self));
       case concurrentHashMapType:
@@ -217,8 +249,16 @@ inline uint64_t Object_hash(Object * restrict self) {
         return BigInteger_hash(Object_data(self));
       case ratioType:
         return Ratio_hash(Object_data(self));
+      case bitmapIndexedNodeType:
+        return BitmapIndexedNode_hash(Object_data(self));
+      case hashCollisionNodeType:
+        return HashCollisionNode_hash(Object_data(self));
+      case containerNodeType:
+        return ContainerNode_hash(Object_data(self));
+      case persistentHashMapType:
+        return PersistentHashMap_hash(Object_data(self));
       case persistentArrayMapType:
-        return PersistentArrayMap_hash(Object_data(self));        
+        return PersistentArrayMap_hash(Object_data(self));
       }
 }
 
@@ -226,24 +266,28 @@ inline uint64_t hash(void * restrict self) {
   return Object_hash(super(self));
 }
 
-inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
+inline BOOL Object_equals(Object * const restrict self, Object * const restrict other) {
+#ifdef OBJECT_DEBUG
+    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+    assert(other->magic == 0xdeadbeef && "Memory corruption!");
+#endif
   if (self == other) return TRUE;
   if (self->type != other->type) return FALSE;
   if (Object_hash(self) != Object_hash(other)) return FALSE;
 
   void *selfData = Object_data(self);
-  void *otherData = Object_data(other);  
+  void *otherData = Object_data(other);
 
   switch((objectType)self->type) {
   case integerType:
     return Integer_equals(selfData, otherData);
-    break;          
+    break;
   case stringType:
     return String_equals(selfData, otherData);
-    break;          
+    break;
   case persistentListType:
     return PersistentList_equals(selfData, otherData);
-    break;          
+    break;
   case persistentVectorType:
     return PersistentVector_equals(selfData, otherData);
     break;
@@ -277,28 +321,39 @@ inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   case ratioType:
     return Ratio_equals(selfData, otherData);
     break;
+  case bitmapIndexedNodeType:
+    return BitmapIndexedNode_equals(selfData, otherData);
+  case hashCollisionNodeType:
+    return HashCollisionNode_equals(selfData, otherData);
+  case containerNodeType:
+    return ContainerNode_equals(selfData, otherData);
+  case persistentHashMapType:
+    return PersistentHashMap_equals(selfData, otherData);
   case persistentArrayMapType:
     return PersistentArrayMap_equals(selfData, otherData);
     break;
   }
 }
 
-inline BOOL equals(void * restrict self, void * restrict other) {
+inline BOOL equals(void * const restrict self, void * const restrict other) {
   return Object_equals(super(self), super(other));
 }
 
 
 inline String *Object_toString(Object * restrict self) {
+#ifdef OBJECT_DEBUG
+    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+#endif
   switch((objectType)self->type) {
   case integerType:
     return Integer_toString(Object_data(self));
-    break;          
+    break;
   case stringType:
     return String_toString(Object_data(self));
-    break;          
+    break;
   case persistentListType:
     return PersistentList_toString(Object_data(self));
-    break;          
+    break;
   case persistentVectorType:
     return PersistentVector_toString(Object_data(self));
     break;
@@ -326,6 +381,14 @@ inline String *Object_toString(Object * restrict self) {
     return BigInteger_toString(Object_data(self));
   case ratioType:
     return Ratio_toString(Object_data(self));
+  case bitmapIndexedNodeType:
+    return BitmapIndexedNode_toString(Object_data(self));
+  case hashCollisionNodeType:
+    return HashCollisionNode_toString(Object_data(self));
+  case containerNodeType:
+    return ContainerNode_toString(Object_data(self));
+  case persistentHashMapType:
+    return PersistentHashMap_toString(Object_data(self));
   case persistentArrayMapType:
     return PersistentArrayMap_toString(Object_data(self));
   }
@@ -336,6 +399,9 @@ inline String *toString(void * restrict self) {
 }
 
 inline BOOL Object_release(Object * restrict self) {
+#ifdef OBJECT_DEBUG
+    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+#endif
   return Object_release_internal(self, TRUE);
 }
 
@@ -344,11 +410,14 @@ inline objectType getType(void *obj) {
 }
 
 inline void Object_autorelease(Object * restrict self) {
+#ifdef OBJECT_DEBUG
+    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+#endif
   /* The object could have been deallocated through direct releases in the meantime (e.g. if autoreleasing entity does not own ) */
 #ifdef REFCOUNT_NONATOMIC
-  if(self->refCount < 1) return;   
+  if(self->refCount < 1) return;
 #else
-  if(atomic_load(&(self->atomicRefCount)) < 1) return;   
+  if(atomic_load(&(self->atomicRefCount)) < 1) return;
 #endif
   /* TODO: add an object to autorelease pool */
   /* If we have no other threads working, we release immediately */
@@ -368,6 +437,11 @@ inline BOOL release(void * restrict self) {
 }
 
 inline void Object_create(Object * restrict self, objectType type) {
+
+#ifdef OBJECT_DEBUG
+    self->magic = 0xdeadbeef;
+#endif
+
 #ifdef REFCOUNT_NONATOMIC
   self->refCount = 1;
 #else

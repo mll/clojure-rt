@@ -18,9 +18,9 @@ PersistentHashMap *PersistentHashMap_empty() {
 PersistentHashMap *PersistentHashMap_create() {
     size_t size = sizeof(Object) + sizeof(PersistentHashMap);
     Object *superVal = allocate(size);
-    PersistentHashMap *self = Object_data(superVal);
     memset(superVal, 0, size);
     Object_create(superVal, persistentHashMapType);
+    PersistentHashMap *self = Object_data(superVal);
     return self;
 }
 
@@ -106,11 +106,13 @@ String *PersistentHashMap_toString(PersistentHashMap *const self) {
 
 /* outside refcount system */
 void PersistentHashMap_destroy(PersistentHashMap *self, BOOL deallocateChildren) {
-    if (self->root != NULL) {
-        Object_destroy(self->root, deallocateChildren);
-    }
-    if (self->nilValue != NULL) {
-        Object_destroy(self->nilValue, deallocateChildren);
+    if (deallocateChildren) {
+        if (self->root != NULL) {
+            Object_release(self->root);
+        }
+        if (self->nilValue != NULL) {
+            Object_release(self->nilValue);
+        }
     }
 }
 
@@ -128,6 +130,7 @@ void PersistentHashMap_destroy(PersistentHashMap *self, BOOL deallocateChildren)
 PersistentHashMap *PersistentHashMap_copy(PersistentHashMap *self) {
     size_t size = sizeof(Object) + sizeof(PersistentHashMap);
     Object *superVal = allocate(size);
+    Object_create(superVal, persistentHashMapType);
     PersistentHashMap *new = Object_data(superVal);
     if (self->root != NULL) {
         Object_retain(self->root);
@@ -143,7 +146,7 @@ PersistentHashMap *PersistentHashMap_copy(PersistentHashMap *self) {
     new->root = self->root;
     new->count = self->count;
 
-    Object_create(superVal, persistentHashMapType);
+
     release(self);
     return new;
 
@@ -193,8 +196,9 @@ PersistentHashMap *PersistentHashMap_assoc(PersistentHashMap *const self, Object
     return new;
 }
 
-Object *PersistentHashMapNode_assoc(Object *const self, uint32_t shift, uint32_t hash, Object *const key, Object *const value,
-                                  BOOL *isNodeAdded) {
+Object *
+PersistentHashMapNode_assoc(Object *const self, uint32_t shift, uint32_t hash, Object *const key, Object *const value,
+                            BOOL *isNodeAdded) {
 //  NULL should not be a case here for self
 #ifdef OBJECT_DEBUG
     assert(self->magic == 0xdeadbeef && "Memory corruption!");
@@ -230,8 +234,9 @@ void *PersistentHashMap_dynamic_get(void *self, void *key) {
     return NULL;
 }
 
-Object *PersistentHashMap_createNode(uint32_t shift, Object *const key1, Object *const val1, uint32_t hash2, Object *const key2,
-                                   Object *const val2, BOOL *isNodeAdded) {
+Object *
+PersistentHashMap_createNode(uint32_t shift, Object *const key1, Object *const val1, uint32_t hash2, Object *const key2,
+                             Object *const val2, BOOL *isNodeAdded) {
     uint32_t hash1 = Object_hash(key1);
     if (hash1 == hash2) {
         return super(HashCollisionNode_create(hash1, 2, key1, val1, key2, val2));
@@ -243,5 +248,81 @@ Object *PersistentHashMap_createNode(uint32_t shift, Object *const key1, Object 
     node = Object_data(BitmapIndexedNode_assoc(node, shift, hash1, key1, val1, isNodeAdded));
 
     return BitmapIndexedNode_assoc(node, shift, hash2, key2, val2, isNodeAdded);
+}
+
+void PersistentHashMapNode_check(Object *child, uint32_t expectedRefCount);
+
+void PersistentHashMap_childrenCheck(PersistentHashMap *map, uint32_t expectedRefCount) {
+    if (map->root != NULL) {
+        PersistentHashMapNode_check(map->root, expectedRefCount);
+    }
+}
+
+void BitmapIndexedNode_check(Object *child, uint32_t expectedRefCount) {
+#ifdef OBJECT_DEBUG
+    assert(child->magic == 0xdeadbeef && "Memory corruption!");
+#endif
+    BitmapIndexedNode *node = Object_data(child);
+    uint8_t idx = 0;
+    for (uint32_t i = 0; i < __builtin_popcount(node->bitmap); i++) {
+        if (node->bitmap & (1 << i)) {
+            if (node->array[2 * idx] != NULL) {
+                PersistentHashMapNode_check(node->array[2 * idx], expectedRefCount);
+            }
+            PersistentHashMapNode_check(node->array[2 * idx + 1], expectedRefCount);
+            idx += 1;
+        }
+    }
+}
+
+void ContainerNode_check(Object *child, uint32_t expectedRefCount) {
+#ifdef OBJECT_DEBUG
+    assert(child->magic == 0xdeadbeef && "Memory corruption!");
+#endif
+    ContainerNode *node = Object_data(child);
+    for (uint32_t i = 0; i < 32; i++) {
+        if (node->array[i] != NULL) {
+            PersistentHashMapNode_check(node->array[i], expectedRefCount);
+        }
+    }
+}
+
+void HashCollisionNode_check(Object *child, uint32_t expectedRefCount) {
+#ifdef OBJECT_DEBUG
+    assert(child->magic == 0xdeadbeef && "Memory corruption!");
+#endif
+    HashCollisionNode *node = Object_data(child);
+    for (uint32_t i = 0; i < node->count * 2; i++) {
+        if (node->array[i] == NULL) {
+            assert(FALSE && "Should not happen for HashCollisionNode_check");
+        }
+        PersistentHashMapNode_check(node->array[i], expectedRefCount);
+    }
+}
+
+void PersistentHashMapNode_check(Object *child, uint32_t expectedRefCount) {
+#ifdef OBJECT_DEBUG
+    assert(child->magic == 0xdeadbeef && "Memory corruption!");
+#endif
+    switch (child->type) {
+        case bitmapIndexedNodeType:
+//            assert(child->atomicRefCount == expectedRefCount && "Wrong ref count for BitmapIndexedNode");
+            BitmapIndexedNode_check(child, expectedRefCount);
+            break;
+        case containerNodeType:
+//            assert(child->atomicRefCount == expectedRefCount && "Wrong ref count for BitmapIndexedNode");
+            ContainerNode_check(child, expectedRefCount);
+            break;
+        case hashCollisionNodeType:
+//            assert(child->atomicRefCount == expectedRefCount && "Wrong ref count for BitmapIndexedNode");
+            HashCollisionNode_check(child, expectedRefCount);
+            break;
+        default:
+//            assert(child->atomicRefCount == 2 && "Wrong ref count for BitmapIndexedNode");
+            if (child->type > 30) {
+                assert(FALSE && "Should not happen for PersistentHashMapNode_check");
+            }
+            return;
+    }
 }
 

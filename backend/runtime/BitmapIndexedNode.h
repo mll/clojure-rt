@@ -38,7 +38,7 @@ HashMapNode* BitmapIndexedNode_dissoc(BitmapIndexedNode *self, uint32_t shift, u
 BitmapIndexedNode *BitmapIndexedNode_create();
 BitmapIndexedNode *BitmapIndexedNode_createVa(uint32_t bitmap, uint32_t arraySize, ...);
 BitmapIndexedNode *BitmapIndexedNode_createWithout(BitmapIndexedNode *node, uint32_t bitmap, uint32_t idx);
-BitmapIndexedNode *BitmapIndexedNode_createWithInsertion(BitmapIndexedNode *oldSelf, uint32_t arraySize, uint32_t insertIndex, Object *keyToInsert, Object *valueToInsert, uint32_t oldBitmap);
+BitmapIndexedNode *BitmapIndexedNode_createWithInsertion(BitmapIndexedNode *oldSelf, uint32_t arraySize, uint32_t insertIndex, Object *keyToInsert, Object *valueToInsert, uint32_t newBitmap);
 BitmapIndexedNode *BitmapIndexedNode_empty();
 
 

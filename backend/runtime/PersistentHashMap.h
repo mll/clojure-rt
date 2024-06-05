@@ -35,6 +35,8 @@ BOOL PersistentHashMap_equals(PersistentHashMap * self, PersistentHashMap * othe
 uint64_t PersistentHashMap_hash(PersistentHashMap *self);
 String *PersistentHashMap_toString(PersistentHashMap *self);
 void PersistentHashMap_destroy(PersistentHashMap *self, BOOL deallocateChildren);
+void PersistentHashMapNode_check(Object *child, uint32_t expectedRefCount);
+void PersistentHashMap_childrenCheck(PersistentHashMap *map, uint32_t expectedRefCount);
 
 
 

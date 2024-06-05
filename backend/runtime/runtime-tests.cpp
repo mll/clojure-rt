@@ -13,15 +13,25 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <assert.h>
+#ifdef ATOMIC_FIX
 #include <atomic>
+#endif
 
 extern "C" {
 typedef struct PersistentVectorNode PersistentVectorNode;
 #include "defines.h"
 
+
 typedef struct Object {
+#ifdef OBJECT_DEBUG
+    uint64_t magic;
+#endif
     objectType type;
+#ifdef ATOMIC_FIX
     std::atomic<std::uint_fast64_t> refCount;
+#else
+    atomic_uint_fast64_t refCount;
+#endif
 } Object;
 
 typedef struct PersistentList {
@@ -96,10 +106,17 @@ PersistentVector *PersistentVector_create();
 void initialise_memory();
 
 typedef struct ConcurrentHashMapEntry {
+#ifdef ATOMIC_FIX
     std::atomic<void *> key;
     std::atomic<void *> value;
     std::atomic<uint64_t> keyHash;
     std::atomic<unsigned short> leaps;
+#else
+    void * _Atomic key;
+    void * _Atomic value;
+    _Atomic uint64_t keyHash;
+    _Atomic unsigned short leaps;
+#endif
 } ConcurrentHashMapEntry;
 
 typedef struct ConcurrentHashMapNode {
@@ -109,7 +126,11 @@ typedef struct ConcurrentHashMapNode {
 } ConcurrentHashMapNode;
 
 typedef struct ConcurrentHashMap {
+#ifdef ATOMIC_FIX
     std::atomic<ConcurrentHashMapNode *> root;
+#else
+    ConcurrentHashMapNode * _Atomic root;
+#endif
 } ConcurrentHashMap;
 
 ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent);
@@ -121,18 +142,31 @@ void PersistentVector_print(PersistentVector *self);
 
 PersistentHashMap *PersistentHashMap_create();
 PersistentHashMap *PersistentHashMap_assoc(PersistentHashMap *self, Object *key, Object *value);
+void PersistentHashMap_childrenCheck(PersistentHashMap *self, uint32_t expectedRefCount);
 }
 
 //#include <gperftools/profiler.h>
 
+#ifdef ATOMIC_FIX
 extern std::atomic<std::uint64_t> allocationCount[18];
+#else
+extern _Atomic uint64_t allocationCount[13];
+#endif
 
 void pd() {
     printf("Ref counters: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n",
+#ifdef ATOMIC_FIX
            allocationCount[0].load(), allocationCount[1].load(), allocationCount[2].load(), allocationCount[3].load(),
            allocationCount[4].load(), allocationCount[5].load(), allocationCount[6].load(), allocationCount[7].load(),
            allocationCount[8].load(), allocationCount[9].load(), allocationCount[10].load(), allocationCount[11].load(),
-           allocationCount[12].load(), allocationCount[13].load(), allocationCount[14].load(), allocationCount[15].load(), allocationCount[16].load(), allocationCount[17].load());
+           allocationCount[12].load(), allocationCount[13].load(), allocationCount[14].load(), allocationCount[15].load(), allocationCount[16].load(), allocationCount[17].load()
+#else
+            allocationCount[0], allocationCount[1], allocationCount[2], allocationCount[3],
+            allocationCount[4], allocationCount[5], allocationCount[6], allocationCount[7],
+            allocationCount[8], allocationCount[9], allocationCount[10], allocationCount[11],
+            allocationCount[12], allocationCount[13], allocationCount[14], allocationCount[15], allocationCount[16], allocationCount[17]
+#endif
+           );
 }
 
 
@@ -292,7 +326,13 @@ void testList(bool pauses) {
     printf("Sum: %llu\nTime: %f\n", sum, (double) (op - os) / CLOCKS_PER_SEC);
     if (pauses) getchar();
     clock_t ds = clock();
-    printf("%llu\n", super(l)->refCount.load());
+    printf("%llu\n",
+#ifdef ATOMIC_FIX
+           super(l)->refCount.load()
+#else
+            super(l)->refCount
+#endif
+           );
     release(l);
     pd();
     clock_t dp = clock();
@@ -307,22 +347,20 @@ void testPersistentHashMapAssoc(bool pauses) {
     if (pauses) getchar();
     clock_t as = clock();
 
-    for (int i = 0; i < 500000; i++) {
+    for (int i = 0; i < 100000; i++) {
         Integer *n = Integer_create(i);
         retain(n);
-
-        if (i == 31) {
-            printf("Ldsfmfsjsfdmjk\n");
-        }
-
         PersistentHashMap *k = PersistentHashMap_assoc(l, super(n), super(n));
-        retain(k);
-        String *s = toString(k);
+//        PersistentHashMap_childrenCheck(k, 1);
 
-        String *sComp = String_compactify(s);
-        char *text = String_c_str(sComp);
-        printf("Result: %s\n", text);
-        release(sComp);
+
+//        retain(k);
+//        String *s = toString(k);
+//
+//        String *sComp = String_compactify(s);
+//        char *text = String_c_str(sComp);
+//        printf("Result: %s\n", text);
+//        release(sComp);
         l = k;
 
 
@@ -333,7 +371,13 @@ void testPersistentHashMapAssoc(bool pauses) {
 
     pd();
     clock_t ap = clock();
-    printf("Map size: %llu\nRef count: %llu\nTime: %f\n", l->count, super(l)->refCount.load(),
+    printf("Map size: %llu\nRef count: %llu\nTime: %f\n",
+           l->count,
+#ifdef ATOMIC_FIX
+           super(l)->refCount.load(),
+#else
+              super(l)->refCount,
+#endif
            (double) (ap - as) / CLOCKS_PER_SEC);
 
     release(l);
@@ -375,7 +419,12 @@ void testVector(bool pauses, bool reuseSwitch = true) {
     }
     pd();
     clock_t ap = clock();
-    printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, super(l)->refCount.load(),
+    printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count,
+#ifdef ATOMIC_FIX
+           super(l)->refCount.load(),
+#else
+            super(l)->refCount,
+#endif
            (double) (ap - as) / CLOCKS_PER_SEC);
 
     if (pauses) getchar();
@@ -435,7 +484,13 @@ void testVector(bool pauses, bool reuseSwitch = true) {
     clock_t asd = clock();
     printf("Assocs + sum: %llu\nTime: %f\n", sum, (double) (asd - ass) / CLOCKS_PER_SEC);
     clock_t ds = clock();
-    printf("%llu\n", super(l)->refCount.load());
+    printf("%llu\n",
+#ifdef ATOMIC_FIX
+           super(l)->refCount.load()
+#else
+            super(l)->refCount
+#endif
+           );
     release(l);
     pd();
     clock_t dp = clock();

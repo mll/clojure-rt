@@ -1,6 +1,5 @@
 #ifndef RT_OBJECT
 #define RT_OBJECT
-#define OBJECT_DEBUG 1
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
@@ -78,9 +77,9 @@ inline void deallocate(void * restrict ptr) {
 }
 
 inline void *Object_data(Object * restrict self) {
-//#ifdef OBJECT_DEBUG
-//    assert(self->magic == 0xdeadbeef && "Memory corruption!");
-//#endif
+#ifdef OBJECT_DEBUG
+    assert(self->magic == 0xdeadbeef && "Memory corruption!");
+#endif
   return self + 1;
 }
 
@@ -395,6 +394,9 @@ inline String *Object_toString(Object * restrict self) {
 }
 
 inline String *toString(void * restrict self) {
+#ifdef OBJECT_DEBUG
+    assert(super(self)->magic == 0xdeadbeef && "Memory corruption!");
+#endif
   return Object_toString(super(self));
 }
 

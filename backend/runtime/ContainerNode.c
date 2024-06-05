@@ -10,8 +10,15 @@ Object *ContainerNode_createFromBitmapIndexedNode(BitmapIndexedNode *node, uint3
     uint32_t count = __builtin_popcount(node->bitmap);
     size_t size = sizeof(Object) + sizeof(ContainerNode) + 32 * sizeof(Object *); // Full size node
     Object *superValue = allocate(size);
+    Object_create(superValue, containerNodeType);
     ContainerNode *self = Object_data(superValue);
     self->count = count + 1;
+
+    #ifdef OBJECT_DEBUG
+        assert(keyToInsert->magic == 0xdeadbeef && "Memory corruption!");
+        assert(valueToInsert->magic == 0xdeadbeef && "Memory corruption!");
+    #endif
+
     self->array[insertIndex] = BitmapIndexedNode_assoc(
             BitmapIndexedNode_empty(),
             shift + 5,
@@ -21,10 +28,6 @@ Object *ContainerNode_createFromBitmapIndexedNode(BitmapIndexedNode *node, uint3
             isNodeAdded
     );
 
-    #ifdef OBJECT_DEBUG
-        assert(keyToInsert->magic == 0xdeadbeef && "Memory corruption!");
-        assert(valueToInsert->magic == 0xdeadbeef && "Memory corruption!");
-    #endif
     uint32_t idx = 0;
     // NAPRAWIĆ TO, COŚ TU NIE DZIAŁA!
     for (uint32_t i = 0; i < 32; i++) {
@@ -36,12 +39,16 @@ Object *ContainerNode_createFromBitmapIndexedNode(BitmapIndexedNode *node, uint3
                 self->array[i] = BitmapIndexedNode_assoc(
                         BitmapIndexedNode_empty(),
                         shift + 5,
-                        hash(Object_data(node->array[2 * idx])),
+                        Object_hash(node->array[2 * idx]),
                         node->array[2 * idx],
                         node->array[2 * idx + 1],
                         isNodeAdded
                 );
-            } else if (node->array[2 * idx + 1] != NULL) {
+            } else {
+                #ifdef OBJECT_DEBUG
+                    assert(node->array[2 * idx + 1] != NULL && "Value is NULL!");
+                #endif
+
                 Object_retain(node->array[2 * idx + 1]);
                 self->array[i] = node->array[2 * idx + 1];
             }
@@ -51,7 +58,6 @@ Object *ContainerNode_createFromBitmapIndexedNode(BitmapIndexedNode *node, uint3
         }
     }
 
-    Object_create(superValue, containerNodeType);
     release(node);
 
     #ifdef OBJECT_DEBUG
@@ -74,6 +80,7 @@ ContainerNode *ContainerNode_cloneAndSet(ContainerNode *nodeWithArray, uint32_t 
 
     size_t newSize = sizeof(Object) + sizeof(ContainerNode) + 32 * sizeof(Object *);
     Object *superValue = allocate(newSize);
+    Object_create(superValue, containerNodeType);
     ContainerNode *self = Object_data(superValue);
     self->count = nodeWithArray->count;
     memcpy(self->array, nodeWithArray->array, 32 *
@@ -85,7 +92,6 @@ ContainerNode *ContainerNode_cloneAndSet(ContainerNode *nodeWithArray, uint32_t 
         Object_retain(self->array[i]);
     }
     self->array[idx] = a;
-    Object_create(superValue, containerNodeType);
     release(nodeWithArray);
 
     #ifdef OBJECT_DEBUG
@@ -104,10 +110,6 @@ ContainerNode *ContainerNode_cloneAndSet(ContainerNode *nodeWithArray, uint32_t 
 Object *
 ContainerNode_assoc(ContainerNode *self, uint32_t shift, uint32_t hash, Object *key, Object *value, BOOL *isNodeAdded) {
     uint32_t idx = BitmapIndexedNode_mask(hash, shift);
-
-    if (idx == 2) {
-        printf("Breakpoint here\n");
-    }
 
     Object *node = self->array[idx];
 
@@ -130,12 +132,13 @@ ContainerNode_assoc(ContainerNode *self, uint32_t shift, uint32_t hash, Object *
         );
     }
 
+    Object_retain(node);
     Object *newNode = PersistentHashMapNode_assoc(node, shift + 5, hash, key, value, isNodeAdded);
     #ifdef OBJECT_DEBUG
         assert(newNode->magic == 0xdeadbeef && "Memory corruption!");
     #endif
     if (newNode == node) {
-        Object_release(newNode); // Maybe?
+        Object_release(node);
         return super(self);
     }
 

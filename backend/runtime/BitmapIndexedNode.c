@@ -26,6 +26,7 @@ BitmapIndexedNode *BitmapIndexedNode_cloneAndSet(BitmapIndexedNode *nodeWithArra
     #endif
     uint32_t arraySize = __builtin_popcount(nodeWithArray->bitmap);
     Object *cloneSuper = allocate(sizeof(Object) + sizeof(BitmapIndexedNode) + sizeof(Object *) * arraySize * 2);
+    Object_create(cloneSuper, bitmapIndexedNodeType);
     BitmapIndexedNode *clone = Object_data(cloneSuper);
     memcpy(clone->array, nodeWithArray->array, sizeof(BitmapIndexedNode) * arraySize * 2);
 
@@ -39,8 +40,6 @@ BitmapIndexedNode *BitmapIndexedNode_cloneAndSet(BitmapIndexedNode *nodeWithArra
 
     clone->array[idx] = a;
     clone->bitmap = nodeWithArray->bitmap;
-
-    Object_create(cloneSuper, bitmapIndexedNodeType);
 
     release(nodeWithArray);
 
@@ -61,9 +60,11 @@ BitmapIndexedNode_cloneAndSetTwo(BitmapIndexedNode *nodeWithArray, uint32_t idx,
     #ifdef OBJECT_DEBUG
         assert(a == NULL || a->magic == 0xdeadbeef && "Memory corruption!");
         assert(a2 == NULL || a2->magic == 0xdeadbeef && "Memory corruption!");
+        assert(super(nodeWithArray)->atomicRefCount > 0 && "Memory corruption!");
     #endif
     uint32_t arraySize = __builtin_popcount(nodeWithArray->bitmap);
     Object *cloneSuper = allocate(sizeof(Object) + sizeof(BitmapIndexedNode) + sizeof(Object *) * arraySize * 2);
+    Object_create(cloneSuper, bitmapIndexedNodeType);
     BitmapIndexedNode *clone = Object_data(cloneSuper);
 
     memcpy(clone->array, nodeWithArray->array, sizeof(BitmapIndexedNode) * arraySize * 2);
@@ -79,7 +80,7 @@ BitmapIndexedNode_cloneAndSetTwo(BitmapIndexedNode *nodeWithArray, uint32_t idx,
     clone->array[idx2] = a2;
     clone->bitmap = nodeWithArray->bitmap;
 
-    Object_create(cloneSuper, bitmapIndexedNodeType);
+
 
     release(nodeWithArray);
 
@@ -106,9 +107,9 @@ BitmapIndexedNode *BitmapIndexedNode_empty() {
 BitmapIndexedNode *BitmapIndexedNode_create() {
     size_t size = sizeof(Object) + sizeof(BitmapIndexedNode);
     Object *super = allocate(size);
+    Object_create(super, bitmapIndexedNodeType);
     BitmapIndexedNode *self = Object_data(super);
     self->bitmap = 0;
-    Object_create(super, bitmapIndexedNodeType);
     return self;
 }
 
@@ -143,11 +144,16 @@ BitmapIndexedNode *BitmapIndexedNode_createVa(uint32_t bitmap, uint32_t arraySiz
 
 BitmapIndexedNode *
 BitmapIndexedNode_createWithInsertion(BitmapIndexedNode *oldSelf, uint32_t arraySize, uint32_t insertIndex,
-                                      Object *keyToInsert, Object *valueToInsert, uint32_t oldBitmap) {
+                                      Object *keyToInsert, Object *valueToInsert, uint32_t newBitmap) {
+#ifdef OBJECT_DEBUG
+    assert(arraySize <= 16 && "Array size is too big!");
+#endif
     size_t newSize = sizeof(Object) + sizeof(BitmapIndexedNode) + sizeof(Object *) * arraySize * 2;
     Object *superValue = allocate(newSize);
+    memset(superValue, 0, newSize);
+    Object_create(superValue, bitmapIndexedNodeType);
     BitmapIndexedNode *self = Object_data(superValue);
-    self->bitmap = oldSelf->bitmap;
+    self->bitmap = newBitmap;
     if (arraySize > 1) {
         memcpy(self->array, oldSelf->array, sizeof(Object *) * insertIndex * 2);
 
@@ -162,12 +168,11 @@ BitmapIndexedNode_createWithInsertion(BitmapIndexedNode *oldSelf, uint32_t array
         if (self->array[i] == NULL || i == 2 * insertIndex || i == 2 * insertIndex + 1) {
             continue;
         }
+        // Looks like there is a free of used keys somewhere
         Object_retain(self->array[i]);
     }
 
-    Object_create(superValue, bitmapIndexedNodeType);
 
-    oldSelf->bitmap = oldBitmap;
     release(oldSelf);
 
     #ifdef OBJECT_DEBUG
@@ -200,7 +205,7 @@ Object *BitmapIndexedNode_assoc(BitmapIndexedNode *self, uint32_t shift, uint32_
 
         #ifdef OBJECT_DEBUG
             assert(keyOrNull == NULL || keyOrNull->magic == 0xdeadbeef && "Memory corruption!");
-            assert(valueOrNode || valueOrNode->magic == 0xdeadbeef && "Memory corruption!");
+            assert(valueOrNode != NULL && valueOrNode->magic == 0xdeadbeef && "Memory corruption!");
         #endif
 
         // Value is a node not a value
@@ -216,6 +221,13 @@ Object *BitmapIndexedNode_assoc(BitmapIndexedNode *self, uint32_t shift, uint32_
             if (keyOrNull == valueOrNode) {
                 return super(self);
             }
+
+            #ifdef OBJECT_DEBUG
+            void * ret =  super(BitmapIndexedNode_cloneAndSet(self, 2 * idx + 1, keyOrNull));
+            PersistentHashMapNode_check(ret, 1);
+            return ret;
+            #endif
+
             return super(BitmapIndexedNode_cloneAndSet(self, 2 * idx + 1, keyOrNull));
         }
         // Key is stored in this node
@@ -226,9 +238,25 @@ Object *BitmapIndexedNode_assoc(BitmapIndexedNode *self, uint32_t shift, uint32_
                 return super(self);
             }
             Object_release(key);
+
+            #ifdef OBJECT_DEBUG
+            void * ret =  super(BitmapIndexedNode_cloneAndSet(self, 2 * idx + 1, value));
+            PersistentHashMapNode_check(ret, 1);
+            return ret;
+            #endif
+
+
             return super(BitmapIndexedNode_cloneAndSet(self, 2 * idx + 1, value));
         }
         *isNodeAdded = TRUE;
+        #ifdef OBJECT_DEBUG
+        void * ret = super(BitmapIndexedNode_cloneAndSetTwo(
+                self, 2 * idx, NULL, 2 * idx + 1,
+                PersistentHashMap_createNode(
+                        shift + 5, keyOrNull, valueOrNode, hash, key, value, isNodeAdded)));
+        PersistentHashMapNode_check(ret, 1);
+        return ret;
+        #endif
         return super(BitmapIndexedNode_cloneAndSetTwo(
                 self, 2 * idx, NULL, 2 * idx + 1,
                 PersistentHashMap_createNode(
@@ -237,17 +265,24 @@ Object *BitmapIndexedNode_assoc(BitmapIndexedNode *self, uint32_t shift, uint32_
         uint8_t bitCount = __builtin_popcount(self->bitmap);
         if (bitCount >= 16) {
             uint32_t mask = BitmapIndexedNode_mask(hash, shift);
+
+            #ifdef OBJECT_DEBUG
+                void * ret = ContainerNode_createFromBitmapIndexedNode(self, shift, hash, mask, key, value, isNodeAdded);
+                PersistentHashMapNode_check(ret, 1);
+                return ret;
+            #endif
+
             return ContainerNode_createFromBitmapIndexedNode(self, shift, hash, mask, key, value, isNodeAdded);
         } else {
-            uint32_t oldBitmap = self->bitmap;
-            self->bitmap |= bit;
+            uint32_t newBitmap = self->bitmap | bit;
 
             BitmapIndexedNode *result = BitmapIndexedNode_createWithInsertion(self, bitCount + 1, idx, key, value,
-                                                                              oldBitmap);
-            #ifdef OBJECT_DEBUG
-                assert(super(result)->magic == 0xdeadbeef && "Memory corruption!");
-            #endif
+                                                                              newBitmap);
             *isNodeAdded = TRUE;
+            #ifdef OBJECT_DEBUG
+            assert(super(result)->magic == 0xdeadbeef && "Memory corruption!");
+            PersistentHashMapNode_check(super(result), 1);
+            #endif
             return super(result);
         }
     }
@@ -395,14 +430,9 @@ String *BitmapIndexedNode_toString(BitmapIndexedNode *self) {
 
 void BitmapIndexedNode_destroy(BitmapIndexedNode *self, BOOL deallocateChildren) {
     if (deallocateChildren) {
-        uint8_t idx = 0;
-        for (uint32_t i = 0; i < __builtin_popcount(self->bitmap); i++) {
-            if (self->bitmap & (1 << i)) {
-                if (self->array[2 * idx] != NULL) {
-                    Object_release(self->array[2 * idx]);
-                }
-                Object_release(self->array[2 * idx + 1]);
-                idx += 1;
+        for (uint32_t i = 0; i < __builtin_popcount(self->bitmap) * 2; i++) {
+            if (self->array[i] != NULL) {
+                Object_release(self->array[i]);
             }
         }
     }

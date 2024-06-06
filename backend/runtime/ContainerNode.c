@@ -53,7 +53,7 @@ Object *ContainerNode_createFromBitmapIndexedNode(BitmapIndexedNode *node, uint3
                 self->array[i] = node->array[2 * idx + 1];
             }
             idx += 1;
-        } else {
+        } else if (i != insertIndex) {
             self->array[i] = super(BitmapIndexedNode_empty());
         }
     }

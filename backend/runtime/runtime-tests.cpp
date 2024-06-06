@@ -7,14 +7,16 @@
 #include <time.h>
 #include <stdio.h>
 #include <cstdint>
-#include <stdatomic.h>
 #include <cstring>
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/time.h>
 #include <assert.h>
+
 #ifdef ATOMIC_FIX
 #include <atomic>
+#else
+#include <stdatomic.h>
 #endif
 
 extern "C" {

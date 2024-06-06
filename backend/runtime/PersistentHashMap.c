@@ -172,9 +172,10 @@ PersistentHashMap *PersistentHashMap_assoc(PersistentHashMap *const self, Object
 
     if (root == NULL) {
         root = super(BitmapIndexedNode_empty());
+    } else {
+        Object_retain(root);
     }
 
-    Object_retain(root);
     Object *newRoot = PersistentHashMapNode_assoc(
             root,
             0,
@@ -189,6 +190,7 @@ PersistentHashMap *PersistentHashMap_assoc(PersistentHashMap *const self, Object
     }
 
     PersistentHashMap *new = PersistentHashMap_copy(self);
+    if (new->root) Object_release(new->root);
     new->root = newRoot;
     if (isNodeAdded) {
         new->count += 1;

@@ -257,6 +257,8 @@ Object *BitmapIndexedNode_assoc(BitmapIndexedNode *self, uint32_t shift, uint32_
         PersistentHashMapNode_check(ret, 1);
         return ret;
         #endif
+        Object_retain(keyOrNull);
+        Object_retain(valueOrNode);
         return super(BitmapIndexedNode_cloneAndSetTwo(
                 self, 2 * idx, NULL, 2 * idx + 1,
                 PersistentHashMap_createNode(

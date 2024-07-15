@@ -58,3 +58,15 @@
 
 ;; should be true
 (= (dissoc (assoc (assoc {} h1 h1) h2 h2) h1) (assoc {} h2 h2))
+
+;; should be true
+(contains? big-map 1)
+
+;; should be false
+(contains? big-map 1234567)
+
+;; should be false
+(contains? big-map3 1)
+
+;; should be false
+(contains? big-map3 1234567)

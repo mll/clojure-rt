@@ -15,6 +15,7 @@ struct Class {
   String *name;
   String *className;
   BOOL isInterface;
+  Class *superclass;
   
   // Static fields: HashMap vs list?
   uint64_t staticFieldCount;

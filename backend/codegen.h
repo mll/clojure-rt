@@ -41,6 +41,10 @@
 #include "jit/jit.h"
 #include "FunctionJIT.h"
 
+extern "C" {
+  typedef struct Class Class;
+}
+
 #define RUNTIME_MEMORY_TRACKING
 
 using namespace clojure::rt::protobuf::bytecode;
@@ -141,9 +145,12 @@ TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<F
   TypedValue loadObjectFromRuntime(void *ptr);  
   static ObjectTypeSet typeOfObjectFromRuntime(void *ptr);
 
+  uint64_t getClassId(const std::string &className);
+  Class *getClass(uint64_t classId);
 
   llvm::Value *dynamicZero(const ObjectTypeSet &type);
   llvm::Value *callRuntimeFun(const std::string &fname, llvm::Type *retValType, const std::vector<llvm::Type *> &argTypes, const std::vector<llvm::Value *> &args, bool isVariadic = false);
+  llvm::Value *callRuntimeFun(const std::string &fname, llvm::Type *retValType, const std::vector<std::pair<llvm::Type *, llvm::Value *>> &args);
   TypedValue callRuntimeFun(const std::string &fname, const ObjectTypeSet &retVal, const std::vector<TypedValue> &args);
   llvm::Value *dynamicCreate(objectType type, const std::vector<llvm::Type *> &argTypes, const std::vector<llvm::Value *> &args);
   llvm::Type *dynamicUnboxedType(objectType type);

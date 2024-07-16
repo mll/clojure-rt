@@ -51,6 +51,19 @@ string CodeGenerator::codegenTopLevel(const Node &node, int i) {
     return fname;
 }
 
+
+string CodeGenerationException::toString() const {
+  return errorMessage;
+}
+
+uint64_t CodeGenerator::getClassId(const std::string &className) {
+  return TheProgramme->getClassId(className);
+};
+
+Class *CodeGenerator::getClass(uint64_t classId) {
+  return TheProgramme->getClass(classId);
+}
+
 void CodeGenerator::codegenDynamicMemoryGuidance(const Node &node) {
   for(int i=0; i<node.dropmemory_size(); i++) {
     auto guidance = node.dropmemory(i);
@@ -366,9 +379,4 @@ CodeGenerationException::CodeGenerationException(const string &errorMessage, con
   retval << node.form() << "\n";
   retval << string(node.form().length(), '^') << "\n";
   this->errorMessage = retval.str();
-}
-
-
-string CodeGenerationException::toString() const {
-  return errorMessage;
 }

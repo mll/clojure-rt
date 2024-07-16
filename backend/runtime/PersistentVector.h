@@ -57,4 +57,7 @@ PersistentVector* PersistentVector_copy_root(PersistentVector * restrict self, u
 PersistentVector* PersistentVector_transient(PersistentVector * restrict self);
 PersistentVector* PersistentVector_persistent_BANG_(PersistentVector * restrict self);
 
+uint64_t PersistentVector_count(PersistentVector * restrict self);
+BOOL PersistentVector_contains(PersistentVector * restrict self, void * restrict other);
+
 #endif

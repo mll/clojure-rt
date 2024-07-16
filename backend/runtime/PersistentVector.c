@@ -406,3 +406,22 @@ PersistentVector* PersistentVector_pop_BANG_(PersistentVector * restrict self) {
   assert_transient(self->transientID);
   return PersistentVector_pop_internal(self);
 }
+
+uint64_t PersistentVector_count(PersistentVector * restrict self) {
+  uint64_t retVal = self->count;
+  release(self);
+  return retVal;
+}
+
+BOOL PersistentVector_contains(PersistentVector * restrict self, void * restrict other) {
+  if (self->root) {
+    retain(self->root);
+    retain(other);
+    BOOL retVal = PersistentVectorNode_contains(self->root, other);
+    if (retVal) { release(self); release(other); return retVal; }
+  }
+  retain(self->tail);
+  BOOL retVal = PersistentVectorNode_contains(self->tail, other);
+  release(self);
+  return retVal;
+}

@@ -22,4 +22,6 @@ void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL dea
 PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied, BOOL allowsReuse, uint64_t vectorTransientID);
 PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other, BOOL allowsReuse, uint64_t vectorTransientID);
 PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode * restrict self, PersistentVectorNode ** restrict poppedLeaf, BOOL allowsReuse, uint64_t vectorTransientID);
+
+BOOL PersistentVectorNode_contains(PersistentVectorNode * restrict self, void * restrict other);
 #endif

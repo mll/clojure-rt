@@ -33,8 +33,9 @@ uint64_t Deftype_hash(Deftype *self) {
   return initialHash;
 }
 
-// #object[ClassName 0x75d543f3 "ClassName@75d543f3"]
-String *Deftype_toString(Deftype *self) {
+// repl prints #object[ClassName 0x75d543f3 "ClassName@75d543f3"]
+// str returns "ClassName@75d543f3"
+String *Deftype_toReplString(Deftype *self) {
   String *retVal = String_create("#object[");
   retain(self->_class->className);
   retVal = String_concat(retVal, self->_class->className);
@@ -50,6 +51,19 @@ String *Deftype_toString(Deftype *self) {
   retVal = String_concat(retVal, String_create("@"));
   retVal = String_concat(retVal, address);
   retVal = String_concat(retVal, String_create("\"]"));
+  release(self);
+  return retVal;
+}
+
+String *Deftype_toString(Deftype *self) {
+  String *retVal = String_create("");
+  retain(self->_class->className);
+  retVal = String_concat(retVal, self->_class->className);
+  retVal = String_concat(retVal, String_create("@"));
+  char *raw_address = allocate(sizeof(char) * 21);
+  snprintf(raw_address, 20, "%llx", (uint64_t) self); // address in hex, without 0x prefix
+  String *address = String_create(raw_address);
+  retVal = String_concat(retVal, address);
   release(self);
   return retVal;
 }

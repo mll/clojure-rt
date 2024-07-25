@@ -299,7 +299,7 @@ StructType *CodeGenerator::runtimeFunctionMethodType() {
 }
 
 StructType *CodeGenerator::runtimeFunctionType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"Function");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"ClojureFunction");
   if(retVal) return retVal;
 
    return StructType::create(*TheContext, {
@@ -309,7 +309,7 @@ StructType *CodeGenerator::runtimeFunctionType() {
        /* once */ Type::getInt8Ty(*TheContext),
        /* executed */ Type::getInt8Ty(*TheContext),
        /* methods */ ArrayType::get(runtimeFunctionMethodType(), 0)
-     }, "Function");
+     }, "ClojureFunction");
 }
 
 /* struct Integer {
@@ -377,6 +377,7 @@ StructType *CodeGenerator::runtimeClassType() {
        /* name */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* className */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* isInterface */ Type::getInt8Ty(*TheContext),
+       /* superclass */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        
        /* staticFieldCount */ Type::getInt64Ty(*TheContext),
        /* staticFieldNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
@@ -393,6 +394,10 @@ StructType *CodeGenerator::runtimeClassType() {
        /* methodCount */ Type::getInt64Ty(*TheContext),
        /* methodNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* methods */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       
+       /* implementedInterfacesCount */ Type::getInt64Ty(*TheContext),
+       /* implementedInterfaceClasses */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* implementedInterfaces */ Type::getInt8Ty(*TheContext)->getPointerTo(),
      }, "Class");
 }
 
@@ -834,6 +839,12 @@ extern "C" {
     std::string string_varName {String_c_str(varName->string)};
     release(varName);
     return TheProgramme->getVarByName(string_varName);
+  }
+}
+
+extern "C" {
+  ClojureFunction *resolveInstanceCall(ProgrammeState *TheProgramme, Class *_class, String *methodName) {
+    return nullptr; // TODO
   }
 }
 

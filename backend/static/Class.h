@@ -6,10 +6,12 @@ extern "C" {
   #include "runtime/Class.h"
 }
 
-Class *javaLangClass();
-Class *javaLangLong();
-Class *clojureAsmOpcodes();
-Class *clojureLangVar();
-Class *clojureLangVar__DOLLAR__Unbound();
+Class *createJavaLangObject(uint64_t funId);
+Class *createJavaLangClass(Class *javaLangObject);
+Class *createJavaLangLong(Class *javaLangNumber);
+Class *createClojureAsmOpcodes();
+Class *createClojureLangVar(Class *clojureLangARef);
+Class *createClojureLangVar__DOLLAR__Unbound(Class *clojureLangAFn);
+Class *createClojureLangCompiler(Class *javaLangObject);
 
 #endif

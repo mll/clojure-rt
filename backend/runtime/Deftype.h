@@ -20,6 +20,7 @@ typedef struct Deftype Deftype;
 Deftype *Deftype_create(Class *_class, uint64_t fieldCount, ...);
 BOOL Deftype_equals(Deftype *self, Deftype *other);
 uint64_t Deftype_hash(Deftype *self);
+String *Deftype_toReplString(Deftype *self);
 String *Deftype_toString(Deftype *self);
 void Deftype_destroy(Deftype *self);
 

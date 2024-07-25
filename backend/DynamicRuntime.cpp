@@ -66,7 +66,7 @@ extern "C" {
  
   void *specialiseDynamicFn(void *jitPtr, void *funPtr, uint64_t retValType, uint64_t argCount, uint64_t argSignature1, uint64_t argSignature2, uint64_t argSignature3, uint64_t packedArg) {    
     ClojureJIT *jit = (ClojureJIT *)jitPtr;
-    struct Function *fun = (struct Function *)funPtr;
+    struct ClojureFunction *fun = (struct ClojureFunction *)funPtr;
     struct FunctionMethod *method = NULL;
     uint64_t argSignature[3] = { argSignature1, argSignature2, argSignature3 };
 /* It will be cool to understand why do we need all the info inside the function object whereas 

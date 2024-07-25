@@ -68,7 +68,12 @@ ProgrammeState::ProgrammeState() {
     InstanceCallLibrary.insert({t, {}});
   }
   
-  std::vector<Class *> classes { javaLangClass(), javaLangLong(), clojureAsmOpcodes(), clojureLangVar(), clojureLangVar__DOLLAR__Unbound() };
+  Class *javaLangObject = createJavaLangObject(lastFunctionUniqueId++);
+  registerClass(javaLangObject);
+  std::vector<Class *> classes {
+    createJavaLangClass(javaLangObject), createJavaLangLong(javaLangObject), createClojureAsmOpcodes(),
+    createClojureLangVar(javaLangObject), createClojureLangVar__DOLLAR__Unbound(javaLangObject)
+  };
   for (auto _class: classes) registerClass(_class);
 }
 
@@ -124,4 +129,11 @@ std::pair<Var *, BOOL> ProgrammeState::getVar(const std::string &varName) {
     return {var, TRUE};
   }
   return {varIt->second, FALSE};
+}
+
+ClojureFunction *ProgrammeState::getInstanceMethod(uint64_t classId, const std::string &methodName) {
+  Class *_class = getClass(classId);
+  if (_class) {
+    // TODO
+  }
 }

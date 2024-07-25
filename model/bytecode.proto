@@ -280,6 +280,9 @@ message DeftypeNode {
 
   /* The symbol name of the deftype */
   string name = 5;
+
+  /* Superclass of the implemented type (if key is missing, default value is java.lang.Object) */
+  string superclass = 6;
 }
 
 /* Node for a do special-form expression or for another special-form's body */

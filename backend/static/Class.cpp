@@ -14,20 +14,46 @@ extern "C" {
   void **packPointerArgs(uint64_t count, ...);
 }
 
-Class *javaLangClass() {
-  const char *s = "class java.lang.Class";
+Class *createJavaLangObject(uint64_t funId) {
+  const char *s = "class java.lang.Object";
   String *name = String_createDynamicStr(s);
   retain(name);
+  std::vector<std::string> methodNames {"toString"};
+  Keyword **keywordMethodNames = (Keyword **) allocate(methodNames.size() * sizeof(Keyword *));
+  for (size_t i = 0; i < methodNames.size(); ++i) {
+    keywordMethodNames[i] = Keyword_create(String_createDynamicStr(methodNames[i].c_str()));
+  }
+  ClojureFunction **methods = (ClojureFunction **) allocate(methodNames.size() * sizeof(ClojureFunction *));
+  ClojureFunction *method = Function_create(1, funId, 1, false);
+  std::string loopId = "java.lang.Object/toString";
+  Function_fillMethod(method, 0, 0, 1, FALSE, strdup(loopId.c_str()), 0);
+  methods[0] = method; // TODO: toString
   return Class_create(
     name, name, 0,
+    NULL, // no superclass!
     0, NULL, NULL,
     0, NULL, NULL,
     0, NULL,
+    methodNames.size(), keywordMethodNames, methods,
     0, NULL, NULL
   );
 }
 
-Class *javaLangLong() {
+Class *createJavaLangClass(Class *javaLangObject) {
+  const char *s = "class java.lang.Class";
+  String *name = String_createDynamicStr(s);
+  retain(name);
+  return Class_create(
+    name, name, 0, javaLangObject,
+    0, NULL, NULL,
+    0, NULL, NULL,
+    0, NULL,
+    0, NULL, NULL,
+    0, NULL, NULL
+  );
+}
+
+Class *createJavaLangLong(Class *javaLangNumber) {
   const char *s = "class java.lang.Long";
   String *name = String_createDynamicStr(s);
   retain(name);
@@ -42,14 +68,16 @@ Class *javaLangLong() {
   // staticFields[4] = ???
   return Class_create(
     name, name, 0,
+    javaLangNumber,
     fieldNames.size(), staticFieldNames, staticFields,
     0, NULL, NULL,
     0, NULL,
+    0, NULL, NULL,
     0, NULL, NULL
   );
 }
 
-Class *clojureAsmOpcodes() {
+Class *createClojureAsmOpcodes() {
   const char *s = "class clojure.asm.Opcodes";
   String *name = String_createDynamicStr(s);
   retain(name);
@@ -106,52 +134,60 @@ Class *clojureAsmOpcodes() {
     ++k;
   }
   return Class_create(
-    name, name, 0,
+    name, name, 0x0200,
+    NULL, // No superclass - this is an interface!
     staticFieldCount, staticFieldNames, staticFields,
     0, NULL, NULL,
     0, NULL,
+    0, NULL, NULL,
     0, NULL, NULL
   );
 }
 
-Class *clojureLangVar() {
+Class *createClojureLangVar(Class *clojureLangARef) {
   const char *s = "class clojure.lang.Var";
   String *name = String_createDynamicStr(s);
   retain(name);
   return Class_create(
     name, name, 0,
+    clojureLangARef,
     0, NULL, NULL,
     0, NULL, NULL,
     0, NULL,
+    0, NULL, NULL,
     0, NULL, NULL
   );
 }
 
-Class *clojureLangVar__DOLLAR__Unbound() {
+Class *createClojureLangVar__DOLLAR__Unbound(Class *clojureLangAFn) {
   const char *s = "class clojure.lang.Var$Unbound";
   String *name = String_createDynamicStr(s);
   retain(name);
   Keyword *varName = Keyword_create(String_createDynamicStr("varName"));
   Class *_class = Class_create(
     name, name, 0,
+    clojureLangAFn,
     0, NULL, NULL,
     0, NULL, NULL,
     1, (Keyword **) packPointerArgs(1, varName),
+    0, NULL, NULL,
     0, NULL, NULL
   );
   UNIQUE_UnboundClass = _class;
   return _class;
 }
 
-Class *clojureLangCompiler() {
+Class *createClojureLangCompiler(Class *javaLangObject) {
   const char *s = "class clojure.lang.Compiler";
   String *name = String_createDynamicStr(s);
   retain(name);
   return Class_create(
     name, name, 0,
+    javaLangObject,
     0, NULL, NULL,
     0, NULL, NULL,
     0, NULL,
+    0, NULL, NULL,
     0, NULL, NULL
   );
 }

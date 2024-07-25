@@ -12,6 +12,11 @@ Class* Class_create(
   String *name,
   String *className,
   uint64_t flags, // clojure.asm.Opcodes
+  
+  // Interfaces don't have superclasses
+  // Among concrete classes, only java.lang.Class does not have superclass
+  // There should be no cyclic class hierarchy without pointer manipulation (eg. not from user code)
+  Class *superclass,
 
   uint64_t staticFieldCount,
   Keyword **staticFieldNames, // pass ownership of pointer, array of length staticFieldCount
@@ -19,19 +24,22 @@ Class* Class_create(
   
   uint64_t staticMethodCount,
   Keyword **staticMethodNames, // pass ownership of pointer, array of length staticMethodCount
-  Function **staticMethods, // pass ownership of pointer, array of length staticMethodCount
+  ClojureFunction **staticMethods, // pass ownership of pointer, array of length staticMethodCount
 
-  // TODO: Verify: If class is an interface, it can't have fields  
+  // TODO: Verify: If a class is an interface, it can't have fields  
   uint64_t fieldCount,
   Keyword **fieldNames, // function will free that pointer and create new to hold reordered fields
   
+  // Only for method defined in this class
   uint64_t methodCount,
   Keyword **methodNames, // pass ownership of pointer, array of length methodCount
-  // TODO: Does methods require verifying? 
-  // * Each method must take at least one argument (this)
-  // * No closed overs
-  // * Anything else?
-  Function **methods // pass ownership of pointer, array of length methodCount
+  ClojureFunction **methods, // pass ownership of pointer, array of length methodCount | TODO: If the class is an interface, should there be mockup impls?
+
+  uint64_t implementedInterfacesCount,
+  Class **implementedInterfaceClasses, // pass ownership of pointer, array of length implementedInterfacesCount
+  // pass ownership of pointer, 2d array of length implementedInterfacesCount,
+  // implementedInterfacesCount[i] has length implementedInterfaces[i]->methodCount
+  ClojureFunction ***implementedInterfaces
 ) {
   Object *super = allocate(sizeof(Object) + sizeof(Class));
   Class *self = (Class *)(super + 1);
@@ -40,13 +48,23 @@ Class* Class_create(
   self->className = className;
   self->isInterface = (flags & 0x0200) > 0; // TODO: static/Class.cpp, pull it from clojure.asm.Opcodes
   
+  self->superclass = superclass;
+  
   self->staticFieldCount = staticFieldCount;
   self->staticFieldNames = staticFieldNames;
   self->staticFields = staticFields;
   
+  self->staticMethodCount = staticMethodCount;
+  self->staticMethodNames = staticMethodNames;
+  self->staticMethods = staticMethods;
+  
   self->methodCount = methodCount;
   self->methodNames = methodNames;
   self->methods = methods;
+  
+  self->implementedInterfacesCount = implementedInterfacesCount;
+  self->implementedInterfaceClasses = implementedInterfaceClasses;
+  self->implementedInterfaces = implementedInterfaces;
   
   // redistribute fields according to hash modulo to improve lookup time
   self->fieldCount = fieldCount;
@@ -90,33 +108,54 @@ String *Class_toString(Class *self) {
 }
 
 void Class_destroy(Class *self) {
-  release(self->className);
   release(self->name);
+  release(self->className);
+  if (self->superclass) release(self->superclass);
+  
   for (int i = 0; i < self->staticFieldCount; ++i) {
     release(self->staticFieldNames[i]);
     Object_release(self->staticFields[i]);
   }
+  if (self->staticFieldNames) deallocate(self->staticFieldNames);
+  if (self->staticFields) deallocate(self->staticFields);
+  
   for (int i = 0; i < self->staticMethodCount; ++i) {
     release(self->staticMethodNames[i]);
     release(self->staticMethods[i]);
   }
+  if (self->staticMethodNames) deallocate(self->staticMethodNames);
+  if (self->staticMethods) deallocate(self->staticMethods);
+  
   for (int i = 0; i < self->fieldCount; ++i) {
     release(self->fieldNames[i]);
   }
+  if (self->indexPermutation) deallocate(self->indexPermutation);
+  if (self->fieldNames) deallocate(self->fieldNames);
+  
   for (int i = 0; i < self->methodCount; ++i) {
     release(self->methodNames[i]);
     release(self->methods[i]);
   }
-  if (self->staticFieldNames) deallocate(self->staticFieldNames);
-  if (self->staticFields) deallocate(self->staticFields);
-  if (self->staticMethodNames) deallocate(self->staticMethodNames);
-  if (self->staticMethods) deallocate(self->staticMethods);
-  if (self->fieldNames) deallocate(self->fieldNames);
   if (self->methodNames) deallocate(self->methodNames);
   if (self->methods) deallocate(self->methods);
+  
+  for (int i = 0; i < self->implementedInterfacesCount; ++i) {
+    for (int j = 0; j < self->implementedInterfaceClasses[i]->methodCount; ++j) {
+      release(self->implementedInterfaces[i][j]);
+    }
+    if (self->implementedInterfaces[i]) deallocate(self->implementedInterfaces[i]);
+    release(self->implementedInterfaceClasses[i]);
+  }
+  if (self->implementedInterfaceClasses) deallocate(self->implementedInterfaceClasses);
+  if (self->implementedInterfaces) deallocate(self->implementedInterfaces);
 }
 
 int64_t Class_fieldIndex(Class *self, Keyword *field) {
+  if (!self->fieldCount) {
+    release(self);
+    release(field);
+    return -1;
+  }
   uint64_t initialGuess = Keyword_hash(field) % self->fieldCount;
   if (equals(field, self->fieldNames[initialGuess])) {
     release(self);
@@ -172,5 +211,45 @@ void *Class_getIndexedStaticField(Class *self, int64_t i) {
   void *retVal = Object_data(self->staticFields[i]);
   retain(retVal);
   release(self);
+  return retVal;
+}
+
+ClojureFunction *Class_resolveInstanceCall(Class *self, Keyword *name, uint64_t argCount) {
+  // Class method
+  ClojureFunction *retVal = NULL;
+  for (uint64_t i = 0; i < self->methodCount; ++i) {
+    if (Keyword_equals(name, self->methodNames[i])
+        && Function_validCallWithArgCount(self->methods[i], argCount)) {
+      retVal = self->methods[i];
+      retain(retVal);
+      release(self);
+      release(name);
+      return retVal;
+    }
+  }
+  
+  // Interface implementation
+  for (uint64_t i = 0; i < self->implementedInterfacesCount; ++i) {
+    for (uint64_t j = 0; j < self->implementedInterfaceClasses[i]->methodCount; ++j) {
+      if (Keyword_equals(name, self->implementedInterfaceClasses[i]->methodNames[j])
+          && Function_validCallWithArgCount(self->implementedInterfaces[i][j], argCount)) {
+        retVal = self->implementedInterfaces[i][j];
+        retain(retVal);
+        release(self);
+        release(name);
+        return retVal;
+      }
+    }
+  }
+  
+  // Resolve in superclass
+  if (self->superclass) {
+    retain(self->superclass);
+    retVal = Class_resolveInstanceCall(self->superclass, name, argCount);
+    release(self);
+  } else {
+    release(self);
+    release(name);
+  }
   return retVal;
 }

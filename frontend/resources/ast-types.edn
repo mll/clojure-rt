@@ -37,7 +37,8 @@
            :name :string
            :class-name :string
            :fields [:node] 
-           :methods [:node]}
+           :methods [:node]
+           :superclass :string}
  :do {:statements [:node] 
       :ret :node
       :body? :bool}

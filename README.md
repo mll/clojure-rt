@@ -214,7 +214,7 @@ We deal with these complexities separately, but in an orthogonal way so that any
 
 So, here we go:
 
-## Problem I: The argument types of the function may not be known at compile time. 
+### Problem I: The argument types of the function may not be known at compile time. 
 
 We had two choices here. Choice one is trivial - for example we create "fn_0_LOJ" - one generic parameter and one integer as args. We can then compute the return type (which is not necessarily LO, some functions used inside the method might force a return type even if all args are LO) and use the same mechanism that was used for building specialised function but now we do not specify types of some args. 
 
@@ -229,7 +229,7 @@ The signature determination can be hastened by encoding it using the idea that w
 
 Cost when not cahced (first run) = type-determination (small, 0 function calls, a GEP and a load) + cost to unbox primitive arguments (cheap, just a GEP and load) + JIT-call (possibly large cost)
  
-## Problem II: The exact type of the function object on which we invoke is not known.
+### Problem II: The exact type of the function object on which we invoke is not known.
 
 This problem arises when we push a function object through a polymorphic data structure. The static type information that allows us to determine association between the function object and function AST representation is then lost.
 
@@ -245,7 +245,7 @@ Furthermore, the types of arguments can be either known or unknown at compile ti
 
 The runtime execution has to proceed in a similar way to suggested second solution to problem I - with the improvemnent that argument deduction can be shifted to compilation step and directly injected if all parameter types are known. again - function pointers are being obtained from the runtime and called dynamically. 
 
-## Problem 3: 3. The var the function was allocated to was modified to contain a different function, this modification possibly occurred on a different thread.
+### Problem III: The var the function was allocated to was modified to contain a different function, this modification possibly occurred on a different thread.
 
 This is the culmination of difficulties presented in the document. Not only the arguments can be LO, we do not know the function body at runtime, but also the initial static optimisation is in jeopardy. 
 

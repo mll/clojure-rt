@@ -131,20 +131,17 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, void *keyV, void *valueV) 
     index = (index + 1) & root->sizeMask;
     entry = &(root->array[index]);
     encounteredHash = tryReservingEmptyNode(entry, key, value, keyHash);
-  retry_cas:
-    if(encounteredHash == 0) {
+
+    while(encounteredHash == 0) {
       /* We succeeded in reserving the node! We create long or short jumps. */
       unsigned short newLeaps = lastChainEntryIsFirstEntry ? buildLeaps(i, getShortLeap(lastChainEntryLeaps)) : buildLeaps(getLongLeap(lastChainEntryLeaps), i);
       if(atomic_compare_exchange_strong_explicit(&(lastChainEntry->leaps), &lastChainEntryLeaps, newLeaps, memory_order_relaxed, memory_order_relaxed)) {
         return;
-      } else {
-        lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
-        goto retry_cas;
-      }
+      } 
+      lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
     }
 
-  retry_cas_2:            
-    if((encounteredHash & root->sizeMask)  == startIndex) {
+    while((encounteredHash & root->sizeMask)  == startIndex) {
       /* This is a problem. Another thread is in a process of adding an entry to the same chain! 
          We need to patch the last chain entry for him */      
       unsigned short newLeaps = lastChainEntryIsFirstEntry ? buildLeaps(i, getShortLeap(lastChainEntryLeaps)) : buildLeaps(getLongLeap(lastChainEntryLeaps), i);
@@ -155,10 +152,9 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, void *keyV, void *valueV) 
         lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
         lastChainEntryIsFirstEntry = FALSE;
         i = 0;
-      } else {
-        lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
-        goto retry_cas_2;        
-      }
+        break;
+      } 
+      lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
     }
   }
   /* The loop failed - the table is overcrowded and needs a migration - TODO + releases */
@@ -240,10 +236,9 @@ inline Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, u
   return NULL;
 }
 
-/* MUTABLE: self is not conusmed. mem done */
-void *ConcurrentHashMap_get(ConcurrentHashMap *self, void *keyV) {
+/* MUTABLE: self is not conusmed, keyV is consumed. mem done */
+void *ConcurrentHashMap_get(ConcurrentHashMap *self, void *keyV /* +1 */ ) {
   Object *key = super(keyV);
-  Object_retain(key);
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
   uint64_t keyHash = avalanche_64(Object_hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
@@ -253,7 +248,7 @@ void *ConcurrentHashMap_get(ConcurrentHashMap *self, void *keyV) {
   Object *retVal = tryGettingFromEntry(entry, key, keyHash);
  
   if(retVal) {
-    Object_release(key);
+    Object_release(key); // +0
     return Object_data(retVal);
   }
   unsigned short jump = getLongLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  
@@ -262,14 +257,14 @@ void *ConcurrentHashMap_get(ConcurrentHashMap *self, void *keyV) {
     entry = &(root->array[index]);
     retVal = tryGettingFromEntry(entry, key, keyHash);
     if(retVal) {
-      Object_release(key);
+      Object_release(key); // +0
       return Object_data(retVal);
     }
     
     jump = getShortLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  
   }
 
-  Object_release(key);
+  Object_release(key); // +0
   retain(UNIQUE_NIL); 
   return UNIQUE_NIL; 
 }
@@ -280,7 +275,7 @@ BOOL ConcurrentHashMap_equals(ConcurrentHashMap *self, ConcurrentHashMap *other)
   /* Warning!!! 
      The key-value pairs would have to be stably ordered to get this function.
      We leave it out for now - as we do not expect this data structure to be used anywhere
-     outside global ref registers. (and so the hash function is actually redundant */
+     outside global ref registers. (and so the hash function is actually redundant) */
 
   return FALSE;
 }
@@ -291,7 +286,7 @@ uint64_t ConcurrentHashMap_hash(ConcurrentHashMap *self) {
   /* Warning!!! 
      The key-value pairs would have to be stably ordered to get this function.
      We leave it out for now - as we do not expect this data structure to be used anywhere
-     outside global ref registers. (and so the hash function is actually redundant */
+     outside global ref registers. (and so the hash function is actually redundant) */
 
   return (uint64_t) self;
 }

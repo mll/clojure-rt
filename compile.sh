@@ -31,5 +31,5 @@ cd ../backend
 echo "Executing..."
 #arch -arm64 lldb ./clojure-rt 
 ./clojure-rt $BINARY
-#rm $BINARY
+rm $BINARY
 cd ..

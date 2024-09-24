@@ -1,9 +1,11 @@
-# clojure-rt
+# Clojure Real Time
 
-Clojure Real Time
+Clojuire Real Time (clojure-rt) is a compiler of Clojure programming language.
 
-I put into your hands an llvm based clojure compiler taylored for real time systems.
-The compiler is a full implementation of Clojure following the reference java implementation as closely as possible.
+It is being developed to allow deterministic and fast execution that could allow Clojure to proliferate beyond its 
+original domains of application. It uses LLVM for agressive optimisations, JIT and platform independence.
+
+The compiler strives to be a full implementation of Clojure following the reference java implementation as closely as possible.
 
 The interop part of java has been reimplemented in C to enable the compilation of *.clj part of the clojure source code (this is work in progress).
 
@@ -93,19 +95,15 @@ Finally, any clojure files to be compiled and run (including possible REPL comma
 to the backend for execution. The protobuf files will probably be transferred between frontend and backend as in-memory data structures at this stage, as both 
 parts of the compiler would reside inside the same process.
 
-## License
 
-clojure-rt is being distributed on GPLv2 license. See LICENSE.md for details.
-
-Copyright © 022-2023 Marek Lipert
-
-# Static / dynamic dispatch algorithm explanation description
-## Notation
+## Static / dynamic dispatch algorithm explanation description
+### Notation
 
 Dynamic dispatch:
 
-1. Wszystkie argumenty sa znane na poziomie kompilacji - wywolujemy bezposrednio funkcje,
-   sygnatura jest w nazwie. Sygnatura:
+1. All arguments are known at the compilation level - we call functions directly, signature is included in function name. 
+
+Signature explanation:
 
 Z - boolean, unpacked
 C - uft8 char (uint32_t), unpacked
@@ -119,7 +117,7 @@ LC uint32_t, utf8 char, packed
 LD double, packed
 LZ boolean, packed
 
-Typy ktore zawsze pozostaja spakowane:
+Types that always remain packed:
 
 LS - String
 LV - Vector
@@ -132,22 +130,20 @@ LR - Ratio
 LH - Big Integer
 LN - Nil
 
-LO - Object - moze byc czymkolwiek spakowanym, trzeba dokonac runtime introspection aby sprawdzic
+LO - Object - can be anything that is packaged. Runtime inspection is needed to determine the exact type.
 
-Uwaga! Zalozenie jest takie, ze nigdy nie bedzie typem podawanym do funkcji 
-  (niestety tak sie chyba nie da, beda generyczne funkcje...)
+Dynamic dispatch eliminates LO from function arguments. Type guessing and conditional compilation allows for eliminating it further from 
+the results of function calls within functions. However, it can still remain as a return value. 
 
-LO
-
-Dynamic dispatch powinien to zawsze wyrugowac. Za to jesli chodzi o wartosc zwracana, funkcje moga zwracac object. Przyklad takiej funkcji: 
+Example:
 
 (defn dyn-ret [x] (if x 1 2.0))
 
-Ta funkcja bedzie zwracala Object z argumentem typu bool i jej dokladna wartosc zwracana nie bedzie znana w trakcie jej kompilacji. Zatem sygnatura bedzie albo:
+If it gets a boolean argument, its return value will remain unknown during compilation. The signature will be:
 
 Z_LO
 
-albo:
+or:
 
 LZ_LO
 
@@ -163,8 +159,6 @@ Przyklad zlozonej sygnatury:
 ZJD_D
 
 funkcja ktora przyjmuje trzy rozpakowane argumenty - Bool, int, double i produkuje double. 
-
-
 
 
 ## Static calls:
@@ -268,6 +262,11 @@ The +3 function will be encountered during program compilation as the first one 
 
 The proposed solution is to add a dynamic check of the corresponding var's content before invokation and if it no longer corresponds to static function - the code would fall back to case II described above.
 
+## License
+
+clojure-rt is being distributed on GPLv2 license. See LICENSE.md for details.
+
+Copyright © 2022-2024 Marek Lipert, Aleksander Wiacek
 
 
 

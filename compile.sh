@@ -1,5 +1,21 @@
 #!/bin/bash
 
+TIME=
+
+while getopts t opt; do
+  case $opt in
+    t)
+      TIME=true
+      ;;
+    ?)
+      echo "Invalid option: -${OPTARG}."
+      exit 1
+      ;;
+  esac
+done
+
+shift $(($OPTIND - 1))
+echo $1
 LEIN=`which lein`
 TOCOPY=$1
 FILENAME=$(basename $TOCOPY)
@@ -19,7 +35,11 @@ fi
 cp $TOCOPY frontend
 cd frontend
 
-time $LEIN run $FILENAME
+if $TIME; then
+    time $LEIN run $FILENAME
+else
+    $LEIN run $FILENAME
+fi
 rm "$FILENAME"
 if [ -f "$BINARY" ]; then
     echo "Success!!"
@@ -29,7 +49,7 @@ fi
 mv $BINARY ../backend
 cd ../backend
 echo "Executing..."
-#arch -arm64 lldb ./clojure-rt 
+# lldb ./clojure-rt 
 ./clojure-rt $BINARY
 #rm $BINARY
 cd ..

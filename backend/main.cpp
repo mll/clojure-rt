@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
   unique_ptr<ClojureJIT> TheJIT = std::move(*ClojureJIT::Create(TheState));
 
   gettimeofday(&appp, NULL);
-  printf("Initialisation time: %f\n-------------------\n", (appp.tv_sec - asss.tv_sec) + (appp.tv_usec - asss.tv_usec)/1000000.0);
+  // printf("Initialisation time: %f\n-------------------\n", (appp.tv_sec - asss.tv_sec) + (appp.tv_usec - asss.tv_usec)/1000000.0);
   
   try {
     //cout << "Expressions: " << endl;
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
       gettimeofday(&ass, NULL);      
       auto fname = gen->codegenTopLevel(topLevel, j);
       gettimeofday(&app, NULL);
-      printf("Compile time: %f\n-------------------\n", (app.tv_sec - ass.tv_sec) + (app.tv_usec - ass.tv_usec)/1000000.0);
+      // printf("Compile time: %f\n-------------------\n", (app.tv_sec - ass.tv_sec) + (app.tv_usec - ass.tv_usec)/1000000.0);
 
       auto TSM = ThreadSafeModule(std::move(gen->TheModule), std::move(gen->TheContext));
       ExitOnErr(TheJIT->addModule(std::move(TSM)));
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
       printf("Result: %s\n", text);
       release(s);
       printReferenceCounts();
-      printf("Time: %f\n-------------------\n", (ap.tv_sec - as.tv_sec) + (ap.tv_usec - as.tv_usec)/1000000.0);        
+      // printf("Time: %f\n-------------------\n", (ap.tv_sec - as.tv_sec) + (ap.tv_usec - as.tv_usec)/1000000.0);        
     }
 
   } catch (CodeGenerationException e) {

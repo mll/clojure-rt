@@ -27,7 +27,7 @@ struct FunctionMethod  {
 
 typedef struct FunctionMethod FunctionMethod;
 
-struct Function {
+struct ClojureFunction {
   uint64_t uniqueId;
   uint64_t methodCount;
   uint64_t maxArity;
@@ -36,16 +36,17 @@ struct Function {
   struct FunctionMethod methods[];
 };
 
-typedef struct Function Function;
+typedef struct ClojureFunction ClojureFunction;
 
-struct Function* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity, BOOL once);
+struct ClojureFunction* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity, BOOL once);
 
-void Function_fillMethod(struct Function *self, uint64_t position, uint64_t index, uint64_t fixedArity,  BOOL isVariadic, char *loopId, int64_t closedOversCount, ...);
+void Function_fillMethod(struct ClojureFunction *self, uint64_t position, uint64_t index, uint64_t fixedArity,  BOOL isVariadic, char *loopId, int64_t closedOversCount, ...);
 
-BOOL Function_equals(struct Function *self, struct Function *other);
-uint64_t Function_hash(struct Function *self);
-String *Function_toString(struct Function *self); 
-void Function_destroy(struct Function *self);
-void Function_cleanupOnce(struct Function *self);
+BOOL Function_validCallWithArgCount(ClojureFunction *self, uint64_t argCount);
+BOOL Function_equals(ClojureFunction *self, ClojureFunction *other);
+uint64_t Function_hash(ClojureFunction *self);
+String *Function_toString(ClojureFunction *self); 
+void Function_destroy(ClojureFunction *self);
+void Function_cleanupOnce(ClojureFunction *self);
 
 #endif

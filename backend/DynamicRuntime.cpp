@@ -55,17 +55,6 @@ extern "C" {
   }
 
 
-/* Used in DefNode to assign a function to a var during runtime */
-  void setFunForVar(void *jitPtr, void *funPtr, const char *varName) {
-    ClojureJIT *jit = (ClojureJIT *)jitPtr;
-    struct Function *fun = (struct Function *)funPtr;
-    auto mangled = CodeGenerator::globalNameForVar(varName);
-    auto programme = jit->getProgramme();
-    programme->StaticFunctions.erase(mangled);
-    programme->StaticFunctions.insert({mangled, fun->uniqueId});
-  }
-
-
 /* Used in CodeGenerator::callDynamicFun to allow for runtime dynamic dispatch.
    The function receives argument types determined at runtime and therefore can 
    produce JIT body of a called function much more accurately and performantly than relying on 
@@ -77,7 +66,7 @@ extern "C" {
  
   void *specialiseDynamicFn(void *jitPtr, void *funPtr, uint64_t retValType, uint64_t argCount, uint64_t argSignature1, uint64_t argSignature2, uint64_t argSignature3, uint64_t packedArg) {    
     ClojureJIT *jit = (ClojureJIT *)jitPtr;
-    struct Function *fun = (struct Function *)funPtr;
+    struct ClojureFunction *fun = (struct ClojureFunction *)funPtr;
     struct FunctionMethod *method = NULL;
     uint64_t argSignature[3] = { argSignature1, argSignature2, argSignature3 };
 /* It will be cool to understand why do we need all the info inside the function object whereas 
@@ -106,12 +95,13 @@ extern "C" {
     for(int i=0; i<INVOKATION_CACHE_SIZE; i++) { 
       /* Fast cache access */
       entry = &(method->invokations[i]);
-      if(entry->signature[0] == argSignature[0] && 
+      if(entry->fptr &&
+         entry->signature[0] == argSignature[0] && 
          entry->signature[1] == argSignature[1] && 
          entry->signature[2] == argSignature[2] && 
          entry->packed == packedArg &&
          entry->returnType == retValType) return entry->fptr;
-      if(entry->signature[0] == 0) cachePosition = entry;
+      if(!entry->fptr) cachePosition = entry;
     } 
 
     std::vector<ObjectTypeSet> argT;

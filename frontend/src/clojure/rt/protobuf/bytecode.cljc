@@ -2113,14 +2113,15 @@
 ;-----------------------------------------------------------------------------
 ; DeftypeNode
 ;-----------------------------------------------------------------------------
-(defrecord DeftypeNode-record [className fields interfaces methods name]
+(defrecord DeftypeNode-record [className fields interfaces methods name superclass]
   pb/Writer
   (serialize [this os]
     (serdes.core/write-String 1  {:optimize true} (:className this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 2 (:fields this) os)
     (serdes.complex/write-repeated serdes.core/write-String 3 (:interfaces this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 4 (:methods this) os)
-    (serdes.core/write-String 5  {:optimize true} (:name this) os))
+    (serdes.core/write-String 5  {:optimize true} (:name this) os)
+    (serdes.core/write-String 6  {:optimize true} (:superclass this) os))
   pb/TypeReflection
   (gettype [this]
     "clojure.rt.protobuf.bytecode.DeftypeNode"))
@@ -2130,8 +2131,9 @@
 (s/def :clojure.rt.protobuf.bytecode.DeftypeNode/interfaces (s/every string?))
 
 (s/def :clojure.rt.protobuf.bytecode.DeftypeNode/name string?)
-(s/def ::DeftypeNode-spec (s/keys :opt-un [:clojure.rt.protobuf.bytecode.DeftypeNode/className :clojure.rt.protobuf.bytecode.DeftypeNode/interfaces :clojure.rt.protobuf.bytecode.DeftypeNode/name ]))
-(def DeftypeNode-defaults {:className "" :fields [] :interfaces [] :methods [] :name "" })
+(s/def :clojure.rt.protobuf.bytecode.DeftypeNode/superclass string?)
+(s/def ::DeftypeNode-spec (s/keys :opt-un [:clojure.rt.protobuf.bytecode.DeftypeNode/className :clojure.rt.protobuf.bytecode.DeftypeNode/interfaces :clojure.rt.protobuf.bytecode.DeftypeNode/name :clojure.rt.protobuf.bytecode.DeftypeNode/superclass ]))
+(def DeftypeNode-defaults {:className "" :fields [] :interfaces [] :methods [] :name "" :superclass "" })
 
 (defn cis->DeftypeNode
   "CodedInputStream to DeftypeNode"
@@ -2144,6 +2146,7 @@
                3 [:interfaces (serdes.complex/cis->repeated serdes.core/cis->String is)]
                4 [:methods (serdes.complex/cis->repeated ecis->Node is)]
                5 [:name (serdes.core/cis->String is)]
+               6 [:superclass (serdes.core/cis->String is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)

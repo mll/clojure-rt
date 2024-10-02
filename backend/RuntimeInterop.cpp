@@ -19,6 +19,15 @@ extern "C" {
   void retain(void *obj);
 } 
 
+Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, const vector<pair<Type *, Value *>> &args) {
+  vector<Type *> argTypes;
+  vector<Value *> argValues;
+  for (auto pair: args) {
+    argTypes.push_back(pair.first);
+    argValues.push_back(pair.second);
+  }
+  return callRuntimeFun(fname, retValType, argTypes, argValues, false);
+}
 
 TypedValue CodeGenerator::callRuntimeFun(const string &fname, const ObjectTypeSet &retVal, const vector<TypedValue> &args) {
   Function *CalleeF = TheModule->getFunction(fname);
@@ -128,8 +137,7 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     fname = "Nil_create";
     break;
   case classType:
-    fname = "Class_create"; // CONSIDER: Not possible/throw exception? Unregistered class
-    break;
+    throw InternalInconsistencyException("We never allow creation of subtypes here, only runtime can do it");
   case deftypeType:
     fname = "Deftype_create";
     break;
@@ -154,6 +162,9 @@ Value *CodeGenerator::dynamicCreate(objectType type, const vector<Type *> &argTy
     break;
   case functionType:
     fname = "Function_create";
+    break;
+  case varType:
+    fname = "Var_create";
     break;
   }
   
@@ -288,7 +299,7 @@ StructType *CodeGenerator::runtimeFunctionMethodType() {
 }
 
 StructType *CodeGenerator::runtimeFunctionType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"Function");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"ClojureFunction");
   if(retVal) return retVal;
 
    return StructType::create(*TheContext, {
@@ -298,7 +309,7 @@ StructType *CodeGenerator::runtimeFunctionType() {
        /* once */ Type::getInt8Ty(*TheContext),
        /* executed */ Type::getInt8Ty(*TheContext),
        /* methods */ ArrayType::get(runtimeFunctionMethodType(), 0)
-     }, "Function");
+     }, "ClojureFunction");
 }
 
 /* struct Integer {
@@ -345,8 +356,16 @@ StructType *CodeGenerator::runtimeBooleanType() {
   String *name;
   String *className;
   
+  // Static fields: HashMap vs list?
+  uint64_t staticFieldCount;
+  Keyword **staticFieldNames;
+  Object **staticFields;
+  
+  // Static methods are in global map
+  
   uint64_t fieldCount;
-  String *fields[];
+  uint64_t *indexPermutation;
+  Keyword *fields[];
 }; */
 
 StructType *CodeGenerator::runtimeClassType() {
@@ -357,8 +376,28 @@ StructType *CodeGenerator::runtimeClassType() {
        /* registerId */ Type::getInt64Ty(*TheContext),
        /* name */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* className */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* isInterface */ Type::getInt8Ty(*TheContext),
+       /* superclass */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       
+       /* staticFieldCount */ Type::getInt64Ty(*TheContext),
+       /* staticFieldNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* staticFields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       
+       /* staticMethodCount */ Type::getInt64Ty(*TheContext),
+       /* staticMethodNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* staticMethods */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       
        /* fieldCount */ Type::getInt64Ty(*TheContext),
+       /* indexPermutation */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* fields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       
+       /* methodCount */ Type::getInt64Ty(*TheContext),
+       /* methodNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* methods */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       
+       /* implementedInterfacesCount */ Type::getInt64Ty(*TheContext),
+       /* implementedInterfaceClasses */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* implementedInterfaces */ Type::getInt8Ty(*TheContext)->getPointerTo(),
      }, "Class");
 }
 
@@ -570,6 +609,7 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case keywordType:
     case persistentArrayMapType:
     case functionType:
+    case varType:
     case concurrentHashMapType:
       return Type::getInt8Ty(*TheContext)->getPointerTo();
   }
@@ -725,6 +765,7 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
   case concurrentHashMapType:
   case persistentArrayMapType:
   case functionType:
+  case varType:
     return TypedValue(retType, value.second);
   }
   return TypedValue(retType, dynamicCreate(type.determinedType(), argTypes, args));
@@ -745,22 +786,6 @@ Value *CodeGenerator::dynamicCond(Value *cond) {
 void CodeGenerator::dynamicMemoryGuidance(const MemoryManagementGuidance &guidance) {
   auto name = guidance.variablename();
   auto change = guidance.requiredrefcountchange();
-  auto found = StaticVars.find(name);
-  
-  if(found != StaticVars.end()) {      
-    auto type = found->second.first;
-    if(type.isScalar()) return;
-    
-    Type *t = dynamicType(found->second.first);
-    
-    LoadInst * load = Builder->CreateLoad(t, found->second.second, "load_var");
-    load->setAtomic(AtomicOrdering::Monotonic);
-    while(change != 0) {
-      if(change > 0) { dynamicRetain(load); change--; }
-      else { dynamicRelease(load, false); change++; }
-    }
-    return;
-  }
   
   for(int j=VariableBindingStack.size() - 1; j >= 0; j--) {
     auto stack = VariableBindingStack[j];
@@ -806,6 +831,20 @@ extern "C" {
     for (uint64_t i = 0; i < argCount; ++i) argTypes.push_back(va_arg(args, objectType));
     va_end(args);
     return TheProgramme->getPrimitiveMethod(target, string_methodName, argTypes);
+  }
+}
+
+extern "C" {
+  Var *getVarByName(ProgrammeState *TheProgramme, Keyword* varName) {
+    std::string string_varName {String_c_str(varName->string)};
+    release(varName);
+    return TheProgramme->getVarByName(string_varName);
+  }
+}
+
+extern "C" {
+  ClojureFunction *resolveInstanceCall(ProgrammeState *TheProgramme, Class *_class, String *methodName) {
+    return nullptr; // TODO
   }
 }
 

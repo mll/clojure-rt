@@ -130,17 +130,17 @@ String* String_createCompound(String *left, String *right) {
 }
 
 /* outside refcount system */
-char String_iteratorGetChar(String *self, StringIterator *it) {
-  return it->block[it->inBlockIndex];
+char *String_iteratorGetChar(String *self, StringIterator *it) {
+  return &it->block[it->inBlockIndex];
 }
 
 /* outside refcount system */
-char String_iteratorNext(String *self, StringIterator *it) {
-  if(self->count == it->index) return 0;
+char *String_iteratorNext(String *self, StringIterator *it) {
+  if(self->count == it->index + 1) return 0;
   if(it->inBlockIndex < it->blockLength - 1) {
     it->index++;
     it->inBlockIndex++;
-    return it->block[it->inBlockIndex];
+    return &it->block[it->inBlockIndex];
   } 
   it->inBlockIndex = 0;
   it->index++;
@@ -149,7 +149,7 @@ char String_iteratorNext(String *self, StringIterator *it) {
   String *child = PersistentVector_nth(getVec(self), it->blockIndex);
   it->blockLength = child->count;
   it->block = getStatDyn(child);
-  return it->block[it->inBlockIndex];
+  return &it->block[it->inBlockIndex];
 }
 
 /* outside refcount system */
@@ -213,12 +213,12 @@ BOOL String_equals(String *self, String *other) {
  
   StringIterator left = String_iterator(self);
   StringIterator right = String_iterator(other);
-  char leftChar = String_iteratorGetChar(self, &left);
-  char rightChar = String_iteratorGetChar(other, &right);
+  char leftChar = *String_iteratorGetChar(self, &left);
+  char rightChar = *String_iteratorGetChar(other, &right);
   while(leftChar != 0) {
     if(leftChar != rightChar) return FALSE;
-    leftChar = String_iteratorNext(self, &left);
-    rightChar = String_iteratorNext(other, &right);
+    leftChar = *String_iteratorNext(self, &left);
+    rightChar = *String_iteratorNext(other, &right);
   }
   return TRUE;
 }
@@ -243,3 +243,79 @@ String *String_concat(String *self, String *other) {
   return String_createCompound(self, other);
 }
 
+BOOL String_contains(String *self, String *other) {
+  return String_indexOf(self, other) > -1;
+}
+
+int64_t String_indexOf(String *self, String *other) {
+  return String_indexOfFrom(self, other, 0);
+}
+
+int64_t String_indexOfFrom(String *self, String *other, int64_t fromIndex) {
+  int64_t selfCount = self->count, otherCount = other->count;
+  
+  if (fromIndex >= selfCount) {
+    release(self);
+    release(other);
+    return (otherCount == 0 ? selfCount : -1);
+  }
+  if (fromIndex < 0) fromIndex = 0;
+  if (otherCount == 0) {
+    release(self);
+    release(other);
+    return fromIndex;
+  }
+ 
+  String *compactSelf = String_compactify(self);
+  String *compactOther = String_compactify(other);
+  // TODO: Iterator?
+  char *source = self->value;
+  char *target = other->value;
+  
+  char first = target[0];
+  int64_t max = selfCount - otherCount;
+ 
+  for (int64_t i = fromIndex; i <= max; i++) {
+    if (source[i] != first) {
+      while (++i <= max && source[i] != first);
+    }
+    if (i <= max) {
+      int64_t j = i + 1, k = 1, end = j + otherCount - 1;
+      while (j < end && source[j] == target[k]) {++j; ++k;}
+      if (j == end) {
+        /* Found whole string */
+        release(compactSelf);
+        release(compactOther);
+        return i;
+      }
+    }
+  }
+  release(compactSelf);
+  release(compactOther);
+  return -1;
+}
+
+// TODO: Only the most basic version implemented: target and replacement are both one-character strings
+String *String_replace(String *self, String *target, String *replacement) {
+  if (String_equals(target, replacement)) {
+    release(target);
+    release(replacement);
+    return self;
+  }
+  String *retVal = String_compactify(self);
+  StringIterator targetIterator = String_iterator(target);
+  StringIterator replacementIterator = String_iterator(replacement);
+  StringIterator retValIterator = String_iterator(retVal);
+  char targetChar = *String_iteratorGetChar(target, &targetIterator);
+  char replacementChar = *String_iteratorGetChar(replacement, &replacementIterator);
+  release(target);
+  release(replacement);
+  char *retValChar = String_iteratorGetChar(retVal, &retValIterator);
+  while (retValChar) {
+    if (*retValChar == targetChar) {
+      *retValChar = replacementChar;
+    }
+    retValChar = String_iteratorNext(retVal, &retValIterator);
+  }
+  return retVal;
+}

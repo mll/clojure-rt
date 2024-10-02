@@ -91,11 +91,22 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
         Value *fieldIndex = callRuntimeFun("Class_fieldIndex", Type::getInt64Ty(*TheContext), {ptrT, ptrT}, {classRuntimeValue, fieldNameAsKeyword});
         Value *indexValidator = Builder->CreateICmpEQ(fieldIndex, ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, -1, true)));
         BasicBlock *classFieldFoundBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup_successful", parentFunction);
-        Builder->CreateCondBr(indexValidator, outTypeBB, classFieldFoundBB);
+        BasicBlock *classMethodBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_field_lookup_failed", parentFunction);
+        Builder->CreateCondBr(indexValidator, classMethodBB, classFieldFoundBB);
         Builder->SetInsertPoint(classFieldFoundBB);
         Value *fieldValue = callRuntimeFun("Deftype_getIndexedField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {target.second, fieldIndex});
         phiNode->addIncoming(fieldValue, classFieldFoundBB);
         Builder->CreateBr(finalBB);
+        Builder->SetInsertPoint(classMethodBB);
+        Keyword *methodNameKeyword = Keyword_create(String_createDynamicStr(methodOrFieldName.c_str()));
+        vector<Type *> methodValueArgTypes {ptrT, ptrT, Type::getInt64Ty(*TheContext)};
+        vector<Value *> methodValueArgs {classRuntimeValue, ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) methodNameKeyword, true)), ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, 0, true))};
+        Value *methodValue = callRuntimeFun("Class_resolveInstanceCall", ptrT, methodValueArgTypes, methodValueArgs);
+        Value *methodNotFoundValue = Builder->CreateICmpEQ(methodValue, Constant::getNullValue(ptrT));
+        BasicBlock *methodFoundBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_method_lookup_successful", parentFunction);
+        Builder->CreateCondBr(methodNotFoundValue, outTypeBB, methodFoundBB);
+        Builder->SetInsertPoint(methodFoundBB);
+        // TODO
       } else { // One of N classes, switch on them
         Value *classIdPtr = Builder->CreateStructGEP(runtimeClassType(), classRuntimeValue, 0, "get_class_id");
         Value *classIdValue = Builder->CreateLoad(Type::getInt64Ty(*TheContext), classIdPtr, "class_id");

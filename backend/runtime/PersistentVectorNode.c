@@ -209,3 +209,28 @@ PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode * restri
   if (!reusable) release(newTree);
   return NULL;
 }
+
+BOOL PersistentVectorNode_contains(PersistentVectorNode * restrict self, void * restrict other) {
+  BOOL retVal = FALSE;
+  if (self->type == leafNode) {
+    for (int i = 0; i < self->count; ++i) {
+      if (Object_equals(self->array[i], super(other))) {
+        retVal = TRUE;
+        break;
+      }
+    }
+  } else {
+    for (int i = 0; i < self->count; ++i) {
+      PersistentVectorNode *child = Object_data(self->array[i]);
+      retain(child);
+      retain(other);
+      if (PersistentVectorNode_contains(child, other)) {
+        retVal = TRUE;
+        break;
+      }
+    }
+  }
+  release(self);
+  release(other);
+  return retVal;
+}

@@ -10,6 +10,7 @@
             [clojure.tools.reader.reader-types :as t]
             [clojure.rt.passes :as passes]
             [clojure.pprint :refer [pprint]]
+            [clojure.rt.deftype :as deftype]
             [clojure.rt.quote :as quote]
             [clojure.rt.closed-overs :refer [collect-closed-overs]]
             [clojure.tools.analyzer :as ana]
@@ -29,11 +30,12 @@
              [uniquify :refer [uniquify-locals]]]
 
             [clojure.tools.analyzer.passes.jvm
+             [annotate-host-info :refer [annotate-host-info]]
              [analyze-host-expr :refer [analyze-host-expr]]
              [box :refer [box]]
              [constant-lifter :refer [constant-lift]]
              [classify-invoke :refer [classify-invoke]]
-             [validate :refer [validate]]
+             [validate :refer [validate validate-call validate-interfaces]]
              [infer-tag :refer [infer-tag]]
              [validate-loop-locals :refer [validate-loop-locals]]
              [warn-on-reflection :refer [warn-on-reflection]]
@@ -82,14 +84,20 @@
    :collect/where                   #{:deftype :reify :fn :fn-method}
    :collect/top-level?              false
    :collect-closed-overs/where      #{:deftype :reify :fn-method :loop :try}
-   :collect-closed-overs/top-level? false})
+   :collect-closed-overs/top-level? false
+   :validate/wrong-tag-handler      (fn [_ _] nil)
+   :validate/unresolvable-symbol-handler (fn [_ _ _] nil)})
 
 (defn analyze [s filename]
   (with-bindings {#'a/run-passes run-passes}
-    (with-redefs [ana/parse-quote quote/parse-quote]
+    (with-redefs [ana/parse-quote quote/parse-quote
+                  a/parse-deftype* deftype/parse-deftype*
+                  annotate-host-info deftype/annotate-host-info
+                  validate-call (fn [ast] ast) #_deftype/validate-call
+                  validate-interfaces (fn [_])]
       (let [reader (t/source-logging-push-back-reader s 1 filename)]
         (loop [form (r/read {:eof :eof} reader) ret-val []]
-          (if (= :eof form) (do #_(clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) ;; uncomment to see simple tree
+          (if (= :eof form) (do (clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) ;; uncomment to see simple tree
                                 ret-val)
               (do
                 ;; (eval form)

@@ -1,6 +1,7 @@
 #include "Nil.h"
 #include "String.h"
 #include <stdio.h>
+#include <stdarg.h>
 #include "Object.h"
 
 Nil *UNIQUE_NIL = NULL;
@@ -8,6 +9,28 @@ Nil *UNIQUE_NIL = NULL;
 Nil* Nil_create() {  
   retain(UNIQUE_NIL);
   return UNIQUE_NIL;
+}
+
+Nil* Nil_create1(void * obj) {
+  release(obj);
+  return Nil_create();
+}
+
+Nil* Nil_create2(void * obj1, void * obj2) {
+  release(obj1);
+  release(obj2);
+  return Nil_create();
+}
+
+Nil* Nil_createN(uint64_t objCount, ...) {
+  va_list args;
+  va_start(args, objCount);
+  for(int i=0; i<objCount; i++) {
+    void *obj = va_arg(args, void *);
+    release(obj);
+  }
+  va_end(args);
+  return Nil_create();
 }
 
 /* mem done */

@@ -101,6 +101,7 @@
           [:interfaces "A set of the interfaces implemented by the type"]
           [:name "The symbol name of the deftype"]
           [:class-name "A class for the deftype, should *never* be instantiated or used on instance? checks as this will not be the same class the deftype will evaluate to after compilation"]
+          [:superclass "Superclass of the implemented type (if key is missing, default value is java.lang.Object)"]
           ^:children
           [:fields "A vector of :binding AST nodes with :local :field representing the deftype fields"]
           ^:children

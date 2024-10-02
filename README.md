@@ -185,7 +185,7 @@ If this is the case dynamic dispatch is enough to guarantee all the methods get 
 
 1. The FnNode is encountered somewhere inside the DefNode evaluation. It is being given a unique name of the form "fn_3". Its type is set to function and gets annotated with a constant ConstantFunction and value "fn_3". The FnNode is stored in a global table under this name (TheProgramme->Functions).
 
-2. DefNode encounteres this value with its type intact and uses the constant annotation inside type to get the name of the function. The var name to function name mapping is stored in TheProgramme->StaticFunctions.
+2. DefNode encounteres this value with its type intact and uses the constant annotation inside type to get the name of the function.
 
 3. No function bodies are generated or added to JIT at this stage. 
 

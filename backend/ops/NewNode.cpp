@@ -24,7 +24,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const NewNode &subnode, cons
   BasicBlock *arityFound = BasicBlock::Create(*TheContext, "arity_found", parentFunction);
   BasicBlock *arityMissing = BasicBlock::Create(*TheContext, "arity_missing", parentFunction);
   Value *calledArity = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, subnode.args_size(), false));
-  Value *expectedArityPtr = Builder->CreateStructGEP(runtimeClassType(), classValue, 3, "expected_arity_ptr");
+  Value *expectedArityPtr = Builder->CreateStructGEP(runtimeClassType(), classValue, 11, "expected_arity_ptr"); // fieldCount is 11th field in struct Class
   Value *expectedArity = Builder->CreateLoad(Type::getInt64Ty(*TheContext), expectedArityPtr, "expected_arity");
   Value *correctArity = Builder->CreateICmpEQ(expectedArity, calledArity);
   Builder->CreateCondBr(correctArity, arityFound, arityMissing);

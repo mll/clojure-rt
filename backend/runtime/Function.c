@@ -6,11 +6,11 @@
 #include <stdarg.h>
 
 /* mem done */
-Function* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity, BOOL once) {
-  size_t size = sizeof(Function) + sizeof(Object) + methodCount * sizeof(FunctionMethod);
+ClojureFunction* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity, BOOL once) {
+  size_t size = sizeof(ClojureFunction) + sizeof(Object) + methodCount * sizeof(FunctionMethod);
   Object *super = allocate(size); 
   memset(super, 0, size);
-  Function *self = (Function *)(super + 1);
+  ClojureFunction *self = (ClojureFunction *)(super + 1);
   self->methodCount = methodCount;
   self->maxArity = maxArity;
   self->uniqueId = uniqueId;
@@ -22,7 +22,7 @@ Function* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxA
 }
 
 /* outside refcount system (w.r.t. self) and closedOvers (they need to be retained already when this fun is called) */
-void Function_fillMethod(Function *self, uint64_t position, uint64_t index, uint64_t fixedArity,  BOOL isVariadic, char *loopId, int64_t closedOversCount, ...) {
+void Function_fillMethod(ClojureFunction *self, uint64_t position, uint64_t index, uint64_t fixedArity, BOOL isVariadic, char *loopId, int64_t closedOversCount, ...) {
   FunctionMethod * method = self->methods + position;
   method->fixedArity = fixedArity;
   method->isVariadic = isVariadic;
@@ -35,28 +35,46 @@ void Function_fillMethod(Function *self, uint64_t position, uint64_t index, uint
   for(int i=0; i<closedOversCount;i++) {
     void *closedOver = va_arg(args, void *); 
     method->closedOvers[i] = closedOver;
-  }  
+  }
   va_end(args);
 }
 
 /* outside refcount system */
-BOOL Function_equals(Function *self, Function *other) {
+BOOL Function_validCallWithArgCount(ClojureFunction *self, uint64_t argCount) {
+  if (argCount <= self->maxArity) {
+    for (uint64_t i = 0; i < self->methodCount; ++i) {
+      if (self->methods[i].fixedArity == argCount && !self->methods[i].isVariadic) {
+        return TRUE;
+      }
+    }
+  } else {
+    for (uint64_t i = 0; i < self->methodCount; ++i) {
+      if (self->methods[i].isVariadic) {
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
+}
+
+/* outside refcount system */
+BOOL Function_equals(ClojureFunction *self, ClojureFunction *other) {
   return self->uniqueId == other->uniqueId;
 }
 
 /* outside refcount system */
-uint64_t Function_hash(Function *self) {
+uint64_t Function_hash(ClojureFunction *self) {
   return avalanche_64(self->uniqueId);
 }
 
 /* mem done */
-String *Function_toString(Function *self) {
+String *Function_toString(ClojureFunction *self) {
   Integer *i = Integer_create(self->uniqueId);
   release(self);
   return String_concat(String_createStatic("fn_"), toString(i));
 } 
 
-void Function_cleanupOnce(Function *self) {
+void Function_cleanupOnce(ClojureFunction *self) {
   assert(!self->executed && "Function with :once meta executed more than once");
   self->executed = TRUE;
   for(int i=0; i < self->methodCount; i++) {
@@ -68,7 +86,7 @@ void Function_cleanupOnce(Function *self) {
 
 
 /* outside refcount system */
-void Function_destroy(Function *self) {
+void Function_destroy(ClojureFunction *self) {
   if(self->once && self->executed) return;
 
   for(int i=0; i < self->methodCount; i++) {

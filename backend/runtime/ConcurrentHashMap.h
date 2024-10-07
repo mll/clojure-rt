@@ -4,8 +4,13 @@
 #include "defines.h"
 #include "String.h"
 
+/* https://preshing.com/20160201/new-concurrent-hash-maps-for-cpp/
+   Leapfrog */
 
 typedef struct Object Object;
+
+#define REDIRECT 1
+#define EMPTY 0
 
 typedef struct ConcurrentHashMapEntry {
   Object * _Atomic key;

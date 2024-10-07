@@ -196,6 +196,8 @@ inline BOOL Object_release_internal(Object * restrict self, BOOL deallocateChild
   return FALSE;
 }
 
+
+/* Outside of refcount system */
 inline uint64_t Object_hash(Object * restrict self) {
       switch((objectType)self->type) {
       case integerType:
@@ -245,10 +247,12 @@ inline uint64_t Object_hash(Object * restrict self) {
       }
 }
 
+/* Outside of refcount system */
 inline uint64_t hash(void * restrict self) {
   return Object_hash(super(self));
 }
 
+/* Outside of refcount system */
 inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   if (self == other) return TRUE;
   if (self->type != other->type) return FALSE;
@@ -315,6 +319,7 @@ inline BOOL Object_equals(Object * restrict self, Object * restrict other) {
   }
 }
 
+/* Outside of refcount system */
 inline BOOL equals(void * restrict self, void * restrict other) {
   return Object_equals(super(self), super(other));
 }
@@ -377,6 +382,7 @@ inline BOOL Object_release(Object * restrict self) {
   return Object_release_internal(self, TRUE);
 }
 
+/* Outside of refcount system */
 inline objectType getType(void *obj) {
   return super(obj)->type;
 }

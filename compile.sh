@@ -51,5 +51,5 @@ cd ../backend
 echo "Executing..."
 # lldb ./clojure-rt 
 ./clojure-rt $BINARY
-#rm $BINARY
+rm $BINARY
 cd ..

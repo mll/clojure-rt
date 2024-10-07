@@ -143,7 +143,7 @@ void *startThread(void *param) {
 }
 
 
-void testMap (bool pauses) {
+void testConcurrentMap (bool pauses) {
   ConcurrentHashMap *l = ConcurrentHashMap_create(28);
   // // l = l->conj(new Number(3));
   // // l = l->conj(new Number(7));
@@ -394,7 +394,7 @@ int main() {
   //    testList(false);
   ////    ProfilerStart("xx.prof");
 //  testVector(false, true);
-      testMap(false);
+      testConcurrentMap(false);
   //   ProfilerStop();
   //    getchar();
 }

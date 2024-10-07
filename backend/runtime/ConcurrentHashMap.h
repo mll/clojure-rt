@@ -9,8 +9,8 @@
 
 typedef struct Object Object;
 
-#define REDIRECT 1
-#define EMPTY 0
+#define CHM_REDIRECT 1
+#define CHM_EMPTY 0
 
 typedef struct ConcurrentHashMapEntry {
   Object * _Atomic key;

@@ -97,7 +97,7 @@
                   validate-interfaces (fn [_])]
       (let [reader (t/source-logging-push-back-reader s 1 filename)]
         (loop [form (r/read {:eof :eof} reader) ret-val []]
-          (if (= :eof form) (do (clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) ;; uncomment to see simple tree
+          (if (= :eof form) (do ;;(clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) ;; uncomment to see simple tree
                                 ret-val)
               (do
                 ;; (eval form)

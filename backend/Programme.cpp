@@ -136,4 +136,5 @@ ClojureFunction *ProgrammeState::getInstanceMethod(uint64_t classId, const std::
   if (_class) {
     // TODO
   }
+  return NULL;
 }

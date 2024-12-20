@@ -8,6 +8,10 @@
 
 _Atomic uint64_t allocationCount[256]; 
 _Atomic uint64_t objectCount[256];
+_Thread_local void *memoryBank[8] = {0};
+_Thread_local int memoryBankSize[8] = {0};
+
+
 /* pool globalPool1; */
 /* pool globalPool2; */
 /* pool globalPool3; */

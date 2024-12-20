@@ -3,6 +3,7 @@
 
 #define REFCOUNT_TRACING
 //#define REFCOUNT_NONATOMIC
+//#define USE_MEMORY_BANKS
 
 #define TRUE 1
 #define FALSE 0

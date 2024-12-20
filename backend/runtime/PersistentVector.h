@@ -31,33 +31,33 @@ struct PersistentVector {
 PersistentVector* PersistentVector_create();
 PersistentVector* PersistentVector_createMany(uint64_t objCount, ...);
 
-BOOL PersistentVector_equals(PersistentVector * restrict self, PersistentVector * restrict other);
-uint64_t PersistentVector_hash(PersistentVector * restrict self);
-String *PersistentVector_toString(PersistentVector * restrict self);
-void PersistentVector_destroy(PersistentVector * restrict self, BOOL deallocateChildren);
+BOOL PersistentVector_equals(PersistentVector *  self, PersistentVector *  other);
+uint64_t PersistentVector_hash(PersistentVector *  self);
+String *PersistentVector_toString(PersistentVector *  self);
+void PersistentVector_destroy(PersistentVector *  self, BOOL deallocateChildren);
 
-PersistentVector* PersistentVector_conj_internal(PersistentVector * restrict self, void * restrict other);
-PersistentVector* PersistentVector_conj(PersistentVector * restrict self, void * restrict other);
-PersistentVector* PersistentVector_conj_BANG_(PersistentVector * restrict self, void * restrict other);
+PersistentVector* PersistentVector_conj_internal(PersistentVector *  self, void *  other);
+PersistentVector* PersistentVector_conj(PersistentVector *  self, void *  other);
+PersistentVector* PersistentVector_conj_BANG_(PersistentVector *  self, void *  other);
 
-PersistentVector* PersistentVector_assoc_internal(PersistentVector * restrict self, uint64_t index, void * restrict other);
-PersistentVector* PersistentVector_assoc(PersistentVector * restrict self, uint64_t index, void * restrict other);
-PersistentVector* PersistentVector_assoc_BANG_(PersistentVector * restrict self, uint64_t index, void * restrict other);
+PersistentVector* PersistentVector_assoc_internal(PersistentVector *  self, uint64_t index, void *  other);
+PersistentVector* PersistentVector_assoc(PersistentVector *  self, uint64_t index, void *  other);
+PersistentVector* PersistentVector_assoc_BANG_(PersistentVector *  self, uint64_t index, void *  other);
 
-PersistentVector* PersistentVector_pop_internal(PersistentVector * restrict self);
-PersistentVector* PersistentVector_pop(PersistentVector * restrict self);
-PersistentVector* PersistentVector_pop_BANG_(PersistentVector * restrict self);
+PersistentVector* PersistentVector_pop_internal(PersistentVector *  self);
+PersistentVector* PersistentVector_pop(PersistentVector *  self);
+PersistentVector* PersistentVector_pop_BANG_(PersistentVector *  self);
 
-void* PersistentVector_dynamic_nth(PersistentVector * restrict self, void *indexObject);
-void* PersistentVector_nth(PersistentVector * restrict self, uint64_t index);
+void* PersistentVector_dynamic_nth(PersistentVector *  self, void *indexObject);
+void* PersistentVector_nth(PersistentVector *  self, uint64_t index);
 
-void PersistentVector_print(PersistentVector * restrict self);
+void PersistentVector_print(PersistentVector *  self);
 
-PersistentVector* PersistentVector_copy_root(PersistentVector * restrict self, uint64_t transientID);
-PersistentVector* PersistentVector_transient(PersistentVector * restrict self);
-PersistentVector* PersistentVector_persistent_BANG_(PersistentVector * restrict self);
+PersistentVector* PersistentVector_copy_root(PersistentVector *  self, uint64_t transientID);
+PersistentVector* PersistentVector_transient(PersistentVector *  self);
+PersistentVector* PersistentVector_persistent_BANG_(PersistentVector *  self);
 
-uint64_t PersistentVector_count(PersistentVector * restrict self);
-BOOL PersistentVector_contains(PersistentVector * restrict self, void * restrict other);
+uint64_t PersistentVector_count(PersistentVector *  self);
+BOOL PersistentVector_contains(PersistentVector *  self, void *  other);
 
 #endif

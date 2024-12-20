@@ -15,7 +15,9 @@ PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType typ
      faster execution because allocations are not that often needed?
 
   */
-  size_t allocs = type == leafNode ? RRB_BRANCHING : count;
+  // Putting count here saves memory but precludes any reuse. 
+  // The current implementation does reuse, so anything else than RRB_BRANCHING causes memory corruption
+  size_t allocs = RRB_BRANCHING; // type == leafNode ? RRB_BRANCHING : count;
   Object *super = allocate(sizeof(Object) + sizeof(PersistentVectorNode) + allocs * sizeof(Object *)); 
   
   PersistentVectorNode *self = (PersistentVectorNode *)(super + 1);

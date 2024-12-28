@@ -12,6 +12,7 @@ typedef struct Object Object;
 typedef struct String String; 
 
 struct Symbol {
+  Object super;
   String *string;
 };
 

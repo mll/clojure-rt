@@ -27,12 +27,15 @@ struct FunctionMethod  {
 
 typedef struct FunctionMethod FunctionMethod;
 
+typedef struct Object Object;
+
 struct ClojureFunction {
+  Object super;
+  BOOL once;
+  BOOL executed;
   uint64_t uniqueId;
   uint64_t methodCount;
   uint64_t maxArity;
-  BOOL once;
-  BOOL executed;
   struct FunctionMethod methods[];
 };
 

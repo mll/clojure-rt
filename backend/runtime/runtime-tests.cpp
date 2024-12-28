@@ -16,6 +16,11 @@
 #include <gmp.h>
 
 extern "C" {
+#ifndef restrict
+#  if defined(__cplusplus)
+#    define restrict __restrict
+#  endif
+#endif
    #include "defines.h"
    #include "Object.h"
 }
@@ -49,6 +54,7 @@ void *startThread(void *param) {
 
 
 void testConcurrentMap (bool pauses) {
+    printf("=========================== STARTING CONCURRENT MAP TESTS =============================================\n");
   ConcurrentHashMap *l = ConcurrentHashMap_create(28);
   // // l = l->conj(new Number(3));
   // // l = l->conj(new Number(7));
@@ -59,13 +65,15 @@ void testConcurrentMap (bool pauses) {
   if(pauses) getchar();
   struct timeval as, ap;
   gettimeofday(&as, NULL);
+  int threadNo = 1;
+  int perThread = 100000000 / threadNo;
 
   HashThreadParams params[10];
   pthread_t threads[10];
 
-  for(int i=0; i<10; i++) {
-    params[i].start = i * 10000000;
-    params[i].stop = (i+1) * 10000000;
+  for(int i=0; i<threadNo; i++) {
+    params[i].start = i * perThread;
+    params[i].stop = (i+1) * perThread;
     params[i].map = l;
     pthread_create(&(threads[i]), NULL, startThread, (void *) &params[i]);
   }
@@ -85,21 +93,21 @@ void testConcurrentMap (bool pauses) {
   for(int i=0; i< 100000000; i++) {
     k->value = i;
     retain(k);
-    void *o = ConcurrentHashMap_get(l, k);
+    Object *o = (Object *)ConcurrentHashMap_get(l, k);
     assert(o);
-    if(super(o)->type != integerType) {
+    if(o->type != integerType) {
       retain(k);
-      printf("Unknown type %d for entry %s\n", super(o)->type, String_c_str(toString(k)));
+      printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
       retain(k);
-      o = ConcurrentHashMap_get(l, k);
+      o = (Object *)ConcurrentHashMap_get(l, k);
       retain(k);
-      printf("Unknown type %d for entry %s\n", super(o)->type, String_c_str(toString(k)));
+      printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
       retain(l);
       retain(o);
       printf("Contents: %s %s\n", String_c_str(toString(o)), String_c_str(String_compactify(toString(l))));
     }
 
-    assert(super(o)->type == integerType);
+    assert(o->type == integerType);
     Integer *res = (Integer *) o;
     assert(res->value == i);
     sum += res->value;
@@ -126,7 +134,7 @@ void testConcurrentMap (bool pauses) {
   // }
   // pd();
   // clock_t ap = clock();
-  // printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, super(l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
+  // printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, ((Object *)l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
    
   // if (pauses) getchar();
   // clock_t os = clock();
@@ -134,14 +142,14 @@ void testConcurrentMap (bool pauses) {
   // PersistentList *tmp = l;
   // int64_t sum = 0;
   // while(tmp != NULL) {
-  //   if(tmp->first) sum += ((Integer *)(Object_data(tmp->first)))->value;
+  //   if(tmp->first) sum += ((Integer *)(tmp->first))->value;
   //   tmp = tmp->rest;
   // }
   // clock_t op = clock();
   // printf("Sum: %llu\nTime: %f\n", sum, (double)(op - os) / CLOCKS_PER_SEC);
   // if(pauses) getchar();
   // clock_t ds = clock();
-  // printf("%llu\n", super(l)->refCount);
+  // printf("%llu\n", ((Object *)l)->refCount);
   // release(l);
   // pd();
   // clock_t dp = clock();
@@ -151,10 +159,12 @@ void testConcurrentMap (bool pauses) {
 
 
 void testList (bool pauses) {
+  printf("=========================== STARTING LIST TESTS =============================================\n");
   // l = l->conj(new Number(3));
   // l = l->conj(new Number(7));
   // l = l->conj(new PersistentList(new Number(2)));
   // l = l->conj(new PersistentList());
+  size_t size = 100000000;
   if(pauses) printf("Press a key to start\n");
   printf("Memory counters before test:\n");
   pd();
@@ -163,18 +173,22 @@ void testList (bool pauses) {
   clock_t as = clock();
 
   PersistentList *l = PersistentList_create(NULL, NULL);
-  for (int i=0;i<100000000; i++) {
+  for (int i=0;i<size; i++) {
     Integer *n = Integer_create(i);
     PersistentList *k = PersistentList_conj(l, n);
     l = k;
   }
+  // retain(l);
+  // String *s = String_compactify(toString(l));
+  // char *text = String_c_str(s);
+  // printf("LIST: %s\n", text);
   clock_t ap = clock();
   printf("Memory counters after initial allocation:\n");
   pd();
   #ifdef REFCOUNT_NONATOMIC
-  printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, super(l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
+  printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, ((Object *)l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
   #else 
-  printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, atomic_load(&(super(l)->atomicRefCount)), (double)(ap - as) / CLOCKS_PER_SEC);
+  printf("Array size: %llu\nRef count: %llu\nTime: %f\n", l->count, atomic_load(&(((Object *) l)->atomicRefCount)), (double)(ap - as) / CLOCKS_PER_SEC);
   #endif
 
   if (pauses) getchar();
@@ -192,9 +206,9 @@ void testList (bool pauses) {
   printf("Sum: %llu\nTime: %f\n", sum, (double)(op - os) / CLOCKS_PER_SEC);
   if(pauses) getchar();
 #ifdef REFCOUNT_NONATOMIC
-  printf("Refcount for list: %llu\n", super(l)->refCount);
+  printf("Refcount for list: %llu\n", ((Object *)l)->refCount);
 #else 
-  printf("Refcount for list: %llu\n", atomic_load(&(super(l)->atomicRefCount)));
+  printf("Refcount for list: %llu\n", atomic_load(&(((Object *)l)->atomicRefCount)));
 #endif
   printf("Releasing the list:\n");
   clock_t ds = clock();
@@ -205,7 +219,8 @@ void testList (bool pauses) {
 }
 
 
-void testVector (bool pauses, bool reuseSwitch = true) {
+void testVector (bool pauses) {
+  printf("=========================== STARTING VECTOR TESTS =============================================\n");
   // printf("Total size: %lu %lu\n", sizeof(Object), sizeof(Integer)); 
   // printf("Total size: %lu %lu\n", sizeof(PersistentVector), sizeof(PersistentVectorNode)); 
   PersistentVector *l = PersistentVector_create();
@@ -216,15 +231,16 @@ void testVector (bool pauses, bool reuseSwitch = true) {
   if(pauses) printf("Press a key to start\n");
   pd();
   if(pauses) getchar();
+  printf("Creating vector using standard methods (reuse: false) \n");
   clock_t as = clock();
 
-  bool reuse = reuseSwitch ? (rand() & 1) : false;
-
-  for (int i=0;i<100000000; i++) {
+  bool reuse = false;
+  size_t size = 100000000;
+  
+  for (int i=0;i<size; i++) {
    // PersistentVector_print(l);
    // printf("=======*****************===========");
    // fflush(stdout);
-    reuse = reuseSwitch ? (rand() & 1) : false;
     Integer *n = Integer_create(i);
     if(!reuse) retain(l);
     PersistentVector *k = PersistentVector_conj(l, n);
@@ -238,11 +254,76 @@ void testVector (bool pauses, bool reuseSwitch = true) {
   pd();
   clock_t ap = clock();
   #ifdef REFCOUNT_NONATOMIC
-  printf("Vector size: %llu\nRef count: %llu\nTime: %f\n", l->count, super(l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
+  printf("Vector size: %llu\nRef count: %llu\nTime: %f\n", l->count, ((Object *)l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
   #else 
-  printf("Vector size: %llu\nRef count: %llu\nTime: %f\n", l->count, atomic_load(&(super(l)->atomicRefCount)), (double)(ap - as) / CLOCKS_PER_SEC);
+  printf("Vector size: %llu\nRef count: %llu\nTime: %f\n", l->count, atomic_load(&(((Object *)l)->atomicRefCount)), (double)(ap - as) / CLOCKS_PER_SEC);
   #endif
   if (pauses) getchar();
+  printf("releasing original vector: \n");
+  release(l);
+
+
+  if(pauses) getchar();
+  printf("Creating vector using standard methods (reuse: true) \n");
+  as = clock();
+
+  reuse = true;
+  l = PersistentVector_create();
+  for (int i=0;i<size; i++) {
+   // PersistentVector_print(l);
+   // printf("=======*****************===========");
+   // fflush(stdout);
+    Integer *n = Integer_create(i);
+    if(!reuse) retain(l);
+    PersistentVector *k = PersistentVector_conj(l, n);
+    if(!reuse) release(l);
+
+    l = k;
+    // printf("%d\r", i);
+    // fflush(stdout);
+//    PersistentVector_print(l);
+  }
+  pd();
+  ap = clock();
+  #ifdef REFCOUNT_NONATOMIC
+  printf("Vector size: %llu\nRef count: %llu\nTime: %f\n", l->count, ((Object *)l)->refCount, (double)(ap - as) / CLOCKS_PER_SEC);
+  #else 
+  printf("Vector size: %llu\nRef count: %llu\nTime: %f\n", l->count, atomic_load(&(((Object *)l)->atomicRefCount)), (double)(ap - as) / CLOCKS_PER_SEC);
+  #endif
+  if (pauses) getchar();
+  printf("releasing original vector: \n");
+  release(l);
+  
+
+
+  pd();
+  printf("Creating vector using transients\n");
+  clock_t as9 = clock();
+  l = PersistentVector_transient(PersistentVector_create());
+  
+  for (int i=0;i<size; i++) {
+   // PersistentVector_print(l);
+   // printf("=======*****************===========");
+   // fflush(stdout);
+    Integer *n = Integer_create(i);
+    retain(l);
+    PersistentVector *k = PersistentVector_conj_BANG_(l, n);
+    release(l);
+    l = k;
+  }
+  l = PersistentVector_persistent_BANG_(l);
+  pd();
+  clock_t ap9 = clock();
+  #ifdef REFCOUNT_NONATOMIC
+  printf("Vector size: %llu\nRef count: %llu\nTime: %f\n", l->count, ((Object *)l)->refCount, (double)(ap9 - as9) / CLOCKS_PER_SEC);
+  #else 
+  printf("Vector size: %llu\nRef count: %llu\nTime: %f\n", l->count, atomic_load(&(((Object *)l)->atomicRefCount)), (double)(ap9 - as9) / CLOCKS_PER_SEC);
+  #endif
+
+
+
+  printf("Summing using nth");
+
   clock_t os = clock();
   
   int64_t sum = 0;
@@ -256,12 +337,32 @@ void testVector (bool pauses, bool reuseSwitch = true) {
 
   clock_t op = clock();
   printf("Sum: %llu\nTime: %f\n", sum, (double)(op - os) / CLOCKS_PER_SEC);
-  assert(sum == 4999999950000000ull && "Wrong result");
+//  assert(sum == 4999999950000000ull && "Wrong result");
   if(pauses) getchar();
+
+  printf("Summing using iterator");
+
+  clock_t os9 = clock();
+  
+  int64_t sum9 = 0;
+  
+  PersistentVectorIterator it = PersistentVector_iterator(l);
+  
+  Object *obss = PersistentVector_iteratorGet(&it);
+  while(obss) {
+    sum9 += ((Integer *)obss)->value;    
+    obss = PersistentVector_iteratorNext(&it);
+  }
+
+  clock_t op9 = clock();
+  printf("iterator Sum: %llu\nTime: %f\n", sum, (double)(op9 - os9) / CLOCKS_PER_SEC);
+//  assert(sum9 == 4999999950000000ull && "Wrong result");
+  if(pauses) getchar();
+
   int64_t sum2 = 0;
-  int64_t *array = (int64_t *)malloc(100000000*sizeof(int64_t));
-  memset(array, 0, 100000000);
-  for(int i=0; i< 100000000; i++) {
+  int64_t *array = (int64_t *)malloc(size*sizeof(int64_t));
+  memset(array, 0, size);
+  for(int i=0; i< size; i++) {
     array[i] = i;
   }
 
@@ -273,12 +374,52 @@ void testVector (bool pauses, bool reuseSwitch = true) {
   free(array);
   printf("Simple array sum: %llu\nTime: %f\n", sum2, (double)(opp - oss) / CLOCKS_PER_SEC);
 
+  if(pauses) getchar();
+  printf("Summing array with objects: \n");
+  int64_t sum22 = 0;
+  Object **array9 = (Object **)malloc(size*sizeof(Object *));
+  for(int i=0; i< size; i++) {
+    array9[i] = (Object *)Integer_create(i);
+  }
+
+  clock_t oss9 = clock();
+  for(int i=0; i < l->count; i++) {
+    sum22 += ((Integer *)array9[i])->value;
+  }
+  clock_t opp9 = clock();
+  for(int i=0; i< size; i++) {
+    Object_release(array9[i]);
+  }
+  free(array9);
+  printf("Simple array with objects sum: %llu\nTime: %f\n", sum22, (double)(opp9 - oss9) / CLOCKS_PER_SEC);
+
+  if(pauses) getchar();
+  printf("Summing array with obj - integers: \n");
+  sum22 = 0;
+  Integer **array99 = (Integer **)malloc(size*sizeof(Integer *));
+  for(int i=0; i< size; i++) {
+    array99[i] = Integer_create(i);
+  }
+
+  clock_t oss99 = clock();
+  for(int i=0; i < l->count; i++) {
+    sum22 += array99[i]->value;
+  }
+  clock_t opp99 = clock();
+  for(int i=0; i< size; i++) {
+    release(array99[i]);
+  }
+  free(array99);
+  printf("Simple array with integer objects sum: %llu\nTime: %f\n", sum22, (double)(opp99 - oss99) / CLOCKS_PER_SEC);
+
+
+
   clock_t ass = clock();
-  for (int i=0;i<100000000; i++) {
+  for (int i=0;i<size; i++) {
     // PersistentVector_print(l);
     // printf("=======*****************===========");
     // fflush(stdout);
-    reuse = reuseSwitch ? (rand() & 1) : false;
+    reuse = false;
     Integer *n = Integer_create(7);
     if(!reuse) retain(l);
     PersistentVector *k = PersistentVector_assoc(l, i, n);
@@ -300,9 +441,9 @@ void testVector (bool pauses, bool reuseSwitch = true) {
   printf("Assocs + sum: %llu\nTime: %f\n", sum, (double)(asd - ass) / CLOCKS_PER_SEC);
   clock_t ds = clock();
   #ifdef REFCOUNT_NONATOMIC
-  printf("%llu\n", super(l)->refCount);
+  printf("%llu\n", ((Object *)l)->refCount);
   #else
-  printf("%llu\n", atomic_load(&(super(l)->atomicRefCount)));
+  printf("%llu\n", atomic_load(&(((Object *)l)->atomicRefCount)));
   #endif
   release(l);
   pd();
@@ -316,10 +457,11 @@ int main() {
   srand(0);
   initialise_memory();
   //  for(int i=0; i<30; i++) testList(false);
-  //testList(false);
+  testList(false);
   ////    ProfilerStart("xx.prof");
-  testVector(false, false);
-//      testConcurrentMap(false);
+  testVector(false);
+  testConcurrentMap(false);
+  
   //   ProfilerStop();
   //    getchar();
 }

@@ -4,10 +4,9 @@
 
 /* mem done */
 Boolean* Boolean_create(BOOL initial) {
-  Object *super = allocate(sizeof(Boolean) + sizeof(Object)); 
-  Boolean *self = (Boolean *)(super + 1);
+  Boolean *self = allocate(sizeof(Boolean)); 
   self->value = initial;
-  Object_create(super, booleanType);
+  Object_create((Object *)self, booleanType);
   return self;
 }
 

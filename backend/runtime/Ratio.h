@@ -3,9 +3,12 @@
 #include "Double.h"
 #include "String.h"
 #include "BigInteger.h"
-#include <gmp.h>
+#include "gmp.h"
+
+typedef struct Object Object;
 
 struct Ratio {
+  Object super;
   mpq_t value;
 };
 

@@ -2,9 +2,10 @@
 #define RT_BIG_INTEGER
 #include "Double.h"
 #include "String.h"
-#include <gmp.h>
+#include "gmp.h"
 
 struct BigInteger {
+  Object super;
   mpz_t value;
 };
 

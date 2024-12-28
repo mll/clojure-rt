@@ -16,11 +16,11 @@
  * (unless the vector contains less than 1000 elements, in which case it is about just as fast).
  */
 
-
 typedef struct PersistentVector PersistentVector;
 typedef struct PersistentVectorNode PersistentVectorNode;
 
 struct PersistentVector {
+  Object super;
   uint64_t count;
   uint64_t shift;
   uint64_t transientID;
@@ -50,6 +50,7 @@ PersistentVector* PersistentVector_pop_BANG_(PersistentVector *  self);
 
 void* PersistentVector_dynamic_nth(PersistentVector *  self, void *indexObject);
 void* PersistentVector_nth(PersistentVector *  self, uint64_t index);
+PersistentVectorNode* PersistentVector_nthBlock(PersistentVector *  self, uint64_t index);
 
 void PersistentVector_print(PersistentVector *  self);
 

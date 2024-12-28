@@ -8,10 +8,9 @@ extern Nil *UNIQUE_NIL;
 
 /* mem done */
 Keyword* Keyword_allocate(String *string) {
-  Object *super = allocate(sizeof(Keyword) + sizeof(Object)); 
-  Keyword *self = (Keyword *)(super + 1);
+  Keyword *self = (Keyword *)allocate(sizeof(Keyword)); 
   self->string = string;
-  Object_create(super, keywordType);
+  Object_create((Object *)self, keywordType);
   return self;
 }
 

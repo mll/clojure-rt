@@ -3,9 +3,8 @@
 #include "Object.h"
 
 BigInteger* BigInteger_createUninitialized() {
-  Object *super = allocate(sizeof(BigInteger) + sizeof(Object)); 
-  BigInteger *self = (BigInteger *)(super + 1);
-  Object_create(super, bigIntegerType);
+  BigInteger *self = (BigInteger *)allocate(sizeof(BigInteger)); 
+  Object_create((Object *)self, bigIntegerType);
   return self;
 }
 

@@ -10,7 +10,6 @@ extern "C" {
   void *allocate(size_t size);
   typedef struct Integer Integer;
   Integer* Integer_create(int64_t integer);
-  Object *super(void *obj);
   void **packPointerArgs(uint64_t count, ...);
 }
 
@@ -61,10 +60,10 @@ Class *createJavaLangLong(Class *javaLangNumber) {
   Keyword **staticFieldNames = (Keyword **) allocate(fieldNames.size() * sizeof(Keyword *));
   for (size_t i = 0; i < fieldNames.size(); ++i) staticFieldNames[i] = Keyword_create(String_createDynamicStr(fieldNames[i].c_str()));
   Object **staticFields = (Object **) allocate(fieldNames.size() * sizeof(Object *));
-  staticFields[0] = super(Integer_create(8));
-  staticFields[1] = super(Integer_create(INT64_MAX));
-  staticFields[2] = super(Integer_create(INT64_MIN));
-  staticFields[3] = super(Integer_create(64));
+  staticFields[0] = (Object *)Integer_create(8);
+  staticFields[1] = (Object *)Integer_create(INT64_MAX);
+  staticFields[2] = (Object *)Integer_create(INT64_MIN);
+  staticFields[3] = (Object *)Integer_create(64);
   // staticFields[4] = ???
   return Class_create(
     name, name, 0,
@@ -125,12 +124,12 @@ Class *createClojureAsmOpcodes() {
   for (size_t i = 0; i < flagNames.size(); ++i)
     for (size_t j = 0; j < flagNames[i].size(); ++j) {
       staticFieldNames[k] = Keyword_create(String_createDynamicStr(flagNames[i][j].c_str()));
-      staticFields[k] = super(Integer_create(1 << i));
+      staticFields[k] = (Object *)Integer_create(1 << i);
       ++k;
     }
   for (size_t i = 0; i < versionsCount; ++i) {
     staticFieldNames[k] = Keyword_create(String_createDynamicStr(javaClassFileVersions[i].first.c_str()));
-    staticFields[k] = super(Integer_create(javaClassFileVersions[i].second));
+    staticFields[k] = (Object *)Integer_create(javaClassFileVersions[i].second);
     ++k;
   }
   return Class_create(

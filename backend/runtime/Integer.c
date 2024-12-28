@@ -8,10 +8,9 @@
 
 /* mem done */
 Integer* Integer_create(int64_t integer) {
-  Object *super = allocate(sizeof(Integer) + sizeof(Object)); 
-  Integer *self = (Integer *)(super + 1);
+  Integer *self = allocate(sizeof(Integer)); 
   self->value = integer;
-  Object_create(super, integerType);
+  Object_create((Object *) self, integerType);
   return self;
 }
 

@@ -3,7 +3,10 @@
 #include "String.h"
 #include "defines.h"
 
+typedef struct Object Object;
+
 struct Double {
+  Object super;
   double value;
 };
 

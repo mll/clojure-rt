@@ -10,11 +10,13 @@ typedef struct String String;
 typedef struct Keyword Keyword;
 
 struct Var {
+  Object super;
   BOOL unbound;
-  Object *root;
   BOOL dynamic;
-  Keyword *keyword; // TODO: split name and namespace
   uint64_t rev;
+  Object *root;
+  Keyword *keyword; // TODO: split name and namespace - Marek - why?
+
   // TODO: threadBound
 };
 

@@ -4,6 +4,7 @@
 #include "defines.h"
 
 struct Nil {
+  Object super;
 };
 
 typedef struct Nil Nil;

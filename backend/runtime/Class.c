@@ -41,8 +41,8 @@ Class* Class_create(
   // implementedInterfacesCount[i] has length implementedInterfaces[i]->methodCount
   ClojureFunction ***implementedInterfaces
 ) {
-  Object *super = allocate(sizeof(Object) + sizeof(Class));
-  Class *self = (Class *)(super + 1);
+
+  Class *self = allocate(sizeof(Class));
   self->registerId = 0; // unregistered
   self->name = name;
   self->className = className;
@@ -85,7 +85,7 @@ Class* Class_create(
     self->fieldNames = NULL;
   }
   
-  Object_create(super, classType);
+  Object_create((Object *)self, classType);
   return self;
 }
 
@@ -198,7 +198,7 @@ void *Class_setIndexedStaticField(Class *self, int64_t i, void *value) {
     release(self); release(value); return NULL; // unsafe index exception - field not found?
   }
   Object *oldValue = self->staticFields[i];
-  self->staticFields[i] = super(value);
+  self->staticFields[i] = (Object *)value;
   Object_release(oldValue);
   release(self);
   return value;
@@ -208,7 +208,7 @@ void *Class_getIndexedStaticField(Class *self, int64_t i) {
   if (i < 0 || i >= self->staticFieldCount) {
     release(self); return NULL; // unsafe index exception - field not found?
   }
-  void *retVal = Object_data(self->staticFields[i]);
+  void *retVal = self->staticFields[i];
   retain(retVal);
   release(self);
   return retVal;

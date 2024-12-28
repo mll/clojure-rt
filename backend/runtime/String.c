@@ -16,7 +16,7 @@ uint64_t String_computeHash(const char *str) {
 /* outside refcount system */
 PersistentVector *getVec(String *s) {
   PersistentVector *vec = *((PersistentVector **) &(s->value[0]));
-  assert(super(vec)->type == persistentVectorType && "Wrong type");
+  assert(((Object *)vec)->type == persistentVectorType && "Wrong type");
   return vec;
 }
 
@@ -43,13 +43,12 @@ void String_recomputeHash(String *s) {
 
 /* mem done */
 String* String_createStatic(char *string) {
-  Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char *)); 
-  String *self = (String *)(super + 1);
+  String *self = (String *)allocate(sizeof(String) + sizeof(char *)); 
   *((char **)&(self->value[0])) = string;
   self->count = strlen(string);
   self->hash = String_computeHash(string);
   self->specialisation = staticString;
-  Object_create(super, stringType);
+  Object_create((Object *)self, stringType);
   return self;
 }
 
@@ -60,43 +59,39 @@ String* String_create(char *string) {
 
 /* mem done */
 String* String_createDynamic(size_t size) {
-  Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char) * (size + 1)); 
-  String *self = (String *)(super + 1);
+  String *self = (String *)allocate(sizeof(String) + sizeof(char) * (size + 1)); 
   self->count = size;
   self->specialisation = dynamicString;
-  Object_create(super, stringType);
+  Object_create((Object *)self, stringType);
   return self;
 }
 
 String* String_createDynamicStr(const char *str) {
   size_t len = strlen(str);
-  Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char) * (len + 1)); 
-  String *self = (String *)(super + 1);
+  String *self = (String *)allocate(sizeof(String) + sizeof(char) * (len + 1)); 
   self->count = len;
   self->specialisation = dynamicString;
   self->hash = String_computeHash(str);
   strcpy(getDyn(self), str);
-  Object_create(super, stringType);
+  Object_create((Object *)self, stringType);
   return self;
 }
 
 
 /* mem done */
 String* String_createStaticOptimised(char *string, uint64_t len, uint64_t hash) {
-  Object *super = allocate(sizeof(String) + sizeof(Object) + sizeof(char *)); 
-  String *self = (String *)(super + 1);
+  String *self = (String *)allocate(sizeof(String) + sizeof(char *)); 
   *((char **) &(self->value[0])) = string;
   self->count = len;
   self->hash = hash;
   self->specialisation = staticString;
-  Object_create(super, stringType);
+  Object_create((Object *)self, stringType);
   return self;
 }
 
 /* mem done */
 String* String_createCompound(String *left, String *right) {
-  Object *sup = allocate(sizeof(String) + sizeof(Object) + sizeof(PersistentVector *)); 
-  String *self = (String *)(sup + 1);
+  String *self = (String *)allocate(sizeof(String) + sizeof(PersistentVector *)); 
   self->count = left->count + right->count;
   self->specialisation = compoundString;
   self->hash = left->hash + right->hash - String_computeHash("");
@@ -107,7 +102,7 @@ String* String_createCompound(String *left, String *right) {
     v = PersistentVector_conj(empty, left);
   } else {
     v = getVec(left);
-    assert(super(getVec(left))->type == persistentVectorType && "Wrong type");
+    assert(((Object *)getVec(left))->type == persistentVectorType && "Wrong type");
     retain(v);
     release(left);
   }
@@ -115,38 +110,41 @@ String* String_createCompound(String *left, String *right) {
   if(right->specialisation != compoundString) {
     v = PersistentVector_conj(v, right);
   } else {
-    assert(super(getVec(right))->type == persistentVectorType && "Wrong type");
+    assert(((Object *)getVec(right))->type == persistentVectorType && "Wrong type");
     PersistentVector *rvec = getVec(right);
-    for(int i=0; i< rvec->count; i++) { /* TODO - use iterators instead of nth here */
+    PersistentVectorIterator it = PersistentVector_iterator(rvec);
+    for(int i=0; i< rvec->count; i++) { 
       retain(rvec);
-      v = PersistentVector_conj(v, PersistentVector_nth(rvec, i));
+      v = PersistentVector_conj(v, PersistentVector_iteratorGet(&it));
+      PersistentVector_iteratorNext(&it);
     }
     release(right);
   }
   *((PersistentVector **)&(self->value[0])) = v;
-  Object_create(sup, stringType);
-  assert(super(getVec(self))->type == persistentVectorType && "Wrong type");
+  Object_create((Object *)self, stringType);
+  assert(((Object *) getVec(self))->type == persistentVectorType && "Wrong type");
   return self;
 }
 
 /* outside refcount system */
-char *String_iteratorGetChar(String *self, StringIterator *it) {
+char *String_iteratorGet(StringIterator *it) {
+  /* no bounds check, has to always be used carefully */
   return &it->block[it->inBlockIndex];
 }
 
 /* outside refcount system */
-char *String_iteratorNext(String *self, StringIterator *it) {
-  if(self->count == it->index + 1) return 0;
+char *String_iteratorNext(StringIterator *it) {
   if(it->inBlockIndex < it->blockLength - 1) {
     it->index++;
     it->inBlockIndex++;
     return &it->block[it->inBlockIndex];
   } 
+  if(it->current->count == it->index + 1) return 0;
+  
   it->inBlockIndex = 0;
   it->index++;
-  it->blockIndex++;
-  /* TODO - use vector iterator */
-  String *child = PersistentVector_nth(getVec(self), it->blockIndex);
+
+  String *child = (String *)PersistentVector_iteratorNext(&(it->iterator)); 
   it->blockLength = child->count;
   it->block = getStatDyn(child);
   return &it->block[it->inBlockIndex];
@@ -157,9 +155,11 @@ StringIterator String_iterator(String *self) {
   StringIterator it;
   it.index = 0;
   it.inBlockIndex = 0;
-  it.blockIndex = 0;
+  it.current = self;
   if(self->specialisation == compoundString) {
-    String *child = PersistentVector_nth(getVec(self), 0);
+    it.iterator = PersistentVector_iterator(getVec(self));
+    String *child = (String *)PersistentVector_iteratorGet(&(it.iterator));
+    it.current = child;
     it.blockLength = child->count;
     it.block = getStatDyn(child);
     return it;
@@ -213,12 +213,12 @@ BOOL String_equals(String *self, String *other) {
  
   StringIterator left = String_iterator(self);
   StringIterator right = String_iterator(other);
-  char leftChar = *String_iteratorGetChar(self, &left);
-  char rightChar = *String_iteratorGetChar(other, &right);
+  char leftChar = *String_iteratorGet(&left);
+  char rightChar = *String_iteratorGet(&right);
   while(leftChar != 0) {
     if(leftChar != rightChar) return FALSE;
-    leftChar = *String_iteratorNext(self, &left);
-    rightChar = *String_iteratorNext(other, &right);
+    leftChar = *String_iteratorNext(&left);
+    rightChar = *String_iteratorNext(&right);
   }
   return TRUE;
 }
@@ -306,16 +306,16 @@ String *String_replace(String *self, String *target, String *replacement) {
   StringIterator targetIterator = String_iterator(target);
   StringIterator replacementIterator = String_iterator(replacement);
   StringIterator retValIterator = String_iterator(retVal);
-  char targetChar = *String_iteratorGetChar(target, &targetIterator);
-  char replacementChar = *String_iteratorGetChar(replacement, &replacementIterator);
+  char targetChar = *String_iteratorGet(&targetIterator);
+  char replacementChar = *String_iteratorGet(&replacementIterator);
   release(target);
   release(replacement);
-  char *retValChar = String_iteratorGetChar(retVal, &retValIterator);
+  char *retValChar = String_iteratorGet(&retValIterator);
   while (retValChar) {
     if (*retValChar == targetChar) {
       *retValChar = replacementChar;
     }
-    retValChar = String_iteratorNext(retVal, &retValIterator);
+    retValChar = String_iteratorNext(&retValIterator);
   }
   return retVal;
 }

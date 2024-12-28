@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.26)
 project(clojure-rt)
 
-#set(CMAKE_OSX_ARCHITECTURES "arm64")
+set(CMAKE_OSX_ARCHITECTURES "arm64")
 #set(CMAKE_OPTIMIZE_DEPENDENCIES TRUE)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -11,7 +11,7 @@ endif()
 #set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 set(CMAKE_CXX_STANDARD 17)
 

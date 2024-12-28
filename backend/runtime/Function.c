@@ -7,16 +7,14 @@
 
 /* mem done */
 ClojureFunction* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity, BOOL once) {
-  size_t size = sizeof(ClojureFunction) + sizeof(Object) + methodCount * sizeof(FunctionMethod);
-  Object *super = allocate(size); 
-  memset(super, 0, size);
-  ClojureFunction *self = (ClojureFunction *)(super + 1);
+  size_t size = sizeof(ClojureFunction) + methodCount * sizeof(FunctionMethod);
+  ClojureFunction *self = (ClojureFunction *)allocate(size);
   self->methodCount = methodCount;
   self->maxArity = maxArity;
   self->uniqueId = uniqueId;
   self->once = once;
   self->executed = FALSE;
-  Object_create(super, functionType);
+  Object_create((Object *)self, functionType);
   // TODO - ^:once meta. When present 
   return self;
 }

@@ -10,7 +10,10 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <assert.h>
+#include <execinfo.h>
 #include "defines.h"
+#include "PersistentVectorIterator.h"
 #include <stdatomic.h>
 #include "String.h"
 #include "Integer.h"
@@ -20,35 +23,24 @@
 #include "PersistentList.h"
 #include "PersistentVector.h"
 #include "PersistentVectorNode.h"
+#include "PersistentVectorIterator.h"
 #include "ConcurrentHashMap.h"
 #include "Symbol.h"
 #include "Keyword.h"
 #include "Class.h"
 #include "Deftype.h"
-#include <assert.h>
-#include <execinfo.h>
 #include "Function.h"
 #include "Var.h"
 #include "BigInteger.h"
 #include "Ratio.h"
 #include "PersistentArrayMap.h"
+
 typedef struct String String; 
 
 #define MEMORY_BANK_SIZE_MAX 10
 
 extern void logBacktrace();
 void printReferenceCounts();
-
-struct Object {
-  objectType type;
-  unsigned char bankId;
-#ifdef REFCOUNT_NONATOMIC
-  uint64_t refCount;
-#endif
-  volatile atomic_uint_fast64_t atomicRefCount;
-};
-
-typedef struct Object Object; 
 
 extern _Atomic uint64_t allocationCount[256]; 
 extern _Atomic uint64_t objectCount[256]; 
@@ -71,7 +63,7 @@ void initialise_memory();
 inline void *allocate(size_t size) {
 #ifndef USE_MEMORY_BANKS
     return malloc(size);
-#endif 
+#else 
     int bankId;
     if (size <= 24) bankId = 0;
     else if (size <= 64) bankId = 1;
@@ -110,13 +102,14 @@ inline void *allocate(size_t size) {
     if (!hdr) return NULL;
     hdr->bankId = (unsigned char)bankId;
     return hdr;
+#endif
 }
 
 inline void deallocate(void *ptr) {
 #ifndef USE_MEMORY_BANKS
   free(ptr);
   return;
-#endif
+#else
     if (!ptr) return;
     Object *hdr = (Object *)ptr;
     unsigned char bankId = hdr->bankId;
@@ -131,17 +124,10 @@ inline void deallocate(void *ptr) {
     *((void **)ptr) = memoryBank[bankId];
     memoryBank[bankId] = ptr;
     memoryBankSize[bankId]++;
+#endif
 }
 
-inline void *Object_data(Object *  self) {
-  return self + 1;
-}
-
-inline Object *super(void *  self) {
-  return ((Object *)self) - 1;  
-}
-
-inline void Object_retain(Object *  self) {
+inline void Object_retain(Object *restrict self) {
 //  printf("RETAIN!!! %d\n", self->type);
 #ifdef REFCOUNT_TRACING
   atomic_fetch_add_explicit(&(allocationCount[self->type-1]), 1, memory_order_relaxed);
@@ -153,72 +139,72 @@ inline void Object_retain(Object *  self) {
 #endif
 }
 
-inline void Object_destroy(Object * self, BOOL deallocateChildren) {
-//  printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t)Object_data(self));
+inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
+//  printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t));
  // printReferenceCounts();
   switch((objectType)self->type) {
   case integerType:
-    Integer_destroy((Integer *)Object_data(self));
+    Integer_destroy((Integer *)self);
     break;          
   case stringType:
-    String_destroy((String *)Object_data(self));
+    String_destroy((String *) self);
     break;          
   case persistentListType:
-    PersistentList_destroy((PersistentList *)Object_data(self), deallocateChildren);
+    PersistentList_destroy((PersistentList *)self, deallocateChildren);
     break;          
   case persistentVectorType:
-    PersistentVector_destroy((PersistentVector *)Object_data(self), deallocateChildren);
+    PersistentVector_destroy((PersistentVector *)self, deallocateChildren);
     break;
   case persistentVectorNodeType:
-    PersistentVectorNode_destroy((PersistentVectorNode *)Object_data(self), deallocateChildren);
+    PersistentVectorNode_destroy((PersistentVectorNode *)self, deallocateChildren);
     break;
   case doubleType:
-    Double_destroy((Double *)Object_data(self));
+    Double_destroy((Double *) self);
     break;          
   case booleanType:
-    Boolean_destroy((Boolean *)Object_data(self));
+    Boolean_destroy((Boolean *) self);
     break;
   case symbolType:
-    Symbol_destroy((Symbol *)Object_data(self));
+    Symbol_destroy((Symbol *) self);
     break;
   case classType:
-    Class_destroy((Class *)Object_data(self));
+    Class_destroy((Class *) self);
     break;
   case deftypeType:
-    Deftype_destroy((Deftype *)Object_data(self));
+    Deftype_destroy((Deftype *) self);
     break;
   case nilType:
-    Nil_destroy((Nil *)Object_data(self));
+    Nil_destroy((Nil *) self);
     break;
   case concurrentHashMapType:
-    ConcurrentHashMap_destroy((ConcurrentHashMap *)Object_data(self));
+    ConcurrentHashMap_destroy((ConcurrentHashMap *) self);
     break;
   case keywordType:
-    Keyword_destroy((Keyword *)Object_data(self));
+    Keyword_destroy((Keyword *) self);
     break;
   case functionType:
-    Function_destroy((ClojureFunction *)Object_data(self));
+    Function_destroy((ClojureFunction *) self);
     break;
   case varType:
-    Var_destroy((Var *)Object_data(self));
+    Var_destroy((Var *) self);
     break;
   case bigIntegerType:
-    BigInteger_destroy((BigInteger *)Object_data(self));
+    BigInteger_destroy((BigInteger *) self);
     break;
   case ratioType:
-    Ratio_destroy((Ratio *)Object_data(self));
+    Ratio_destroy((Ratio *) self);
     break;
   case persistentArrayMapType:
-    PersistentArrayMap_destroy((PersistentArrayMap *)Object_data(self), deallocateChildren);
+    PersistentArrayMap_destroy((PersistentArrayMap *)self, deallocateChildren);
     break;
   }
   deallocate(self);
- // printf("dealloc end %lld\n", (uint64_t)Object_data(self));
+ // printf("dealloc end %lld\n", (uint64_t));
  // printReferenceCounts();
  // printf("=========================\n");
 }
 
-inline BOOL Object_isReusable(Object * self) {
+inline BOOL Object_isReusable(Object *restrict self) {
   uint64_t refCount = atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
   // Multithreading - is it really safe to assume it is reusable if refcount is 1? 
   /*  The reasoning here is that passing object to another thread is an operation that by 
@@ -230,14 +216,14 @@ inline BOOL Object_isReusable(Object * self) {
   return refCount == 1;
 }
 
-inline BOOL isReusable(void * self) {
-  return Object_isReusable(super(self));
+inline BOOL isReusable(void *restrict self) {
+  return Object_isReusable((Object *)self);
 }
 
-inline BOOL Object_release_internal(Object *  self, BOOL deallocateChildren) {
+inline BOOL Object_release_internal(Object *restrict self, BOOL deallocateChildren) {
 #ifdef REFCOUNT_TRACING
 //    printf("RELEASE!!! %p %d %d\n", self, self->type, deallocateChildren);
-    atomic_fetch_sub_explicit(&(allocationCount[self->type -1 ]), 1, memory_order_relaxed);
+    atomic_fetch_sub_explicit(&(allocationCount[self->type - 1]), 1, memory_order_relaxed);
 #ifndef REFCOUNT_NONATOMIC
     assert(atomic_load(&(self->atomicRefCount)) > 0);
 #else
@@ -263,196 +249,193 @@ inline BOOL Object_release_internal(Object *  self, BOOL deallocateChildren) {
 
 
 /* Outside of refcount system */
-inline uint64_t Object_hash(Object *  self) {
+inline uint64_t Object_hash(Object *restrict self) {
       switch((objectType)self->type) {
       case integerType:
-        return Integer_hash((Integer *)Object_data(self));
+        return Integer_hash((Integer *) self);
         break;          
       case stringType:
-        return String_hash((String *)Object_data(self));
+        return String_hash((String *) self);
         break;          
       case persistentListType:
-        return PersistentList_hash((PersistentList *)Object_data(self));
+        return PersistentList_hash((PersistentList *) self);
         break;          
       case persistentVectorType:
-        return PersistentVector_hash((PersistentVector *)Object_data(self));
+        return PersistentVector_hash((PersistentVector *) self);
         break;
       case persistentVectorNodeType:
-        return PersistentVectorNode_hash((PersistentVectorNode *)Object_data(self));
+        return PersistentVectorNode_hash((PersistentVectorNode *) self);
         break;
       case doubleType:
-        return Double_hash((Double *)Object_data(self));
+        return Double_hash((Double *) self);
         break;          
       case booleanType:
-        return Boolean_hash((Boolean *)Object_data(self));
+        return Boolean_hash((Boolean *) self);
         break;
       case nilType:
-        return Nil_hash((Nil *)Object_data(self));
+        return Nil_hash((Nil *) self);
         break;
       case symbolType:
-        return Symbol_hash((Symbol *)Object_data(self));
+        return Symbol_hash((Symbol *) self);
       case classType:
-        return Class_hash((Class *)Object_data(self));
+        return Class_hash((Class *) self);
       case deftypeType:
-        return Deftype_hash((Deftype *)Object_data(self));
+        return Deftype_hash((Deftype *) self);
       case concurrentHashMapType:
-        return ConcurrentHashMap_hash((ConcurrentHashMap *)Object_data(self));
+        return ConcurrentHashMap_hash((ConcurrentHashMap *) self);
       case keywordType:
-        return Keyword_hash((Keyword *)Object_data(self));
+        return Keyword_hash((Keyword *) self);
       case functionType:
-        return Function_hash((ClojureFunction *)Object_data(self));
+        return Function_hash((ClojureFunction *) self);
       case varType:
-        return Var_hash((Var *)Object_data(self));
+        return Var_hash((Var *) self);
       case bigIntegerType:
-        return BigInteger_hash((BigInteger *)Object_data(self));
+        return BigInteger_hash((BigInteger *) self);
       case ratioType:
-        return Ratio_hash((Ratio *)Object_data(self));
+        return Ratio_hash((Ratio *) self);
       case persistentArrayMapType:
-        return PersistentArrayMap_hash((PersistentArrayMap *)Object_data(self));        
+        return PersistentArrayMap_hash((PersistentArrayMap *) self);        
       }
 }
 
 /* Outside of refcount system */
-inline uint64_t hash(void *  self) {
-  return Object_hash(super(self));
+inline uint64_t hash(void *restrict self) {
+  return Object_hash((Object *)self);
 }
 
 /* Outside of refcount system */
-inline BOOL Object_equals(Object *  self, Object *  other) {
+inline BOOL Object_equals(Object *self, Object *other) {
   if (self == other) return TRUE;
   if (self->type != other->type) return FALSE;
   if (Object_hash(self) != Object_hash(other)) return FALSE;
 
-  void *selfData = Object_data(self);
-  void *otherData = Object_data(other);  
-
   switch((objectType)self->type) {
   case integerType:
-    return Integer_equals((Integer *)selfData, (Integer *)otherData);
+    return Integer_equals((Integer *)self, (Integer *)other);
     break;          
   case stringType:
-    return String_equals((String *)selfData, (String *)otherData);
+    return String_equals((String *)self, (String *)other);
     break;          
   case persistentListType:
-    return PersistentList_equals((PersistentList *)selfData, (PersistentList *)otherData);
+    return PersistentList_equals((PersistentList *)self, (PersistentList *)other);
     break;          
   case persistentVectorType:
-    return PersistentVector_equals((PersistentVector *)selfData, (PersistentVector *)otherData);
+    return PersistentVector_equals((PersistentVector *)self, (PersistentVector *)other);
     break;
   case persistentVectorNodeType:
-    return PersistentVectorNode_equals((PersistentVectorNode *)selfData, (PersistentVectorNode *)otherData);
+    return PersistentVectorNode_equals((PersistentVectorNode *)self, (PersistentVectorNode *)other);
     break;
   case doubleType:
-    return Double_equals((Double *)selfData, (Double *)otherData);
+    return Double_equals((Double *)self, (Double *)other);
     break;
   case booleanType:
-    return Boolean_equals((Boolean *)selfData, (Boolean *)otherData);
+    return Boolean_equals((Boolean *)self, (Boolean *)other);
     break;
   case nilType:
-    return Nil_equals((Nil *)selfData, (Nil *)otherData);
+    return Nil_equals((Nil *)self, (Nil *)other);
     break;
   case symbolType:
-    return Symbol_equals((Symbol *)selfData, (Symbol *)otherData);
+    return Symbol_equals((Symbol *)self, (Symbol *)other);
     break;
   case classType:
-    return Class_equals((Class *)selfData, (Class *)otherData);
+    return Class_equals((Class *)self, (Class *)other);
     break;
   case deftypeType:
-    return Deftype_equals((Deftype *)selfData, (Deftype *)otherData);
+    return Deftype_equals((Deftype *)self, (Deftype *)other);
     break;
   case concurrentHashMapType:
-    return ConcurrentHashMap_equals((ConcurrentHashMap *)selfData, (ConcurrentHashMap *)otherData);
+    return ConcurrentHashMap_equals((ConcurrentHashMap *)self, (ConcurrentHashMap *)other);
     break;
   case keywordType:
-    return Keyword_equals((Keyword *)selfData, (Keyword *)otherData);
+    return Keyword_equals((Keyword *)self, (Keyword *)other);
     break;
   case functionType:
-    return Function_equals((ClojureFunction *)selfData, (ClojureFunction *)otherData);
+    return Function_equals((ClojureFunction *)self, (ClojureFunction *)other);
     break;
   case varType:
-    return Var_equals((Var *)selfData, (Var *)otherData);
+    return Var_equals((Var *)self, (Var *)other);
     break;
   case bigIntegerType:
-    return BigInteger_equals((BigInteger *)selfData, (BigInteger *)otherData);
+    return BigInteger_equals((BigInteger *)self, (BigInteger *)other);
     break;
   case ratioType:
-    return Ratio_equals((Ratio *)selfData, (Ratio *)otherData);
+    return Ratio_equals((Ratio *)self, (Ratio *)other);
     break;
   case persistentArrayMapType:
-    return PersistentArrayMap_equals((PersistentArrayMap *)selfData, (PersistentArrayMap *)otherData);
+    return PersistentArrayMap_equals((PersistentArrayMap *)self, (PersistentArrayMap *)other);
     break;
   }
 }
 
 /* Outside of refcount system */
-inline BOOL equals(void *  self, void *  other) {
-  return Object_equals(super(self), super(other));
+inline BOOL equals(void *self, void *other) {
+  return Object_equals((Object *)self, (Object *)other);
 }
 
 
-inline String *Object_toString(Object *  self) {
+inline String *Object_toString(Object *restrict self) {
   switch((objectType)self->type) {
   case integerType:
-    return Integer_toString((Integer *)Object_data(self));
+    return Integer_toString((Integer *)self);
     break;          
   case stringType:
-    return String_toString((String *)Object_data(self));
+    return String_toString((String *)self);
     break;          
   case persistentListType:
-    return PersistentList_toString((PersistentList *)Object_data(self));
+    return PersistentList_toString((PersistentList *)self);
     break;          
   case persistentVectorType:
-    return PersistentVector_toString((PersistentVector *)Object_data(self));
+    return PersistentVector_toString((PersistentVector *)self);
     break;
   case persistentVectorNodeType:
-    return PersistentVectorNode_toString((PersistentVectorNode *)Object_data(self));
+    return PersistentVectorNode_toString((PersistentVectorNode *)self);
     break;
   case doubleType:
-    return Double_toString((Double *)Object_data(self));
+    return Double_toString((Double *)self);
     break;
   case booleanType:
-    return Boolean_toString((Boolean *)Object_data(self));
+    return Boolean_toString((Boolean *)self);
     break;
   case nilType:
-    return Nil_toString((Nil *)Object_data(self));
+    return Nil_toString((Nil *)self);
     break;
   case symbolType:
-    return Symbol_toString((Symbol *)Object_data(self));
+    return Symbol_toString((Symbol *)self);
   case classType:
-    return Class_toString((Class *)Object_data(self));
+    return Class_toString((Class *)self);
   case deftypeType:
-    return Deftype_toString((Deftype *)Object_data(self));
+    return Deftype_toString((Deftype *)self);
   case concurrentHashMapType:
-    return ConcurrentHashMap_toString((ConcurrentHashMap *)Object_data(self));
+    return ConcurrentHashMap_toString((ConcurrentHashMap *)self);
   case keywordType:
-    return Keyword_toString((Keyword *)Object_data(self));
+    return Keyword_toString((Keyword *)self);
   case functionType:
-    return Function_toString((ClojureFunction *)Object_data(self));
+    return Function_toString((ClojureFunction *)self);
   case varType:
-    return Var_toString((Var *)Object_data(self));
+    return Var_toString((Var *)self);
   case bigIntegerType:
-    return BigInteger_toString((BigInteger *)Object_data(self));
+    return BigInteger_toString((BigInteger *)self);
   case ratioType:
-    return Ratio_toString((Ratio *)Object_data(self));
+    return Ratio_toString((Ratio *)self);
   case persistentArrayMapType:
-    return PersistentArrayMap_toString((PersistentArrayMap *)Object_data(self));
+    return PersistentArrayMap_toString((PersistentArrayMap *)self);
   }
 }
 
-inline String *toString(void *  self) {
-  return Object_toString(super(self));
+inline String *toString(void *restrict self) {
+  return Object_toString((Object *)self);
 }
 
-inline BOOL Object_release(Object *  self) {
+inline BOOL Object_release(Object *restrict self) {
   return Object_release_internal(self, TRUE);
 }
 
 /* Outside of refcount system */
-inline objectType getType(void *obj) {
-  return super(obj)->type;
+inline objectType getType(Object *restrict obj) {
+  return obj->type;
 }
 
-inline void Object_autorelease(Object *  self) {
+inline void Object_autorelease(Object *restrict self) {
   /* The object could have been deallocated through direct releases in the meantime (e.g. if autoreleasing entity does not own ) */
 #ifdef REFCOUNT_NONATOMIC
   if(self->refCount < 1) return;   
@@ -464,19 +447,19 @@ inline void Object_autorelease(Object *  self) {
   Object_release(self);
 }
 
-inline void autorelease(void *  self) {
-  Object_autorelease(super(self));
+inline void autorelease(void *restrict self) {
+  Object_autorelease((Object *)self);
 }
 
-inline void retain(void *  self) {
-  Object_retain(super(self));
+inline void retain(void *restrict self) {
+  Object_retain((Object *)self);
 }
 
-inline BOOL release(void *  self) {
-   return Object_release(super(self));
+inline BOOL release(void *restrict self) {
+   return Object_release((Object *)self);
 }
 
-inline void Object_create(Object *  self, objectType type) {
+inline void Object_create(Object *restrict self, objectType type) {
 #ifdef REFCOUNT_NONATOMIC
   self->refCount = 1;
 #else
@@ -487,7 +470,7 @@ inline void Object_create(Object *  self, objectType type) {
   atomic_fetch_add_explicit(&(allocationCount[self->type-1]), 1, memory_order_relaxed);
   atomic_fetch_add_explicit(&(objectCount[self->type-1]), 1, memory_order_relaxed);
 #endif
-//  printf("--> Allocating type %d addres %p\n", self->type, Object_data(self));
+//  printf("--> Allocating type %d addres %p\n", self->type, );
 }
 
 

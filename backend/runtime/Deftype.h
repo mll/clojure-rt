@@ -11,6 +11,7 @@
 #include "Class.h"
 
 struct Deftype {
+  Object super;
   Class *_class;
   Object *values[]; // Alignment of values in array is equal to alignment of objects in class definition
 };

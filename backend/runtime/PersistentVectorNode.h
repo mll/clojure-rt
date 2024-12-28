@@ -1,12 +1,14 @@
 #ifndef RT_PERSISTENT_VECTOR_NODE
 #define RT_PERSISTENT_VECTOR_NODE
-#include "String.h"
+
 
 typedef enum {leafNode, internalNode} NodeType;
 
 typedef struct PersistentVectorNode PersistentVectorNode;
+typedef struct String String;
 
 struct PersistentVectorNode {
+  Object super;
   NodeType type;
   uint64_t count;
   uint64_t transientID;

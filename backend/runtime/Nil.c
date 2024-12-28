@@ -25,7 +25,7 @@ Nil* Nil_create2(void * obj1, void * obj2) {
 Nil* Nil_createN(uint64_t objCount, ...) {
   va_list args;
   va_start(args, objCount);
-  for(int i=0; i<objCount; i++) {
+  for(uint64_t i=0; i < objCount; i++) {
     void *obj = va_arg(args, void *);
     release(obj);
   }
@@ -35,9 +35,8 @@ Nil* Nil_createN(uint64_t objCount, ...) {
 
 /* mem done */
 Nil* Nil_allocate() {
-  Object *super = allocate(sizeof(Nil) + sizeof(Object)); 
-  Nil *self = (Nil *)(super + 1);
-  Object_create(super, nilType);
+  Nil *self = (Nil *)allocate(sizeof(Nil)); 
+  Object_create((Object *)self, nilType);
   return self;
 }
 

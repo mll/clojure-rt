@@ -99,7 +99,7 @@ void visitPath(const vector<ObjectTypeSet> &path, // a path already taken in thi
         /* TODO - why integer here? - it probably doesnt matter as all scalar types have their data stored in the first 8 bytes. But this seems like a hack... */
         StructType *stype = gen->runtimeIntegerType();        
         Value *ptr = gen->Builder->CreateBitOrPointerCast(reusingVar, stype->getPointerTo(), "void_to_struct");
-        Value *tPtr = gen->Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
+        Value *tPtr = gen->Builder->CreateStructGEP(stype, ptr, 1, "struct_gep");
         
         gen->Builder->CreateStore(retValForPath.second, tPtr, "store_var");
         gen->Builder->CreateStore(reusingVar, retVal);    

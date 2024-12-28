@@ -5,17 +5,17 @@
 
 Deftype* Deftype_create(Class *_class, uint64_t fieldCount, ...) {
   assert(fieldCount == _class->fieldCount);
-  Object *superObject = allocate(sizeof(Object) + sizeof(Deftype) + fieldCount * sizeof(Object *)); 
-  Deftype *self = (Deftype *)(superObject + 1);
+  Deftype *self = (Deftype *)allocate(sizeof(Deftype) + fieldCount * sizeof(Object *)); 
   self->_class = _class;
   va_list args;
   va_start(args, fieldCount);
+  // Alek dlaczego ++i a nie i++ ?
   for (int i = 0; i < fieldCount; ++i) {
     void *field = va_arg(args, void *);
-    self->values[_class->indexPermutation[i]] = super(field);
+    self->values[_class->indexPermutation[i]] = field;
   }
   va_end(args);
-  Object_create(superObject, deftypeType);
+  Object_create((Object *)self, deftypeType);
   return self;
 }
 
@@ -69,6 +69,7 @@ String *Deftype_toString(Deftype *self) {
 }
 
 void Deftype_destroy(Deftype *self) {
+  // Alek: dlaczego ++i a nie i++?
   for (int i = 0; i < self->_class->fieldCount; ++i) Object_release(self->values[i]);
   release(self->_class);
 }
@@ -77,7 +78,7 @@ void *Deftype_getField(Deftype *self, Keyword *field) {
   retain(self->_class);
   int64_t i = Class_fieldIndex(self->_class, field);
   if (i == -1) {release(self); return NULL;} // field not found exception
-  void *retVal = Object_data(self->values[i]);
+  void *retVal = self->values[i];
   retain(retVal);
   release(self);
   return retVal;
@@ -94,7 +95,7 @@ void *Deftype_getIndexedField(Deftype *self, int64_t i) {
   if (i < 0 || i >= self->_class->fieldCount) {
     release(self); return NULL; // unsafe index exception - field not found?
   }
-  void *retVal = Object_data(self->values[i]);
+  void *retVal = self->values[i];
   retain(retVal);
   release(self);
   return retVal;

@@ -9,6 +9,7 @@
 ClojureFunction* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity, BOOL once) {
   size_t size = sizeof(ClojureFunction) + methodCount * sizeof(FunctionMethod);
   ClojureFunction *self = (ClojureFunction *)allocate(size);
+  memset(self, 0, size);
   self->methodCount = methodCount;
   self->maxArity = maxArity;
   self->uniqueId = uniqueId;

@@ -56,7 +56,7 @@ TypedValue CodeGenerator::callStaticFun(const Node &node,
     finalArgs.push_back(TypedValue(type, v));
   }
 
-  cout << "Calling static " << argT.size() << endl;
+//  cout << "Calling static " << argT.size() << endl;
 
 
   /* Add closed overs */
@@ -107,7 +107,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
                                     const vector<TypedValue> &args, 
                                     Value *uniqueFunctionId, 
                                     Function *staticFunctionToCall) {
-  cout << "Calling dynamic " << args.size() << endl;
+  //cout << "Calling dynamic " << args.size() << endl;
   BasicBlock *initialBB = Builder->GetInsertBlock();
   Function *parentFunction = initialBB->getParent();
   
@@ -150,7 +150,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
   Value *funRetVal = nullptr;
   BasicBlock *funRetValBlock = Builder->GetInsertBlock();
   if(uniqueFunctionId) {
-    cout << "Unique " << endl;
+   // cout << "Unique " << endl;
     BasicBlock *uniqueIdMergeBB = llvm::BasicBlock::Create(*TheContext, "unique_id_merge");    
     BasicBlock *uniqueIdOkBB = llvm::BasicBlock::Create(*TheContext, "unique_id_ok");
     BasicBlock *uniqueIdFailedBB = llvm::BasicBlock::Create(*TheContext, "unique_id_failed");
@@ -483,10 +483,10 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId,
                                    std::vector<ObjectTypeSet> &closedOvers) {
   const FnNode &node = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();
   const FnMethodNode &method = node.methods(methodIndex).subnode().fnmethod();
-  cout << "BUILD STATIC " << endl;
-  cout << method.fixedarity() << endl;
-  cout << args.size() << endl;
-  cout << args.back().toString() << endl;
+  // cout << "BUILD STATIC " << endl;
+  // cout << method.fixedarity() << endl;
+  // cout << args.size() << endl;
+  // cout << args.back().toString() << endl;
   CLJ_ASSERT(method.params_size() <= args.size(), "Wrong number of params: received " + to_string(args.size()) + " required " + to_string(method.params_size()));
 
   string rName = ObjectTypeSet::fullyQualifiedMethodKey(name, args, retType);

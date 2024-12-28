@@ -1,7 +1,7 @@
 #ifndef RT_DEFINES
 #define RT_DEFINES
 
-//#define REFCOUNT_TRACING
+#define REFCOUNT_TRACING
 //#define REFCOUNT_NONATOMIC
 //#define USE_MEMORY_BANKS
 

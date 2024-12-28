@@ -252,7 +252,7 @@ StructType *CodeGenerator::runtimeObjectType() {
   StructType *retVal = StructType::getTypeByName(*TheContext,"Clojure_Object");
   if(retVal) return retVal;
    return StructType::create(*TheContext, {
-       /* atomicRefCount */ dynamicUnboxedType(integerType)
+       /* atomicRefCount */ dynamicUnboxedType(integerType),
        /* type */ Type::getInt32Ty(*TheContext),
      }, "Clojure_Object");
 }

@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include "runtime/defines.h"
+#include "runtime/ObjectProto.h"
 
 #include <string>
 #include <iostream>

@@ -32,21 +32,21 @@ v FunctionMethod (generic)
 v Keyword uniquing
 v PersistentArrayMap 
 
-  (This cannot be done, for some reason atomic operations fail here)
-x Merge Object into all objects, trivialise super and Object_data 
-* Var return type and value 
+v Merge Object into all objects, trivialise super and Object_data 
+v Var return type and value 
 
 *#186758549* Optimise hash computations (caching for all collections, conj/disj should just modify it a bit (use a commutative operator, e.g. +)
-* Iterators (vector, string, map, list)
+* Iterators (v vector, v string, map, list)
 * Dynamic sequence (that retains a list, vector, map etc.)
 * Symbol uniquing 
 * Character
-* Ratio
-* BigInteger
+v Ratio
+v BigInteger
 
 *#186758558* PersistentHashMap
 *#186758570* PersistentSet
-*#186758575,#186758576* Transients for vectors and maps.
+v#186758575,
+#186758576*    Transients for vectors and maps.
 
 v HUGE Memory management ref counting for runtime data structures
   v Implement Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. refcount strategy
@@ -76,8 +76,8 @@ v JIT infrastructure + arg type deduction
   * Map (PersistentHashMap)
   v Vector
   v List
-  * Ratio
-  * BigInteger
+  v Ratio
+  v BigInteger
 
 v Add pd() at start and end of each anonymous computation.
 v StaticCall (works for simple math, framework prepared to add more functionality)
@@ -92,7 +92,7 @@ v FnMethod
 v Invoke static (with dynamic args) 
 v Invoke dynamiczne
 v Invoke dynamic recurrent speedup (jit recurrence before casting return value to LO, have a stub function to do that)
-v Recur (for Fn)
+* Recur (for Fn) <--
 v Vector
 v Let
 

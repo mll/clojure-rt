@@ -175,6 +175,10 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const RecurNode &subnode,
     Node invokeNode = Node(node);
     invokeNode.set_op(opInvoke);
     invokeNode.set_allocated_subnode(invokeSubnode);
+
+    // Memory management??? 
+    // This implementation falls into endless loop
+     
     return getType(invokeNode, *invoke, typeRestrictions);
   } else if (op->second == opLoop) {
     // Update loop binding types

@@ -1,6 +1,24 @@
 cmake_minimum_required(VERSION 3.26)
 project(clojure-rt)
 
+
+message(STATUS "CMAKE_OSX_ARCHITECTURES: ${CMAKE_OSX_ARCHITECTURES}")
+message(STATUS "CMAKE_APPLE_SILICON_PROCESSOR: ${CMAKE_APPLE_SILICON_PROCESSOR}")
+message(STATUS "CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
+message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "CMAKE_HOST_SYSTEM_PROCESSOR: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+
+# Automatically set architecture based on the build machine
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+  set(CMAKE_OSX_ARCHITECTURES "arm64")
+  message(STATUS "Building for ARM64 architecture")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64")
+  set(CMAKE_OSX_ARCHITECTURES "x86_64")
+  message(STATUS "Building for Intel x86_64 architecture")
+else()
+  message(WARNING "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 set(CMAKE_OSX_ARCHITECTURES "arm64")
 #set(CMAKE_OPTIMIZE_DEPENDENCIES TRUE)
 
@@ -106,3 +124,11 @@ llvm_map_components_to_libnames(llvm_libs core orcjit native)
 message(STATUS "LLVM libs: ${llvm_libs}")
 target_link_libraries(clojure-rt PUBLIC runtime ${llvm_libs} ${Protobuf_LIBRARIES} ${GMP_LIBRARY})
 
+# Add linker options for macOS
+# if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+#   target_link_options(clojure-rt PRIVATE -Wl,-dead_strip -Wl,-x)
+# elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+#   target_link_options(clojure-rt PRIVATE -Wl,--gc-sections -Wl,--strip-all)
+# else()
+#   message(WARNING "Unsupported platform for linker optimizations")
+# endif()

@@ -3,7 +3,7 @@
 #include "Double.h"
 #include "String.h"
 #include "BigInteger.h"
-#include "gmp.h"
+#include <gmp.h>
 
 typedef struct Object Object;
 

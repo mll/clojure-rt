@@ -102,8 +102,11 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const FnNode &subnode, co
   if(idEntry == TheProgramme->RecurTargets.end()) {
     funId = getUniqueFunctionId();  
     TheProgramme->Functions.insert({funId, node});
-    TheProgramme->RecurType.insert({firstMethodLoopId, opFn});
-    TheProgramme->RecurTargets.insert({firstMethodLoopId, funId});
+    for (auto methodNode: subnode.methods()) {
+      auto methodLoopId = methodNode.subnode().fnmethod().loopid();
+      TheProgramme->RecurType.insert({methodLoopId, opFn});
+      TheProgramme->RecurTargets.insert({methodLoopId, funId});
+    }
   } else funId = idEntry->second;
 
   // trigger getType of methods' body, create unbound vars

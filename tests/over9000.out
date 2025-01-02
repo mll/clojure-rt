@@ -1,23 +1,53 @@
 Compiling to AST...
 Success!!
 Executing...
-Ref counters: 0 2 0 1 1 0 1 0 0 1 0 2 0 0 0 0 0 
+Ref counters: 38/38 94/47 0/0 1/1 1/1 0/0 1/1 0/0 0/0 7/6 1/1 2/2 83/41 1/1 1/1 0/0 0/0 0/0 
 Computing: (def over9000 (clojure.core/fn ([x] (if (< 9000 x) x (over9000 (+ x x))))))
 Printing...
-Result: nil
-Ref counters: 0 2 0 1 1 0 1 0 0 1 0 2 0 1 0 0 0 
-Ref counters: 0 2 0 1 1 0 1 0 0 1 0 2 0 1 0 0 0 
+Result: #'user/over9000
+Ref counters: 38/38 94/47 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 82/41 2/2 1/1 0/0 0/0 0/0 
+Ref counters: 38/38 94/47 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 82/41 2/2 1/1 0/0 0/0 0/0 
 Computing: (over9000 1)
 Printing...
 Result: 16384
-Ref counters: 0 2 0 1 1 0 1 0 0 1 0 2 0 1 0 0 0 
-Ref counters: 0 2 0 1 1 0 1 0 0 1 0 2 0 1 0 0 0 
+Ref counters: 38/38 94/47 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 82/41 2/2 1/1 0/0 0/0 0/0 
+Ref counters: 38/38 96/48 0/0 1/1 1/1 0/0 1/1 0/0 0/0 7/6 1/1 2/2 85/42 2/2 2/2 0/0 0/0 0/0 
 Computing: (def over9000-recur (clojure.core/fn ([x] (if (< 9000 x) x (recur (+ x x))))))
 Printing...
-Result: nil
-Ref counters: 0 2 0 1 1 0 1 0 0 1 0 2 0 2 0 0 0 
-Ref counters: 0 2 0 1 1 0 1 0 0 1 0 2 0 2 0 0 0 
+Result: #'user/over9000-recur
+Ref counters: 38/38 96/48 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 84/42 3/3 2/2 0/0 0/0 0/0 
+Ref counters: 38/38 96/48 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 84/42 3/3 2/2 0/0 0/0 0/0 
 Computing: (over9000-recur 1)
 Printing...
 Result: 16384
-Ref counters: 0 2 0 1 1 0 1 0 0 1 0 2 0 2 0 0 0 
+Ref counters: 38/38 96/48 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 84/42 3/3 2/2 0/0 0/0 0/0 
+Ref counters: 38/38 98/49 0/0 1/1 1/1 0/0 1/1 0/0 0/0 7/6 1/1 2/2 87/43 3/3 3/3 0/0 0/0 0/0 
+Computing: (def over9000-recur-1 (clojure.core/fn ([x] (if (< 9000 x) x (recur (+ x x)))) ([x y] 123)))
+Printing...
+Result: #'user/over9000-recur-1
+Ref counters: 38/38 98/49 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 86/43 4/4 3/3 0/0 0/0 0/0 
+Ref counters: 38/38 98/49 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 86/43 4/4 3/3 0/0 0/0 0/0 
+Computing: (over9000-recur-1 1)
+Printing...
+Result: 16384
+Ref counters: 38/38 98/49 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 86/43 4/4 3/3 0/0 0/0 0/0 
+Ref counters: 38/38 98/49 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 86/43 4/4 3/3 0/0 0/0 0/0 
+Computing: (over9000-recur-1 1 2)
+Printing...
+Result: 123
+Ref counters: 38/38 98/49 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 86/43 4/4 3/3 0/0 0/0 0/0 
+Ref counters: 38/38 100/50 0/0 1/1 1/1 0/0 1/1 0/0 0/0 7/6 1/1 2/2 89/44 4/4 4/4 0/0 0/0 0/0 
+Computing: (def over9000-recur-2 (clojure.core/fn ([x y] 123) ([x] (if (< 9000 x) x (recur (+ x x))))))
+Printing...
+Result: #'user/over9000-recur-2
+Ref counters: 38/38 100/50 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 88/44 5/5 4/4 0/0 0/0 0/0 
+Ref counters: 38/38 100/50 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 88/44 5/5 4/4 0/0 0/0 0/0 
+Computing: (over9000-recur-2 1)
+Printing...
+Result: 16384
+Ref counters: 38/38 100/50 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 88/44 5/5 4/4 0/0 0/0 0/0 
+Ref counters: 38/38 100/50 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 88/44 5/5 4/4 0/0 0/0 0/0 
+Computing: (over9000-recur-2 1 2)
+Printing...
+Result: 123
+Ref counters: 38/38 100/50 0/0 1/1 1/1 0/0 1/1 0/0 0/0 6/6 0/0 2/2 88/44 5/5 4/4 0/0 0/0 0/0 

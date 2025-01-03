@@ -254,6 +254,9 @@ StructType *CodeGenerator::runtimeObjectType() {
    return StructType::create(*TheContext, {
        /* atomicRefCount */ dynamicUnboxedType(integerType),
        /* type */ Type::getInt32Ty(*TheContext),
+#ifdef USE_MEMORY_BANKS
+       /* bankId */ Type::getInt8Ty(*TheContext),
+#endif
      }, "Clojure_Object");
 }
 

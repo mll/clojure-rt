@@ -9,8 +9,8 @@ Deftype* Deftype_create(Class *_class, uint64_t fieldCount, ...) {
   self->_class = _class;
   va_list args;
   va_start(args, fieldCount);
-  // Alek dlaczego ++i a nie i++ ?
-  for (int i = 0; i < fieldCount; ++i) {
+
+  for (int i = 0; i < fieldCount; i++) {
     void *field = va_arg(args, void *);
     self->values[_class->indexPermutation[i]] = field;
   }

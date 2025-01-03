@@ -128,6 +128,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, co
     FunctionType *FT = FunctionType::get(retVal, argTypes, false);
     Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, FT->getPointerTo());
     auto finalRetVal = Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("recur_call_dynamic"));
+// If parameters match maybe we should force a tail call?
+//    finalRetVal->setTailCallKind(CallInst::TCK_MustTail);
     return TypedValue(type, Builder->CreateRet(finalRetVal));
   } else if (op->second == opLoop) { 
     auto loopRecurPoint = LoopInsertPoints.find(loopId)->second;

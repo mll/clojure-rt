@@ -178,7 +178,7 @@ PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode * restri
   BOOL reusable = allowsReuse && (isReusable(self) || (transientID && (transientID == vectorTransientID)));
   uint64_t lastPos = self->count - 1; // Invariant: count > 0
   PersistentVectorNode *lastChild = (PersistentVectorNode *)self->array[lastPos];
-  PersistentVectorNode *newSubtree = (PersistentVectorNode *)PersistentVectorNode_popTail(lastChild, poppedLeaf, reusable, vectorTransientID);
+  PersistentVectorNode *newSubtree = PersistentVectorNode_popTail(lastChild, poppedLeaf, reusable, vectorTransientID);
   BOOL modifiedInPlace = lastChild == newSubtree; // compare addresses!
   PersistentVectorNode *newTree;
   if (reusable) {

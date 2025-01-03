@@ -178,7 +178,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const RecurNode &subnode,
     for(int i=0; i<nodes.size(); i++) {
       if(nodes[i]->fixedarity() == subnode.exprs_size()) { method = nodes[i]; methodId = i; break;}
       // Weird interaction between recur and varargs
-      if(nodes[i]->isvariadic() && nodes[i]->fixedarity() == subnode.exprs_size() + 1) { method = nodes[i]; methodId = i; break;}
+      if(nodes[i]->isvariadic() && nodes[i]->fixedarity() + 1 == subnode.exprs_size()) { method = nodes[i]; methodId = i; break;}
     }
     
     vector<ObjectTypeSet> args;

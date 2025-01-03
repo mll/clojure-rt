@@ -11,7 +11,10 @@
 #include "PersistentArrayMap.h"
 #include "Function.h"
 
+typedef struct Object Object;
+
 typedef struct Class {
+  Object super;
   uint64_t registerId;
   String *name;
   String *className;

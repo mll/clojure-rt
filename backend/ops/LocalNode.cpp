@@ -21,7 +21,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const LocalNode &subnode, co
     break;    
   default:
     // TODO: cases other than args      
-      throw CodeGenerationException(string("Compiler does not fully support the following op yet: ") + Op_Name(node.op()), node);   
+      throw CodeGenerationException(string("Compiler does not fully support the following op yet: ") + Op_Name(node.op()) + " Local type: "+ to_string(subnode.local()), node);   
   }
 }
 
@@ -43,6 +43,6 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const LocalNode &subnode,
     break;
   default:
     // TODO: cases other than args      
-      throw CodeGenerationException(string("Compiler does not fully support the following op yet: ") + Op_Name(node.op()), node);   
+      throw CodeGenerationException(string("Compiler does not fully support the following op yet: ") + Op_Name(node.op()) + " Local type: "+ to_string(subnode.local()), node);   
   }
 }

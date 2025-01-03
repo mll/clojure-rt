@@ -7,11 +7,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "defines.h"
-
+#include "ObjectProto.h"
 typedef struct Object Object; 
 typedef struct String String; 
 
 struct Keyword {
+  Object super;
   String *string;
 };
 

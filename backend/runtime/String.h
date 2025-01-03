@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "defines.h"
+#include "PersistentVectorIterator.h"
 
 typedef struct Object Object; 
 typedef struct PersistentVector PersistentVector; 
@@ -21,9 +22,10 @@ enum specialisedString {
 typedef enum specialisedString specialisedString;
 
 struct String {
+  Object super;
+  specialisedString specialisation;
   uint64_t count;
   uint64_t hash;
-  specialisedString specialisation;
   char value[]; 
 };
 
@@ -32,8 +34,9 @@ typedef struct String String;
 struct StringIterator {
   uint64_t index;
   uint64_t inBlockIndex;
-  uint64_t blockIndex;
   uint64_t blockLength;
+  String *current;
+  PersistentVectorIterator iterator;
   char *block; 
 };
 
@@ -46,8 +49,8 @@ String* String_createDynamic(size_t size);
 String* String_createStatic(char *string);
 
 StringIterator String_iterator(String *self);
-char *String_iteratorGetChar(String *self, StringIterator *it);
-char *String_iteratorNext(String *self, StringIterator *it);
+char *String_iteratorGet(StringIterator *it);
+char *String_iteratorNext(StringIterator *it);
 
 String *String_concat(String *self, String *other);
 /* Creates a version of the string that has guaranteed 'value' field */

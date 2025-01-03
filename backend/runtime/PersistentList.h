@@ -7,6 +7,7 @@ typedef struct Object Object;
 typedef struct PersistentList PersistentList;
 
 struct PersistentList {
+  Object super;
   void *first;
   PersistentList *rest;
   uint64_t count;

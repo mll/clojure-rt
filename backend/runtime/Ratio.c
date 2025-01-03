@@ -3,9 +3,8 @@
 #include "Object.h"
 
 Ratio* Ratio_createUninitialized() {
-  Object *super = allocate(sizeof(Ratio) + sizeof(Object)); 
-  Ratio *self = (Ratio *)(super + 1);
-  Object_create(super, ratioType);
+  Ratio *self = (Ratio *)allocate(sizeof(Ratio)); 
+  Object_create((Object *)self, ratioType);
   return self;
 }
 

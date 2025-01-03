@@ -15,22 +15,21 @@ PersistentArrayMap* PersistentArrayMap_empty() {
 
 /* mem done */
 PersistentArrayMap* PersistentArrayMap_create() {
-  size_t size = sizeof(PersistentArrayMap) + sizeof(Object);
-  Object *super = allocate(size); 
-  PersistentArrayMap *self = Object_data(super);
-  memset(super, 0, size);
-  Object_create(super, persistentArrayMapType);
+  PersistentArrayMap *self = allocate(sizeof(PersistentArrayMap)); 
+  self->count = 0;
+  Object_create((Object *)self, persistentArrayMapType);
   return self;
 }
 
 /* outside refcount system */
 PersistentArrayMap* PersistentArrayMap_copy(PersistentArrayMap *other) {
-  size_t baseSize = sizeof(PersistentArrayMap);
-  size_t size = baseSize + sizeof(Object);
-  Object *super = allocate(size); 
-  PersistentArrayMap *self = Object_data(super);
-  memcpy(self, other, baseSize);
-  Object_create(super, persistentArrayMapType);
+  size_t size = sizeof(PersistentArrayMap);
+  PersistentArrayMap *self = allocate(size); 
+  Object_create((Object *)self, persistentArrayMapType);
+  self->count = other->count;
+  memcpy(self->keys, other->keys, sizeof(void *) * self->count);
+  memcpy(self->values, other->values, sizeof(void *) * self->count);
+
   return self;
 }
 
@@ -69,7 +68,7 @@ BOOL PersistentArrayMap_equals(PersistentArrayMap *self, PersistentArrayMap *oth
 
 /* outside refcount system */
 uint64_t PersistentArrayMap_hash(PersistentArrayMap *self) {
-    uint64_t h = 5381;
+    uint64_t h = 5381; // hashing should be cached?
     for(int i=0; i<self->count; i++) {
       void *key = self->keys[i];
       void *value = self->values[i];
@@ -221,7 +220,7 @@ void* PersistentArrayMap_get(PersistentArrayMap *self, void *key) {
 
 /* mem done */
 void* PersistentArrayMap_dynamic_get(void *self, void *key) {
-  Object *type = super(self);
+  Object *type = (Object *) self;
   if(type->type != persistentArrayMapType) { 
     release(self);
     release(key);    

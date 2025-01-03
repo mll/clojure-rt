@@ -4,6 +4,7 @@
 #include "defines.h"
 
 struct Integer {
+  Object super;
   int64_t value;
 };
 

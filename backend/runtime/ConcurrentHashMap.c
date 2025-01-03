@@ -36,15 +36,14 @@ inline unsigned int buildLeaps(unsigned char longLeap, unsigned char shortLeap) 
 /* mem done */
 ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent) {
   size_t initialSize = 1<<initialSizeExponent;
-  Object *super = allocate(sizeof(ConcurrentHashMap) + sizeof(Object)); 
-  ConcurrentHashMap *self = (ConcurrentHashMap *)(super + 1);
+  ConcurrentHashMap *self = allocate(sizeof(ConcurrentHashMap)); 
   size_t rootSize = sizeof(ConcurrentHashMapNode) + initialSize * sizeof(ConcurrentHashMapEntry);
   ConcurrentHashMapNode *node = allocate(rootSize);
   memset(node, 0, rootSize);
   node->sizeMask = initialSize - 1ull;
   node->resizingThreshold = MIN(round(pow(initialSize, 0.33)), 128);
   atomic_store(&(self->root), node);              
-  Object_create(super, concurrentHashMapType);
+  Object_create(&(self->super), concurrentHashMapType);
   return self;
 }
 
@@ -88,8 +87,8 @@ inline BOOL tryReplacingEntry(ConcurrentHashMapEntry *entry, Object *key, Object
 /* MUTABLE: self is not conusmed. mem done */
 void ConcurrentHashMap_assoc(ConcurrentHashMap *self, void *keyV, void *valueV) {
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
-  Object *key = super(keyV);
-  Object *value = super(valueV);
+  Object *key = (Object *)keyV;
+  Object *value = (Object *)valueV;
 
   uint64_t keyHash = avalanche_64(Object_hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
@@ -194,7 +193,7 @@ inline BOOL tryDeletingFromEntry(ConcurrentHashMapEntry *entry, Object *key, uin
 
 /* MUTABLE: self is not conusmed. mem done */
 void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, void *keyV) {
-  Object *key = super(keyV);
+  Object *key = (Object *)keyV;
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
   uint64_t keyHash = avalanche_64(Object_hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
@@ -219,10 +218,10 @@ inline Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, u
   uint64_t encounteredHash = atomic_load_explicit(&(entry->keyHash), memory_order_relaxed);
   Object *encounteredKey = NULL;
   
-  if(encounteredHash == 0) { retain(UNIQUE_NIL); return super(UNIQUE_NIL); }
+  if(encounteredHash == 0) { retain(UNIQUE_NIL); return (Object *)UNIQUE_NIL; }
   if(encounteredHash == keyHash) {
     encounteredKey = atomic_load_explicit(&(entry->key), memory_order_relaxed);
-    if(!encounteredKey) { retain(UNIQUE_NIL); return super(UNIQUE_NIL); }
+    if(!encounteredKey) { retain(UNIQUE_NIL); return (Object *)UNIQUE_NIL; }
     if(Object_equals(encounteredKey, key)) {
       Object *value = atomic_load_explicit(&(entry->value), memory_order_relaxed);
       if(value) { 
@@ -230,7 +229,7 @@ inline Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, u
         return value;
       }
       retain(UNIQUE_NIL); 
-      return super(UNIQUE_NIL); 
+      return (Object *)UNIQUE_NIL; 
     }
   }
   return NULL;
@@ -238,7 +237,7 @@ inline Object *tryGettingFromEntry(ConcurrentHashMapEntry *entry, Object *key, u
 
 /* MUTABLE: self is not conusmed, keyV is consumed. mem done */
 void *ConcurrentHashMap_get(ConcurrentHashMap *self, void *keyV /* +1 */ ) {
-  Object *key = super(keyV);
+  Object *key = (Object *) keyV;
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
   uint64_t keyHash = avalanche_64(Object_hash(key));
   uint64_t startIndex = keyHash & root->sizeMask;
@@ -249,7 +248,7 @@ void *ConcurrentHashMap_get(ConcurrentHashMap *self, void *keyV /* +1 */ ) {
  
   if(retVal) {
     Object_release(key); // +0
-    return Object_data(retVal);
+    return retVal;
   }
   unsigned short jump = getLongLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  
   while(jump > 0) {
@@ -258,7 +257,7 @@ void *ConcurrentHashMap_get(ConcurrentHashMap *self, void *keyV /* +1 */ ) {
     retVal = tryGettingFromEntry(entry, key, keyHash);
     if(retVal) {
       Object_release(key); // +0
-      return Object_data(retVal);
+      return retVal;
     }
     
     jump = getShortLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  

@@ -8,9 +8,9 @@ extern "C" {
 #include "runtime/Class.h"
 #include "runtime/String.h"
 #include "runtime/Keyword.h"
-  #include "runtime/BigInteger.h"
-  #include "runtime/Ratio.h"
-  #include "runtime/Deftype.h"
+#include "runtime/BigInteger.h"
+#include "runtime/Ratio.h"
+#include "runtime/Deftype.h"
   objectType getType(void *obj);
   objectType getTypeC(void *obj)  {
     return getType(obj);
@@ -239,33 +239,42 @@ Value *CodeGenerator::dynamicArrayMap(const vector<TypedValue> &args) {
 /********************** TYPES *********************************/
 
 /* 
+   %struct.Object = type { i64, i32 }
+
    struct Object {
-     objectType type;
-     volatile atomic_uint_fast64_t atomicRefCount;
-   };
+      volatile atomic_uint_fast64_t atomicRefCount;
+      objectType type;
+  };
 */
 
+
 StructType *CodeGenerator::runtimeObjectType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"Object");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Clojure_Object");
   if(retVal) return retVal;
    return StructType::create(*TheContext, {
+       /* atomicRefCount */ dynamicUnboxedType(integerType),
        /* type */ Type::getInt32Ty(*TheContext),
-       /* atomicRefCount */ dynamicUnboxedType(integerType) }, "Object");
+#ifdef USE_MEMORY_BANKS
+       /* bankId */ Type::getInt8Ty(*TheContext),
+#endif
+     }, "Clojure_Object");
 }
 
-/* struct Function {
+/* struct ClojureFunction {
+   Object super;
+   uint8_t once;
+   uint8_t executed;
    uint64_t uniqueId;
    uint64_t methodCount;
    uint64_t maxArity;
-   uint8_t once;
-   uint8_t executed;
    FunctionMethod methods[];
 }; */
 
 
-// %struct.Function = type { i64, i64, i64, i8, i8, [0 x %struct.FunctionMethod] }
+// %struct.ClojureFunction = type { %struct.Object, i8, i8, i64, i64, i64, [0 x %struct.FunctionMethod] }
 // %struct.FunctionMethod = type { i8, i64, i64, i64, ptr, ptr, [3 x %struct.InvokationCache] }
 // %struct.InvokationCache = type { [3 x i64], i64, i8, ptr }
+
 
 // Type::getInt64Ty(*TheContext);
 // Type::getDoubleTy(*TheContext);
@@ -274,18 +283,18 @@ StructType *CodeGenerator::runtimeObjectType() {
 
 
 StructType *CodeGenerator::runtimeInvokationCacheType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"InvokationCache");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Clojure_InvokationCache");
   if(retVal) return retVal;
   return StructType::create(*TheContext, {
            /* signature */ ArrayType::get(Type::getInt64Ty(*TheContext), 3),
            /* packed */ Type::getInt64Ty(*TheContext),
            /* returnType */ Type::getInt8Ty(*TheContext),
            /* fptr */ Type::getInt8Ty(*TheContext)->getPointerTo()
-    }, "InvokationCache");
+    }, "Clojure_InvokationCache");
 }
 
 StructType *CodeGenerator::runtimeFunctionMethodType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"FunctionMethod");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Clojure_FunctionMethod");
   if(retVal) return retVal;
   return StructType::create(*TheContext, {
            /* index */ Type::getInt8Ty(*TheContext),
@@ -295,63 +304,71 @@ StructType *CodeGenerator::runtimeFunctionMethodType() {
            /* loopId */ Type::getInt8Ty(*TheContext)->getPointerTo(),
            /* closedOvers */ Type::getInt8Ty(*TheContext)->getPointerTo(),
            /* invokations */ ArrayType::get(runtimeInvokationCacheType(), 3)
-    }, "FunctionMethod");
+    }, "Clojure_FunctionMethod");
 }
 
 StructType *CodeGenerator::runtimeFunctionType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"ClojureFunction");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Clojure_ClojureFunction");
   if(retVal) return retVal;
 
    return StructType::create(*TheContext, {
-       /* uniqueId */ Type::getInt64Ty(*TheContext),
+       /* super */       runtimeObjectType(),
+       /* once */        Type::getInt8Ty(*TheContext),
+       /* executed */    Type::getInt8Ty(*TheContext),
+       /* uniqueId */    Type::getInt64Ty(*TheContext),
        /* methodCount */ Type::getInt64Ty(*TheContext),
-       /* maxArity */ Type::getInt64Ty(*TheContext),
-       /* once */ Type::getInt8Ty(*TheContext),
-       /* executed */ Type::getInt8Ty(*TheContext),
-       /* methods */ ArrayType::get(runtimeFunctionMethodType(), 0)
-     }, "ClojureFunction");
+       /* maxArity */    Type::getInt64Ty(*TheContext),
+       /* methods */     ArrayType::get(runtimeFunctionMethodType(), 0)
+     }, "Clojure_ClojureFunction");
 }
 
 /* struct Integer {
+   Object super;
    int64_t value;
 }; */
 
 StructType *CodeGenerator::runtimeIntegerType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"Integer");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Clojure_Integer");
   if(retVal) return retVal;
 
    return StructType::create(*TheContext, {
+       /* super */       runtimeObjectType(),
        /* value */ Type::getInt64Ty(*TheContext),
-     }, "Integer");
+     }, "Clojure_Integer");
 }
 
 /* struct Double {
+   Object super;
   double value;
 }; */
 
 StructType *CodeGenerator::runtimeDoubleType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"Double");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Clojure_Double");
   if(retVal) return retVal;
 
    return StructType::create(*TheContext, {
+       /* super */       runtimeObjectType(),
        /* value */ Type::getDoubleTy(*TheContext),
-     }, "Double");
+     }, "Clojure_Double");
 }
 
 /* struct Boolean {
-  unsigned char value;
+   Object super;
+   unsigned char value;
 }; */
 
 StructType *CodeGenerator::runtimeBooleanType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"Boolean");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Clojure_Boolean");
   if(retVal) return retVal;
 
    return StructType::create(*TheContext, {
+       /* super */       runtimeObjectType(),
        /* value */ Type::getInt8Ty(*TheContext),
-     }, "Boolean");
+     }, "Clojure_Boolean");
 }
 
 /* struct Class {
+  Object super;
   uint64_t registerId;
   String *name;
   String *className;
@@ -369,10 +386,11 @@ StructType *CodeGenerator::runtimeBooleanType() {
 }; */
 
 StructType *CodeGenerator::runtimeClassType() {
-  StructType *retVal = StructType::getTypeByName(*TheContext,"Class");
+  StructType *retVal = StructType::getTypeByName(*TheContext,"Clojure_Class");
   if(retVal) return retVal;
 
    return StructType::create(*TheContext, {
+       /* super */       runtimeObjectType(),
        /* registerId */ Type::getInt64Ty(*TheContext),
        /* name */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* className */ Type::getInt8Ty(*TheContext)->getPointerTo(),
@@ -398,7 +416,7 @@ StructType *CodeGenerator::runtimeClassType() {
        /* implementedInterfacesCount */ Type::getInt64Ty(*TheContext),
        /* implementedInterfaceClasses */ Type::getInt8Ty(*TheContext)->getPointerTo(),
        /* implementedInterfaces */ Type::getInt8Ty(*TheContext)->getPointerTo(),
-     }, "Class");
+     }, "Clojure_Class");
 }
 
 
@@ -422,7 +440,7 @@ void CodeGenerator::dynamicRetain(Value *objectPtr) {
  // t.clear();
 //  v.clear();
   Value *objPtr = dynamicSuper(objectPtr);
-  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 1, "get_type");  
+  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 0, "get_refcount");  
   auto rmw = Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Add, gepPtr, ConstantInt::get(*TheContext, APInt(64, 1)), MaybeAlign(), AtomicOrdering::Monotonic);
   rmw->setVolatile(true);
   if (auto *i = dyn_cast<Instruction>(rmw)) {
@@ -432,30 +450,11 @@ void CodeGenerator::dynamicRetain(Value *objectPtr) {
 }
 
 
-Value *CodeGenerator::dynamicSuper(Value *objectPtr) {
- /* A trick - objSize will have sizeof(Object) */
-#ifdef RUNTIME_MEMORY_TRACKING
-  vector<Type *> t;
-  vector<Value * > v;
-  //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
-  
-  t.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
-  v.push_back(objectPtr);
-  return callRuntimeFun("super", Type::getInt8Ty(*TheContext)->getPointerTo(),t, v);
-#endif
-// ---------------------
-   //Value *objDummyPtr = Builder->CreateConstGEP1_64(runtimeObjectType(), Constant::getNullValue(runtimeObjectType()->getPointerTo()), 1, "Object_size");
-   //Value *objSize =  Builder->CreatePointerCast(objDummyPtr, Type::getInt64Ty(*TheContext));
-   //Value *funcPtr = Builder->CreateBitOrPointerCast(objectPtr, Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
-  // Value *funcPtrInt = Builder->CreatePtrToInt(funcPtr,  Type::getInt64Ty(*TheContext), "ptr_to_int");
-  // Value *objPtrInt = Builder->CreateSub(funcPtrInt, objSize, "sub_size");
-  // Value *objPtr = Builder->CreateIntToPtr(objPtrInt, runtimeObjectType()->getPointerTo() , "sub_size");  
-  // return objPtr;
-  Value *funcPtr = Builder->CreateBitOrPointerCast(objectPtr, Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
-// TODO: The -16 is only valid on 64 bit machines
-  Value *gep = Builder->CreateGEP(Type::getInt8Ty(*TheContext), funcPtr, ArrayRef((Value *)ConstantInt::get(*TheContext, APInt(64, -16))));
-  return Builder->CreateIntToPtr(gep, runtimeObjectType()->getPointerTo() , "sub_size");
+inline Value *CodeGenerator::dynamicSuper(Value *objectPtr) {
+  return objectPtr; 
 }
+
+
 
 Value *CodeGenerator::getRuntimeObjectType(Value *objectPtr) {
 #ifdef RUNTIME_MEMORY_TRACKING
@@ -469,7 +468,7 @@ Value *CodeGenerator::getRuntimeObjectType(Value *objectPtr) {
 // --------------------
    Value *objPtr = dynamicSuper(objectPtr);
    
-   Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 0, "get_type");
+   Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 1, "get_type");
    Value *retVal = Builder->CreateLoad(Type::getInt32Ty(*TheContext), gepPtr, "load_type");    
    return retVal;
 }
@@ -486,8 +485,8 @@ TypedValue CodeGenerator::dynamicIsReusable(Value *what) {
 #endif
  // -------------------------
   Value *objPtr = dynamicSuper(what);
-  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 1, "get_type");
-  LoadInst *load = Builder->CreateLoad(Type::getInt64Ty(*TheContext), gepPtr, "load_type");    
+  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), objPtr, 0, "get_refcount");
+  LoadInst *load = Builder->CreateLoad(Type::getInt64Ty(*TheContext), gepPtr, "load_refcount");    
   load->setAtomic(AtomicOrdering::Monotonic);
   Value *retVal = Builder->CreateICmpEQ(load, ConstantInt::get(*TheContext, APInt(64, 1, false)), "cmp_jj");
   return TypedValue(ObjectTypeSet(booleanType), retVal);
@@ -511,7 +510,7 @@ Value * CodeGenerator::dynamicRatio(const char *value) {
   Value *ratioPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
   return ratioPointer;
 }
-
+// TODO - after super cleanup
 TypedValue CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false) {
   Metadata * metaPtr = dyn_cast<Metadata>(MDString::get(*TheContext, "release"));
   MDNode * meta = MDNode::get(*TheContext, ArrayRef(metaPtr));
@@ -531,7 +530,7 @@ TypedValue CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false
 
   Function *parentFunction = Builder->GetInsertBlock()->getParent();
   Value *object = dynamicSuper(what);
-  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), object, 1, "get_type");
+  Value *gepPtr = Builder->CreateStructGEP(runtimeObjectType(), object, 0, "get_refcount");
   auto oldValue = Builder->CreateAtomicRMW(AtomicRMWInst::BinOp::Sub, gepPtr, ConstantInt::get(*TheContext, APInt(64, 1, false)), MaybeAlign(), AtomicOrdering::Monotonic);
   oldValue->setVolatile(true);
   if (auto *i = dyn_cast<Instruction>(oldValue)) {
@@ -690,7 +689,8 @@ pair<BasicBlock *, Value *> CodeGenerator::dynamicUnbox(const Node &node, const 
   if(unboxType == Type::getInt8Ty(*TheContext)->getPointerTo()) loaded = value.second;
   else {
     Value *ptr = Builder->CreateBitOrPointerCast(value.second, stype->getPointerTo(), "void_to_struct");
-    Value *tPtr = Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
+    // Every unboxable data type has its value at "1" position (0 being Object)
+    Value *tPtr = Builder->CreateStructGEP(stype, ptr, 1, "struct_unbox_gep");
     
     loaded = Builder->CreateLoad(unboxType, tPtr, "load_var");
     if(forcedType ==booleanType) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
@@ -726,14 +726,14 @@ TypedValue CodeGenerator::unbox(const TypedValue &value) {
   }
 
   Value *ptr = Builder->CreateBitOrPointerCast(value.second, stype->getPointerTo(), "void_to_struct");
-  Value *tPtr = Builder->CreateStructGEP(stype, ptr, 0, "struct_gep");
+  Value *tPtr = Builder->CreateStructGEP(stype, ptr, 1, "struct_unbox_gep");
 
   Value *loaded = Builder->CreateLoad(type, tPtr, "load_var");
   if(dynType.isBoxedType(booleanType)) loaded = Builder->CreateIntCast(loaded, dynamicUnboxedType(booleanType), false);
   /* Memory is not being managed here, every user of unbox needs to decide what to do with the memory of unboxed value by themselves */
   return TypedValue(t, loaded);
 }
-                                        
+// TODO - after super cleanup                                        
 TypedValue CodeGenerator::box(const TypedValue &value) {
   const ObjectTypeSet &type = value.first;
   if (!type.isScalar()) return value;

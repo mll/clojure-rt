@@ -4,11 +4,12 @@
 #include "defines.h"
 
 struct Nil {
+  Object super;
 };
 
 typedef struct Nil Nil;
 
-Nil *UNIQUE_NIL;
+extern Nil *UNIQUE_NIL;
 
 Nil* Nil_create();
 Nil* Nil_create1(void * obj);

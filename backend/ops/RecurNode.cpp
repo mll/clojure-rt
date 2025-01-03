@@ -128,6 +128,8 @@ TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, co
     FunctionType *FT = FunctionType::get(retVal, argTypes, false);
     Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, FT->getPointerTo());
     auto finalRetVal = Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("recur_call_dynamic"));
+// If parameters match maybe we should force a tail call?
+//    finalRetVal->setTailCallKind(CallInst::TCK_MustTail);
     return TypedValue(type, Builder->CreateRet(finalRetVal));
   } else if (op->second == opLoop) { 
     auto loopRecurPoint = LoopInsertPoints.find(loopId)->second;
@@ -160,22 +162,38 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const RecurNode &subnode,
   } else if (op->second == opFn) {
     // TODO: Recur in once - throw exception
     auto uniqueId = TheProgramme->RecurTargets.find(loopId)->second;
-    auto &recurPoint = TheProgramme->Functions.find(uniqueId)->second;
-    InvokeNode *invoke = new InvokeNode();
-    Node *bodyCopy = new Node(recurPoint);
-    invoke->set_allocated_fn(bodyCopy);
-    for(int i=0; i<subnode.exprs_size();i++) {
-      Node *arg = invoke->add_args();
-      *arg = subnode.exprs(i);
+    const FnNode functionBody = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();
+    
+    vector<const FnMethodNode *> nodes;
+    for(int i=0; i<functionBody.methods_size(); i++) nodes.push_back(&(functionBody.methods(i).subnode().fnmethod()));
+    std::sort(nodes.begin(), nodes.end(), [](const auto& lhs, const auto& rhs) -> bool
+    {
+      if (lhs->isvariadic() && !rhs->isvariadic()) return false;
+      if (!lhs->isvariadic() && rhs->isvariadic()) return true;
+      return lhs->fixedarity() > rhs->fixedarity();
+    });
+    
+    const FnMethodNode *method = nullptr;
+    int methodId = -1;
+    for(int i=0; i<nodes.size(); i++) {
+      if(nodes[i]->fixedarity() == subnode.exprs_size()) { method = nodes[i]; methodId = i; break;}
+      // Weird interaction between recur and varargs
+      if(nodes[i]->isvariadic() && nodes[i]->fixedarity() == subnode.exprs_size() + 1) { method = nodes[i]; methodId = i; break;}
     }
+    
+    vector<ObjectTypeSet> args;
+    for(auto expr: subnode.exprs()) {
+      auto t = getType(expr, ObjectTypeSet::all());
+      args.push_back(t.removeConst());
+    }
+    std::vector<ObjectTypeSet> closedOvers;
+    auto closedOversIt = TheProgramme->ClosedOverTypes.find(ProgrammeState::closedOverKey(uniqueId, methodId)); // TODO: What does it mean when iterator is end?
+    if (closedOversIt != TheProgramme->ClosedOverTypes.end())
+      closedOvers = closedOversIt->second;
 
-    Subnode *invokeSubnode = new Subnode();
-    invokeSubnode->set_allocated_invoke(invoke);
-
-    Node invokeNode = Node(node);
-    invokeNode.set_op(opInvoke);
-    invokeNode.set_allocated_subnode(invokeSubnode);
-    return getType(invokeNode, *invoke, typeRestrictions);
+    if(method == nullptr) throw CodeGenerationException(string("Recur has been called with wrong arity: ") + to_string(subnode.exprs_size()), node);
+    
+    return determineMethodReturn(*method, uniqueId, args, closedOvers, typeRestrictions);
   } else if (op->second == opLoop) {
     // Update loop binding types
     auto recurPoint = TheProgramme->LoopsBindingsAndRetValInfers.find(loopId);

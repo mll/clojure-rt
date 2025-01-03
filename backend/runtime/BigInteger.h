@@ -5,6 +5,7 @@
 #include <gmp.h>
 
 struct BigInteger {
+  Object super;
   mpz_t value;
 };
 

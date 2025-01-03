@@ -14,14 +14,13 @@ PersistentVector* PersistentVector_create() {
 
 /* mem done */
 PersistentVector* PersistentVector_allocate(uint64_t transientID) {  
-  Object *super = allocate(sizeof(PersistentVector)+ sizeof(Object)); 
-  PersistentVector *self = (PersistentVector *)(super + 1);
+  PersistentVector *self = (PersistentVector *)allocate(sizeof(PersistentVector)); 
   self->count = 0;
   self->shift = 0;
   self->transientID = transientID;
   self->root = NULL;
   self->tail = NULL;
-  Object_create(super, persistentVectorType);
+  Object_create((Object *)self, persistentVectorType);
   return self;
 }
 
@@ -34,7 +33,7 @@ PersistentVector* PersistentVector_createMany(uint64_t objCount, ...) {
   v->tail = PersistentVectorNode_allocate(initialCount, leafNode, PERSISTENT);
   for(int i=0; i<initialCount; i++) {
     void *obj = va_arg(args, void *);
-    v->tail->array[i] = super(obj);
+    v->tail->array[i] = obj;
   }
   v->count = initialCount;
 
@@ -112,20 +111,20 @@ PersistentVector* PersistentVector_assoc_internal(PersistentVector * restrict se
     if (tailReusable) {
       newTail = self->tail;
       Object *old = newTail->array[index - tailOffset];
-      newTail->array[index - tailOffset] = super(other);
+      newTail->array[index - tailOffset] = (Object *)other;
       Object_release(old);
     } else {
       newTail = PersistentVectorNode_allocate(self->tail->count, leafNode, transientID);
-      memcpy(newTail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
+      memcpy(((Object *)newTail) +1, ((Object *)self->tail)+1, sizeof(PersistentVectorNode) - sizeof(Object) + self->tail->count * sizeof(Object *));
       newTail->transientID = transientID;
-      newTail->array[index - tailOffset] = super(other);  
+      newTail->array[index - tailOffset] = (Object *)other;  
       for (int i = 0; i < newTail->count; i++) if (i != index - tailOffset) Object_retain(newTail->array[i]);
     }
     if (reusable) {
       new = self;
     } else {
       new = PersistentVector_allocate(PERSISTENT);
-      memcpy(new, self, sizeof(PersistentVector));
+      memcpy(((Object *)new) + 1, ((Object *)self) + 1, sizeof(PersistentVector) - sizeof(Object));
       if (new->root) retain(new->root);
     }
     new->tail = newTail;
@@ -137,13 +136,14 @@ PersistentVector* PersistentVector_assoc_internal(PersistentVector * restrict se
   if(reusable) new = self;
   else {
     new = PersistentVector_allocate(PERSISTENT);
-    memcpy(new, self, sizeof(PersistentVector));
+    memcpy(((Object *)new) + 1, ((Object *)self) + 1, sizeof(PersistentVector) - sizeof(Object));
+
     /* We are within tree bounds if we reached this place. Node will hold the parent node of our element */
     retain(self->tail);
     new->tail = self->tail;
   }
   
-  new->root = PersistentVectorNode_replacePath(self->root, self->shift, index, super(other), reusable, transientID);
+  new->root = PersistentVectorNode_replacePath(self->root, self->shift, index, (Object *)other, reusable, transientID);
   
   if(!reusable) release(self);
   return new;
@@ -166,7 +166,7 @@ void PersistentVectorNode_print(PersistentVectorNode * restrict self) {
   if (self->type == leafNode) { printf("*Leaf* "); return; }
   printf(" <<< NODE: %llu subnodes: ", self->count);
   for (int i=0; i<self->count; i++) {
-    PersistentVectorNode_print(Object_data(self->array[i]));
+    PersistentVectorNode_print((PersistentVectorNode *)self->array[i]);
   }
   printf(" >>> ");
 }
@@ -188,25 +188,24 @@ PersistentVector* PersistentVector_conj_internal(PersistentVector * restrict sel
   if(reusable) new = self;
   else {
     new = PersistentVector_allocate(PERSISTENT);
-    /* create allocates a tail, but we do not need it since we copy tail this way or the other. */
-    memcpy(new, self, sizeof(PersistentVector));
+    /* create allocates a tail, but we do not need it since we copy tail this way or the other. */  
+    memcpy(((Object *)new) + 1, ((Object *)self) + 1, sizeof(PersistentVector) - sizeof(Object));
   }
   new->count++;
   
   if (self->tail->count < RRB_BRANCHING) {
-    
-
     if(reusable) {
       /* If tail is not full, it is impossible for it to be used by any other vector */
-      new->tail->array[self->tail->count] = super(other);
+      new->tail->array[self->tail->count] = (Object *)other;
       new->tail->count++;    
       return new;
     }
     if(self->root) retain(self->root);
     new->tail = PersistentVectorNode_allocate(self->tail->count + 1, leafNode, transientID);
-    memcpy(new->tail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
+
+    memcpy(((Object *)new->tail)+1, ((Object *)self->tail)+1, sizeof(PersistentVectorNode) - sizeof(Object) + self->tail->count * sizeof(Object *));
     new->tail->transientID = transientID;
-    new->tail->array[self->tail->count] = super(other);
+    new->tail->array[self->tail->count] = (Object *)other;
     new->tail->count++;
     for(int i=0; i<new->tail->count - 1; i++) Object_retain(new->tail->array[i]);
     release(self);
@@ -218,7 +217,7 @@ PersistentVector* PersistentVector_conj_internal(PersistentVector * restrict sel
   PersistentVectorNode *oldTail = self->tail;
   PersistentVectorNode *oldRoot = self->root;
   new->tail = PersistentVectorNode_allocate(1, leafNode, transientID);
-  new->tail->array[0] = super(other);
+  new->tail->array[0] = ((Object *)other);
   
   BOOL copied;
 
@@ -235,11 +234,11 @@ PersistentVector* PersistentVector_conj_internal(PersistentVector * restrict sel
     
     /* int depth = 0; */
     /* PersistentVectorNode *c = new->root; */
-    /* while(c->type != leafNode) { c = Object_data(c->array[0]); depth++; } */
+    /* while(c->type != leafNode) { c = c->array[0]; depth++; } */
     /* printf("--> Increasing depth from %llu to %llu, count: %llu, real depth: %d\n", new->shift-RRB_BITS, new->shift, new->count, depth); */
     /* depth = 0; */
     /* c = new->root; */
-    /* while(c->type != leafNode) { c = Object_data(c->array[c->count -1]); depth++; } */
+    /* while(c->type != leafNode) { c = c->array[c->count -1]; depth++; } */
     /* printf ("!!! Right depth: %d\n", depth); */
   }
   if (!reusable) release(self);
@@ -257,6 +256,26 @@ PersistentVector* PersistentVector_conj_BANG_(PersistentVector * restrict self, 
 }
 
 
+/* outside memory system */
+PersistentVectorNode* PersistentVector_nthBlock(PersistentVector *  self, uint64_t index) {
+  if(index >= self->count) {
+    return NULL; 
+  }
+
+  uint64_t tailOffset = self->count - self->tail->count;
+  if(index >= tailOffset) {
+    return self->tail;
+  }
+
+  PersistentVectorNode *node = self->root;
+  for(uint64_t level = self->shift; level > 0; level -= RRB_BITS) {
+    node =(PersistentVectorNode *) node->array[(index >> level) & RRB_MASK];
+  }
+  return node;
+}
+
+
+
 /* mem done */
 void* PersistentVector_nth(PersistentVector * restrict self, uint64_t index) {
   /* TODO - should throw */
@@ -269,24 +288,24 @@ void* PersistentVector_nth(PersistentVector * restrict self, uint64_t index) {
     Object *retVal = self->tail->array[index - tailOffset];
     Object_retain(retVal);
     release(self);
-    return Object_data(retVal);
+    return retVal;
   }
 
   PersistentVectorNode *node = self->root;
   for(uint64_t level = self->shift; level > 0; level -= RRB_BITS) {
-    node = Object_data(node->array[(index >> level) & RRB_MASK]);
+    node = (PersistentVectorNode *) node->array[(index >> level) & RRB_MASK];
   }
   Object *retVal = node->array[index & RRB_MASK];
   Object_retain(retVal);
   release(self);
-  return Object_data(retVal);
+  return retVal;
 }
 
 /* mem done */
 void* PersistentVector_dynamic_nth(PersistentVector * restrict self, void *indexObject) {
   /* TODO: should throw */
   /* we should support big integers here as well */
-  if(super(index)->type != integerType) return NULL;
+  if(((Object *)index)->type != integerType) return NULL;
   uint64_t index = ((Integer *)indexObject)->value;
   release(indexObject);
   return PersistentVector_nth(self, index);
@@ -305,7 +324,8 @@ PersistentVector* PersistentVector_copy_root(PersistentVector * restrict self, u
   }
   
   PersistentVectorNode *tail = PersistentVectorNode_allocate(RRB_BRANCHING, leafNode, transientID);
-  memcpy(tail, self->tail, sizeof(PersistentVectorNode) + self->tail->count * sizeof(Object *));
+
+  memcpy(((Object *)tail)+1, ((Object *)self->tail)+1, sizeof(PersistentVectorNode) - sizeof(Object) + self->tail->count * sizeof(Object *));
   for (int i = 0; i < tail->count; i++) Object_retain(tail->array[i]);
   new->tail = tail;
   
@@ -340,7 +360,7 @@ PersistentVector* PersistentVector_pop_internal(PersistentVector * restrict self
     new = self;
   } else {
     new = PersistentVector_allocate(transientID);
-    memcpy(new, self, sizeof(PersistentVector));
+    memcpy(((Object *)new) + 1, ((Object *)self) + 1, sizeof(PersistentVector) - sizeof(Object));
   }
   --new->count;
   
@@ -356,7 +376,7 @@ PersistentVector* PersistentVector_pop_internal(PersistentVector * restrict self
       if (!reusable) retain(newTail);
     } else {
       newTail = PersistentVectorNode_allocate(newCount, leafNode, transientID);
-      memcpy(newTail, self->tail, sizeof(PersistentVectorNode) + newCount * sizeof(Object *));
+      memcpy(((Object *)newTail)+1, ((Object *)self->tail)+1, sizeof(PersistentVectorNode) - sizeof(Object) + newCount * sizeof(Object *));
       for (int i = 0; i < newCount; i++) Object_retain(newTail->array[i]);
       if (reusable) release(self->tail);
     }
@@ -379,7 +399,7 @@ PersistentVector* PersistentVector_pop_internal(PersistentVector * restrict self
   
   BOOL reduceNodeTree = newRoot && new->shift > 0 && newRoot->count == 1; // Top node of Node tree has only one child
   if (reduceNodeTree) {
-    PersistentVectorNode *newNewRoot = Object_data(newRoot->array[0]);
+    PersistentVectorNode *newNewRoot = (PersistentVectorNode *)newRoot->array[0];
     retain(newNewRoot);
     if (newRoot != oldRoot) release(newRoot);
     new->shift -= RRB_BITS;

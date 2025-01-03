@@ -5,7 +5,10 @@
 #include "BigInteger.h"
 #include <gmp.h>
 
+typedef struct Object Object;
+
 struct Ratio {
+  Object super;
   mpq_t value;
 };
 

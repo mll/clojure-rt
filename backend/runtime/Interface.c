@@ -8,7 +8,7 @@ ConcurrentHashMap *vars = NULL;
 
 extern BOOL logicalValue(void * restrict self);
 extern void logException(const char *description);
-extern BOOL unboxedEqualsInteger(void *left, uint64_t right);
+extern BOOL unboxedEqualsInteger(void *left, int64_t right);
 extern BOOL unboxedEqualsDouble(void *left, double right);
 extern BOOL unboxedEqualsBoolean(void *left, BOOL right);
 extern void logType(const objectType ll);

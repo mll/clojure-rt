@@ -12,6 +12,7 @@ typedef struct Object Object;
 typedef struct PersistentArrayMap PersistentArrayMap;
 
 struct PersistentArrayMap {
+  Object super;
   uint64_t count;
   void *keys[HASHTABLE_THRESHOLD];
   void *values[HASHTABLE_THRESHOLD];

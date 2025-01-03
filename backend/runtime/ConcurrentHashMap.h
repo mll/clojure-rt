@@ -26,7 +26,8 @@ typedef struct ConcurrentHashMapNode {
 } ConcurrentHashMapNode;
 
 typedef struct ConcurrentHashMap {
- ConcurrentHashMapNode * _Atomic root;
+  Object super;
+  ConcurrentHashMapNode * _Atomic root;
 } ConcurrentHashMap;
 
 

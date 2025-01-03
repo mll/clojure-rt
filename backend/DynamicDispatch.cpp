@@ -1,6 +1,7 @@
 #include "codegen.h"  
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <sstream>
+#include "cljassert.h"
 
 using namespace std;
 using namespace llvm;
@@ -33,6 +34,8 @@ TypedValue CodeGenerator::callStaticFun(const Node &node,
 
   vector<TypedValue> finalArgs;
 
+  CLJ_ASSERT(method.first.fixedarity() <= args.size(), "Wrong number of params: received " + to_string(args.size()) + " required " + to_string(method.first.fixedarity()));
+
   for(int i=0; i<method.first.fixedarity(); i++) {
     auto arg = args[i];
     argTypes.push_back(dynamicType(arg.first));
@@ -52,6 +55,9 @@ TypedValue CodeGenerator::callStaticFun(const Node &node,
     argVals.push_back(v);
     finalArgs.push_back(TypedValue(type, v));
   }
+
+//  cout << "Calling static " << argT.size() << endl;
+
 
   /* Add closed overs */
   argTypes.push_back(dynamicType(callObject.first));
@@ -101,6 +107,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
                                     const vector<TypedValue> &args, 
                                     Value *uniqueFunctionId, 
                                     Function *staticFunctionToCall) {
+  //cout << "Calling dynamic " << args.size() << endl;
   BasicBlock *initialBB = Builder->GetInsertBlock();
   Function *parentFunction = initialBB->getParent();
   
@@ -143,11 +150,12 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
   Value *funRetVal = nullptr;
   BasicBlock *funRetValBlock = Builder->GetInsertBlock();
   if(uniqueFunctionId) {
+   // cout << "Unique " << endl;
     BasicBlock *uniqueIdMergeBB = llvm::BasicBlock::Create(*TheContext, "unique_id_merge");    
     BasicBlock *uniqueIdOkBB = llvm::BasicBlock::Create(*TheContext, "unique_id_ok");
     BasicBlock *uniqueIdFailedBB = llvm::BasicBlock::Create(*TheContext, "unique_id_failed");
     
-    Value *uniqueIdPtr = Builder->CreateStructGEP(runtimeFunctionType(), actualObjectToInvoke, 0, "get_unique_id");
+    Value *uniqueIdPtr = Builder->CreateStructGEP(runtimeFunctionType(), actualObjectToInvoke, 3, "get_unique_id");
     Value *uniqueId = Builder->CreateLoad(Type::getInt64Ty(*TheContext), uniqueIdPtr, "load_unique_id");    
         
     Value *cond2 = Builder->CreateICmpEQ(uniqueId, uniqueFunctionId, "cmp_unique_id");
@@ -162,7 +170,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
 
     Value *uniqueIdOkVal = Builder->CreateCall(staticFunctionToCall, argVals, string("call_dynamic"));
     
-    Value *oncePtr = Builder->CreateStructGEP(runtimeFunctionType(), actualObjectToInvoke, 3, "get_once");
+    Value *oncePtr = Builder->CreateStructGEP(runtimeFunctionType(), actualObjectToInvoke, 1, "get_once");
     Value *once = Builder->CreateLoad(Type::getInt8Ty(*TheContext), oncePtr, "load_once");
     Value *onceCond = Builder->CreateIntCast(once, dynamicUnboxedType(booleanType), false);
     
@@ -357,7 +365,7 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
   for (int i=0; i<3; i++) {
     specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), argSignature[i]));    
   }
-  specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), packedArgSignature));
+  specialisationArgs.push_back(TypedValue(ObjectTypeSet(integerType), packedArgSignature));  
   TypedValue functionPointer = callRuntimeFun("specialiseDynamicFn", ObjectTypeSet::all(), specialisationArgs);
 
   vector<Type *> argTypes;
@@ -381,7 +389,7 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
   auto finalRetVal = Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("call_dynamic"));
 
   Function *parentFunction = Builder->GetInsertBlock()->getParent();  
-  Value *oncePtr = Builder->CreateStructGEP(runtimeFunctionType(), rtFnPointer, 3, "get_once");
+  Value *oncePtr = Builder->CreateStructGEP(runtimeFunctionType(), rtFnPointer, 1, "get_once");
   Value *once = Builder->CreateLoad(Type::getInt8Ty(*TheContext), oncePtr, "load_once");
   Value *onceCond = Builder->CreateIntCast(once, dynamicUnboxedType(booleanType), false);
     
@@ -475,7 +483,12 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId,
                                    std::vector<ObjectTypeSet> &closedOvers) {
   const FnNode &node = TheProgramme->Functions.find(uniqueId)->second.subnode().fn();
   const FnMethodNode &method = node.methods(methodIndex).subnode().fnmethod();
-  
+  // cout << "BUILD STATIC " << endl;
+  // cout << method.fixedarity() << endl;
+  // cout << args.size() << endl;
+  // cout << args.back().toString() << endl;
+  CLJ_ASSERT(method.params_size() <= args.size(), "Wrong number of params: received " + to_string(args.size()) + " required " + to_string(method.params_size()));
+
   string rName = ObjectTypeSet::fullyQualifiedMethodKey(name, args, retType);
 
   vector<Type *> argTypes;
@@ -503,7 +516,7 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId,
     
     const ObjectTypeSet realRetType = determineMethodReturn(method, uniqueId, args, closedOvers, ObjectTypeSet::all());
 
-    if(realRetType == retType || (!retType.isDetermined() && !realRetType.isDetermined())) {        
+    if(realRetType == retType || (!retType.isDetermined() && !realRetType.isDetermined())) {      
       for(int i=0; i<method.params_size(); i++) {
         auto name = method.params(i).subnode().binding().name();
         auto value = TypedValue(args[i].removeConst(), fArgs[i]);
@@ -519,7 +532,7 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId,
         gepAccess.push_back(ConstantInt::get(*TheContext, APInt(64, methodIndex)));
 
 
-        Value *methodsPtr = Builder->CreateStructGEP(runtimeFunctionType(), functionObject, 5, "get_methods");
+        Value *methodsPtr = Builder->CreateStructGEP(runtimeFunctionType(), functionObject, 6, "get_methods");
         Value *methodPtr = Builder->CreateGEP(ArrayType::get(runtimeFunctionMethodType(), 0), 
                                               methodsPtr, 
                                               ArrayRef(gepAccess),

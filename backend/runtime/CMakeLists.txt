@@ -7,12 +7,10 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-#set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 
-#set(CMAKE_C_FLAGS "-Wall -Wextra")
-set(CMAKE_C_FLAGS_DEBUG "-g")
+set(CMAKE_C_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter")
 set(CMAKE_C_FLAGS_RELEASE "-Ofast")
 
 set(SOURCES
@@ -21,6 +19,7 @@ set(SOURCES
     Integer.c 
     PersistentList.c 
     PersistentVector.c 
+    PersistentVectorIterator.c 
     PersistentVectorNode.c 
     String.c 
     Double.c 

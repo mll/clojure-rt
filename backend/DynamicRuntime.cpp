@@ -76,7 +76,6 @@ extern "C" {
    Removing all the data from the function object could actually speed everything up a bit, 
    so maybe it is worth trying? The invokation cache certainly has its place here, but arities 
    could be sucked from JIT for sure */
-
     for(int i=0; i<fun->methodCount; i++) {
       struct FunctionMethod *candidate = &(fun->methods[i]);
       if(argCount == candidate->fixedArity || (argCount > candidate->fixedArity && candidate->isVariadic)) {
@@ -124,7 +123,6 @@ extern "C" {
 
 
     retValT = retValType == 0 ? ObjectTypeSet::all() : ObjectTypeSet((objectType)retValType);
-
     std::string name = "fn_" + std::to_string(fun->uniqueId);   
     auto f = std::make_unique<FunctionJIT>();
     std::string rqName = ObjectTypeSet::fullyQualifiedMethodKey(name, argT, retValT);        
@@ -134,13 +132,17 @@ extern "C" {
     f->methodIndex = method->index;
     f->closedOvers = closedOverT;
     llvm::ExitOnError eo = llvm::ExitOnError();
-
     /* TODO - we probably need to modify TheProgramme here somehow, this needs more thinking */
     eo(jit->addAST(std::move(f)));
-
-    auto ExprSymbol = eo(jit->lookup(rqName));
-    void *retVal = (void *)ExprSymbol.getAddress();
+    void *retVal = nullptr;
+    try {
+      auto ExprSymbol = eo(jit->lookup(rqName));
+      retVal = (void *)ExprSymbol.getAddress();
       
+    } catch(CodeGenerationException e) {
+      printf("Code generation exception detected in DynamicRuntime.cpp/specialiseDynamicFn !!!! %s\n", e.toString().c_str());
+      throw e;
+    }
     if(cachePosition) { /* Store in cache if free entries available */
       cachePosition->signature[0] = argSignature[0];
       cachePosition->signature[1] = argSignature[1];
@@ -149,7 +151,6 @@ extern "C" {
       cachePosition->returnType = retValType;
       cachePosition->fptr = retVal;
     }
-
     return retVal;
   }
 }

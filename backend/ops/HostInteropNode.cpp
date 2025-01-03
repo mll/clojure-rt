@@ -108,7 +108,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
         Builder->SetInsertPoint(methodFoundBB);
         // TODO
       } else { // One of N classes, switch on them
-        Value *classIdPtr = Builder->CreateStructGEP(runtimeClassType(), classRuntimeValue, 0, "get_class_id");
+        Value *classIdPtr = Builder->CreateStructGEP(runtimeClassType(), classRuntimeValue, 1, "get_class_id");
         Value *classIdValue = Builder->CreateLoad(Type::getInt64Ty(*TheContext), classIdPtr, "class_id");
         BasicBlock *failedClassSwitchBB = llvm::BasicBlock::Create(*TheContext, "host_interop_class_switch_failed", parentFunction);
         SwitchInst *classCond = Builder->CreateSwitch(classRuntimeValue, failedBB, targetType.classesSize());

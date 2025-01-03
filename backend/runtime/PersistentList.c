@@ -12,14 +12,13 @@ PersistentList* PersistentList_empty() {
 
 /* outside refcount system */
 PersistentList* PersistentList_create(void *first, PersistentList *rest) {
-  Object *super = allocate(sizeof(PersistentList) + sizeof(Object)); 
-  PersistentList *self = Object_data(super);
+  PersistentList *self = allocate(sizeof(PersistentList)); 
 
   self->first = first;
   self->rest = rest;
   self->count = (rest ? rest->count : 0) + (first ? 1 : 0);
   
-  Object_create(super, persistentListType);
+  Object_create((Object *)self, persistentListType);
   return self;
 }
 
@@ -61,19 +60,18 @@ String *PersistentList_toString(PersistentList *self) {
 
   while (current) {
     if (current != self && current->first) {
+      retain(space);
       retVal = String_concat(retVal, space);
     }
     if(current->first) {
+      retain(current->first);
       String *s = toString(current->first);
       retVal = String_concat(retVal, s);
-      release(s);
     }
     current = current->rest;
   }
-  
   retVal = String_concat(retVal, closing); 
-  release(space);
-  release(closing);
+  release(space);  
   release(self);
   return retVal;
 }
@@ -84,7 +82,10 @@ void PersistentList_destroy(PersistentList *self, BOOL deallocateChildren) {
     PersistentList *child = self->rest;
     while(child) {
       PersistentList *next = child->rest;
-      if (!Object_release_internal(super(child), FALSE)) break;
+      if (!Object_release_internal((Object *)child, FALSE)) {
+        break;
+      }
+
       child = next;
     }
   }

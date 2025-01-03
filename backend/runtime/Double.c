@@ -6,10 +6,9 @@
 
 /* mem done */
 Double* Double_create(double d) {
-  Object *super = allocate(sizeof(Double) + sizeof(Object)); 
-  Double *self = (Double *)(super + 1);
+  Double *self = (Double *)allocate(sizeof(Double)); 
   self->value = d;
-  Object_create(super, doubleType);
+  Object_create((Object *)self, doubleType);
   return self;
 }
 

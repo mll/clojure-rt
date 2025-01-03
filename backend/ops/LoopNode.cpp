@@ -1,4 +1,5 @@
 #include "../codegen.h"
+#include "cljassert.h"
 
 using namespace std;
 using namespace llvm;
@@ -70,7 +71,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const LoopNode &subnode, 
   string loopId = subnode.loopid();
   TheProgramme->RecurType.insert({loopId, opLoop});
   TheProgramme->LoopsBindingsAndRetValInfers.insert({loopId,
-    {{static_cast<std::vector<ObjectTypeSet>::size_type>(subnode.bindings_size()), ObjectTypeSet::empty()}, ObjectTypeSet::empty()}
+    {std::vector<ObjectTypeSet>(subnode.bindings_size(), ObjectTypeSet::empty()), ObjectTypeSet::empty()}
   });
 
   while (true) {
@@ -78,12 +79,17 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const LoopNode &subnode, 
     std::vector<ObjectTypeSet> bindingTypes;
 
     auto currentLoopTypesIt = TheProgramme->LoopsBindingsAndRetValInfers.find(loopId);
+    CLJ_ASSERT(currentLoopTypesIt != TheProgramme->LoopsBindingsAndRetValInfers.end(), "Loop types must be present");
     for (int i = 0; i < subnode.bindings_size(); ++i) {
       auto bindingNode = subnode.bindings(i);
       auto binding = bindingNode.subnode().binding();
       VariableBindingTypesStack.push_back(bindings);
+      // If this ever calls getType on LoopNode with the same loop ID the iterator would be invalidated.
       auto init = getType(binding.init(), ObjectTypeSet::all());
       VariableBindingTypesStack.pop_back();
+      currentLoopTypesIt = TheProgramme->LoopsBindingsAndRetValInfers.find(loopId);
+      CLJ_ASSERT(currentLoopTypesIt != TheProgramme->LoopsBindingsAndRetValInfers.end(), "Loop types must be present");
+      CLJ_ASSERT(currentLoopTypesIt->second.first.size() == subnode.bindings_size(), "Wrong size!");
       currentLoopTypesIt->second.first[i] = currentLoopTypesIt->second.first[i].expansion(init);
       init = currentLoopTypesIt->second.first[i];
       auto name = binding.name();

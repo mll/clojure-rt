@@ -8,13 +8,20 @@
   (< (Math/abs (- (* guess guess) x)) 0.001))
 
 (defn sqrt-iter [guess x]
-  (String/print "Guess: ")    
-  (String/print guess)    
-  (String/print (good-enough? guess x))    
-  (if (good-enough? guess x)
+  (let [good? (good-enough? guess x)
+        improved (improve guess x)]
+    (String/print "Guessing for")    
+    (String/print x)
+    (String/print "Guess: ")        
+    (String/print guess)    
+    (String/print "Good?: ")    
+    (String/print good?)    
+    (String/print "Improved: ")
+    (String/print improved)    
+    (if good?
       guess
-      (recur (improve guess x)
-                 x)))
+      (recur improved
+             x))))
 
 (defn mysqrt [x]
   (sqrt-iter 1.0 x))
@@ -31,3 +38,8 @@
 (int 0.0 0.0 0.001)
 
 ;;(String/print 1000.777777223232)
+
+
+;; x = 0.032
+;; guess = 1
+;; 

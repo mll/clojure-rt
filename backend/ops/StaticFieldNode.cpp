@@ -16,6 +16,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticFieldNode &subno
   Value *classValue = callRuntimeFun("getClassByName", ptrT, {ptrT, ptrT}, {statePtr, className}); // should not be null, verified in getType
   Value *staticFieldKeyword = dynamicKeyword(subnode.field().c_str());
   dynamicRetain(classValue);
+  dynamicRetain(staticFieldKeyword);
   Value *staticFieldIndex = callRuntimeFun("Class_staticFieldIndex", Type::getInt64Ty(*TheContext), {ptrT, ptrT}, {classValue, staticFieldKeyword}); // should not be -1, verified in getType
   Value *staticField = callRuntimeFun("Class_getIndexedStaticField", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {classValue, staticFieldIndex});
   return TypedValue(staticFieldType, staticField);

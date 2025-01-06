@@ -235,7 +235,7 @@ class ObjectTypeSet {
     constant = nullptr;
   }
 
-  ObjectTypeSet(const ObjectTypeSet &other) : internal(other.internal), isBoxed(other.isBoxed), internalClasses(other.internalClasses) {
+  ObjectTypeSet(const ObjectTypeSet &other) : internal(other.internal), internalClasses(other.internalClasses), isBoxed(other.isBoxed) {
     if(other.constant) constant = other.constant->copy();
     else constant = nullptr;
   }

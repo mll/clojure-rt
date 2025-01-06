@@ -30,6 +30,24 @@ TypedValue Contains(CodeGenerator *gen, const string &signature, const Node &nod
   return gen->callRuntimeFun("String_contains", ObjectTypeSet(booleanType), args);
 }
 
+ObjectTypeSet Print_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
+  if (args.size() != 1) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+  return ObjectTypeSet(nilType);
+}
+
+TypedValue Print(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<TypedValue> &args) {
+  if (args.size() != 1) throw CodeGenerationException(string("Wrong number of arguments to a static call: ") + signature, node);
+
+  auto toString = gen->callRuntimeFun("Object_toString", ObjectTypeSet(stringType), {gen->box(args[0])});
+  auto compactify = gen->callRuntimeFun("String_compactify", ObjectTypeSet(stringType), {toString});
+  auto cStr = gen->callRuntimeFun("String_c_str", Type::getInt8Ty(*(gen->TheContext))->getPointerTo(), {Type::getInt8Ty(*(gen->TheContext))->getPointerTo()}, {compactify.second});
+  auto res = gen->callRuntimeFun("printf", Type::getInt64Ty(*(gen->TheContext)), {Type::getInt8Ty(*(gen->TheContext))->getPointerTo()}, 
+                                 {gen->Builder->CreateGlobalStringPtr(StringRef("String/print: '%s'\n"), "dynamicString"), cStr}, true);  
+  gen->dynamicRelease(compactify.second, false);
+  return {ObjectTypeSet(integerType), res};
+}
+
+
 // Many other things can be derefed, but for now it is only var
 ObjectTypeSet IndexOf_type(CodeGenerator *gen, const string &signature, const Node &node, const std::vector<ObjectTypeSet> &args) {
   if (args.size() != 2 && args.size() != 3)
@@ -74,6 +92,9 @@ TypedValue Replace(CodeGenerator *gen, const string &signature, const Node &node
   return gen->callRuntimeFun("String_replace", ObjectTypeSet(stringType), args);
 }
 
+pair<
+  unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>>,
+
 std::pair<
   std::unordered_map<uint64_t, // classId
     std::unordered_map<std::string, // methodName
@@ -86,16 +107,33 @@ std::pair<
       std::vector<
         std::pair<
           std::string, // signature
-          std::pair<StaticCallType, StaticCall>>>>>>
+          std::pair<StaticCallType, StaticCall>>>>>>>
 getStringStaticFunctions() {
+  unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> staticCalls;
+
   unordered_map<string, vector<pair<string, pair<StaticCallType, StaticCall>>>> instanceCalls;
-  vector<pair<string, pair<StaticCallType, StaticCall>>> contains, indexOf, replace;
+  vector<pair<string, pair<StaticCallType, StaticCall>>> contains, indexOf, replace, print;
   
   unordered_map<string, vector<pair<string, void *>>> dynamicCalls;
   vector<pair<string, void *>> containsDynamic, indexOfDynamic, replaceDynamic;
 
   contains.push_back({"LSLS", {&Contains_type, &Contains}});
+
+  print.push_back({"LV", {&Print_type, &Print}});
+  print.push_back({"LN", {&Print_type, &Print}});
+  print.push_back({"LL", {&Print_type, &Print}});
+  print.push_back({"LK", {&Print_type, &Print}});
+  print.push_back({"LI", {&Print_type, &Print}});
+  print.push_back({"LR", {&Print_type, &Print}});
+  print.push_back({"LA", {&Print_type, &Print}});
+  print.push_back({"LS", {&Print_type, &Print}});
+  print.push_back({"D", {&Print_type, &Print}});
+  print.push_back({"J", {&Print_type, &Print}});
+  print.push_back({"Z", {&Print_type, &Print}});
+
   instanceCalls.insert({"contains", contains});
+  staticCalls.insert({"java.lang.String/print", print});
+
   containsDynamic.push_back({"LSLS", (void *) &String_contains});
   dynamicCalls.insert({"contains", containsDynamic});
 
@@ -111,5 +149,5 @@ getStringStaticFunctions() {
   replaceDynamic.push_back({"LSLSLS", (void *) &String_replace});
   dynamicCalls.insert({"replace", replaceDynamic});
 
-  return {{{(uint64_t) stringType, dynamicCalls}}, {{(uint64_t) stringType, instanceCalls}}};
+  return {staticCalls, {{{(uint64_t) stringType, dynamicCalls}}, {{(uint64_t) stringType, instanceCalls}}}};
 }

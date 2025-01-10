@@ -385,8 +385,14 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
   /* What if the new function returns a different type? we should probably not force the return type. It should be deduced by jit and our job should be to somehow box/unbox it. Alternatively, we can add return type to method name (like fn_1_JJ_LV) and force generation of function that returns the boxed version of needed return type. If it does not match - we should throw a runtime error */ 
 
   FunctionType *FT = FunctionType::get(retVal, argTypes, false);
+
+  vector<ObjectTypeSet> argTypess;
+  for(auto &arg: args) argTypess.push_back(arg.first);
+  
+  string rName = ObjectTypeSet::fullyQualifiedMethodKey(node.form(), argTypess, retValType);
+
   Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, FT->getPointerTo());
-  auto finalRetVal = Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("call_dynamic"));
+  auto finalRetVal = Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("call_dynamic_") + rName);
 
   Function *parentFunction = Builder->GetInsertBlock()->getParent();  
   Value *oncePtr = Builder->CreateStructGEP(runtimeFunctionType(), rtFnPointer, 1, "get_once");

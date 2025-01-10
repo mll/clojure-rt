@@ -53,14 +53,15 @@ ProgrammeState::ProgrammeState() {
   StaticCallLibrary.insert(numbers.begin(), numbers.end());
   StaticCallLibrary.insert(utils.begin(), utils.end());
   StaticCallLibrary.insert(vector.first.begin(), vector.first.end());
+  StaticCallLibrary.insert(string.first.begin(), string.first.end());
   DynamicCallLibrary.insert(vector.second.first.begin(), vector.second.first.end());
   InstanceCallLibrary.insert(vector.second.second.begin(), vector.second.second.end());
   DynamicCallLibrary.insert(deftype.first.begin(), deftype.first.end());
   InstanceCallLibrary.insert(deftype.second.begin(), deftype.second.end());
   DynamicCallLibrary.insert(var.first.begin(), var.first.end());
   InstanceCallLibrary.insert(var.second.begin(), var.second.end());
-  DynamicCallLibrary.insert(string.first.begin(), string.first.end());
-  InstanceCallLibrary.insert(string.second.begin(), string.second.end());
+  DynamicCallLibrary.insert(string.second.first.begin(), string.second.first.end());
+  InstanceCallLibrary.insert(string.second.second.begin(), string.second.second.end());
   
   // C++ insert semantics: if key is already present in map, insert will be ignored
   for (uint64_t t = integerType; t <= persistentArrayMapType; ++t) {

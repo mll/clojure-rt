@@ -31,7 +31,7 @@ PersistentVector* PersistentVector_createMany(uint64_t objCount, ...) {
   uint64_t initialCount = MIN(objCount, RRB_BRANCHING);
   PersistentVector *v = PersistentVector_allocate(PERSISTENT);
   v->tail = PersistentVectorNode_allocate(initialCount, leafNode, PERSISTENT);
-  for(int i=0; i<initialCount; i++) {
+  for(uint64_t i=0; i < initialCount; i++) {
     void *obj = va_arg(args, void *);
     v->tail->array[i] = obj;
   }

@@ -29,14 +29,14 @@ PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType typ
 /* outside refcount system */
 BOOL PersistentVectorNode_equals(PersistentVectorNode * restrict self, PersistentVectorNode * restrict other) {
   if (self->count != other->count) return FALSE;
-  for(int i=0; i < self->count; i++) if (!Object_equals(self->array[i], other->array[i])) return FALSE;
+  for(uint64_t i=0; i < self->count; i++) if (!Object_equals(self->array[i], other->array[i])) return FALSE;
   return TRUE;
 }
 
 /* outside refcount system */
 uint64_t PersistentVectorNode_hash(PersistentVectorNode * restrict self) {
   uint64_t h = 5381;  
-  for(int i=0; i< self->count; i++) h = combineHash(h, Object_hash(self->array[i])); 
+  for(uint64_t i=0; i< self->count; i++) h = combineHash(h, Object_hash(self->array[i])); 
   return h;
 }
 
@@ -45,7 +45,7 @@ String *PersistentVectorNode_toString(PersistentVectorNode * restrict self) {
   String *retVal = String_create("");
   String *space = String_create(" ");
 
-  for(int i=0; i< self->count; i++) {
+  for(uint64_t i=0; i< self->count; i++) {
     Object_retain(self->array[i]);
     String *s = Object_toString(self->array[i]);
     retVal = String_concat(retVal, s);
@@ -61,7 +61,7 @@ String *PersistentVectorNode_toString(PersistentVectorNode * restrict self) {
 
 /* outside refcount system */
 void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL deallocateChildren) {
-  for(int i=0; i<self->count; i++) Object_release(self->array[i]);
+  for(uint64_t i=0; i<self->count; i++) Object_release(self->array[i]);
 }
 
 /* mem done */
@@ -75,7 +75,7 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * re
     memcpy(((Object *)new) + 1, ((Object *)self) + 1, sizeof(PersistentVectorNode) - sizeof(Object) + self->count * sizeof(Object *));
   }
 
-  for(int i=0; i< self->count; i++) {
+  for(uint64_t i=0; i< self->count; i++) {
     if (i == level_index) {
       if (self->type == leafNode) {
         if(reusable) Object_release(new->array[i]);
@@ -125,7 +125,7 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
     PersistentVectorNode *new = PersistentVectorNode_allocate(self->count, internalNode, vectorTransientID);
     memcpy(((Object *)new)+1, ((Object *)self)+1, sizeof(PersistentVectorNode) - sizeof(Object) + self->count * sizeof(PersistentVectorNode *));    
     new->array[new->count - 1] = (Object *)subtree;
-    for (int i=0; i< new->count - 1; i++) Object_retain(new->array[i]);
+    for (uint64_t i=0; i< new->count - 1; i++) Object_retain(new->array[i]);
     *copied = TRUE;
     release(self);
     return new;
@@ -138,7 +138,7 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
     memcpy(((Object *)new)+1, ((Object *)self)+1, sizeof(PersistentVectorNode) - sizeof(Object) + self->count * sizeof(PersistentVectorNode *));    
     new->array[self->count] = (Object *)subtree;
     new->count++;
-    for(int i=0; i < new->count - 1; i++) Object_retain(new->array[i]); 
+    for(uint64_t i=0; i < new->count - 1; i++) Object_retain(new->array[i]); 
     *copied = TRUE;
     release(self);
 
@@ -187,7 +187,7 @@ PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode * restri
     newTree = PersistentVectorNode_allocate(self->count, self->type, vectorTransientID);
     memcpy(((Object *)newTree)+1, ((Object *)self)+1, sizeof(PersistentVectorNode) + - sizeof(Object) + self->count * sizeof(Object *));
     newTree->transientID = vectorTransientID;
-    for (int i = 0; i < lastPos; ++i) Object_retain(newTree->array[i]); // do not retain last object
+    for (uint64_t i = 0; i < lastPos; ++i) Object_retain(newTree->array[i]); // do not retain last object
   }
 
   if (newSubtree) {
@@ -213,14 +213,14 @@ PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode * restri
 BOOL PersistentVectorNode_contains(PersistentVectorNode * restrict self, void * restrict other) {
   BOOL retVal = FALSE;
   if (self->type == leafNode) {
-    for (int i = 0; i < self->count; ++i) {
+    for (uint64_t i = 0; i < self->count; ++i) {
       if (Object_equals(self->array[i], other)) {
         retVal = TRUE;
         break;
       }
     }
   } else {
-    for (int i = 0; i < self->count; ++i) {
+    for (uint64_t i = 0; i < self->count; ++i) {
       PersistentVectorNode *child = (PersistentVectorNode *)self->array[i];
       retain(child);
       retain(other);

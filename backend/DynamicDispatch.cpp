@@ -342,7 +342,7 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
      Value *packed = nullptr;
      if(arg.first.isDetermined()) {
        type = ConstantInt::get(*TheContext, APInt(64, arg.first.determinedType(), false));
-       packed = ConstantInt::get(*TheContext, APInt(64, 0, false));
+       packed = ConstantInt::get(*TheContext, APInt(64, arg.first.isScalar() ? 0 : 1, false));
      }
      else {
        type = getRuntimeObjectType(arg.second);

@@ -46,9 +46,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, co
       });
 
       int foundIdx = -1;
-      for(int i=0; i<nodes.size(); i++) {
-        if(nodes[i].first.fixedarity() == args.size()) { foundIdx = i; break;}
-        if(nodes[i].first.fixedarity() <= args.size() && nodes[i].first.isvariadic()) { foundIdx = i; break;}
+      for(unsigned long i=0; i<nodes.size(); i++) {
+        if((unsigned long)nodes[i].first.fixedarity() == args.size()) { foundIdx = i; break;}
+        if((unsigned long)nodes[i].first.fixedarity() <= args.size() && nodes[i].first.isvariadic()) { foundIdx = i; break;}
       }
       if (foundIdx == -1) throw CodeGenerationException(string("Function ") + fName + " has been called with wrong arity in recur call: " + to_string(args.size()), node);
       pair<FnMethodNode, uint64_t> method = nodes[foundIdx];
@@ -76,7 +76,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, co
     vector<TypedValue> pointerCallArgs;
     /* 21 because varaidic adds one arg that packs the remaining */
     if(args.size() > 21) throw CodeGenerationException("More than 20 args not supported", node); 
-    for(int i=0; i<args.size(); i++) {
+    for(unsigned long i=0; i<args.size(); i++) {
       auto arg = args[i];
       auto group = i / 8;
       Value *type = nullptr;
@@ -175,7 +175,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const RecurNode &subnode,
     
     const FnMethodNode *method = nullptr;
     int methodId = -1;
-    for(int i=0; i<nodes.size(); i++) {
+    for(unsigned long i=0; i<nodes.size(); i++) {
       if(nodes[i]->fixedarity() == subnode.exprs_size()) { method = nodes[i]; methodId = i; break;}
       // Weird interaction between recur and varargs
       if(nodes[i]->isvariadic() && nodes[i]->fixedarity() + 1 == subnode.exprs_size()) { method = nodes[i]; methodId = i; break;}

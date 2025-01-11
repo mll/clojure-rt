@@ -168,7 +168,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const ObjectTypeSet &typeRes
 
 
 string CodeGenerator::globalNameForVar(string var) {
-  int index;
+  basic_string<char, char_traits<char>, allocator<char>>::size_type index;
   while((index = var.find("/")) != string::npos) {    
       var.replace(index, string("_").length(), string("_"));
   }
@@ -238,7 +238,7 @@ ObjectTypeSet CodeGenerator::typeForArgString(const Node &node, const string &ty
 }
 
 vector<ObjectTypeSet> CodeGenerator::typesForArgString(const Node &node, const string &typeString) {
-  int i = 0;
+  unsigned long i = 0;
   vector<ObjectTypeSet> types;
   while(i < typeString.length()) {
     char currentChar[2];

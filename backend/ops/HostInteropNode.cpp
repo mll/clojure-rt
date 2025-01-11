@@ -108,9 +108,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
         Builder->SetInsertPoint(methodFoundBB);
         // TODO
       } else { // One of N classes, switch on them
-        Value *classIdPtr = Builder->CreateStructGEP(runtimeClassType(), classRuntimeValue, 1, "get_class_id");
-        Value *classIdValue = Builder->CreateLoad(Type::getInt64Ty(*TheContext), classIdPtr, "class_id");
-        BasicBlock *failedClassSwitchBB = llvm::BasicBlock::Create(*TheContext, "host_interop_class_switch_failed", parentFunction);
+//        Alek - why do we have those variables here? Why aren't they used.
+//        Value *classIdPtr = Builder->CreateStructGEP(runtimeClassType(), classRuntimeValue, 1, "get_class_id");
+//        Value *classIdValue = Builder->CreateLoad(Type::getInt64Ty(*TheContext), classIdPtr, "class_id");
+//        BasicBlock *failedClassSwitchBB = llvm::BasicBlock::Create(*TheContext, "host_interop_class_switch_failed", parentFunction);
         SwitchInst *classCond = Builder->CreateSwitch(classRuntimeValue, failedBB, targetType.classesSize());
         for (auto it = targetType.internalClassesBegin(); it != targetType.internalClassesEnd(); ++it) {
           classId = *it;
@@ -139,7 +140,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
     // Primitive method
     Builder->SetInsertPoint(outTypeBB);
     Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
-    Value *nodePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &node, false)), ptrT);
+//    Value *nodePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &node, false)), ptrT);
     Value *typeValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, t, false));
     Value *noExtraArgs = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, 0, false));
     Value *methodOrFieldNameValue = dynamicString(methodOrFieldName.c_str());

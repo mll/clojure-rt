@@ -173,7 +173,7 @@ void testList (bool pauses) {
   clock_t as = clock();
 
   PersistentList *l = PersistentList_create(NULL, NULL);
-  for (int i=0;i<size; i++) {
+  for (size_t i=0; i < size; i++) {
     Integer *n = Integer_create(i);
     PersistentList *k = PersistentList_conj(l, n);
     l = k;
@@ -237,7 +237,7 @@ void testVector (bool pauses) {
   bool reuse = false;
   size_t size = 100000000;
   
-  for (int i=0;i<size; i++) {
+  for (size_t i = 0; i<size; i++) {
    // PersistentVector_print(l);
    // printf("=======*****************===========");
    // fflush(stdout);
@@ -269,7 +269,7 @@ void testVector (bool pauses) {
 
   reuse = true;
   l = PersistentVector_create();
-  for (int i=0;i<size; i++) {
+  for (size_t i=0;i<size; i++) {
    // PersistentVector_print(l);
    // printf("=======*****************===========");
    // fflush(stdout);
@@ -301,7 +301,7 @@ void testVector (bool pauses) {
   clock_t as9 = clock();
   l = PersistentVector_transient(PersistentVector_create());
   
-  for (int i=0;i<size; i++) {
+  for (size_t i=0;i<size; i++) {
    // PersistentVector_print(l);
    // printf("=======*****************===========");
    // fflush(stdout);
@@ -328,7 +328,7 @@ void testVector (bool pauses) {
   
   int64_t sum = 0;
   
-  for(int i=0; i< l->count; i++) {
+  for(size_t i=0; i< l->count; i++) {
     retain(l);
     Integer *ob = (Integer *) PersistentVector_nth(l, i);
     sum += (ob)->value;
@@ -356,18 +356,18 @@ void testVector (bool pauses) {
 
   clock_t op9 = clock();
   printf("iterator Sum: %llu\nTime: %f\n", sum, (double)(op9 - os9) / CLOCKS_PER_SEC);
-//  assert(sum9 == 4999999950000000ull && "Wrong result");
+  assert(sum9 == 4999999950000000ull && "Wrong result");
   if(pauses) getchar();
 
   int64_t sum2 = 0;
   int64_t *array = (int64_t *)malloc(size*sizeof(int64_t));
   memset(array, 0, size);
-  for(int i=0; i< size; i++) {
+  for(size_t i=0; i< size; i++) {
     array[i] = i;
   }
 
   clock_t oss = clock();
-  for(int i=0; i< l->count; i++) {
+  for(size_t i=0; i< l->count; i++) {
     sum2 += array[i];
   }
   clock_t opp = clock();
@@ -378,16 +378,16 @@ void testVector (bool pauses) {
   printf("Summing array with objects: \n");
   int64_t sum22 = 0;
   Object **array9 = (Object **)malloc(size*sizeof(Object *));
-  for(int i=0; i< size; i++) {
+  for(size_t i=0; i< size; i++) {
     array9[i] = (Object *)Integer_create(i);
   }
 
   clock_t oss9 = clock();
-  for(int i=0; i < l->count; i++) {
+  for(size_t i=0; i < l->count; i++) {
     sum22 += ((Integer *)array9[i])->value;
   }
   clock_t opp9 = clock();
-  for(int i=0; i< size; i++) {
+  for(size_t i=0; i< size; i++) {
     Object_release(array9[i]);
   }
   free(array9);
@@ -397,16 +397,16 @@ void testVector (bool pauses) {
   printf("Summing array with obj - integers: \n");
   sum22 = 0;
   Integer **array99 = (Integer **)malloc(size*sizeof(Integer *));
-  for(int i=0; i< size; i++) {
+  for(size_t i=0; i< size; i++) {
     array99[i] = Integer_create(i);
   }
 
   clock_t oss99 = clock();
-  for(int i=0; i < l->count; i++) {
+  for(size_t i=0; i < l->count; i++) {
     sum22 += array99[i]->value;
   }
   clock_t opp99 = clock();
-  for(int i=0; i< size; i++) {
+  for(size_t i=0; i< size; i++) {
     release(array99[i]);
   }
   free(array99);
@@ -415,7 +415,7 @@ void testVector (bool pauses) {
 
 
   clock_t ass = clock();
-  for (int i=0;i<size; i++) {
+  for (size_t i=0;i<size; i++) {
     // PersistentVector_print(l);
     // printf("=======*****************===========");
     // fflush(stdout);
@@ -430,7 +430,7 @@ void testVector (bool pauses) {
 
   sum = 0;
   
-  for(int i=0; i< l->count; i++) {
+  for(size_t i=0; i< l->count; i++) {
     retain(l);
     Integer *ob = (Integer *) PersistentVector_nth(l, i);
     sum += ob->value;

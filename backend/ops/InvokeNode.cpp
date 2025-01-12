@@ -52,9 +52,9 @@ TypedValue CodeGenerator::codegen(const Node &node, const InvokeNode &subnode, c
     });
 
     int foundIdx = -1;
-    for(int i=0; i<nodes.size(); i++) {
-      if(nodes[i].first.fixedarity() == args.size()) { foundIdx = i; break;}
-      if(nodes[i].first.fixedarity() <= args.size() && nodes[i].first.isvariadic()) { foundIdx = i; break;}
+    for(unsigned long i=0; i<nodes.size(); i++) {
+      if((unsigned long)nodes[i].first.fixedarity() == args.size()) { foundIdx = i; break;}
+      if((unsigned long)nodes[i].first.fixedarity() <= args.size() && nodes[i].first.isvariadic()) { foundIdx = i; break;}
     }
     if(foundIdx == -1) throw CodeGenerationException(string("Function ") + (refName.size() > 0 ? refName : fName) + " has been called with wrong arity: " + to_string(args.size()), node);
     
@@ -207,9 +207,9 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const InvokeNode &subnode
 
     const FnMethodNode *method = nullptr;
     int methodId = -1;
-    for(int i=0; i<nodes.size(); i++) {
-      if(nodes[i]->fixedarity() == args.size()) { method = nodes[i]; methodId = i; break;}
-      if(nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; methodId = i; break;}
+    for(unsigned long i=0; i<nodes.size(); i++) {
+      if((unsigned long)nodes[i]->fixedarity() == args.size()) { method = nodes[i]; methodId = i; break;}
+      if((unsigned long)nodes[i]->fixedarity() <= args.size() && nodes[i]->isvariadic()) { method = nodes[i]; methodId = i; break;}
     }
 
     if(method == nullptr) throw CodeGenerationException(string("Function ") + name + " has been called with wrong arity: " + to_string(args.size()), node);

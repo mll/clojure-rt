@@ -184,7 +184,7 @@ TypedValue CodeGenerator::loadObjectFromRuntime(void *ptr) {
 
 ObjectTypeSet CodeGenerator::typeOfObjectFromRuntime(void *ptr) {
   objectType t = getTypeC(ptr);
-  return ObjectTypeSet(t, true).unboxed();
+  return ObjectTypeSet(t, true);
 }
 
 

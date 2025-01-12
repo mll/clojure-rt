@@ -99,8 +99,13 @@ set(SOURCES
      static/Vector.cpp
      jit/Materialisation.cpp
      jit/ASTLayer.cpp
-     DynamicRuntime.cpp
-     DynamicDispatch.cpp
+     invocation/DynamicInvoke.cpp
+     invocation/ReturnTypeInference.cpp
+     invocation/StaticInvoke.cpp
+     invocation/SpecialiseDynamicFn.cpp
+     invocation/ClosedOvers.cpp
+     invocation/VarArgs.cpp
+     BuildFunction.cpp     
      Programme.cpp) 
 
 include_directories(${LLVM_INCLUDE_DIRS})

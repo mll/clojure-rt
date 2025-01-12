@@ -89,7 +89,7 @@ ObjectTypeSet CodeGenerator::getType(const Node &node, const LoopNode &subnode, 
       VariableBindingTypesStack.pop_back();
       currentLoopTypesIt = TheProgramme->LoopsBindingsAndRetValInfers.find(loopId);
       CLJ_ASSERT(currentLoopTypesIt != TheProgramme->LoopsBindingsAndRetValInfers.end(), "Loop types must be present");
-      CLJ_ASSERT(currentLoopTypesIt->second.first.size() == subnode.bindings_size(), "Wrong size!");
+      CLJ_ASSERT(currentLoopTypesIt->second.first.size() == (unsigned long)subnode.bindings_size(), "Wrong size!");
       currentLoopTypesIt->second.first[i] = currentLoopTypesIt->second.first[i].expansion(init);
       init = currentLoopTypesIt->second.first[i];
       auto name = binding.name();

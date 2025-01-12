@@ -31,7 +31,7 @@ void Function_fillMethod(ClojureFunction *self, uint64_t position, uint64_t inde
   if(closedOversCount > 0) method->closedOvers = allocate(closedOversCount * sizeof(void *));
   va_list args;
   va_start(args, closedOversCount);
-  for(int i=0; i<closedOversCount;i++) {
+  for(int64_t i=0; i<closedOversCount;i++) {
     void *closedOver = va_arg(args, void *); 
     method->closedOvers[i] = closedOver;
   }
@@ -76,9 +76,9 @@ String *Function_toString(ClojureFunction *self) {
 void Function_cleanupOnce(ClojureFunction *self) {
   assert(!self->executed && "Function with :once meta executed more than once");
   self->executed = TRUE;
-  for(int i=0; i < self->methodCount; i++) {
+  for(uint64_t i=0; i < self->methodCount; i++) {
     FunctionMethod *method = &(self->methods[i]);
-    for(int j=0; j < method->closedOversCount; j++) release(method->closedOvers[j]); 
+    for(uint64_t j=0; j < method->closedOversCount; j++) release(method->closedOvers[j]); 
     if(method->closedOversCount) deallocate(method->closedOvers);
   }
 }
@@ -88,9 +88,9 @@ void Function_cleanupOnce(ClojureFunction *self) {
 void Function_destroy(ClojureFunction *self) {
   if(self->once && self->executed) return;
 
-  for(int i=0; i < self->methodCount; i++) {
+  for(uint64_t i=0; i < self->methodCount; i++) {
     FunctionMethod *method = &(self->methods[i]);
-    for(int j=0; j < method->closedOversCount; j++) release(method->closedOvers[j]);
+    for(uint64_t j=0; j < method->closedOversCount; j++) release(method->closedOvers[j]);
     if(method->closedOversCount) deallocate(method->closedOvers);
   }
   

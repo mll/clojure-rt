@@ -50,7 +50,7 @@ void visitPath(const vector<ObjectTypeSet> &path, // a path already taken in thi
     auto requiredTypes = ObjectTypeSet::typeStringForArgs(callIt->first);
     vector<TypedValue> realArgs;
 
-    for(int i=0; i<args.size(); i++) {
+    for(unsigned long i=0; i<args.size(); i++) {
       const TypedValue &arg = args[i];
       /* We unbox the remaining variables right here */
       if(arg.first.isDetermined()) {
@@ -67,7 +67,7 @@ void visitPath(const vector<ObjectTypeSet> &path, // a path already taken in thi
     if(retValForPath.first.isScalar()) {
       /* Memory optimisation reuse, as per Renking et al, MSR-TR-2020-42, Nov 29, 2020, v2. */
       Value *potentiallyReusingVar = nullptr;
-      for(int i=0; i<args.size(); i++) {
+      for(unsigned long i=0; i<args.size(); i++) {
         const TypedValue &arg = args[i];
         const ObjectTypeSet &requiredType = callIt->first[i];        
         if(arg.first.isScalar()) continue;
@@ -88,7 +88,7 @@ void visitPath(const vector<ObjectTypeSet> &path, // a path already taken in thi
         gen->Builder->CreateCondBr(condValue.second, reuseBB, ignoreBB);
         gen->Builder->SetInsertPoint(reuseBB);
 
-        for(int i=0; i<args.size(); i++) {
+        for(unsigned long i=0; i<args.size(); i++) {
           const TypedValue &arg = args[i];
           auto discoveredType = callIt->first[i];
           /* Release any boxed scalars discovered in this path we do not want to reuse */
@@ -114,7 +114,7 @@ void visitPath(const vector<ObjectTypeSet> &path, // a path already taken in thi
       }
     }
 
-    for(int i=0; i<args.size(); i++) {
+    for(unsigned long i=0; i<args.size(); i++) {
        const TypedValue &arg = args[i];
        auto discoveredType = callIt->first[i];
        /* Release any boxed scalars discovered in this path */
@@ -124,8 +124,8 @@ void visitPath(const vector<ObjectTypeSet> &path, // a path already taken in thi
     gen->Builder->CreateBr(mergeBlock);
     return;
   }
-  int i = path.size();
-  assert(i<options.size());
+  unsigned long i = path.size();
+  assert(i < options.size());
   auto conds = options[i];
   auto arg = args[i];
 
@@ -147,7 +147,7 @@ void visitPath(const vector<ObjectTypeSet> &path, // a path already taken in thi
     successes.push_back({success, cond});
   }
   
-  for(int j = 0; j < successes.size(); j++) {
+  for(unsigned long j = 0; j < successes.size(); j++) {
     vector<ObjectTypeSet> newPath = path;
     newPath.push_back(successes[j].second);
     visitPath(newPath, successes[j].first, failBlock, mergeBlock, args, calls, retVal, options, parentFunction, node, gen, name);
@@ -237,7 +237,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const StaticCallNode &subnod
 
     vector<set<ObjectTypeSet>> options; 
     
-    for(int i=0; i<args.size(); i++) {
+    for(unsigned long i=0; i<args.size(); i++) {
       set<ObjectTypeSet> types;
       for(auto method: methods) {
         auto methodTypes = typesForArgString(node, method.first);

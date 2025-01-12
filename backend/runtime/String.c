@@ -113,7 +113,7 @@ String* String_createCompound(String *left, String *right) {
     assert(((Object *)getVec(right))->type == persistentVectorType && "Wrong type");
     PersistentVector *rvec = getVec(right);
     PersistentVectorIterator it = PersistentVector_iterator(rvec);
-    for(int i=0; i< rvec->count; i++) { 
+    for(uint64_t i=0; i< rvec->count; i++) { 
       retain(rvec);
       v = PersistentVector_conj(v, PersistentVector_iteratorGet(&it));
       PersistentVector_iteratorNext(&it);
@@ -181,7 +181,7 @@ String *String_compactify(String *self) {
   PersistentVector *v = getVec(self);
 
   int start = 0;
-  for(int i=0; i<v->count;i++) {
+  for(uint64_t i=0; i<v->count;i++) {
     /* TODO - use vector iterator */
     retain(v);
     String *block = PersistentVector_nth(v, i);

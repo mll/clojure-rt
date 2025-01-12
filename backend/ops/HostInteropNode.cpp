@@ -106,6 +106,13 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
         BasicBlock *methodFoundBB = llvm::BasicBlock::Create(*TheContext, "dynamic_class_method_lookup_successful", parentFunction);
         Builder->CreateCondBr(methodNotFoundValue, outTypeBB, methodFoundBB);
         Builder->SetInsertPoint(methodFoundBB);
+        // THIS BLOCK CAUSES (tests/vectransient.clj):
+ 
+        // Basic Block in function '__anon__1' does not have terminator!
+        // label %dynamic_class_method_lookup_successful
+        // in function __anon__1
+        // LLVM ERROR: Broken function found, compilation aborted!
+
         // TODO
       } else { // One of N classes, switch on them
 //        Alek - why do we have those variables here? Why aren't they used.

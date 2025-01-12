@@ -1,6 +1,7 @@
-(defn deep-recur [n]
+(defn deep-recur [n sum]
   (if (= 0 n)
-    n
-    (recur (- n 1))))
+    sum
+    (recur (- n 1) (+ sum n))))
 
-(deep-recur 100000000)
+(deep-recur 100000000 0)
+

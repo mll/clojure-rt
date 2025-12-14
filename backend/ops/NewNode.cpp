@@ -7,7 +7,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const NewNode &subnode, cons
   auto className = subnode.class_().subnode().const_().val();
   auto classId = TheProgramme->getClassId(className); // TODO: What if == 0?
   Value *classIdValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, classId, false));
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
   Value *classValue = callRuntimeFun("getClassById", ptrT, {ptrT, Type::getInt64Ty(*TheContext)}, {statePtr, classIdValue});
   Function *parentFunction = Builder->GetInsertBlock()->getParent();

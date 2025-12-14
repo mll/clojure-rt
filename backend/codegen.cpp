@@ -1,5 +1,4 @@
 #include "codegen.h"  
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <sstream>
 #include "static/Class.h"
 
@@ -23,7 +22,7 @@ void CodeGenerator::printDebugValue(Value *v) {
   string pf ;
   if (Type::getInt8Ty(*TheContext) == t) pf = "printChar";
   if (Type::getInt64Ty(*TheContext) == t) pf = "printInt";
-  if (Type::getInt8Ty(*TheContext)->getPointerTo() == t) pf = "printPointer";
+  if (PointerType::get(Type::getInt8Ty(*TheContext), 0) == t) pf = "printPointer";
   assert(pf.length() > 0);
 
   Function *p1 = TheModule->getFunction(pf); 
@@ -42,7 +41,7 @@ void CodeGenerator::printDebugValue(Value *v) {
 string CodeGenerator::codegenTopLevel(const Node &node, int i) {
     string fname = string("__anon__") + to_string(i);
     std::vector<Type*> args;
-    FunctionType *FT = FunctionType::get(Type::getInt8Ty(*TheContext)->getPointerTo(), args, false);
+    FunctionType *FT = FunctionType::get(PointerType::get(Type::getInt8Ty(*TheContext), 0), args, false);
     Function *F = Function::Create(FT, Function::ExternalLinkage, fname, TheModule.get());
     BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", F);
     Builder->SetInsertPoint(BB);

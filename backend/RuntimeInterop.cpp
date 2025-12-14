@@ -52,8 +52,6 @@ TypedValue CodeGenerator::callRuntimeFun(const string &fname, const ObjectTypeSe
   return  TypedValue(retVal, Builder->CreateCall(CalleeF, argVals, string("call_") + fname));
 } 
 
-
-
 Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, const vector<Type *> &argTypes, const vector<Value *> &args, bool isVariadic) {
   Function *CalleeF = TheModule->getFunction(fname);
   
@@ -71,7 +69,7 @@ Value *CodeGenerator::callRuntimeFun(const string &fname, Type *retValType, cons
 void CodeGenerator::runtimeException(const CodeGenerationException &runtimeException) {
   vector<Type *> argTypes;
   vector<Value *> args;
-  argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  argTypes.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
   args.push_back(Builder->CreateGlobalStringPtr(StringRef(runtimeException.toString().c_str()), "dynamicString"));      
   callRuntimeFun("logException", Type::getVoidTy(*TheContext), argTypes, args);
 }
@@ -79,7 +77,7 @@ void CodeGenerator::runtimeException(const CodeGenerationException &runtimeExcep
 void CodeGenerator::logString(const string &s) {
   vector<Type *> argTypes;
   vector<Value *> args;
-  argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  argTypes.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
   args.push_back(Builder->CreateGlobalStringPtr(StringRef(s.c_str()), "dynamicString"));      
   callRuntimeFun("logText", Type::getVoidTy(*TheContext), argTypes, args);
 }
@@ -88,12 +86,12 @@ void CodeGenerator::logDebugBoxed(llvm::Value *v) {
   logType(getRuntimeObjectType(v));
   vector<Type *> argTypes;
   vector<Value *> args;
-  argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  argTypes.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
   args.push_back(v);      
-  Value *s = callRuntimeFun("toString", Type::getInt8Ty(*TheContext)->getPointerTo(), argTypes, args);
+  Value *s = callRuntimeFun("toString", PointerType::get(Type::getInt8Ty(*TheContext), 0), argTypes, args);
   args.clear();
   args.push_back(s);      
-  Value *ss = callRuntimeFun("String_c_str", Type::getInt8Ty(*TheContext)->getPointerTo(), argTypes, args);
+  Value *ss = callRuntimeFun("String_c_str", PointerType::get(Type::getInt8Ty(*TheContext), 0), argTypes, args);
   args.clear();
   args.push_back(ss);      
   callRuntimeFun("logText", Type::getVoidTy(*TheContext), argTypes, args);
@@ -178,7 +176,7 @@ Value * CodeGenerator::dynamicNil() {
 TypedValue CodeGenerator::loadObjectFromRuntime(void *ptr) {
   objectType t = getTypeC(ptr);
   auto type = ObjectTypeSet(t, true);
-  Value *value = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) ptr, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_boxed");
+  Value *value = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) ptr, false)), PointerType::get(Type::getInt8Ty(*TheContext), 0), "void_to_boxed");
   return unbox(TypedValue(type, value));
 }
 
@@ -279,7 +277,7 @@ StructType *CodeGenerator::runtimeObjectType() {
 // Type::getInt64Ty(*TheContext);
 // Type::getDoubleTy(*TheContext);
 // Type::getInt1Ty(*TheContext);
-// Type::getInt8Ty(*TheContext)->getPointerTo();
+// PointerType::get(Type::getInt8Ty(*TheContext), 0);
 
 
 StructType *CodeGenerator::runtimeInvokationCacheType() {
@@ -289,7 +287,7 @@ StructType *CodeGenerator::runtimeInvokationCacheType() {
            /* signature */ ArrayType::get(Type::getInt64Ty(*TheContext), 3),
            /* packed */ Type::getInt64Ty(*TheContext),
            /* returnType */ Type::getInt8Ty(*TheContext),
-           /* fptr */ Type::getInt8Ty(*TheContext)->getPointerTo()
+           /* fptr */ PointerType::get(Type::getInt8Ty(*TheContext), 0)
     }, "Clojure_InvokationCache");
 }
 
@@ -301,8 +299,8 @@ StructType *CodeGenerator::runtimeFunctionMethodType() {
            /* fixedArity */ Type::getInt64Ty(*TheContext),
            /* isVariadic */ Type::getInt64Ty(*TheContext),
            /* closedOversCount */ Type::getInt64Ty(*TheContext),
-           /* loopId */ Type::getInt8Ty(*TheContext)->getPointerTo(),
-           /* closedOvers */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+           /* loopId */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
+           /* closedOvers */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
            /* invokations */ ArrayType::get(runtimeInvokationCacheType(), 3)
     }, "Clojure_FunctionMethod");
 }
@@ -392,30 +390,30 @@ StructType *CodeGenerator::runtimeClassType() {
    return StructType::create(*TheContext, {
        /* super */       runtimeObjectType(),
        /* registerId */ Type::getInt64Ty(*TheContext),
-       /* name */ Type::getInt8Ty(*TheContext)->getPointerTo(),
-       /* className */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* name */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
+       /* className */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
        /* isInterface */ Type::getInt8Ty(*TheContext),
-       /* superclass */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* superclass */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
        
        /* staticFieldCount */ Type::getInt64Ty(*TheContext),
-       /* staticFieldNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
-       /* staticFields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* staticFieldNames */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
+       /* staticFields */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
        
        /* staticMethodCount */ Type::getInt64Ty(*TheContext),
-       /* staticMethodNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
-       /* staticMethods */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* staticMethodNames */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
+       /* staticMethods */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
        
        /* fieldCount */ Type::getInt64Ty(*TheContext),
-       /* indexPermutation */ Type::getInt8Ty(*TheContext)->getPointerTo(),
-       /* fields */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* indexPermutation */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
+       /* fields */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
        
        /* methodCount */ Type::getInt64Ty(*TheContext),
-       /* methodNames */ Type::getInt8Ty(*TheContext)->getPointerTo(),
-       /* methods */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* methodNames */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
+       /* methods */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
        
        /* implementedInterfacesCount */ Type::getInt64Ty(*TheContext),
-       /* implementedInterfaceClasses */ Type::getInt8Ty(*TheContext)->getPointerTo(),
-       /* implementedInterfaces */ Type::getInt8Ty(*TheContext)->getPointerTo(),
+       /* implementedInterfaceClasses */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
+       /* implementedInterfaces */ PointerType::get(Type::getInt8Ty(*TheContext), 0),
      }, "Clojure_Class");
 }
 
@@ -428,7 +426,7 @@ void CodeGenerator::dynamicRetain(Value *objectPtr) {
   vector<Type *> t;
   vector<Value * > v;
   //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
-  t.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  t.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
   v.push_back(objectPtr);
   auto retain = callRuntimeFun("retain", Type::getVoidTy(*TheContext),t, v);
   if (auto *i = dyn_cast<Instruction>(retain)) {
@@ -461,7 +459,7 @@ Value *CodeGenerator::getRuntimeObjectType(Value *objectPtr) {
   vector<Type *> t;
   vector<Value * > v;
 //  callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
-  t.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  t.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
   v.push_back(objectPtr);
   return callRuntimeFun("getType", Type::getInt32Ty(*TheContext),t, v);
 #endif
@@ -475,11 +473,11 @@ Value *CodeGenerator::getRuntimeObjectType(Value *objectPtr) {
 
 TypedValue CodeGenerator::dynamicIsReusable(Value *what) {
 #ifdef RUNTIME_MEMORY_TRACKING
-  assert(what->getType() == Type::getInt8Ty(*TheContext)->getPointerTo() && "Not a pointer!");
+  assert(what->getType() == PointerType::get(Type::getInt8Ty(*TheContext), 0) && "Not a pointer!");
   vector<Type *> t;
   vector<Value * > v;
   //callRuntimeFun("printReferenceCounts", Type::getVoidTy(*TheContext), t, v, false);
-  t.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  t.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
   v.push_back(what);
   return TypedValue(ObjectTypeSet(booleanType), Builder->CreateIntCast(callRuntimeFun("isReusable", Type::getInt8Ty(*TheContext),t, v), dynamicUnboxedType(booleanType), false));
 #endif
@@ -495,19 +493,19 @@ TypedValue CodeGenerator::dynamicIsReusable(Value *what) {
 Value * CodeGenerator::dynamicString(const char *str) {
   String * retVal = String_createDynamicStr(str);
   /* TODO: uniquing? */
-  Value *strPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_boxed");
+  Value *strPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), PointerType::get(Type::getInt8Ty(*TheContext), 0), "void_to_boxed");
   return strPointer;
 }
 
 Value * CodeGenerator::dynamicBigInteger(const char *value) {
   BigInteger * retVal = BigInteger_createFromStr((char *)value);
-  Value *bigIntegerPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
+  Value *bigIntegerPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), PointerType::get(Type::getInt8Ty(*TheContext), 0), "void_to_unboxed");
   return bigIntegerPointer;
 }
 
 Value * CodeGenerator::dynamicRatio(const char *value) {
   Ratio * retVal = Ratio_createFromStr((char *)value);
-  Value *ratioPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
+  Value *ratioPointer = Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), PointerType::get(Type::getInt8Ty(*TheContext), 0), "void_to_unboxed");
   return ratioPointer;
 }
 // TODO - after super cleanup
@@ -518,7 +516,7 @@ TypedValue CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false
 #ifdef RUNTIME_MEMORY_TRACKING
   vector<Type *> typess;
   vector<Value *> argss;
-  typess.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  typess.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
   argss.push_back(what);    
   auto release = callRuntimeFun(isAutorelease ? "autorelease" : "release", Type::getVoidTy(*TheContext), typess, argss); 
   if (auto *i = dyn_cast<Instruction>(release)) {
@@ -547,7 +545,7 @@ TypedValue CodeGenerator::dynamicRelease(Value *what, bool isAutorelease = false
   Builder->SetInsertPoint(destroyBB);
   vector<Type *> types;
   vector<Value *> args;
-  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  types.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
   args.push_back(object);
 
   types.push_back(Type::getInt8Ty(*TheContext));
@@ -573,7 +571,7 @@ Value * CodeGenerator::dynamicSymbol(const char *name) {
   auto names = dynamicString(name);
   vector<Type *> types;
   vector<Value *> args;
-  types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  types.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
 
   args.push_back(names);
   return dynamicCreate(symbolType, types, args);
@@ -583,7 +581,7 @@ Value * CodeGenerator::dynamicKeyword(const char *name) {
   String *names = String_createDynamicStr(name);
   
   Keyword * retVal = Keyword_create(names);
-  Value *ptrKeyword =  Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), Type::getInt8Ty(*TheContext)->getPointerTo(), "void_to_unboxed");
+  Value *ptrKeyword =  Builder->CreateBitOrPointerCast(ConstantInt::get(*TheContext, APInt(64, (int64_t) retVal, false)), PointerType::get(Type::getInt8Ty(*TheContext), 0), "void_to_unboxed");
   return ptrKeyword;
 }
 
@@ -610,7 +608,7 @@ Type *CodeGenerator::dynamicUnboxedType(objectType type) {
     case functionType:
     case varType:
     case concurrentHashMapType:
-      return Type::getInt8Ty(*TheContext)->getPointerTo();
+      return PointerType::get(Type::getInt8Ty(*TheContext), 0);
   }
 }
 
@@ -630,11 +628,11 @@ Value *CodeGenerator::dynamicZero(const ObjectTypeSet &type) {
 }
 
 Type *CodeGenerator::dynamicBoxedType(objectType type) {
-  return Type::getInt8Ty(*TheContext)->getPointerTo();
+  return PointerType::get(Type::getInt8Ty(*TheContext), 0);
 }
 
 PointerType *CodeGenerator::dynamicBoxedType() {
-  return Type::getInt8Ty(*TheContext)->getPointerTo();
+  return PointerType::get(Type::getInt8Ty(*TheContext), 0);
 }
 
 Type *CodeGenerator::dynamicType(const ObjectTypeSet &type) {
@@ -666,7 +664,7 @@ pair<BasicBlock *, Value *> CodeGenerator::dynamicUnbox(const Node &node, const 
     unboxType = Type::getInt8Ty(*TheContext);
     break;
   default:
-    unboxType = Type::getInt8Ty(*TheContext)->getPointerTo();
+    unboxType = PointerType::get(Type::getInt8Ty(*TheContext), 0);
     break;
   }
 
@@ -686,9 +684,9 @@ pair<BasicBlock *, Value *> CodeGenerator::dynamicUnbox(const Node &node, const 
   Builder->SetInsertPoint(mergeBB);
   
   Value *loaded = nullptr;
-  if(unboxType == Type::getInt8Ty(*TheContext)->getPointerTo()) loaded = value.second;
+  if(unboxType == PointerType::get(Type::getInt8Ty(*TheContext), 0)) loaded = value.second;
   else {
-    Value *ptr = Builder->CreateBitOrPointerCast(value.second, stype->getPointerTo(), "void_to_struct");
+    Value *ptr = Builder->CreateBitOrPointerCast(value.second, PointerType::get(stype, 0), "void_to_struct");
     // Every unboxable data type has its value at "1" position (0 being Object)
     Value *tPtr = Builder->CreateStructGEP(stype, ptr, 1, "struct_unbox_gep");
     
@@ -725,7 +723,7 @@ TypedValue CodeGenerator::unbox(const TypedValue &value) {
     return TypedValue(t, value.second);
   }
 
-  Value *ptr = Builder->CreateBitOrPointerCast(value.second, stype->getPointerTo(), "void_to_struct");
+  Value *ptr = Builder->CreateBitOrPointerCast(value.second, PointerType::get(stype, 0), "void_to_struct");
   Value *tPtr = Builder->CreateStructGEP(stype, ptr, 1, "struct_unbox_gep");
 
   Value *loaded = Builder->CreateLoad(type, tPtr, "load_var");
@@ -774,7 +772,7 @@ TypedValue CodeGenerator::box(const TypedValue &value) {
 Value *CodeGenerator::dynamicCond(Value *cond) {
   /* We assume value is always of boxed pointer type here */
   /* TODO: this could be inlined for speed, for now we call into runtime (slower) */
-  vector<Type *> argTypes = { Type::getInt8Ty(*TheContext)->getPointerTo() };
+  vector<Type *> argTypes = { PointerType::get(Type::getInt8Ty(*TheContext), 0) };
   vector<Value *> args = { cond };
   Value *int8bool = callRuntimeFun("logicalValue", Type::getInt8Ty(*TheContext), argTypes, args); 
   return Builder->CreateIntCast(int8bool, dynamicUnboxedType(booleanType), false);
@@ -850,14 +848,14 @@ extern "C" {
 
 /* LOAD-STORE examples */
 
-//   Type *objectTypeType = Type::getInt8Ty(*TheContext)->getPointerTo();    
+//   Type *objectTypeType = PointerType::get(Type::getInt8Ty(*TheContext), 0);    
   
 //   /* For now we use a call to 'super' from the runtime. In the future we will replace it with our own fast inlined computation */
   
 // // cast (void *) arg back to original arg type
 //   llvm::Value *argVoidPtr = asyncFun->args().begin();
 //   llvm::Value *argStructPtr = 
-//       builder->CreatePointerCast(argVoidPtr, argStructTy->getPointerTo());
+//       builder->CreatePointerCast(argVoidPtr, PointerType::get(argStructTy), 0);
 
 //   // allocate function args on the stack
 //   for (int i = 0; i < asyncExpr.freeVars.size(); i++) {

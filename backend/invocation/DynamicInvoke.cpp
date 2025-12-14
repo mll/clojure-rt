@@ -1,5 +1,4 @@
 #include "../codegen.h"  
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <sstream>
 #include "../cljassert.h"
 
@@ -18,13 +17,19 @@ extern "C" {
 
 */
 
-Value *CodeGenerator::dynamicInvoke(const Node &node, 
-                                    Value *objectToInvoke, 
-                                    Value* objectType, 
-                                    const ObjectTypeSet &retValType, 
-                                    const vector<TypedValue> &args, 
-                                    Value *uniqueFunctionId, 
+Value *CodeGenerator::dynamicInvoke(const Node &node, Value *objectToInvoke,
+                                    Value *objectType,
+                                    const ObjectTypeSet &retValType,
+                                    const vector<TypedValue> &args,
+                                    Value *uniqueFunctionId,
                                     Function *staticFunctionToCall) {
+
+  /* The uniqueFunctionId and staticFunctiontocall are always NULLptr. This is
+     because vars containing functions can be redefined at all times.
+     In the future it is possible to re-introduce the static route, so we leave this here.
+  */
+
+  
   //cout << "Calling dynamic " << args.size() << endl;
   BasicBlock *initialBB = Builder->GetInsertBlock();
   Function *parentFunction = initialBB->getParent();
@@ -42,7 +47,7 @@ Value *CodeGenerator::dynamicInvoke(const Node &node,
   Builder->CreateCondBr(isVar, varTypeBB, derefedBB);
   
   Builder->SetInsertPoint(varTypeBB);
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   Value *derefedVar = callRuntimeFun("Var_deref", ptrT, {ptrT}, {objectToInvoke});
   Value *derefedType = getRuntimeObjectType(derefedVar);
   Builder->CreateBr(derefedBB);
@@ -274,7 +279,7 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
   vector<TypedValue> specialisationArgs;
 
   Value* jitAddressConst = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (int64_t)TheJIT, false));
-  Value* jitAddress = Builder->CreateIntToPtr(jitAddressConst, Type::getInt8Ty(*TheContext)->getPointerTo(), "int_to_ptr"); 
+  Value* jitAddress = Builder->CreateIntToPtr(jitAddressConst, PointerType::get(Type::getInt8Ty(*TheContext), 0), "int_to_ptr"); 
 
   specialisationArgs.push_back(TypedValue(ObjectTypeSet::all(), jitAddress));
   specialisationArgs.push_back(TypedValue(ObjectTypeSet::all(), rtFnPointer));
@@ -293,7 +298,7 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
     argVals.push_back(arg.second);
   }
   /* Last arg is a pointer to the function object, so that we can extract closed overs */
-  argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  argTypes.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
   argVals.push_back(rtFnPointer);
 
   auto retVal = dynamicType(retValType);
@@ -309,7 +314,7 @@ Value *CodeGenerator::callDynamicFun(const Node &node, Value *rtFnPointer, const
   
   string rName = ObjectTypeSet::fullyQualifiedMethodKey(node.form(), argTypess, retValType);
 
-  Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, FT->getPointerTo());
+  Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, PointerType::get(FT, 0));
   auto finalRetVal = Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("call_dynamic_") + rName);
 
   Function *parentFunction = Builder->GetInsertBlock()->getParent();  

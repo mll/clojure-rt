@@ -1,5 +1,4 @@
 #include "codegen.h"  
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <sstream>
 #include "cljassert.h"
 
@@ -38,7 +37,7 @@ void CodeGenerator::buildStaticFun(const int64_t uniqueId,
     argTypes.push_back(dynamicType(arg));
   }
   /* Last arg is a pointer to the function object, so that we can extract closed overs */
-  argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+  argTypes.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
 
   Type *retFunType = dynamicType(retType);
    

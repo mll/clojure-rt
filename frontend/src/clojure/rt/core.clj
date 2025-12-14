@@ -111,9 +111,11 @@
 
 ;; (compile "(+ 3 2)" "bytecode.clb")
 (defn compile [form outfile infile-name]
-  (clojure.java.io/copy
-   (protojure/->pb (enc/encode-ast (analyze form infile-name)))
-   (java.io.File. outfile)))
+  (-> form
+      (analyze infile-name)
+      (enc/encode-ast)
+      (protojure/->pb)
+      (clojure.java.io/copy (java.io.File. outfile))))
 
 (defn -main
   ([infile] (let [parts (split infile #"\.")]

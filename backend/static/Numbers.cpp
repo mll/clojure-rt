@@ -255,7 +255,7 @@ TypedValue Numbers_generic_op(
     type_args.push_back(t.first);
   }
   auto type = Numbers_op_type(gen, signature, node, type_args);
-  auto pointerType = Type::getInt8Ty(*gen->TheContext)->getPointerTo();
+  auto pointerType = PointerType::get(Type::getInt8Ty(*gen->TheContext), 0);
   ObjectTypeConstant *constant = type.getConstant();
   void *value;
   Value *mpPointer;

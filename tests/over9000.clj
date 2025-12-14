@@ -14,7 +14,7 @@
 
 (over9000-recur 1)
 
-;; CHECK: define i64 @fn_2_J_J
+;; CHECK: define i64 @fn_2_J_LO
 ;; CHECK-NOT: load atomic ptr
 ;; CHECK: }
 

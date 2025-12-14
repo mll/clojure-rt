@@ -1,21 +1,19 @@
 #ifndef LLVM_PASSES_RETAINRELEASE
 #define LLVM_PASSES_RETAINRELEASE
 
-#include "llvm/Pass.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/IR/Function.h"
-#include "llvm/IR/LegacyPassManager.h"
 
-using namespace llvm;
+// The new pass inherits from PassInfoMixin
+class RetainReleasePass : public llvm::PassInfoMixin<RetainReleasePass> {
+public:
+  // The new entry point for the pass.
+  // It takes the Function and the FunctionAnalysisManager as arguments.
+  llvm::PreservedAnalyses run(llvm::Function &F, llvm::FunctionAnalysisManager &AM);
 
-class RetainReleasePass : public FunctionPass {
-  public:
-  
-  static char ID;
-  
-  explicit RetainReleasePass() : FunctionPass(ID) {};
-  bool runOnFunction(Function &F) override;
+  // This is a required static method for the new pass manager to identify the pass.
+  static llvm::StringRef name() { return "RetainReleasePass"; }
 };
 
-FunctionPass *createRetainReleasePass();
-
 #endif
+

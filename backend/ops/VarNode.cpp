@@ -7,7 +7,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const VarNode &subnode, cons
   string name = subnode.var().substr(2);
   auto type = getType(node, typeRestrictions);
   Var *var = TheProgramme->DefinedVarsByName.find(name)->second; // getType verifies that it exists
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   Value *varPtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) var, false)), ptrT);
   dynamicRetain(varPtr);
   Value *varValue = callRuntimeFun("Var_deref", ptrT, {ptrT}, {varPtr});

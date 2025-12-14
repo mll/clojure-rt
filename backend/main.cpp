@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
       struct timeval as, ap;
       
       auto ExprSymbol = ExitOnErr(TheJIT->lookup(fname));
-      void * (*FP)() = (void * (*)())(intptr_t)ExprSymbol.getAddress();
+      void * (*FP)() = (void * (*)())(intptr_t)ExprSymbol.getAddress().getValue();
 
       printReferenceCounts();
       printf("Computing: %s\n", topLevel.form().c_str());      

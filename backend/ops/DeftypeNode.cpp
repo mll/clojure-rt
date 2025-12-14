@@ -11,7 +11,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DeftypeNode &subnode, 
   Value *className = dynamicString(classNameStr.c_str());
   dynamicRetain(className);
   auto superclassStr = subnode.superclass();
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   
   Value *superclassPtr;
   if (superclassStr == "") {
@@ -137,7 +137,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const DeftypeNode &subnode, 
       Value *position = ConstantInt::get(*TheContext, APInt(64, i, false));
       Value *index = ConstantInt::get(*TheContext, APInt(64, i, false)); // What is index? Position in method list before sorting?
       Value *fixedArity = ConstantInt::get(*TheContext, APInt(64, method.fixedarity(), false));
-      Value *isVariadic = ConstantInt::get(*TheContext, APInt(8, method.params().size() > method.fixedarity(), false));
+      Value *isVariadic = ConstantInt::get(
+          *TheContext,
+          APInt(8, method.params().size() > method.fixedarity(), false));
+
       Value *loopId = Builder->CreateGlobalStringPtr(StringRef(method.loopid().c_str()), "staticString");
       Value *closedOversCount = ConstantInt::get(*TheContext, APInt(64, 0, false)); // methods can't have closedovers
       vector <Type *> fillMethodTypes {ptrT, Type::getInt64Ty(*TheContext), Type::getInt64Ty(*TheContext), Type::getInt64Ty(*TheContext), Type::getInt8Ty(*TheContext), ptrT, Type::getInt64Ty(*TheContext)};

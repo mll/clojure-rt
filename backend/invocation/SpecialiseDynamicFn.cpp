@@ -142,7 +142,7 @@ extern "C" {
     void *retVal = nullptr;
     try {
       auto ExprSymbol = eo(jit->lookup(rqName));
-      retVal = (void *)ExprSymbol.getAddress();
+      retVal = (void *)ExprSymbol.getAddress().toPtr<void *>();
       
     } catch(CodeGenerationException e) {
       printf("Code generation exception detected in DynamicRuntime.cpp/specialiseDynamicFn !!!! %s\n", e.toString().c_str());

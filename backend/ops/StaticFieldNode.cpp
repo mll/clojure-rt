@@ -8,7 +8,7 @@ extern "C" {
 } 
 
 TypedValue CodeGenerator::codegen(const Node &node, const StaticFieldNode &subnode, const ObjectTypeSet &typeRestrictions) {
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   auto staticFieldType = getType(node, subnode, typeRestrictions);
   Value *className = dynamicString(subnode.class_().c_str());
   dynamicRetain(className);

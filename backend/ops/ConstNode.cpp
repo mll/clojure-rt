@@ -14,7 +14,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const ConstNode &subnode, co
   Value *retVal;
 
   auto name = subnode.val();
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   
   switch(types.determinedType()) {
   case integerType:

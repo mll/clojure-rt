@@ -11,7 +11,7 @@ backend/CMakeCache*
 backend/runtime/CMakeCache*
 backend/runtime/Testing*
 backend/runtime/CTestTestfile.cmake
-backend/runtime/*._test
+backend/runtime/*_test
 
 backend/cmake_install*
 backend/runtime/cmake_install*

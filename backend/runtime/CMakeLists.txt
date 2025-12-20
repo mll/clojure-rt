@@ -58,6 +58,7 @@ set(COMMON_TEST_SOURCES
 set(TEST_MODULES
     ConcurrentHashMap_test
     PersistentList_test
+    PersistentVector_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

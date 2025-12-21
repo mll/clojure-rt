@@ -100,7 +100,7 @@
           (if (= :eof form) (do ;;(clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) ;; uncomment to see simple tree
                                 ret-val)
               (do
-                ;; (eval form)
+                (eval form)
                 (recur (r/read {:eof :eof} reader)
                      (->> 
                       (a/analyze form (a/empty-env) {:passes-opts passes-opts})      

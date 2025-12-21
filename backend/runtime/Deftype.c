@@ -10,7 +10,7 @@ Deftype* Deftype_create(Class *_class, uint64_t fieldCount, ...) {
   va_list args;
   va_start(args, fieldCount);
 
-  for (int i = 0; i < fieldCount; i++) {
+  for (uint64_t i = 0; i < fieldCount; i++) {
     void *field = va_arg(args, void *);
     self->values[_class->indexPermutation[i]] = field;
   }
@@ -28,7 +28,7 @@ BOOL Deftype_equals(Deftype *self, Deftype *other) {
 /* outside refcount system */
 uint64_t Deftype_hash(Deftype *self) {
   uint64_t initialHash = hash(self->_class);
-  for (int i = 0; i < self->_class->fieldCount; ++i)
+  for (uint64_t i = 0; i < self->_class->fieldCount; ++i)
     initialHash = combineHash(initialHash, hash(self->values[i]));
   return initialHash;
 }
@@ -70,7 +70,7 @@ String *Deftype_toString(Deftype *self) {
 
 void Deftype_destroy(Deftype *self) {
   // Alek: dlaczego ++i a nie i++?
-  for (int i = 0; i < self->_class->fieldCount; ++i) Object_release(self->values[i]);
+  for (uint64_t i = 0; i < self->_class->fieldCount; ++i) Object_release(self->values[i]);
   release(self->_class);
 }
 
@@ -92,7 +92,7 @@ Class *Deftype_getClass(Deftype *self) {
 }
 
 void *Deftype_getIndexedField(Deftype *self, int64_t i) {
-  if (i < 0 || i >= self->_class->fieldCount) {
+  if (i < 0 || i >= (int64_t)self->_class->fieldCount) {
     release(self); return NULL; // unsafe index exception - field not found?
   }
   void *retVal = self->values[i];

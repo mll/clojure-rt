@@ -22,7 +22,7 @@ void Interface_initialise() {
 
 void printReferenceCounts() {
   printf("Ref counters: ");  
-  for(int i= integerType; i<=persistentArrayMapType; i++) {
+  for(unsigned char i= integerType; i <= persistentArrayMapType; i++) {
     printf("%llu/%llu ", allocationCount[i-1], objectCount[i-1]);    
   }
   printf("\n");
@@ -52,7 +52,7 @@ void **packPointerArgs(uint64_t count, ...) {
   void **ptr = allocate(sizeof(void *) * count);
   va_list args;
   va_start(args, count);
-  for (int i = 0; i < count; ++i) {
+  for (uint64_t i = 0; i < count; ++i) {
     ptr[i] = va_arg(args, void *);
   }
   va_end(args);

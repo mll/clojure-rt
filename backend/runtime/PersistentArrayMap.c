@@ -42,7 +42,7 @@ PersistentArrayMap* PersistentArrayMap_createMany(uint64_t pairCount, ...) {
   PersistentArrayMap *self = PersistentArrayMap_create();
   
   self->count = pairCount;
-  for(int i=0; i<pairCount; i++) {
+  for(uint64_t i=0; i<pairCount; i++) {
     void *k = va_arg(args, void *);
     void *v = va_arg(args, void *);
     self->keys[i] = k;
@@ -55,7 +55,7 @@ PersistentArrayMap* PersistentArrayMap_createMany(uint64_t pairCount, ...) {
 /* outside refcount system */
 BOOL PersistentArrayMap_equals(PersistentArrayMap *self, PersistentArrayMap *other) {
   if(self->count != other->count) return FALSE;
-  for(int i=0; i< self->count; i++) {
+  for(uint64_t i=0; i< self->count; i++) {
     void *key = self->keys[i];
     void *val = self->values[i];
     retain(self);
@@ -69,7 +69,7 @@ BOOL PersistentArrayMap_equals(PersistentArrayMap *self, PersistentArrayMap *oth
 /* outside refcount system */
 uint64_t PersistentArrayMap_hash(PersistentArrayMap *self) {
     uint64_t h = 5381; // hashing should be cached?
-    for(int i=0; i<self->count; i++) {
+    for(uint64_t i=0; i<self->count; i++) {
       void *key = self->keys[i];
       void *value = self->values[i];
       h += (hash(key) ^ hash(value));
@@ -85,7 +85,7 @@ String *PersistentArrayMap_toString(PersistentArrayMap *self) {
   String *closing = String_create("}");
 
   BOOL hasAtLeastOne = FALSE;
-  for(int i=0; i<self->count; i++) {
+  for(uint64_t i=0; i<self->count; i++) {
       void *key = self->keys[i];
       if(hasAtLeastOne) {
         retain(comma);
@@ -112,7 +112,7 @@ String *PersistentArrayMap_toString(PersistentArrayMap *self) {
 /* outside refcount system */
 void PersistentArrayMap_destroy(PersistentArrayMap *self, BOOL deallocateChildren) {
   if(deallocateChildren) {
-    for(int i=0; i<self->count; i++) {
+    for(uint64_t i=0; i<self->count; i++) {
       void *key = self->keys[i];
       void *value = self->values[i];
       release(key); 
@@ -123,9 +123,9 @@ void PersistentArrayMap_destroy(PersistentArrayMap *self, BOOL deallocateChildre
 
 /* outside refcount system */
 void PersistentArrayMap_retainChildren(PersistentArrayMap *self, int except) {
- for(int i=0; i<self->count; i++) {
+ for(uint64_t i=0; i<self->count; i++) {
     void *foundKey = self->keys[i];
-    if(foundKey && except != i) {
+    if(foundKey && except != (int)i) {
       retain(self->keys[i]);
       retain(self->values[i]);
     }
@@ -173,7 +173,7 @@ PersistentArrayMap* PersistentArrayMap_dissoc(PersistentArrayMap *self, void *ke
   PersistentArrayMap *retVal = reusable ? self : PersistentArrayMap_copy(self);
   void *k = retVal->keys[found];
   void *v = retVal->values[found];
-  for(int64_t i=found; i<self->count-1;i++) {
+  for(uint64_t i=found; i<self->count-1;i++) {
     retVal->keys[i] = self->keys[i+1];
     retVal->values[i] = self->values[i+1];
   }
@@ -192,7 +192,7 @@ PersistentArrayMap* PersistentArrayMap_dissoc(PersistentArrayMap *self, void *ke
 /* mem done */
 int64_t PersistentArrayMap_indexOf(PersistentArrayMap *self, void *key) {
   int64_t retVal = -1;
-  for(int64_t i=0; i<self->count; i++) {
+  for(uint64_t i=0; i<self->count; i++) {
     if(equals(key, self->keys[i])) {
       retVal = i;
       break;
@@ -206,7 +206,7 @@ int64_t PersistentArrayMap_indexOf(PersistentArrayMap *self, void *key) {
 /* mem done */
 void* PersistentArrayMap_get(PersistentArrayMap *self, void *key) {
   void *retVal = NULL;
-  for(int64_t i=0; i<self->count; i++) {
+  for(uint64_t i=0; i<self->count; i++) {
     if(equals(key, self->keys[i])) {
       retVal = self->values[i];
       break;

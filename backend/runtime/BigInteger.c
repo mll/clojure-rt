@@ -114,7 +114,7 @@ void *BigInteger_div(BigInteger *self, BigInteger *other) {
     release(other);
     return NULL; // Exception: divide by zero
   }
-  void *retVal = NULL;
+  
   if (mpz_divisible_p(self->value, other->value)) {
     BOOL selfReusable = isReusable(self);
     BOOL otherReusable = isReusable(other);

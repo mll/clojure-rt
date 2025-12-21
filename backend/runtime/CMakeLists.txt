@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.26)
 project(runtime)
 
-#set(CMAKE_OSX_ARCHITECTURES "arm64")
+set(CMAKE_OSX_ARCHITECTURES "arm64")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -46,6 +46,29 @@ find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
 mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
 include_directories(${GMP_INCLUDE_DIRS})
 
-add_executable(runtime-tests runtime-tests.cpp)
+enable_testing()
 
-target_link_libraries(runtime-tests PUBLIC runtime ${GMP_LIBRARY})
+find_package(Cmocka REQUIRED)
+include_directories(${CMOCKA_INCLUDE_DIRS})
+
+set(COMMON_TEST_SOURCES 
+    tests/TestTools.c
+)
+
+set(TEST_MODULES
+    ConcurrentHashMap_test
+    PersistentList_test
+    PersistentVector_test
+)
+
+foreach(TEST_MODULE ${TEST_MODULES})
+    set(EXEC_NAME ${TEST_MODULE})
+    add_executable(${EXEC_NAME} tests/${TEST_MODULE}.c ${COMMON_TEST_SOURCES})
+    target_link_libraries(${EXEC_NAME} PUBLIC runtime ${GMP_LIBRARY} ${CMOCKA_LIBRARIES})
+    
+    add_test(
+        NAME ${EXEC_NAME} 
+        COMMAND ${EXEC_NAME}
+        LABELS "Unit"
+    )
+endforeach()

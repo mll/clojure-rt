@@ -1,9 +1,10 @@
-#include "jit/jit.h"
-#include "codegen.h"
-#include "FunctionJIT.h"
+#include "ClosedOvers.h"
+#include "../jit/jit.h"
+#include "../codegen.h"
+#include "../FunctionJIT.h"
 
 extern "C" {
-#include "runtime/Function.h"
+#include "../runtime/Function.h"
 #include <execinfo.h>
 
 /* Functions in this group represent some additional runtime functions that feed back directly to 
@@ -64,7 +65,14 @@ extern "C" {
      this form of call can handle up to 24 arguments (three values). Original clojure can handle up to 20 arguments before going vararg, so this should be enough.
       */
  
-  void *specialiseDynamicFn(void *jitPtr, void *funPtr, uint64_t retValType, uint64_t argCount, uint64_t argSignature1, uint64_t argSignature2, uint64_t argSignature3, uint64_t packedArg) {    
+  void *specialiseDynamicFn(void *jitPtr, 
+                            void *funPtr, 
+                            uint64_t retValType, 
+                            uint64_t argCount, 
+                            uint64_t argSignature1, 
+                            uint64_t argSignature2, 
+                            uint64_t argSignature3, 
+                            uint64_t packedArg) {    
     ClojureJIT *jit = (ClojureJIT *)jitPtr;
     struct ClojureFunction *fun = (struct ClojureFunction *)funPtr;
     struct FunctionMethod *method = NULL;
@@ -76,7 +84,7 @@ extern "C" {
    Removing all the data from the function object could actually speed everything up a bit, 
    so maybe it is worth trying? The invokation cache certainly has its place here, but arities 
    could be sucked from JIT for sure */
-    for(int i=0; i<fun->methodCount; i++) {
+    for(uint64_t i = 0; i < fun->methodCount; i++) {
       struct FunctionMethod *candidate = &(fun->methods[i]);
       if(argCount == candidate->fixedArity || (argCount > candidate->fixedArity && candidate->isVariadic)) {
         method = candidate;
@@ -91,7 +99,7 @@ extern "C" {
     }
    
     struct InvokationCache *entry = NULL, *cachePosition = NULL;
-    for(int i=0; i<INVOKATION_CACHE_SIZE; i++) { 
+    for(int i = 0; i<INVOKATION_CACHE_SIZE; i++) { 
       /* Fast cache access */
       entry = &(method->invokations[i]);
       if(entry->fptr &&
@@ -104,23 +112,17 @@ extern "C" {
     } 
 
     std::vector<ObjectTypeSet> argT;
-    std::vector<ObjectTypeSet> closedOverT;
+
     ObjectTypeSet retValT;
     uint64_t mask = 0xff;
 
-    for(int i=0; i < argCount; i++) {
+    for(uint64_t i = 0; i < argCount; i++) {
       int group = i / 8;
       int index = i % 8;
       uint64_t type = (argSignature[group] >> (8 * index)) & mask;
       unsigned char isBoxed = (packedArg >> i) & 1;
       argT.insert(argT.begin(), ObjectTypeSet((objectType)type, isBoxed));
     }
-
-    for(int i=0; i< method->closedOversCount; i++) {
-      auto type = CodeGenerator::typeOfObjectFromRuntime(method->closedOvers[i]);
-      closedOverT.push_back(type);
-    }
-
 
     retValT = retValType == 0 ? ObjectTypeSet::all() : ObjectTypeSet((objectType)retValType);
     std::string name = "fn_" + std::to_string(fun->uniqueId);   
@@ -130,7 +132,10 @@ extern "C" {
     f->retVal = retValT;
     f->uniqueId = fun->uniqueId;
     f->methodIndex = method->index;
-    f->closedOvers = closedOverT;
+
+    /* Closed overs */ 
+    addClosedOversToFunctionJIT(method, *f);
+
     llvm::ExitOnError eo = llvm::ExitOnError();
     /* TODO - we probably need to modify TheProgramme here somehow, this needs more thinking */
     eo(jit->addAST(std::move(f)));

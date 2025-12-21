@@ -233,7 +233,7 @@ inline BOOL Object_release_internal(Object *restrict self, BOOL deallocateChildr
 #ifdef REFCOUNT_NONATOMIC
   if (--self->refCount == 0) {
 #else
-  uint64_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_relaxed);  
+  uint64_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_release);  
   assert(relVal >= 1 && "Memory corruption!");
   if (relVal == 1) {
 #ifdef REFCOUNT_TRACING
@@ -241,6 +241,7 @@ inline BOOL Object_release_internal(Object *restrict self, BOOL deallocateChildr
     assert(countVal >= 1 && "Memory corruption!");
 #endif
 #endif
+    atomic_thread_fence(memory_order_acquire);    
     Object_destroy(self, deallocateChildren);
     return TRUE;
   }

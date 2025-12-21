@@ -294,7 +294,7 @@ uint64_t ConcurrentHashMap_hash(ConcurrentHashMap *self) {
 /*   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed); */
 /*   sds retVal = sdsnew("{"); */
 /*   BOOL found = FALSE; */
-/*   for(int i=0; i<= root->sizeMask; i++) { */
+/*   for(uint64_t i=0; i<= root->sizeMask; i++) { */
 /*     ConcurrentHashMapEntry *entry = &(root->array[i]); */
 /*     Object *key = entry->key; */
 /*     Object *value = entry->value; */
@@ -327,7 +327,7 @@ String *ConcurrentHashMap_toString(ConcurrentHashMap *self) {
   String *closing = String_create("}"); 
 
   BOOL found = FALSE;
-  for(int i=0; i<= root->sizeMask; i++) {
+  for(uint64_t i=0; i<= root->sizeMask; i++) {
     ConcurrentHashMapEntry *entry = &(root->array[i]);
     Object *key = entry->key;
     Object *value = entry->value;
@@ -360,7 +360,7 @@ String *ConcurrentHashMap_toString(ConcurrentHashMap *self) {
 void ConcurrentHashMap_destroy(ConcurrentHashMap *self) {
     ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
     atomic_store(&(self->root), NULL);
-    for(int i=0; i<= root->sizeMask; i++) {
+    for(uint64_t i=0; i<= root->sizeMask; i++) {
       ConcurrentHashMapEntry *entry = &(root->array[i]);
       Object *key = atomic_load_explicit(&(entry->key), memory_order_relaxed);
       Object *value = atomic_load_explicit(&(entry->value), memory_order_relaxed);

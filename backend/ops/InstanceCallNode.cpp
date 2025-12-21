@@ -74,10 +74,10 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceCallNode &subn
     
     // Primitive method
     Value *statePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &*TheProgramme, false)), ptrT);
-    Value *nodePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &node, false)), ptrT);
+//    Value *nodePtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) &node, false)), ptrT);
     Value *typeValue = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, t, false));
     std::vector<Type *> primitiveMethodTypes {ptrT, ptrT, Type::getInt64Ty(*TheContext), Type::getInt64Ty(*TheContext)};
-    for (int i = 0; i < args.size(); ++i) primitiveMethodTypes.push_back(Type::getInt64Ty(*TheContext));
+    for (unsigned long i = 0; i < args.size(); ++i) primitiveMethodTypes.push_back(Type::getInt64Ty(*TheContext));
     Value *extraArgsCount = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, args.size(), false));
     std::vector<Value *> primitiveMethodValues {statePtr, methodNameValue, typeValue, extraArgsCount};
     for (auto arg: args) {

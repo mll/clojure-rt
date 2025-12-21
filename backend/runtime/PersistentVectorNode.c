@@ -69,6 +69,7 @@ PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * re
   uint64_t level_index = (index >> level) & RRB_MASK;
   BOOL reusable = allowsReuse && (isReusable(self) || (self->transientID == vectorTransientID));
   PersistentVectorNode *new = NULL;
+  
   if(reusable) new = self;
   else {
     new = PersistentVectorNode_allocate(self->count, self->type, vectorTransientID);

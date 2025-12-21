@@ -112,35 +112,35 @@ void Class_destroy(Class *self) {
   release(self->className);
   if (self->superclass) release(self->superclass);
   
-  for (int i = 0; i < self->staticFieldCount; ++i) {
+  for (uint64_t i = 0; i < self->staticFieldCount; ++i) {
     release(self->staticFieldNames[i]);
     Object_release(self->staticFields[i]);
   }
   if (self->staticFieldNames) deallocate(self->staticFieldNames);
   if (self->staticFields) deallocate(self->staticFields);
   
-  for (int i = 0; i < self->staticMethodCount; ++i) {
+  for (uint64_t i = 0; i < self->staticMethodCount; ++i) {
     release(self->staticMethodNames[i]);
     release(self->staticMethods[i]);
   }
   if (self->staticMethodNames) deallocate(self->staticMethodNames);
   if (self->staticMethods) deallocate(self->staticMethods);
   
-  for (int i = 0; i < self->fieldCount; ++i) {
+  for (uint64_t i = 0; i < self->fieldCount; ++i) {
     release(self->fieldNames[i]);
   }
   if (self->indexPermutation) deallocate(self->indexPermutation);
   if (self->fieldNames) deallocate(self->fieldNames);
   
-  for (int i = 0; i < self->methodCount; ++i) {
+  for (uint64_t i = 0; i < self->methodCount; ++i) {
     release(self->methodNames[i]);
     release(self->methods[i]);
   }
   if (self->methodNames) deallocate(self->methodNames);
   if (self->methods) deallocate(self->methods);
   
-  for (int i = 0; i < self->implementedInterfacesCount; ++i) {
-    for (int j = 0; j < self->implementedInterfaceClasses[i]->methodCount; ++j) {
+  for (uint64_t i = 0; i < self->implementedInterfacesCount; ++i) {
+    for (uint64_t j = 0; j < self->implementedInterfaceClasses[i]->methodCount; ++j) {
       release(self->implementedInterfaces[i][j]);
     }
     if (self->implementedInterfaces[i]) deallocate(self->implementedInterfaces[i]);
@@ -194,7 +194,7 @@ int64_t Class_staticFieldIndex(Class *self, Keyword *staticField) {
 }
 
 void *Class_setIndexedStaticField(Class *self, int64_t i, void *value) {
-  if (i < 0 || i >= self->staticFieldCount) {
+  if (i < 0 || i >= (int64_t)self->staticFieldCount) {
     release(self); release(value); return NULL; // unsafe index exception - field not found?
   }
   Object *oldValue = self->staticFields[i];
@@ -205,7 +205,7 @@ void *Class_setIndexedStaticField(Class *self, int64_t i, void *value) {
 }
 
 void *Class_getIndexedStaticField(Class *self, int64_t i) {
-  if (i < 0 || i >= self->staticFieldCount) {
+  if (i < 0 || i >= (int64_t)self->staticFieldCount) {
     release(self); return NULL; // unsafe index exception - field not found?
   }
   void *retVal = self->staticFields[i];

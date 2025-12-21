@@ -637,7 +637,7 @@ TypedValue Link_external(CodeGenerator *gen, const string &signature, const Node
   if (CalleeF->arg_size() != args.size()) throw CodeGenerationException(string("Argument count mismatch"), node);
   
   vector <Value *> argsF;
-  for(int i=0; i< args.size(); i++) {
+  for(unsigned long i=0; i< args.size(); i++) {
     auto left = args[i];
     if (left.first.isDetermined()) {
       switch(left.first.determinedType()) {

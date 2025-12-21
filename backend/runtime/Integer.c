@@ -6,35 +6,13 @@
 #include "Hash.h"
 #include "Ratio.h"
 
-/* mem done */
-Integer* Integer_create(int64_t integer) {
-  Integer *self = allocate(sizeof(Integer)); 
-  self->value = integer;
-  Object_create((Object *) self, integerType);
-  return self;
-}
-
-/* outside refcount system */
-BOOL Integer_equals(Integer *self, Integer *other) {
-  return self->value == other->value;
-}
-
-/* outside refcount system */
-uint64_t Integer_hash(Integer *self) {
-  return combineHash(5381 , avalanche_64(self->value)); 
-}
 
 /* mem done */
-String *Integer_toString(Integer *self) { 
+String *Integer_toString(int32_t self) { 
   String *retVal = String_createDynamic(21);
-  retVal->count = snprintf(retVal->value, 20, "%lld", self->value);
+  retVal->count = snprintf(retVal->value, 20, "%d", self);
   String_recomputeHash(retVal);
-  release(self);
   return retVal;
-}
-
-/* outside refcount system */
-void Integer_destroy(Integer *self) {
 }
 
 int64_t gcd(int64_t a, int64_t b) {

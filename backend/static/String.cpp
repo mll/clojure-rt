@@ -40,8 +40,8 @@ TypedValue Print(CodeGenerator *gen, const string &signature, const Node &node, 
 
   auto toString = gen->callRuntimeFun("Object_toString", ObjectTypeSet(stringType), {gen->box(args[0])});
   auto compactify = gen->callRuntimeFun("String_compactify", ObjectTypeSet(stringType), {toString});
-  auto cStr = gen->callRuntimeFun("String_c_str", Type::getInt8Ty(*(gen->TheContext))->getPointerTo(), {Type::getInt8Ty(*(gen->TheContext))->getPointerTo()}, {compactify.second});
-  auto res = gen->callRuntimeFun("printf", Type::getInt64Ty(*(gen->TheContext)), {Type::getInt8Ty(*(gen->TheContext))->getPointerTo()}, 
+  auto cStr = gen->callRuntimeFun("String_c_str", PointerType::get(Type::getInt8Ty(*(gen->TheContext)), 0), {PointerType::get(Type::getInt8Ty(*(gen->TheContext)), 0)}, {compactify.second});
+  auto res = gen->callRuntimeFun("printf", Type::getInt64Ty(*(gen->TheContext)), {PointerType::get(Type::getInt8Ty(*(gen->TheContext)), 0)}, 
                                  {gen->Builder->CreateGlobalStringPtr(StringRef("String/print: '%s'\n"), "dynamicString"), cStr}, true);  
   gen->dynamicRelease(compactify.second, false);
   return {ObjectTypeSet(integerType), res};

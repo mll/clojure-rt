@@ -16,12 +16,27 @@
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/Transforms/InstCombine/InstCombine.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Transforms/Vectorize.h"
+#include "llvm/Analysis/LoopAnalysisManager.h"
+#include "llvm/Analysis/CGSCCPassManager.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/Passes/PassBuilder.h"
 #include "llvm/Transforms/Scalar/GVN.h"
-#include "llvm/Transforms/Utils.h"
+#include "llvm/Transforms/Scalar/Reassociate.h"
+#include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include "llvm/Transforms/Scalar/SROA.h"
+#include "llvm/Transforms/Scalar/JumpThreading.h"
+#include "llvm/Transforms/Scalar/CorrelatedValuePropagation.h"
+#include "llvm/Transforms/Scalar/TailRecursionElimination.h"
+#include "llvm/Transforms/Scalar/ADCE.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Vectorize/SLPVectorizer.h"
+#include "llvm/Transforms/Vectorize/LoopVectorize.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#include "llvm/Support/Error.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Support/raw_ostream.h"
+
 
 #include <memory>
 #include "ASTLayer.h"
@@ -59,7 +74,7 @@ public:
   
   llvm::Error addModule(llvm::orc::ThreadSafeModule TSM, llvm::orc::ResourceTrackerSP RT = nullptr);
   llvm::Error addAST(std::unique_ptr<FunctionJIT> F, llvm::orc::ResourceTrackerSP RT = nullptr);
-  llvm::Expected<llvm::JITEvaluatedSymbol> lookup(llvm::StringRef Name);
+  llvm::Expected<llvm::orc::ExecutorSymbolDef> lookup(llvm::StringRef Name);
   std::shared_ptr<ProgrammeState> getProgramme();
 };
 

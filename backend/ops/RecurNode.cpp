@@ -97,7 +97,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, co
     vector<TypedValue> specialisationArgs;
 
     Value* jitAddressConst = ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (int64_t)TheJIT, false));
-    Value* jitAddress = Builder->CreateIntToPtr(jitAddressConst, Type::getInt8Ty(*TheContext)->getPointerTo(), "int_to_ptr"); 
+    Value* jitAddress = Builder->CreateIntToPtr(jitAddressConst, PointerType::get(Type::getInt8Ty(*TheContext), 0), "int_to_ptr"); 
 
     specialisationArgs.push_back(TypedValue(ObjectTypeSet::all(), jitAddress));
     specialisationArgs.push_back(TypedValue(ObjectTypeSet::all(), callObject));
@@ -116,7 +116,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, co
       argVals.push_back(arg.second);
     }
     /* Last arg is a pointer to the function object, so that we can extract closed overs */
-    argTypes.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+    argTypes.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
     argVals.push_back(callObject);
 
     auto retVal = dynamicType(type);
@@ -126,7 +126,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const RecurNode &subnode, co
     /* What if the new function returns a different type? we should probably not force the return type. It should be deduced by jit and our job should be to somehow box/unbox it. Alternatively, we can add return type to method name (like fn_1_JJ_LV) and force generation of function that returns the boxed version of needed return type. If it does not match - we should throw a runtime error */ 
 
     FunctionType *FT = FunctionType::get(retVal, argTypes, false);
-    Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, FT->getPointerTo());
+    Value *callablePointer = Builder->CreatePointerCast(functionPointer.second, PointerType::get(FT, 0));
     auto finalRetVal = Builder->CreateCall(FunctionCallee(FT, callablePointer), argVals, string("recur_call_dynamic"));
 // If parameters match maybe we should force a tail call?
 //    finalRetVal->setTailCallKind(CallInst::TCK_MustTail);

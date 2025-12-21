@@ -19,8 +19,8 @@ detect_ubuntu() {
 install_on_macos() {
   echo "Detected macOS. Installing with Homebrew..."
   # 1. LLVM@16
-  brew install llvm@16
-  brew unlink llvm@16 && brew link --force llvm@16
+  brew install llvm@20
+  brew unlink llvm@20 && brew link --force llvm@20
 
   # 2. Protobuf@21
   brew install protobuf@21
@@ -28,6 +28,9 @@ install_on_macos() {
 
   # 3. GMP
   brew install gmp
+  
+  # 4. CMocka
+  brew install cmocka
 
   echo "macOS installations complete!"
 }
@@ -39,10 +42,10 @@ install_on_ubuntu() {
   sudo apt-get update
   sudo apt-get install -y wget software-properties-common lsb-release gnupg
 
-  # 2. Install LLVM 16
+  # 2. Install LLVM 20
   wget https://apt.llvm.org/llvm.sh
   chmod +x llvm.sh
-  sudo ./llvm.sh 16
+  sudo ./llvm.sh 20
 
   # Register clang-16 & clang++-16 as the default clang/clang++
   sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-16 100
@@ -68,6 +71,10 @@ install_on_ubuntu() {
 
   # 4. Install GMP
   sudo apt-get install -y libgmp-dev
+  
+  # 5. Install cmocka
+  
+  sudo apt-get install -y libcmocka-dev
 
   echo "Ubuntu installations complete!"
 }

@@ -1,7 +1,6 @@
 #ifndef RT_CLOSEDOVERS
 #define RT_CLOSEDOVERS
 #include "../codegen.h"  
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <sstream>
 #include "../cljassert.h"
 

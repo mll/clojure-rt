@@ -15,7 +15,7 @@ while getopts t opt; do
 done
 
 shift $(($OPTIND - 1))
-echo $1
+#echo $1
 LEIN=`which lein`
 TOCOPY=$1
 FILENAME=$(basename $TOCOPY)

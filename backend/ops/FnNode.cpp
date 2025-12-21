@@ -57,12 +57,12 @@ TypedValue CodeGenerator::codegen(const Node &node, const FnNode &subnode, const
     
     types.clear();
 
-    types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo());
+    types.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0));
     types.push_back(Type::getInt64Ty(*TheContext));
     types.push_back(Type::getInt64Ty(*TheContext));
     types.push_back(Type::getInt64Ty(*TheContext));
     types.push_back(Type::getInt8Ty(*TheContext));
-    types.push_back(Type::getInt8Ty(*TheContext)->getPointerTo()); // loopId
+    types.push_back(PointerType::get(Type::getInt8Ty(*TheContext), 0)); // loopId
     types.push_back(Type::getInt64Ty(*TheContext)); // closed overs count
     
     args.clear();

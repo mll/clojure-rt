@@ -7,7 +7,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const DefNode &subnode, cons
   string name = subnode.var().substr(2);
   auto type = getType(node, subnode, typeRestrictions);
   auto found = TheProgramme->getVar(name).first;
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   Value *varPtr = Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext), APInt(64, (uint64_t) found, false)), ptrT);
 
   if (subnode.has_init()) {

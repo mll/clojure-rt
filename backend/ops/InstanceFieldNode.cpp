@@ -12,7 +12,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceFieldNode &sub
   auto type = getType(node, typeRestrictions);
   auto target = codegen(subnode.instance(), ObjectTypeSet::all());
   auto targetType = target.first;
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   auto fieldName = subnode.field();
   uint64_t classId = 0;
   

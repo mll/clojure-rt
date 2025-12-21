@@ -9,7 +9,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceCallNode &subn
   auto type = getType(node, typeRestrictions);
   auto target = codegen(subnode.instance(), ObjectTypeSet::all());
   auto targetType = target.first;
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   std::vector<TypedValue> args;
   for (auto arg: subnode.args()) args.push_back(codegen(arg, ObjectTypeSet::all())); // evaluate all arguments even if instance call resolution fails
   auto methodName = subnode.method();
@@ -93,7 +93,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const InstanceCallNode &subn
     Builder->CreateCondBr(methodNotFoundValue, methodMissing, methodFound);
     Builder->SetInsertPoint(methodFound);
     FunctionType *FT = FunctionType::get(ptrT, {ptrT}, false);
-    Value *callablePointer = Builder->CreatePointerCast(methodValue, FT->getPointerTo());
+    Value *callablePointer = Builder->CreatePointerCast(methodValue, PointerType::get(FT, 0));
     Value *methodCalledValue = Builder->CreateCall(FunctionCallee(FT, callablePointer), {target.second}, "method_call");
     phiNode->addIncoming(methodCalledValue, methodFound);
     Builder->CreateBr(finalBB);

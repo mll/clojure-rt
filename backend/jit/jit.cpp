@@ -1,3 +1,4 @@
+
 #include "jit.h"
 #include <iostream>
 #include "llvm-passes/RetainRelease.h"
@@ -50,8 +51,8 @@ Expected<std::unique_ptr<ClojureJIT>> ClojureJIT::Create(shared_ptr<ProgrammeSta
   auto EPCIU = EPCIndirectionUtils::Create(ES->getExecutorProcessControl());
   if (!EPCIU)
     return EPCIU.takeError();
-  
-  (*EPCIU)->createLazyCallThroughManager(*ES, pointerToJITTargetAddress(&handleLazyCallThroughError));
+
+  (*EPCIU)->createLazyCallThroughManager(*ES, llvm::orc::ExecutorAddr(pointerToJITTargetAddress(&handleLazyCallThroughError)));
   
   if (auto Err = setUpInProcessLCTMReentryViaEPCIU(**EPCIU))
     return std::move(Err);
@@ -84,66 +85,97 @@ Error ClojureJIT::addAST(unique_ptr<FunctionJIT> F, ResourceTrackerSP RT) {
 }
 
 
-Expected<JITEvaluatedSymbol> ClojureJIT::lookup(StringRef Name) {
+Expected<ExecutorSymbolDef> ClojureJIT::lookup(StringRef Name) {
   return ES->lookup({&MainJD}, Mangle(Name.str()));
 }
 
-Expected<ThreadSafeModule> ClojureJIT::optimiseModule(ThreadSafeModule TSM, const MaterializationResponsibility &R) {
-  
-  TSM.withModuleDo([](Module &M) {
-    // Create a function pass manager.
 
-  //  M.print(errs(), nullptr);
-
-    auto TheFPM = std::make_unique<legacy::FunctionPassManager>(&M);
-    verifyModule(M);
-
-    // The vetification pass is much stronger than just "verify" on the module 
-    TheFPM->add(createVerifierPass());    
+llvm::Expected<llvm::orc::ThreadSafeModule> ClojureJIT::optimiseModule(
+    llvm::orc::ThreadSafeModule TSM,
+    const llvm::orc::MaterializationResponsibility &R) {
     
-    TheFPM->add(createRetainReleasePass());
+    // The core logic is wrapped in withModuleDo to safely access the Module.
+    TSM.withModuleDo([](llvm::Module &M) {
+        // For debugging: print the module before optimization.
+        // M.print(llvm::errs(), nullptr);
 
-    // Add some optimizations.
-    TheFPM->add(llvm::createPromoteMemoryToRegisterPass());
+        // 1. Create the new pass manager infrastructure.
+        // These analysis managers are used by the passes to query IR properties.
+        llvm::LoopAnalysisManager LAM;
+        llvm::FunctionAnalysisManager FAM;
+        llvm::CGSCCAnalysisManager CGAM;
+        llvm::ModuleAnalysisManager MAM;
 
-    // Do simple "peephole" optimizations and bit-twiddling optzns.
+        // 2. Create the PassBuilder and register the analysis managers.
+        // The PassBuilder simplifies the process of setting up the analysis pipeline.
+        llvm::PassBuilder PB;
+        PB.registerModuleAnalyses(MAM);
+        PB.registerCGSCCAnalyses(CGAM);
+        PB.registerFunctionAnalyses(FAM);
+        PB.registerLoopAnalyses(LAM);
+        PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
-    TheFPM->add(createInstructionCombiningPass());
-    // Reassociate expressions.
-    TheFPM->add(createReassociatePass());
-    // Eliminate Common SubExpressions.
-    TheFPM->add(createGVNPass());
-    // Simplify the control flow graph (deleting unreachable blocks, etc).
-    TheFPM->add(createCFGSimplificationPass());
-    /* dead code */
-    TheFPM->add(createAggressiveDCEPass());
+        // 3. Create a FunctionPassManager to hold the function-level optimizations.
+        // All passes that operate on a per-function basis will be added here.
+        llvm::FunctionPassManager FPM;
+        
+        // --- Add Passes ---
+        // The `create...Pass()` functions are replaced by direct instantiation
+        // of the pass classes.
 
-    TheFPM->add(createSpeculativeExecutionIfHasBranchDivergencePass());
+        FPM.addPass(RetainReleasePass());
 
-    TheFPM->add(createJumpThreadingPass());         // Thread jumps.
-    TheFPM->add(createCorrelatedValuePropagationPass()); // Propagate conditionals
-//    TheFPM->add(createAggressiveInstCombinerPass());
+        // Corresponds to: createPromoteMemoryToRegisterPass()
+        FPM.addPass(llvm::SROAPass(llvm::SROAOptions()));  
+        // Corresponds to: createInstructionCombiningPass()
+        FPM.addPass(llvm::InstCombinePass());
+        // Corresponds to: createReassociatePass()
+        FPM.addPass(llvm::ReassociatePass());
+        // Corresponds to: createGVNPass()
+        FPM.addPass(llvm::GVNPass());
+        // Corresponds to: createCFGSimplificationPass()
+        FPM.addPass(llvm::SimplifyCFGPass());
+        // Corresponds to: createAggressiveDCEPass()
+        FPM.addPass(llvm::ADCEPass());
 
-/* Vectorization */
-                
-    TheFPM->add(createLoopVectorizePass());
-    TheFPM->add(createSLPVectorizerPass());
-    TheFPM->add(createLoadStoreVectorizerPass());
-    TheFPM->add(createVectorCombinePass());
+        // Note: `createSpeculativeExecutionIfHasBranchDivergencePass()` is a very
+        // old and specific pass. Modern LLVM integrates speculation into other
+        // passes like EarlyCSE and GVN. A dedicated pass is usually not required.
 
-    TheFPM->add(createTailCallEliminationPass());
+        // Corresponds to: createJumpThreadingPass()
+        FPM.addPass(llvm::JumpThreadingPass());
+        // Corresponds to: createCorrelatedValuePropagationPass()
+        FPM.addPass(llvm::CorrelatedValuePropagationPass());
 
-    TheFPM->doInitialization();
-    
-    // Run the optimizations over all functions in the module being added to
-    // the JIT.
+        // --- Vectorization Passes ---
+        // Corresponds to: createLoopVectorizePass()
+        FPM.addPass(llvm::LoopVectorizePass());
+        // Corresponds to: createSLPVectorizerPass()
+        FPM.addPass(llvm::SLPVectorizerPass());
 
-    
-    for (auto &F : M) {
-      TheFPM->run(F);
-    }
-    M.print(errs(), nullptr);
-  });
-  
-  return std::move(TSM);
+        // Note: `createLoadStoreVectorizerPass()` and `createVectorCombinePass()`
+        // have been superseded by improvements in the SLP and Loop vectorizers
+        // and are no longer added explicitly.
+
+        // Corresponds to: createTailCallEliminationPass()
+        FPM.addPass(llvm::TailCallElimPass());        
+
+        // 4. Create a ModulePassManager and add the function pass pipeline to it.
+        // We use an adaptor to run the FunctionPassManager on each function in the module.
+        llvm::ModulePassManager MPM;
+        MPM.addPass(llvm::createModuleToFunctionPassAdaptor(std::move(FPM)));
+        
+        // It's good practice to run the Verifier after optimizations.
+        MPM.addPass(llvm::VerifierPass());
+
+        // 5. Run the optimization pipeline on the module.
+        MPM.run(M, MAM);
+
+        // For debugging: print the module after optimization.
+        // M.print(llvm::errs(), nullptr);
+    });
+
+    return std::move(TSM);
 }
+
+

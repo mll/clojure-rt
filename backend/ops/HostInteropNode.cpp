@@ -12,7 +12,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
   auto type = getType(node, typeRestrictions);
   auto target = codegen(subnode.target(), ObjectTypeSet::all());
   auto targetType = target.first;
-  auto ptrT = Type::getInt8Ty(*TheContext)->getPointerTo();
+  auto ptrT = PointerType::get(Type::getInt8Ty(*TheContext), 0);
   auto methodOrFieldName = subnode.morf();
   uint64_t classId = 0;
   
@@ -161,7 +161,7 @@ TypedValue CodeGenerator::codegen(const Node &node, const HostInteropNode &subno
     
     Builder->SetInsertPoint(methodFound);
     FunctionType *FT = FunctionType::get(ptrT, {ptrT}, false);
-    Value *callablePointer = Builder->CreatePointerCast(methodValue, FT->getPointerTo());
+    Value *callablePointer = Builder->CreatePointerCast(methodValue, PointerType::get(FT, 0));
     Value *methodCalledValue = Builder->CreateCall(FunctionCallee(FT, callablePointer), {target.second}, "method_call");
     phiNode->addIncoming(methodCalledValue, methodFound);
     Builder->CreateBr(finalBB);

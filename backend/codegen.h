@@ -87,7 +87,6 @@ public:
 
 /* Dynamic dispatch */
 
-
 TypedValue callStaticFun(const Node &node, const FnNode& body, const std::pair<FnMethodNode, uint64_t> &method, const std::string &name, const ObjectTypeSet &retValType, const std::vector<TypedValue> &args, const std::string &refName, const TypedValue &callObject, std::vector<ObjectTypeSet> &closedOverTypes);
 
   void buildStaticFun(const int64_t uniqueId, 

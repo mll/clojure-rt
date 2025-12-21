@@ -1,7 +1,0 @@
-/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/CMakeFiles/runtime.dir
-/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/CMakeFiles/ConcurrentHashMap_test.dir
-/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/CMakeFiles/PersistentList_test.dir
-/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/CMakeFiles/PersistentVector_test.dir
-/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/CMakeFiles/test.dir
-/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/CMakeFiles/edit_cache.dir
-/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/CMakeFiles/rebuild_cache.dir

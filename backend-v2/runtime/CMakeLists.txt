@@ -26,13 +26,10 @@ set(SOURCES
     Nil.c 
     Boolean.c 
     Symbol.c 
-    Class.c
-    Deftype.c
     ConcurrentHashMap.c 
     Interface.c 
     Keyword.c 
     Function.c
-    Var.c
     BigInteger.c
     Ratio.c
     PersistentArrayMap.c)

@@ -14,9 +14,12 @@ typedef uint64_t RTValue;
 #define RT_TAG_INT32        0xFFFF000000000000ULL
 #define RT_TAG_PTR          0xFFFE000000000000ULL
 #define RT_TAG_BOOL         0xFFFD000000000000ULL
-#define RT_TAG_NULL         0xFFFC000000000000ULL
 #define RT_TAG_KEYWORD      0xFFFB000000000000ULL
-#define RT_TAG_SYMBOL       0xFFFB000000000000ULL
+#define RT_TAG_SYMBOL       0xFFFA000000000000ULL
+// Null is a marker of lack of value (e.g. in a list)
+// Nil is a valid value/type in the language that is falsly, but can be stored in lists.
+#define RT_TAG_NULL         0xFFF9000000000000ULL
+#define RT_TAG_NIL          0xFFFC000000000000ULL
 
 // --- Type Checking ---
 
@@ -24,9 +27,10 @@ static inline bool RT_isDouble(RTValue v)  { return v < RT_TAG_DOUBLE_START; }
 static inline bool RT_isInt32(RTValue v)   { return (v & RT_TAG_MASK) == RT_TAG_INT32; }
 static inline bool RT_isPtr(RTValue v)     { return (v & RT_TAG_MASK) == RT_TAG_PTR; }
 static inline bool RT_isBool(RTValue v)    { return (v & RT_TAG_MASK) == RT_TAG_BOOL; }
-static inline bool RT_isNil(RTValue v)     { return v == RT_TAG_NULL; }
+static inline bool RT_isNil(RTValue v)     { return v == RT_TAG_NIL; }
 static inline bool RT_isKeyword(RTValue v) { return (v & RT_TAG_MASK) == RT_TAG_KEYWORD; }
 static inline bool RT_isSymbol(RTValue v) { return (v & RT_TAG_MASK) == RT_TAG_SYMBOL; }
+static inline bool RT_isNull(RTValue v)     { return v == RT_TAG_NULL; }
 
 // --- Boxing (Creating RTValues) ---
 
@@ -55,15 +59,15 @@ static inline RTValue RT_boxInt32(int32_t i) {
     return ((RTValue)(uint32_t)i) | RT_TAG_INT32;
 }
 
-static inline RTValue RT_boxPtr(void* p) {
-    return ((RTValue)(uintptr_t)p) | RT_TAG_PTR;
-}
-
 static inline RTValue RT_boxBool(bool b) {
     return ((RTValue)(b ? 1 : 0)) | RT_TAG_BOOL;
 }
 
 static inline RTValue RT_boxNil() {
+    return RT_TAG_NIL;
+}
+
+static inline RTValue RT_boxNull() {
     return RT_TAG_NULL;
 }
 

@@ -7,23 +7,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "defines.h"
+#include "RTValue.h"
 
-typedef struct Object Object; 
-typedef struct String String; 
-
-struct Symbol {
-  Object super;
-  String *string;
-};
-
-typedef struct Symbol Symbol; 
-
-/* Transfers ownership - symbol swallows those two strings - it does not retain but it will free */
-Symbol* Symbol_create(String *name);
-BOOL Symbol_equals(Symbol *self, Symbol *other);
-uint64_t Symbol_hash(Symbol *self);
-String *Symbol_toString(Symbol *self);
-void Symbol_destroy(Symbol *self);
-
+RTValue Symbol_create(String *name);
+String *Symbol_toString(uint32_t self);
 
 #endif

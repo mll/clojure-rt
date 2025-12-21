@@ -1,6 +1,7 @@
 #include "Object.h"
 #include "PersistentVectorNode.h"
 #include "PersistentVector.h"
+#include "RTValue.h"
 #include "Transient.h"
 
 /* mem done */
@@ -18,7 +19,7 @@ PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType typ
   // Putting count here saves memory but precludes any reuse. 
   // The current implementation does reuse, so anything else than RRB_BRANCHING causes memory corruption
   size_t allocs = RRB_BRANCHING; // type == leafNode ? RRB_BRANCHING : count;
-  PersistentVectorNode *self = (PersistentVectorNode *)allocate(sizeof(PersistentVectorNode) + allocs * sizeof(Object *)); 
+  PersistentVectorNode *self = (PersistentVectorNode *)allocate(sizeof(PersistentVectorNode) + allocs * sizeof(RTValue); 
   self->type = type;
   self->count = count;
   self->transientID = transientID;
@@ -27,16 +28,16 @@ PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType typ
 }
 
 /* outside refcount system */
-BOOL PersistentVectorNode_equals(PersistentVectorNode * restrict self, PersistentVectorNode * restrict other) {
-  if (self->count != other->count) return FALSE;
-  for(uint64_t i=0; i < self->count; i++) if (!Object_equals(self->array[i], other->array[i])) return FALSE;
-  return TRUE;
+bool PersistentVectorNode_equals(PersistentVectorNode * restrict self, PersistentVectorNode * restrict other) {
+  if (self->count != other->count) return false;
+  for(uword_t i=0; i < self->count; i++) if (!equals(self->array[i], other->array[i])) return false;
+  return true;
 }
 
 /* outside refcount system */
 uint64_t PersistentVectorNode_hash(PersistentVectorNode * restrict self) {
   uint64_t h = 5381;  
-  for(uint64_t i=0; i< self->count; i++) h = combineHash(h, Object_hash(self->array[i])); 
+  for(uint64_t i=0; i< self->count; i++) h = combineHash(h, hash(self->array[i])); 
   return h;
 }
 
@@ -46,89 +47,89 @@ String *PersistentVectorNode_toString(PersistentVectorNode * restrict self) {
   String *space = String_create(" ");
 
   for(uint64_t i=0; i< self->count; i++) {
-    Object_retain(self->array[i]);
-    String *s = Object_toString(self->array[i]);
+    retain(self->array[i]);
+    String *s = toString(self->array[i]);
     retVal = String_concat(retVal, s);
     if (i < self->count - 1) {
-      retain(space);
+      retain(RT_boxPtr(space));
       retVal = String_concat(retVal, space);
     }
   } 
-  release(space);
-  release(self);
+  release(RT_boxPtr(space));
+  release(RT_boxPtr(self));
   return retVal;
 }
 
 /* outside refcount system */
-void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, BOOL deallocateChildren) {
-  for(uint64_t i=0; i<self->count; i++) Object_release(self->array[i]);
+void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, bool deallocateChildren) {
+  for(uword_t i=0; i<self->count; i++) release(self->array[i]);
 }
 
 /* mem done */
-PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, Object * restrict other, BOOL allowsReuse, uint64_t vectorTransientID) {
+PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode * restrict self, uint64_t level, uint64_t index, RTValue other, bool allowsReuse, uint64_t vectorTransientID) {
   uint64_t level_index = (index >> level) & RRB_MASK;
-  BOOL reusable = allowsReuse && (isReusable(self) || (self->transientID == vectorTransientID));
+  bool reusable = allowsReuse && (isReusable(RT_boxPtr(self)) || (self->transientID == vectorTransientID));
   PersistentVectorNode *new = NULL;
   
   if(reusable) new = self;
   else {
     new = PersistentVectorNode_allocate(self->count, self->type, vectorTransientID);
-    memcpy(((Object *)new) + 1, ((Object *)self) + 1, sizeof(PersistentVectorNode) - sizeof(Object) + self->count * sizeof(Object *));
+    memcpy(((Object *)new) + 1, ((Object *)self) + 1, sizeof(PersistentVectorNode) - sizeof(Object) + self->count * sizeof(RTValue));
   }
 
   for(uint64_t i=0; i< self->count; i++) {
     if (i == level_index) {
       if (self->type == leafNode) {
-        if(reusable) Object_release(new->array[i]);
+        if(reusable) release(new->array[i]);
         new->array[i] = other;
       } else {
-        new->array[i] = (Object *)PersistentVectorNode_replacePath((PersistentVectorNode *)new->array[i], level - RRB_BITS, index, other, reusable, vectorTransientID);
+        new->array[i] = RT_boxPtr(PersistentVectorNode_replacePath((PersistentVectorNode *)new->array[i], level - RRB_BITS, index, other, reusable, vectorTransientID));
       }
     } else {
-      if(!reusable) Object_retain(self->array[i]);
+      if(!reusable) retain(self->array[i]);
     }
   }
   return new;
 }
 
 /* mem done */
-PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, BOOL *copied, BOOL allowsReuse, uint64_t vectorTransientID) {
+PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restrict parent, PersistentVectorNode * restrict self, PersistentVectorNode * restrict tailToPush, int32_t level, bool *copied, bool allowsReuse, uint64_t vectorTransientID) {
   if (self == NULL) { 
     /* Special case, we have no root in the vector */
-    *copied = FALSE;
+    *copied = false;
     return tailToPush;
   }
 
   if(self->type == leafNode) {
     /* Special case, just a single leaf node */
     PersistentVectorNode *new = PersistentVectorNode_allocate(2, internalNode, vectorTransientID);
-    new->array[0] = (Object *)self;
-    new->array[1] = (Object *)tailToPush;
-    *copied = FALSE;
+    new->array[0] = RT_boxPtr(self);
+    new->array[1] = RT_boxPtr(tailToPush);
+    *copied = false;
     return new;
   }
   
-  PersistentVectorNode *entry = level <= RRB_BITS ? NULL : (PersistentVectorNode *)self->array[self->count - 1];
+  PersistentVectorNode *entry = level <= RRB_BITS ? NULL : (PersistentVectorNode *)RT_unboxPtr(self->array[self->count - 1]);
 
-  BOOL reusable = allowsReuse && (isReusable(self) || (self->transientID == vectorTransientID));
-  if(entry) retain(entry);
-  BOOL copiedInSubtree;
+  bool reusable = allowsReuse && (isReusable(RT_boxPtr(self)) || (self->transientID == vectorTransientID));
+  if(entry) retain(RT_boxPtr(entry));
+  bool copiedInSubtree;
   PersistentVectorNode *subtree = PersistentVectorNode_pushTail(self, entry, tailToPush, level -= RRB_BITS, &copiedInSubtree, reusable, vectorTransientID);
   
   if(copiedInSubtree) {
     if(reusable) {
-      Object_release(self->array[self->count - 1]);
-      self->array[self->count - 1] = (Object *)subtree;
-      *copied = TRUE;
+      release(self->array[self->count - 1]);
+      self->array[self->count - 1] = RT_boxPtr(subtree);
+      *copied = true;
       return self;
     }
     
     PersistentVectorNode *new = PersistentVectorNode_allocate(self->count, internalNode, vectorTransientID);
-    memcpy(((Object *)new)+1, ((Object *)self)+1, sizeof(PersistentVectorNode) - sizeof(Object) + self->count * sizeof(PersistentVectorNode *));    
-    new->array[new->count - 1] = (Object *)subtree;
-    for (uint64_t i=0; i< new->count - 1; i++) Object_retain(new->array[i]);
-    *copied = TRUE;
-    release(self);
+    memcpy(((Object *)new)+1, ((Object *)self)+1, sizeof(PersistentVectorNode) - sizeof(Object) + self->count * sizeof(RTValue));    
+    new->array[new->count - 1] = RT_boxPtr(subtree);
+    for (uword_t i=0; i< new->count - 1; i++) retain(new->array[i]);
+    *copied = true;
+    release(RT_boxPtr(self));
     return new;
   }
   
@@ -136,12 +137,12 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
 
   if (self->count < RRB_BRANCHING) {
     PersistentVectorNode *new = PersistentVectorNode_allocate(self->count + 1, internalNode, vectorTransientID);
-    memcpy(((Object *)new)+1, ((Object *)self)+1, sizeof(PersistentVectorNode) - sizeof(Object) + self->count * sizeof(PersistentVectorNode *));    
-    new->array[self->count] = (Object *)subtree;
+    memcpy(((Object *)new)+1, ((Object *)self)+1, sizeof(PersistentVectorNode) - sizeof(Object) + self->count * sizeof(RTValue));    
+    new->array[self->count] = RT_boxPtr(subtree);
     new->count++;
-    for(uint64_t i=0; i < new->count - 1; i++) Object_retain(new->array[i]); 
-    *copied = TRUE;
-    release(self);
+    for(uword_t i=0; i < new->count - 1; i++) retain(new->array[i]); 
+    *copied = true;
+    release(RT_boxPtr(self));
 
     return new;
   }
@@ -151,87 +152,88 @@ PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode * restr
   if(parent == NULL) { 
     /* Root node, we create a new root and merge */
     PersistentVectorNode *new = PersistentVectorNode_allocate(2, internalNode, vectorTransientID);
-    new->array[0] = (Object *)self;
+    new->array[0] = RT_boxPtr(self);
     PersistentVectorNode *newDown = PersistentVectorNode_allocate(1, internalNode, vectorTransientID);
-    new->array[1] = (Object *)newDown;
-    newDown->array[0] = (Object *)subtree;
-    *copied = FALSE;
+    new->array[1] = RT_boxPtr(newDown);
+    newDown->array[0] = RT_boxPtr(subtree);
+    *copied = false;
     return new;
   }
 
   PersistentVectorNode *new = PersistentVectorNode_allocate(1, internalNode, vectorTransientID);
-  new->array[0] = (Object *)subtree;
-  *copied = FALSE;
-  release(self);
+  new->array[0] = RT_boxPtr(subtree);
+  *copied = false;
+  release(RT_boxPtr(self));
     
   return new;
 } 
 
-PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode * restrict self, PersistentVectorNode ** restrict poppedLeaf, BOOL allowsReuse, uint64_t vectorTransientID) {
+PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode * restrict self, PersistentVectorNode ** restrict poppedLeaf, bool allowsReuse, uint64_t vectorTransientID) {
   if (self->type == leafNode) {
-    retain(self);
+    retain(RT_boxPtr(self));
     *poppedLeaf = self;
     return NULL;
   }
 
   // self->type == internalNode
   uint64_t transientID = self->transientID;
-  BOOL reusable = allowsReuse && (isReusable(self) || (transientID && (transientID == vectorTransientID)));
+  bool reusable = allowsReuse && (isReusable(RT_boxPtr(self)) || (transientID && (transientID == vectorTransientID)));
   uint64_t lastPos = self->count - 1; // Invariant: count > 0
-  PersistentVectorNode *lastChild = (PersistentVectorNode *)self->array[lastPos];
+  PersistentVectorNode *lastChild = (PersistentVectorNode *)RT_unboxPtr(self->array[lastPos]);
   PersistentVectorNode *newSubtree = PersistentVectorNode_popTail(lastChild, poppedLeaf, reusable, vectorTransientID);
-  BOOL modifiedInPlace = lastChild == newSubtree; // compare addresses!
+  bool modifiedInPlace = lastChild == newSubtree; // compare addresses!
   PersistentVectorNode *newTree;
   if (reusable) {
     newTree = self;
   } else {
     newTree = PersistentVectorNode_allocate(self->count, self->type, vectorTransientID);
-    memcpy(((Object *)newTree)+1, ((Object *)self)+1, sizeof(PersistentVectorNode) + - sizeof(Object) + self->count * sizeof(Object *));
+    memcpy(((Object *)newTree)+1, ((Object *)self)+1, sizeof(PersistentVectorNode) + - sizeof(Object) + self->count * sizeof(RTValue));
     newTree->transientID = vectorTransientID;
-    for (uint64_t i = 0; i < lastPos; ++i) Object_retain(newTree->array[i]); // do not retain last object
+    for (uword_t i = 0; i < lastPos; ++i) retain(newTree->array[i]); // do not retain last object
   }
 
   if (newSubtree) {
-    if (reusable && !modifiedInPlace) release(lastChild);
-    newTree->array[lastPos] = (Object *)newSubtree;
+    if (reusable && !modifiedInPlace) release(RT_boxPtr(lastChild));
+    newTree->array[lastPos] = RT_boxPtr(newSubtree);
     return newTree;
   }
   
   // newSubtree == NULL
   --newTree->count;
-  newTree->array[lastPos] = NULL;
-  if (reusable) release(lastChild);
+// This is not necessary, as the count explains what is and what is not present.  
+//  newTree->array[lastPos] = RT_boxNull();
+  if (reusable) release(RT_boxPtr(lastChild));
   
   if (lastPos) {
     return newTree;
   }
   
   // self->count == 1
-  if (!reusable) release(newTree);
+  if (!reusable) release(RT_boxPtr(newTree));
   return NULL;
 }
 
-BOOL PersistentVectorNode_contains(PersistentVectorNode * restrict self, void * restrict other) {
-  BOOL retVal = FALSE;
+bool PersistentVectorNode_contains(PersistentVectorNode * restrict self, RTValue other) {
+  bool retVal = false;
   if (self->type == leafNode) {
-    for (uint64_t i = 0; i < self->count; ++i) {
-      if (Object_equals(self->array[i], other)) {
-        retVal = TRUE;
+    for (uword_t i = 0; i < self->count; ++i) {
+      if (equals(self->array[i], other)) {
+        retVal = true;
         break;
       }
     }
   } else {
-    for (uint64_t i = 0; i < self->count; ++i) {
-      PersistentVectorNode *child = (PersistentVectorNode *)self->array[i];
-      retain(child);
+    for (uword_t i = 0; i < self->count; ++i) {
+      PersistentVectorNode *child = (PersistentVectorNode *)RT_unboxPtr(self->array[i]);
+      retain(RT_boxPtr(child));
       retain(other);
       if (PersistentVectorNode_contains(child, other)) {
-        retVal = TRUE;
+        retVal = true;
         break;
       }
     }
   }
-  release(self);
-  release(other);
+  release(RT_boxPtr(self));
+  release(RT_boxPtr(other));
   return retVal;
 }

@@ -1,65 +1,52 @@
 #include "Object.h"
 #include "Keyword.h"
+#include "RTValue.h"
 #include "String.h"
 #include "ConcurrentHashMap.h"
+#include <pthread.h>
 
 extern ConcurrentHashMap *keywords;
-extern Nil *UNIQUE_NIL;
+extern ConcurrentHashMap *keywordsInverted;
+
+static pthread_mutex_t intern_mutex = PTHREAD_MUTEX_INITIALIZER;
+static _Atomic uint32_t minUnusedKeyword = 0;
 
 /* mem done */
-Keyword* Keyword_allocate(String *string) {
-  Keyword *self = (Keyword *)allocate(sizeof(Keyword)); 
-  self->string = string;
-  Object_create((Object *)self, keywordType);
-  return self;
-}
+RTValue Keyword_create(String *string) {
+  retain(string);  
+  RTValue retVal = ConcurrentHashMap_get(keywords, string);
 
-/* mem done */
-Keyword* Keyword_create(String *string) {
-  retain(string);
-  void *retVal = ConcurrentHashMap_get(keywords, string);
-
-  if(retVal == UNIQUE_NIL) { /* interning */
-    release(retVal);
+  if (RT_isNil(retVal)) {
     retain(string);
-    Keyword *new = Keyword_allocate(string);
-    retain(new);
-    /* TODO - what if another thread has interned first? */
+    pthread_mutex_lock(&intern_mutex);
+    /* interning */
+    RTValue retVal2 = ConcurrentHashMap_get(keywords, string);
+    if (RT_isKeyword(retVal)) {
+      pthread_mutex_unlock(&intern_mutex);
+      release(string);
+      return retVal2;
+    }      
+    
+    RTValue new = RT_boxKeyword(
+        atomic_fetch_add_explicit(&minUnusedKeyword, 1, memory_order_relaxed));
+
+    retain(string);
+    ConcurrentHashMap_assoc(keywordsInverted, new, string);
     ConcurrentHashMap_assoc(keywords, string, new);
+    pthread_mutex_unlock(&intern_mutex);
     return new;
   }
   release(string);
   return retVal;
 }
 
-/* outside refcount system */
-BOOL Keyword_equals(Keyword *self, Keyword *other) {
-  /* What if another thread interns? */
-  /* what is here does not matter - keyword equality is checked based on a pointer only */
-  return FALSE; //equals(self->string, other->string);
-}
-
-/* outside refcount system */
-uint64_t Keyword_hash(Keyword *self) {
-    return self->string->hash;
-}
-
 /* mem done */
-String *Keyword_toString(Keyword *self) {
+String *Keyword_toString(uint32_t self) {
   String *colon = String_create(":");
-  retain(self->string);
-  String *result = String_concat(colon, self->string);
-  release(self);
+  RTValue retVal = ConcurrentHashMap_get(keywordsInverted, RT_boxKeyword(self));
+  assert(!RT_isNil(retVal) && "Internal error: Keyword was not interned before printing.");
+  String *result = String_concat(colon, toString(retVal));
   return result;
 }
-
-/* outside refcount system */
-void Keyword_destroy(Keyword *self) {
-  /* In practice this will never happen for keywords allocated within the compiler, because each time a keyword is used, it is retained. */
-  release(self->string);
-}
-
-
-
 
 

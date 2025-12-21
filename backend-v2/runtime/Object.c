@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdatomic.h>
 #include "Interface.h"
+#include "RTValue.h"
 
 _Atomic uint64_t allocationCount[256]; 
 _Atomic uint64_t objectCount[256];
@@ -48,26 +49,26 @@ void initialise_memory() {
 extern void *allocate(size_t size);
 extern void deallocate(void * restrict ptr);
 
-extern void retain(void * restrict self);
-extern BOOL release(void * restrict self);
-extern void autorelease(void * restrict self);
-extern BOOL release_internal(void * restrict self, BOOL deallocatesChildren);
-extern BOOL equals(void * restrict self, void * restrict other);
-extern uint64_t hash(void * restrict self);
-extern String *toString(void * restrict self);
+extern void retain(RTValue self);
+extern bool release(RTValue self);
+extern void autorelease(RTValue self);
+extern bool release_internal(void * restrict self, bool deallocatesChildren);
+extern bool equals(RTValue self, RTValue other);
+extern uint64_t hash(RTValue self);
+extern String *toString(RTValue self);
 
 extern void Object_create(Object * restrict self, objectType type);
 extern void Object_retain(Object * restrict self);
-extern BOOL Object_release(Object * restrict self);
-extern BOOL Object_release_internal(Object * restrict self, BOOL deallocatesChildren);
-extern void Object_destroy(Object *restrict self, BOOL deallocateChildren);
+extern bool Object_release(Object * restrict self);
+extern bool Object_release_internal(Object * restrict self, bool deallocatesChildren);
+extern void Object_destroy(Object *restrict self, bool deallocateChildren);
 extern void Object_autorelease(Object * restrict self);
-extern BOOL Object_equals(Object * restrict self, Object * restrict other);
+extern bool Object_equals(Object * restrict self, Object * restrict other);
 extern uint64_t Object_hash(Object * restrict self);
 extern String *Object_toString(Object * restrict self);
-extern BOOL Object_isReusable(Object *restrict self);
-extern BOOL isReusable(void *restrict self);
-extern objectType getType(Object *obj);
+extern bool Object_isReusable(Object *restrict self);
+extern bool isReusable(RTValue self);
+extern objectType getType(RTValue obj);
 
 extern uint64_t combineHash(uint64_t lhs, uint64_t rhs);
 

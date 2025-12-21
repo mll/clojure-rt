@@ -1,47 +1,55 @@
 #include "Object.h"
 #include "Symbol.h"
+#include "RTValue.h"
 #include "String.h"
+#include "ConcurrentHashMap.h"
+#include <pthread.h>
 
-extern ConcurrentHashMap *keywords;
-extern Nil *UNIQUE_NIL;
+extern ConcurrentHashMap *symbols;
+extern ConcurrentHashMap *symbolsInverted;
 
-/* mem done */
-Symbol* Symbol_allocate(String *string) {
-  // do we intern symbols? Doesnt seem so...
-  Symbol *self = (Symbol *)allocate(sizeof(Symbol));
-  self->string = string;
-  Object_create((Object *)self, symbolType);
-  return self;
-}
+static pthread_mutex_t intern_mutex = PTHREAD_MUTEX_INITIALIZER;
+static _Atomic uint32_t minUnusedSymbol = 0;
 
 /* mem done */
-Symbol* Symbol_create(String *string) {
-  return Symbol_allocate(string);
-}
+RTValue Symbol_create(String *string) {
+  retain(string);  
+  RTValue retVal = ConcurrentHashMap_get(symbols, string);
 
-/* outside refcount system */
-BOOL Symbol_equals(Symbol *self, Symbol *other) {
-  /* because we are uniquing / interning */
-  return equals(self->string, other->string);
-}
+  if (RT_isNil(retVal)) {
+    retain(string);
+    pthread_mutex_lock(&intern_mutex);
+    /* interning */
+    RTValue retVal2 = ConcurrentHashMap_get(symbols, string);
+    if (RT_isSymbol(retVal)) {
+      pthread_mutex_unlock(&intern_mutex);
+      release(string);
+      return retVal2;
+    }      
+    
+    RTValue new = RT_boxSymbol(
+        atomic_fetch_add_explicit(&minUnusedSymbol, 1, memory_order_relaxed));
 
-/* outside refcount system */
-uint64_t Symbol_hash(Symbol *self) {
-    return self->string->hash;
-}
-
-/* mem done */
-String *Symbol_toString(Symbol *self) {
-  String *retVal = self->string;
-  retain(retVal);
-  release(self);
+    retain(string);
+    ConcurrentHashMap_assoc(symbolsInverted, new, string);
+    ConcurrentHashMap_assoc(symbols, string, new);
+    pthread_mutex_unlock(&intern_mutex);
+    return new;
+  }
+  release(string);
   return retVal;
 }
 
-/* outside refcount system */
-void Symbol_destroy(Symbol *self) {
-  release(self->string);
+/* mem done */
+String *Symbol_toString(uint32_t self) {
+  String *colon = String_create(":");
+  RTValue retVal = ConcurrentHashMap_get(symbolsInverted, RT_boxSymbol(self));
+  assert(!RT_isNil(retVal) && "Internal error: Symbol was not interned before printing.");
+  String *result = String_concat(colon, toString(retVal));
+  return result;
 }
+
+
 
 
 

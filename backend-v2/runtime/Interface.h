@@ -1,16 +1,15 @@
 #ifndef RT_INTERFACE
 #define RT_INTERFACE
 #include "Object.h"
+#include "RTValue.h"
 
 void Interface_initialise();
 
 
-inline BOOL logicalValue(void * restrict self) {
-  Object *o = self;
-  objectType type = o->type;
-  if(type == nilType) return FALSE;
-  if(type == booleanType) return ((Boolean *)self)->value;
-  return TRUE;
+inline bool logicalValue(RTValue self) {
+  if(RT_isNil(self)) return false;
+  if(RT_isBool(self)) return RT_unboxBool(self);
+  return true;
 }
 
 inline void logException(const char *description) {
@@ -27,25 +26,19 @@ inline void logText(const char *text) {
   printf("Log: %s\n", text);
 }
 
-inline BOOL unboxedEqualsInteger(void *left, int64_t right) {
-  Object *o = left;
-  if(o->type != integerType) return FALSE;
-  Integer *i = (Integer *) left;
-  return i->value == right;
+inline bool unboxedEqualsInteger(RTValue left, int32_t right) {
+  if(!RT_isInt32(left)) return false;
+  return RT_unboxInt32(left) == right;
 }
 
-inline BOOL unboxedEqualsDouble(void *left, double right) {
-  Object *o = left;
-  if(o->type != doubleType) return FALSE;
-  Double *i = (Double *) left;
-  return i->value == right;
+inline bool unboxedEqualsDouble(RTValue left, double right) {
+  if(!RT_isDouble(left)) return false;
+  return RT_unboxDouble(left) == right;  
 }
 
-inline BOOL unboxedEqualsBoolean(void *left, BOOL right) {
-  Object *o = left;  
-  if(o->type != booleanType) return FALSE;
-  Boolean *i = (Boolean *) left;
-  return i->value == right;
+inline bool unboxedEqualsBoolean(RTValue left, bool right) {
+  if(!RT_isBool(left)) return false;
+  return RT_unboxBool(left) == right;    
 }
 
 void printReferenceCounts();

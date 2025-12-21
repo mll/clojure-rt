@@ -1,6 +1,7 @@
 #ifndef OBJECT_PROTO_H
 #define OBJECT_PROTO_H
 #include <stdatomic.h>
+#include "word.h"
 
 enum objectType {
   integerType = 1,
@@ -14,11 +15,8 @@ enum objectType {
   persistentListType,
   persistentVectorType,
   persistentVectorNodeType,
-  classType,
-  deftypeType,
   concurrentHashMapType,
   functionType,
-  varType,
   bigIntegerType,
   ratioType,
   persistentArrayMapType,

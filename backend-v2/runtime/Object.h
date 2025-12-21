@@ -28,10 +28,7 @@
 #include "ConcurrentHashMap.h"
 #include "Symbol.h"
 #include "Keyword.h"
-#include "Class.h"
-#include "Deftype.h"
 #include "Function.h"
-#include "Var.h"
 #include "BigInteger.h"
 #include "Ratio.h"
 #include "PersistentArrayMap.h"
@@ -128,6 +125,18 @@ inline void deallocate(void *ptr) {
 #endif
 }
 
+/* Outside of refcount system */
+inline objectType getType(RTValue v) {
+  if (RT_isDouble(v))  return doubleType;
+  if (RT_isInt32(v))   return integerType;
+  if (RT_isBool(v))    return booleanType;
+  if (RT_isNil(v))     return nilType;
+  if (RT_isKeyword(v)) return keywordType;
+  if (RT_isSymbol(v))  return symbolType;
+  assert(RT_isPtr(v) && "Internal error: Not a pointer");
+  return ((Object*)RT_unboxPtr(v))->type;  
+}
+
 inline void Object_retain(Object *restrict self) {
 //  printf("RETAIN!!! %d\n", self->type);
 #ifdef REFCOUNT_TRACING
@@ -140,7 +149,7 @@ inline void Object_retain(Object *restrict self) {
 #endif
 }
 
-inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
+inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
 //  printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t));
  // printReferenceCounts();
   switch((objectType)self->type) {
@@ -156,20 +165,11 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
   case persistentVectorNodeType:
     PersistentVectorNode_destroy((PersistentVectorNode *)self, deallocateChildren);
     break;
-  case classType:
-    Class_destroy((Class *) self);
-    break;
-  case deftypeType:
-    Deftype_destroy((Deftype *) self);
-    break;
   case concurrentHashMapType:
     ConcurrentHashMap_destroy((ConcurrentHashMap *) self);
     break;
   case functionType:
     Function_destroy((ClojureFunction *) self);
-    break;
-  case varType:
-    Var_destroy((Var *) self);
     break;
   case bigIntegerType:
     BigInteger_destroy((BigInteger *) self);
@@ -181,7 +181,7 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
     PersistentArrayMap_destroy((PersistentArrayMap *)self, deallocateChildren);
     break;
   default:
-    return;
+    assert(false && "Internal error: hash computation for NaN tagged types should be computed earlier.");    
   }
   deallocate(self);
  // printf("dealloc end %lld\n", (uint64_t));
@@ -189,8 +189,8 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
  // printf("=========================\n");
 }
 
-inline BOOL Object_isReusable(Object *restrict self) {
-  uint64_t refCount = atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
+inline bool Object_isReusable(Object *restrict self) {
+  uint64_t refCount = atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
   // Multithreading - is it really safe to assume it is reusable if refcount is 1? 
   /*  The reasoning here is that passing object to another thread is an operation that by 
       itself increases its reference count. Therefore it is assumed that if recount is 1 at 
@@ -201,11 +201,11 @@ inline BOOL Object_isReusable(Object *restrict self) {
   return refCount == 1;
 }
 
-inline BOOL isReusable(RTValue self) {
+inline bool isReusable(RTValue self) {
   return !RT_isPtr(self) || Object_isReusable(RT_unboxPtr(self));
 }
 
-inline BOOL Object_release_internal(Object *restrict self, BOOL deallocateChildren) {
+inline bool Object_release_internal(Object *restrict self, bool deallocateChildren) {
 #ifdef REFCOUNT_TRACING
 //    printf("RELEASE!!! %p %d %d\n", self, self->type, deallocateChildren);
     atomic_fetch_sub_explicit(&(allocationCount[self->type - 1]), 1, memory_order_relaxed);
@@ -249,22 +249,18 @@ inline uint64_t Object_hash(Object *restrict self) {
       case persistentVectorNodeType:
         return PersistentVectorNode_hash((PersistentVectorNode *) self);
         break;
-      case classType:
-        return Class_hash((Class *) self);
-      case deftypeType:
-        return Deftype_hash((Deftype *) self);
       case concurrentHashMapType:
         return ConcurrentHashMap_hash((ConcurrentHashMap *) self);
       case functionType:
         return Function_hash((ClojureFunction *) self);
-      case varType:
-        return Var_hash((Var *) self);
       case bigIntegerType:
         return BigInteger_hash((BigInteger *) self);
       case ratioType:
         return Ratio_hash((Ratio *) self);
       case persistentArrayMapType:
-        return PersistentArrayMap_hash((PersistentArrayMap *) self);        
+        return PersistentArrayMap_hash((PersistentArrayMap *)self);
+      default:
+        assert(false && "Internal error: hash computation for NaN tagged types should be computed earlier.");
       }
 }
 
@@ -291,7 +287,7 @@ inline uint64_t hash(RTValue v) {
 }
 
 /* Outside of refcount system */
-inline BOOL Object_equals(Object *self, Object *other) {
+inline bool Object_equals(Object *self, Object *other) {
   if (Object_hash(self) != Object_hash(other)) return FALSE;
 
   switch((objectType)self->type) {
@@ -307,20 +303,11 @@ inline BOOL Object_equals(Object *self, Object *other) {
   case persistentVectorNodeType:
     return PersistentVectorNode_equals((PersistentVectorNode *)self, (PersistentVectorNode *)other);
     break;
-  case classType:
-    return Class_equals((Class *)self, (Class *)other);
-    break;
-  case deftypeType:
-    return Deftype_equals((Deftype *)self, (Deftype *)other);
-    break;
   case concurrentHashMapType:
     return ConcurrentHashMap_equals((ConcurrentHashMap *)self, (ConcurrentHashMap *)other);
     break;
   case functionType:
     return Function_equals((ClojureFunction *)self, (ClojureFunction *)other);
-    break;
-  case varType:
-    return Var_equals((Var *)self, (Var *)other);
     break;
   case bigIntegerType:
     return BigInteger_equals((BigInteger *)self, (BigInteger *)other);
@@ -331,11 +318,13 @@ inline BOOL Object_equals(Object *self, Object *other) {
   case persistentArrayMapType:
     return PersistentArrayMap_equals((PersistentArrayMap *)self, (PersistentArrayMap *)other);
     break;
+  default:
+    assert(false && "Internal error: hash computation for NaN tagged types should be computed earlier.");    
   }
 }
 
 /* Outside of refcount system */
-inline BOOL equals(RTValue self, RTValue other) {
+inline bool equals(RTValue self, RTValue other) {
   if (self == other) return true; // Handles same-ints, same-bools, and same-pointers
   
   objectType t1 = getType(self);
@@ -367,53 +356,35 @@ inline String *Object_toString(Object *restrict self) {
   case persistentVectorNodeType:
     return PersistentVectorNode_toString((PersistentVectorNode *)self);
     break;
-  case classType:
-    return Class_toString((Class *)self);
-  case deftypeType:
-    return Deftype_toString((Deftype *)self);
   case concurrentHashMapType:
     return ConcurrentHashMap_toString((ConcurrentHashMap *)self);
-  case keywordType:
-    return Keyword_toString((Keyword *)self);
   case functionType:
     return Function_toString((ClojureFunction *)self);
-  case varType:
-    return Var_toString((Var *)self);
   case bigIntegerType:
     return BigInteger_toString((BigInteger *)self);
   case ratioType:
     return Ratio_toString((Ratio *)self);
   case persistentArrayMapType:
     return PersistentArrayMap_toString((PersistentArrayMap *)self);
+  default:
+    assert(false && "Internal error: Object_toString got an unsupported type");
   }
 }
 
 inline String *toString(RTValue self) {
   if (RT_isInt32(self))  return Integer_toString(RT_unboxInt32(self));
   if (RT_isDouble(self)) return Double_toString(RT_unboxDouble(self));
-  if (RT_isBool(self)) return Bool_toString(RT_unboxBool(self));
+  if (RT_isBool(self)) return Boolean_toString(RT_unboxBool(self));
   if (RT_isNil(self)) return Nil_toString();  
   if (RT_isKeyword(self)) return Keyword_toString(RT_unboxKeyword(self));  
   if (RT_isSymbol(self)) return Symbol_toString(RT_unboxSymbol(self));
 
   assert(RT_isPtr(self) && "Internal error: Not a pointer");
-  return Object_toString((Object*)RT_unboxPtr(v));  
+  return Object_toString((Object*)RT_unboxPtr(self));  
 }
 
-inline BOOL Object_release(Object *restrict self) {
+inline bool Object_release(Object *restrict self) {
   return Object_release_internal(self, TRUE);
-}
-
-/* Outside of refcount system */
-inline objectType getType(RTValue v) {
-  if (RT_isDouble(v))  return doubleType;
-  if (RT_isInt32(v))   return integerType;
-  if (RT_isBool(v))    return booleanType;
-  if (RT_isNil(v))     return nilType;
-  if (RT_isKeyword(v)) return keywordType;
-  if (RT_isSymbol(v))  return symbolType;
-  assert(RT_isPtr(v) && "Internal error: Not a pointer");
-  return ((Object*)RT_unboxPtr(v))->type;  
 }
 
 inline void Object_autorelease(Object *restrict self) {
@@ -429,20 +400,20 @@ inline void Object_autorelease(Object *restrict self) {
 }
 
 inline void autorelease(RTValue self) {
-  if (RT_isPtr(v)) {
-        Object_autorelease((Object*)RT_unboxPtr(v));
+  if (RT_isPtr(self)) {
+        Object_autorelease((Object*)RT_unboxPtr(self));
   }  
 }
 
-inline void retain(RTValue) {
-  if (RT_isPtr(v)) {
-        Object_retain((Object*)RT_unboxPtr(v));
+inline void retain(RTValue self) {
+  if (RT_isPtr(self)) {
+        Object_retain((Object*)RT_unboxPtr(self));
   }    
 }
 
-inline BOOL release(void *restrict self) {
-  if (RT_isPtr(v)) {
-    return Object_release((Object*)RT_unboxPtr(v));
+inline bool release(RTValue self) {
+  if (RT_isPtr(self)) {
+    return Object_release((Object*)RT_unboxPtr(self));
   }      
   return false;
 }

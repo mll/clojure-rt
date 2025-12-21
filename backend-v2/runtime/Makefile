@@ -57,13 +57,23 @@ RM = /opt/homebrew/Cellar/cmake/3.28.2/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2
+CMAKE_SOURCE_DIR = /Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2
+CMAKE_BINARY_DIR = /Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime
 
 #=============================================================================
 # Targets provided globally by CMake.
+
+# Special rule for the target test
+test:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Running tests..."
+	/opt/homebrew/Cellar/cmake/3.28.2/bin/ctest --force-new-ctest-process $(ARGS)
+.PHONY : test
+
+# Special rule for the target test
+test/fast: test
+.PHONY : test/fast
 
 # Special rule for the target edit_cache
 edit_cache:
@@ -87,14 +97,14 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(CMAKE_COMMAND) -E cmake_progress_start /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2/CMakeFiles /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2/runtime//CMakeFiles/progress.marks
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/CMakeFiles /Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime//CMakeFiles/progress.marks
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime/clean
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 clean
 .PHONY : clean
 
 # The main clean target
@@ -103,73 +113,69 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime/preinstall
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime/preinstall
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
-# Convenience name for target.
-runtime/CMakeFiles/runtime.dir/rule:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime/CMakeFiles/runtime.dir/rule
-.PHONY : runtime/CMakeFiles/runtime.dir/rule
+#=============================================================================
+# Target rules for targets named runtime
 
-# Convenience name for target.
-runtime: runtime/CMakeFiles/runtime.dir/rule
+# Build rule for target.
+runtime: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime
 .PHONY : runtime
 
 # fast build rule for target.
 runtime/fast:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/build
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/build
 .PHONY : runtime/fast
 
-# Convenience name for target.
-runtime/CMakeFiles/ConcurrentHashMap_test.dir/rule:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime/CMakeFiles/ConcurrentHashMap_test.dir/rule
-.PHONY : runtime/CMakeFiles/ConcurrentHashMap_test.dir/rule
+#=============================================================================
+# Target rules for targets named ConcurrentHashMap_test
 
-# Convenience name for target.
-ConcurrentHashMap_test: runtime/CMakeFiles/ConcurrentHashMap_test.dir/rule
+# Build rule for target.
+ConcurrentHashMap_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ConcurrentHashMap_test
 .PHONY : ConcurrentHashMap_test
 
 # fast build rule for target.
 ConcurrentHashMap_test/fast:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/ConcurrentHashMap_test.dir/build.make runtime/CMakeFiles/ConcurrentHashMap_test.dir/build
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ConcurrentHashMap_test.dir/build.make CMakeFiles/ConcurrentHashMap_test.dir/build
 .PHONY : ConcurrentHashMap_test/fast
 
-# Convenience name for target.
-runtime/CMakeFiles/PersistentList_test.dir/rule:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime/CMakeFiles/PersistentList_test.dir/rule
-.PHONY : runtime/CMakeFiles/PersistentList_test.dir/rule
+#=============================================================================
+# Target rules for targets named PersistentList_test
 
-# Convenience name for target.
-PersistentList_test: runtime/CMakeFiles/PersistentList_test.dir/rule
+# Build rule for target.
+PersistentList_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 PersistentList_test
 .PHONY : PersistentList_test
 
 # fast build rule for target.
 PersistentList_test/fast:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentList_test.dir/build.make runtime/CMakeFiles/PersistentList_test.dir/build
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentList_test.dir/build.make CMakeFiles/PersistentList_test.dir/build
 .PHONY : PersistentList_test/fast
 
-# Convenience name for target.
-runtime/CMakeFiles/PersistentVector_test.dir/rule:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runtime/CMakeFiles/PersistentVector_test.dir/rule
-.PHONY : runtime/CMakeFiles/PersistentVector_test.dir/rule
+#=============================================================================
+# Target rules for targets named PersistentVector_test
 
-# Convenience name for target.
-PersistentVector_test: runtime/CMakeFiles/PersistentVector_test.dir/rule
+# Build rule for target.
+PersistentVector_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 PersistentVector_test
 .PHONY : PersistentVector_test
 
 # fast build rule for target.
 PersistentVector_test/fast:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentVector_test.dir/build.make runtime/CMakeFiles/PersistentVector_test.dir/build
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentVector_test.dir/build.make CMakeFiles/PersistentVector_test.dir/build
 .PHONY : PersistentVector_test/fast
 
 BigInteger.o: BigInteger.c.o
@@ -177,7 +183,7 @@ BigInteger.o: BigInteger.c.o
 
 # target to build an object file
 BigInteger.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/BigInteger.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/BigInteger.c.o
 .PHONY : BigInteger.c.o
 
 BigInteger.i: BigInteger.c.i
@@ -185,7 +191,7 @@ BigInteger.i: BigInteger.c.i
 
 # target to preprocess a source file
 BigInteger.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/BigInteger.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/BigInteger.c.i
 .PHONY : BigInteger.c.i
 
 BigInteger.s: BigInteger.c.s
@@ -193,7 +199,7 @@ BigInteger.s: BigInteger.c.s
 
 # target to generate assembly for a file
 BigInteger.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/BigInteger.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/BigInteger.c.s
 .PHONY : BigInteger.c.s
 
 Boolean.o: Boolean.c.o
@@ -201,7 +207,7 @@ Boolean.o: Boolean.c.o
 
 # target to build an object file
 Boolean.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Boolean.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Boolean.c.o
 .PHONY : Boolean.c.o
 
 Boolean.i: Boolean.c.i
@@ -209,7 +215,7 @@ Boolean.i: Boolean.c.i
 
 # target to preprocess a source file
 Boolean.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Boolean.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Boolean.c.i
 .PHONY : Boolean.c.i
 
 Boolean.s: Boolean.c.s
@@ -217,39 +223,15 @@ Boolean.s: Boolean.c.s
 
 # target to generate assembly for a file
 Boolean.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Boolean.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Boolean.c.s
 .PHONY : Boolean.c.s
-
-Class.o: Class.c.o
-.PHONY : Class.o
-
-# target to build an object file
-Class.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Class.c.o
-.PHONY : Class.c.o
-
-Class.i: Class.c.i
-.PHONY : Class.i
-
-# target to preprocess a source file
-Class.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Class.c.i
-.PHONY : Class.c.i
-
-Class.s: Class.c.s
-.PHONY : Class.s
-
-# target to generate assembly for a file
-Class.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Class.c.s
-.PHONY : Class.c.s
 
 ConcurrentHashMap.o: ConcurrentHashMap.c.o
 .PHONY : ConcurrentHashMap.o
 
 # target to build an object file
 ConcurrentHashMap.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/ConcurrentHashMap.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/ConcurrentHashMap.c.o
 .PHONY : ConcurrentHashMap.c.o
 
 ConcurrentHashMap.i: ConcurrentHashMap.c.i
@@ -257,7 +239,7 @@ ConcurrentHashMap.i: ConcurrentHashMap.c.i
 
 # target to preprocess a source file
 ConcurrentHashMap.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/ConcurrentHashMap.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/ConcurrentHashMap.c.i
 .PHONY : ConcurrentHashMap.c.i
 
 ConcurrentHashMap.s: ConcurrentHashMap.c.s
@@ -265,39 +247,15 @@ ConcurrentHashMap.s: ConcurrentHashMap.c.s
 
 # target to generate assembly for a file
 ConcurrentHashMap.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/ConcurrentHashMap.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/ConcurrentHashMap.c.s
 .PHONY : ConcurrentHashMap.c.s
-
-Deftype.o: Deftype.c.o
-.PHONY : Deftype.o
-
-# target to build an object file
-Deftype.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Deftype.c.o
-.PHONY : Deftype.c.o
-
-Deftype.i: Deftype.c.i
-.PHONY : Deftype.i
-
-# target to preprocess a source file
-Deftype.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Deftype.c.i
-.PHONY : Deftype.c.i
-
-Deftype.s: Deftype.c.s
-.PHONY : Deftype.s
-
-# target to generate assembly for a file
-Deftype.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Deftype.c.s
-.PHONY : Deftype.c.s
 
 Double.o: Double.c.o
 .PHONY : Double.o
 
 # target to build an object file
 Double.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Double.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Double.c.o
 .PHONY : Double.c.o
 
 Double.i: Double.c.i
@@ -305,7 +263,7 @@ Double.i: Double.c.i
 
 # target to preprocess a source file
 Double.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Double.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Double.c.i
 .PHONY : Double.c.i
 
 Double.s: Double.c.s
@@ -313,7 +271,7 @@ Double.s: Double.c.s
 
 # target to generate assembly for a file
 Double.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Double.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Double.c.s
 .PHONY : Double.c.s
 
 Function.o: Function.c.o
@@ -321,7 +279,7 @@ Function.o: Function.c.o
 
 # target to build an object file
 Function.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Function.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Function.c.o
 .PHONY : Function.c.o
 
 Function.i: Function.c.i
@@ -329,7 +287,7 @@ Function.i: Function.c.i
 
 # target to preprocess a source file
 Function.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Function.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Function.c.i
 .PHONY : Function.c.i
 
 Function.s: Function.c.s
@@ -337,7 +295,7 @@ Function.s: Function.c.s
 
 # target to generate assembly for a file
 Function.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Function.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Function.c.s
 .PHONY : Function.c.s
 
 Integer.o: Integer.c.o
@@ -345,7 +303,7 @@ Integer.o: Integer.c.o
 
 # target to build an object file
 Integer.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Integer.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Integer.c.o
 .PHONY : Integer.c.o
 
 Integer.i: Integer.c.i
@@ -353,7 +311,7 @@ Integer.i: Integer.c.i
 
 # target to preprocess a source file
 Integer.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Integer.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Integer.c.i
 .PHONY : Integer.c.i
 
 Integer.s: Integer.c.s
@@ -361,7 +319,7 @@ Integer.s: Integer.c.s
 
 # target to generate assembly for a file
 Integer.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Integer.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Integer.c.s
 .PHONY : Integer.c.s
 
 Interface.o: Interface.c.o
@@ -369,7 +327,7 @@ Interface.o: Interface.c.o
 
 # target to build an object file
 Interface.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Interface.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Interface.c.o
 .PHONY : Interface.c.o
 
 Interface.i: Interface.c.i
@@ -377,7 +335,7 @@ Interface.i: Interface.c.i
 
 # target to preprocess a source file
 Interface.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Interface.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Interface.c.i
 .PHONY : Interface.c.i
 
 Interface.s: Interface.c.s
@@ -385,7 +343,7 @@ Interface.s: Interface.c.s
 
 # target to generate assembly for a file
 Interface.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Interface.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Interface.c.s
 .PHONY : Interface.c.s
 
 Keyword.o: Keyword.c.o
@@ -393,7 +351,7 @@ Keyword.o: Keyword.c.o
 
 # target to build an object file
 Keyword.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Keyword.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Keyword.c.o
 .PHONY : Keyword.c.o
 
 Keyword.i: Keyword.c.i
@@ -401,7 +359,7 @@ Keyword.i: Keyword.c.i
 
 # target to preprocess a source file
 Keyword.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Keyword.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Keyword.c.i
 .PHONY : Keyword.c.i
 
 Keyword.s: Keyword.c.s
@@ -409,7 +367,7 @@ Keyword.s: Keyword.c.s
 
 # target to generate assembly for a file
 Keyword.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Keyword.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Keyword.c.s
 .PHONY : Keyword.c.s
 
 Nil.o: Nil.c.o
@@ -417,7 +375,7 @@ Nil.o: Nil.c.o
 
 # target to build an object file
 Nil.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Nil.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Nil.c.o
 .PHONY : Nil.c.o
 
 Nil.i: Nil.c.i
@@ -425,7 +383,7 @@ Nil.i: Nil.c.i
 
 # target to preprocess a source file
 Nil.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Nil.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Nil.c.i
 .PHONY : Nil.c.i
 
 Nil.s: Nil.c.s
@@ -433,7 +391,7 @@ Nil.s: Nil.c.s
 
 # target to generate assembly for a file
 Nil.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Nil.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Nil.c.s
 .PHONY : Nil.c.s
 
 Object.o: Object.c.o
@@ -441,7 +399,7 @@ Object.o: Object.c.o
 
 # target to build an object file
 Object.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Object.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Object.c.o
 .PHONY : Object.c.o
 
 Object.i: Object.c.i
@@ -449,7 +407,7 @@ Object.i: Object.c.i
 
 # target to preprocess a source file
 Object.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Object.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Object.c.i
 .PHONY : Object.c.i
 
 Object.s: Object.c.s
@@ -457,7 +415,7 @@ Object.s: Object.c.s
 
 # target to generate assembly for a file
 Object.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Object.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Object.c.s
 .PHONY : Object.c.s
 
 PersistentArrayMap.o: PersistentArrayMap.c.o
@@ -465,7 +423,7 @@ PersistentArrayMap.o: PersistentArrayMap.c.o
 
 # target to build an object file
 PersistentArrayMap.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentArrayMap.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentArrayMap.c.o
 .PHONY : PersistentArrayMap.c.o
 
 PersistentArrayMap.i: PersistentArrayMap.c.i
@@ -473,7 +431,7 @@ PersistentArrayMap.i: PersistentArrayMap.c.i
 
 # target to preprocess a source file
 PersistentArrayMap.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentArrayMap.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentArrayMap.c.i
 .PHONY : PersistentArrayMap.c.i
 
 PersistentArrayMap.s: PersistentArrayMap.c.s
@@ -481,7 +439,7 @@ PersistentArrayMap.s: PersistentArrayMap.c.s
 
 # target to generate assembly for a file
 PersistentArrayMap.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentArrayMap.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentArrayMap.c.s
 .PHONY : PersistentArrayMap.c.s
 
 PersistentList.o: PersistentList.c.o
@@ -489,7 +447,7 @@ PersistentList.o: PersistentList.c.o
 
 # target to build an object file
 PersistentList.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentList.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentList.c.o
 .PHONY : PersistentList.c.o
 
 PersistentList.i: PersistentList.c.i
@@ -497,7 +455,7 @@ PersistentList.i: PersistentList.c.i
 
 # target to preprocess a source file
 PersistentList.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentList.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentList.c.i
 .PHONY : PersistentList.c.i
 
 PersistentList.s: PersistentList.c.s
@@ -505,7 +463,7 @@ PersistentList.s: PersistentList.c.s
 
 # target to generate assembly for a file
 PersistentList.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentList.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentList.c.s
 .PHONY : PersistentList.c.s
 
 PersistentVector.o: PersistentVector.c.o
@@ -513,7 +471,7 @@ PersistentVector.o: PersistentVector.c.o
 
 # target to build an object file
 PersistentVector.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentVector.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentVector.c.o
 .PHONY : PersistentVector.c.o
 
 PersistentVector.i: PersistentVector.c.i
@@ -521,7 +479,7 @@ PersistentVector.i: PersistentVector.c.i
 
 # target to preprocess a source file
 PersistentVector.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentVector.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentVector.c.i
 .PHONY : PersistentVector.c.i
 
 PersistentVector.s: PersistentVector.c.s
@@ -529,7 +487,7 @@ PersistentVector.s: PersistentVector.c.s
 
 # target to generate assembly for a file
 PersistentVector.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentVector.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentVector.c.s
 .PHONY : PersistentVector.c.s
 
 PersistentVectorIterator.o: PersistentVectorIterator.c.o
@@ -537,7 +495,7 @@ PersistentVectorIterator.o: PersistentVectorIterator.c.o
 
 # target to build an object file
 PersistentVectorIterator.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentVectorIterator.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentVectorIterator.c.o
 .PHONY : PersistentVectorIterator.c.o
 
 PersistentVectorIterator.i: PersistentVectorIterator.c.i
@@ -545,7 +503,7 @@ PersistentVectorIterator.i: PersistentVectorIterator.c.i
 
 # target to preprocess a source file
 PersistentVectorIterator.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentVectorIterator.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentVectorIterator.c.i
 .PHONY : PersistentVectorIterator.c.i
 
 PersistentVectorIterator.s: PersistentVectorIterator.c.s
@@ -553,7 +511,7 @@ PersistentVectorIterator.s: PersistentVectorIterator.c.s
 
 # target to generate assembly for a file
 PersistentVectorIterator.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentVectorIterator.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentVectorIterator.c.s
 .PHONY : PersistentVectorIterator.c.s
 
 PersistentVectorNode.o: PersistentVectorNode.c.o
@@ -561,7 +519,7 @@ PersistentVectorNode.o: PersistentVectorNode.c.o
 
 # target to build an object file
 PersistentVectorNode.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentVectorNode.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentVectorNode.c.o
 .PHONY : PersistentVectorNode.c.o
 
 PersistentVectorNode.i: PersistentVectorNode.c.i
@@ -569,7 +527,7 @@ PersistentVectorNode.i: PersistentVectorNode.c.i
 
 # target to preprocess a source file
 PersistentVectorNode.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentVectorNode.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentVectorNode.c.i
 .PHONY : PersistentVectorNode.c.i
 
 PersistentVectorNode.s: PersistentVectorNode.c.s
@@ -577,7 +535,7 @@ PersistentVectorNode.s: PersistentVectorNode.c.s
 
 # target to generate assembly for a file
 PersistentVectorNode.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/PersistentVectorNode.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/PersistentVectorNode.c.s
 .PHONY : PersistentVectorNode.c.s
 
 Ratio.o: Ratio.c.o
@@ -585,7 +543,7 @@ Ratio.o: Ratio.c.o
 
 # target to build an object file
 Ratio.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Ratio.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Ratio.c.o
 .PHONY : Ratio.c.o
 
 Ratio.i: Ratio.c.i
@@ -593,7 +551,7 @@ Ratio.i: Ratio.c.i
 
 # target to preprocess a source file
 Ratio.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Ratio.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Ratio.c.i
 .PHONY : Ratio.c.i
 
 Ratio.s: Ratio.c.s
@@ -601,7 +559,7 @@ Ratio.s: Ratio.c.s
 
 # target to generate assembly for a file
 Ratio.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Ratio.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Ratio.c.s
 .PHONY : Ratio.c.s
 
 String.o: String.c.o
@@ -609,7 +567,7 @@ String.o: String.c.o
 
 # target to build an object file
 String.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/String.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/String.c.o
 .PHONY : String.c.o
 
 String.i: String.c.i
@@ -617,7 +575,7 @@ String.i: String.c.i
 
 # target to preprocess a source file
 String.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/String.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/String.c.i
 .PHONY : String.c.i
 
 String.s: String.c.s
@@ -625,7 +583,7 @@ String.s: String.c.s
 
 # target to generate assembly for a file
 String.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/String.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/String.c.s
 .PHONY : String.c.s
 
 Symbol.o: Symbol.c.o
@@ -633,7 +591,7 @@ Symbol.o: Symbol.c.o
 
 # target to build an object file
 Symbol.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Symbol.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Symbol.c.o
 .PHONY : Symbol.c.o
 
 Symbol.i: Symbol.c.i
@@ -641,7 +599,7 @@ Symbol.i: Symbol.c.i
 
 # target to preprocess a source file
 Symbol.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Symbol.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Symbol.c.i
 .PHONY : Symbol.c.i
 
 Symbol.s: Symbol.c.s
@@ -649,7 +607,7 @@ Symbol.s: Symbol.c.s
 
 # target to generate assembly for a file
 Symbol.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Symbol.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Symbol.c.s
 .PHONY : Symbol.c.s
 
 Transient.o: Transient.c.o
@@ -657,7 +615,7 @@ Transient.o: Transient.c.o
 
 # target to build an object file
 Transient.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Transient.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Transient.c.o
 .PHONY : Transient.c.o
 
 Transient.i: Transient.c.i
@@ -665,7 +623,7 @@ Transient.i: Transient.c.i
 
 # target to preprocess a source file
 Transient.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Transient.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Transient.c.i
 .PHONY : Transient.c.i
 
 Transient.s: Transient.c.s
@@ -673,39 +631,15 @@ Transient.s: Transient.c.s
 
 # target to generate assembly for a file
 Transient.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Transient.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runtime.dir/build.make CMakeFiles/runtime.dir/Transient.c.s
 .PHONY : Transient.c.s
-
-Var.o: Var.c.o
-.PHONY : Var.o
-
-# target to build an object file
-Var.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Var.c.o
-.PHONY : Var.c.o
-
-Var.i: Var.c.i
-.PHONY : Var.i
-
-# target to preprocess a source file
-Var.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Var.c.i
-.PHONY : Var.c.i
-
-Var.s: Var.c.s
-.PHONY : Var.s
-
-# target to generate assembly for a file
-Var.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/runtime.dir/build.make runtime/CMakeFiles/runtime.dir/Var.c.s
-.PHONY : Var.c.s
 
 tests/ConcurrentHashMap_test.o: tests/ConcurrentHashMap_test.c.o
 .PHONY : tests/ConcurrentHashMap_test.o
 
 # target to build an object file
 tests/ConcurrentHashMap_test.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/ConcurrentHashMap_test.dir/build.make runtime/CMakeFiles/ConcurrentHashMap_test.dir/tests/ConcurrentHashMap_test.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ConcurrentHashMap_test.dir/build.make CMakeFiles/ConcurrentHashMap_test.dir/tests/ConcurrentHashMap_test.c.o
 .PHONY : tests/ConcurrentHashMap_test.c.o
 
 tests/ConcurrentHashMap_test.i: tests/ConcurrentHashMap_test.c.i
@@ -713,7 +647,7 @@ tests/ConcurrentHashMap_test.i: tests/ConcurrentHashMap_test.c.i
 
 # target to preprocess a source file
 tests/ConcurrentHashMap_test.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/ConcurrentHashMap_test.dir/build.make runtime/CMakeFiles/ConcurrentHashMap_test.dir/tests/ConcurrentHashMap_test.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ConcurrentHashMap_test.dir/build.make CMakeFiles/ConcurrentHashMap_test.dir/tests/ConcurrentHashMap_test.c.i
 .PHONY : tests/ConcurrentHashMap_test.c.i
 
 tests/ConcurrentHashMap_test.s: tests/ConcurrentHashMap_test.c.s
@@ -721,7 +655,7 @@ tests/ConcurrentHashMap_test.s: tests/ConcurrentHashMap_test.c.s
 
 # target to generate assembly for a file
 tests/ConcurrentHashMap_test.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/ConcurrentHashMap_test.dir/build.make runtime/CMakeFiles/ConcurrentHashMap_test.dir/tests/ConcurrentHashMap_test.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ConcurrentHashMap_test.dir/build.make CMakeFiles/ConcurrentHashMap_test.dir/tests/ConcurrentHashMap_test.c.s
 .PHONY : tests/ConcurrentHashMap_test.c.s
 
 tests/PersistentList_test.o: tests/PersistentList_test.c.o
@@ -729,7 +663,7 @@ tests/PersistentList_test.o: tests/PersistentList_test.c.o
 
 # target to build an object file
 tests/PersistentList_test.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentList_test.dir/build.make runtime/CMakeFiles/PersistentList_test.dir/tests/PersistentList_test.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentList_test.dir/build.make CMakeFiles/PersistentList_test.dir/tests/PersistentList_test.c.o
 .PHONY : tests/PersistentList_test.c.o
 
 tests/PersistentList_test.i: tests/PersistentList_test.c.i
@@ -737,7 +671,7 @@ tests/PersistentList_test.i: tests/PersistentList_test.c.i
 
 # target to preprocess a source file
 tests/PersistentList_test.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentList_test.dir/build.make runtime/CMakeFiles/PersistentList_test.dir/tests/PersistentList_test.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentList_test.dir/build.make CMakeFiles/PersistentList_test.dir/tests/PersistentList_test.c.i
 .PHONY : tests/PersistentList_test.c.i
 
 tests/PersistentList_test.s: tests/PersistentList_test.c.s
@@ -745,7 +679,7 @@ tests/PersistentList_test.s: tests/PersistentList_test.c.s
 
 # target to generate assembly for a file
 tests/PersistentList_test.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentList_test.dir/build.make runtime/CMakeFiles/PersistentList_test.dir/tests/PersistentList_test.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentList_test.dir/build.make CMakeFiles/PersistentList_test.dir/tests/PersistentList_test.c.s
 .PHONY : tests/PersistentList_test.c.s
 
 tests/PersistentVector_test.o: tests/PersistentVector_test.c.o
@@ -753,7 +687,7 @@ tests/PersistentVector_test.o: tests/PersistentVector_test.c.o
 
 # target to build an object file
 tests/PersistentVector_test.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentVector_test.dir/build.make runtime/CMakeFiles/PersistentVector_test.dir/tests/PersistentVector_test.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentVector_test.dir/build.make CMakeFiles/PersistentVector_test.dir/tests/PersistentVector_test.c.o
 .PHONY : tests/PersistentVector_test.c.o
 
 tests/PersistentVector_test.i: tests/PersistentVector_test.c.i
@@ -761,7 +695,7 @@ tests/PersistentVector_test.i: tests/PersistentVector_test.c.i
 
 # target to preprocess a source file
 tests/PersistentVector_test.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentVector_test.dir/build.make runtime/CMakeFiles/PersistentVector_test.dir/tests/PersistentVector_test.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentVector_test.dir/build.make CMakeFiles/PersistentVector_test.dir/tests/PersistentVector_test.c.i
 .PHONY : tests/PersistentVector_test.c.i
 
 tests/PersistentVector_test.s: tests/PersistentVector_test.c.s
@@ -769,7 +703,7 @@ tests/PersistentVector_test.s: tests/PersistentVector_test.c.s
 
 # target to generate assembly for a file
 tests/PersistentVector_test.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentVector_test.dir/build.make runtime/CMakeFiles/PersistentVector_test.dir/tests/PersistentVector_test.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentVector_test.dir/build.make CMakeFiles/PersistentVector_test.dir/tests/PersistentVector_test.c.s
 .PHONY : tests/PersistentVector_test.c.s
 
 tests/TestTools.o: tests/TestTools.c.o
@@ -777,9 +711,9 @@ tests/TestTools.o: tests/TestTools.c.o
 
 # target to build an object file
 tests/TestTools.c.o:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/ConcurrentHashMap_test.dir/build.make runtime/CMakeFiles/ConcurrentHashMap_test.dir/tests/TestTools.c.o
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentList_test.dir/build.make runtime/CMakeFiles/PersistentList_test.dir/tests/TestTools.c.o
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentVector_test.dir/build.make runtime/CMakeFiles/PersistentVector_test.dir/tests/TestTools.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ConcurrentHashMap_test.dir/build.make CMakeFiles/ConcurrentHashMap_test.dir/tests/TestTools.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentList_test.dir/build.make CMakeFiles/PersistentList_test.dir/tests/TestTools.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentVector_test.dir/build.make CMakeFiles/PersistentVector_test.dir/tests/TestTools.c.o
 .PHONY : tests/TestTools.c.o
 
 tests/TestTools.i: tests/TestTools.c.i
@@ -787,9 +721,9 @@ tests/TestTools.i: tests/TestTools.c.i
 
 # target to preprocess a source file
 tests/TestTools.c.i:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/ConcurrentHashMap_test.dir/build.make runtime/CMakeFiles/ConcurrentHashMap_test.dir/tests/TestTools.c.i
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentList_test.dir/build.make runtime/CMakeFiles/PersistentList_test.dir/tests/TestTools.c.i
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentVector_test.dir/build.make runtime/CMakeFiles/PersistentVector_test.dir/tests/TestTools.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ConcurrentHashMap_test.dir/build.make CMakeFiles/ConcurrentHashMap_test.dir/tests/TestTools.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentList_test.dir/build.make CMakeFiles/PersistentList_test.dir/tests/TestTools.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentVector_test.dir/build.make CMakeFiles/PersistentVector_test.dir/tests/TestTools.c.i
 .PHONY : tests/TestTools.c.i
 
 tests/TestTools.s: tests/TestTools.c.s
@@ -797,9 +731,9 @@ tests/TestTools.s: tests/TestTools.c.s
 
 # target to generate assembly for a file
 tests/TestTools.c.s:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/ConcurrentHashMap_test.dir/build.make runtime/CMakeFiles/ConcurrentHashMap_test.dir/tests/TestTools.c.s
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentList_test.dir/build.make runtime/CMakeFiles/PersistentList_test.dir/tests/TestTools.c.s
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(MAKE) $(MAKESILENT) -f runtime/CMakeFiles/PersistentVector_test.dir/build.make runtime/CMakeFiles/PersistentVector_test.dir/tests/TestTools.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ConcurrentHashMap_test.dir/build.make CMakeFiles/ConcurrentHashMap_test.dir/tests/TestTools.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentList_test.dir/build.make CMakeFiles/PersistentList_test.dir/tests/TestTools.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/PersistentVector_test.dir/build.make CMakeFiles/PersistentVector_test.dir/tests/TestTools.c.s
 .PHONY : tests/TestTools.c.s
 
 # Help Target
@@ -810,6 +744,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... test"
 	@echo "... ConcurrentHashMap_test"
 	@echo "... PersistentList_test"
 	@echo "... PersistentVector_test"
@@ -820,15 +755,9 @@ help:
 	@echo "... Boolean.o"
 	@echo "... Boolean.i"
 	@echo "... Boolean.s"
-	@echo "... Class.o"
-	@echo "... Class.i"
-	@echo "... Class.s"
 	@echo "... ConcurrentHashMap.o"
 	@echo "... ConcurrentHashMap.i"
 	@echo "... ConcurrentHashMap.s"
-	@echo "... Deftype.o"
-	@echo "... Deftype.i"
-	@echo "... Deftype.s"
 	@echo "... Double.o"
 	@echo "... Double.i"
 	@echo "... Double.s"
@@ -877,9 +806,6 @@ help:
 	@echo "... Transient.o"
 	@echo "... Transient.i"
 	@echo "... Transient.s"
-	@echo "... Var.o"
-	@echo "... Var.i"
-	@echo "... Var.s"
 	@echo "... tests/ConcurrentHashMap_test.o"
 	@echo "... tests/ConcurrentHashMap_test.i"
 	@echo "... tests/ConcurrentHashMap_test.s"
@@ -903,6 +829,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /Users/mareklipert/documents/prog/clojure/clojure-rt/backend-v2 && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

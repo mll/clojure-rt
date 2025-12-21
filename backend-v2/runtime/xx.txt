@@ -1,0 +1,121 @@
+[  3%] Building C object CMakeFiles/runtime.dir/PersistentList.c.o
+[  6%] Building C object CMakeFiles/runtime.dir/PersistentVector.c.o
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:11:10: error: incompatible pointer to integer conversion passing 'PersistentVector *' (aka 'struct PersistentVector *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   11 |   retain(EMPTY_VECTOR);
+      |          ^~~~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:408:28: note: passing argument to parameter 'self' here
+  408 | inline void retain(RTValue self) {
+      |                            ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:59:24: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   59 |   BOOL retVal = equals(self->tail, other->tail);
+      |                        ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:327:28: note: passing argument to parameter 'self' here
+  327 | inline bool equals(RTValue self, RTValue other) {
+      |                            ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:59:36: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   59 |   BOOL retVal = equals(self->tail, other->tail);
+      |                                    ^~~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:327:42: note: passing argument to parameter 'other' here
+  327 | inline bool equals(RTValue self, RTValue other) {
+      |                                          ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:60:62: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   60 |   if (self->count > RRB_BRANCHING) retVal = retVal && equals(self->root, other->root);
+      |                                                              ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:327:28: note: passing argument to parameter 'self' here
+  327 | inline bool equals(RTValue self, RTValue other) {
+      |                            ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:60:74: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   60 |   if (self->count > RRB_BRANCHING) retVal = retVal && equals(self->root, other->root);
+      |                                                                          ^~~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:327:42: note: passing argument to parameter 'other' here
+  327 | inline bool equals(RTValue self, RTValue other) {
+      |                                          ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:65:46: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   65 |   return combineHash(5381, self->root ? hash(self->root) : 5381);
+      |                                              ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:268:30: note: passing argument to parameter 'v' here
+  268 | inline uint64_t hash(RTValue v) {
+      |                              ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:74:12: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   74 |     retain(self->root);
+      |            ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:408:28: note: passing argument to parameter 'self' here
+  408 | inline void retain(RTValue self) {
+      |                            ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:75:12: error: incompatible pointer to integer conversion passing 'String *' (aka 'struct String *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   75 |     retain(space);
+      |            ^~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:408:28: note: passing argument to parameter 'self' here
+  408 | inline void retain(RTValue self) {
+      |                            ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:76:45: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   76 |     retVal = String_concat(retVal, toString(self->root));
+      |                                             ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:374:33: note: passing argument to parameter 'self' here
+  374 | inline String *toString(RTValue self) {
+      |                                 ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:79:10: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   79 |   retain(self->tail);
+      |          ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:408:28: note: passing argument to parameter 'self' here
+  408 | inline void retain(RTValue self) {
+      |                            ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:81:43: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   81 |   retVal = String_concat(retVal, toString(self->tail));   
+      |                                           ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:374:33: note: passing argument to parameter 'self' here
+  374 | inline String *toString(RTValue self) {
+      |                                 ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:83:11: error: incompatible pointer to integer conversion passing 'PersistentVector *restrict' (aka 'struct PersistentVector *restrict') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   83 |   release(self);
+      |           ^~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:414:29: note: passing argument to parameter 'self' here
+  414 | inline bool release(RTValue self) {
+      |                             ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:84:11: error: incompatible pointer to integer conversion passing 'String *' (aka 'struct String *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   84 |   release(space);
+      |           ^~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:414:29: note: passing argument to parameter 'self' here
+  414 | inline bool release(RTValue self) {
+      |                             ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:90:11: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   90 |   release(self->tail);
+      |           ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:414:29: note: passing argument to parameter 'self' here
+  414 | inline bool release(RTValue self) {
+      |                             ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:91:27: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   91 |   if (self->root) release(self->root);
+      |                           ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:414:29: note: passing argument to parameter 'self' here
+  414 | inline bool release(RTValue self) {
+      |                             ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:97:13: error: incompatible pointer to integer conversion passing 'PersistentVector *restrict' (aka 'struct PersistentVector *restrict') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   97 |     release(self); 
+      |             ^~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:414:29: note: passing argument to parameter 'self' here
+  414 | inline bool release(RTValue self) {
+      |                             ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:98:13: error: incompatible pointer to integer conversion passing 'void *restrict' to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+   98 |     release(other); 
+      |             ^~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:414:29: note: passing argument to parameter 'self' here
+  414 | inline bool release(RTValue self) {
+      |                             ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:105:30: error: incompatible pointer to integer conversion passing 'PersistentVector *restrict' (aka 'struct PersistentVector *restrict') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+  105 |   BOOL reusable = isReusable(self) || transientID;
+      |                              ^~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:204:32: note: passing argument to parameter 'self' here
+  204 | inline bool isReusable(RTValue self) {
+      |                                ^
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/PersistentVector.c:108:49: error: incompatible pointer to integer conversion passing 'PersistentVectorNode *' (aka 'struct PersistentVectorNode *') to parameter of type 'RTValue' (aka 'unsigned long long') [-Wint-conversion]
+  108 |     BOOL tailReusable = (reusable && isReusable(self->tail)) || (transientID && (transientID == self->tail->transientID));
+      |                                                 ^~~~~~~~~~
+/Users/mareklipert/Documents/prog/clojure/clojure-rt/backend-v2/runtime/Object.h:204:32: note: passing argument to parameter 'self' here
+  204 | inline bool isReusable(RTValue self) {
+      |                                ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+make[2]: *** [CMakeFiles/runtime.dir/PersistentVector.c.o] Error 1
+make[1]: *** [CMakeFiles/runtime.dir/all] Error 2
+make: *** [all] Error 2

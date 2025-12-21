@@ -4,6 +4,10 @@
 #include <stdarg.h>
 
 ConcurrentHashMap *keywords = NULL;
+ConcurrentHashMap *keywordsInverted = NULL;
+ConcurrentHashMap *symbols = NULL;
+ConcurrentHashMap *symbolsInverted = NULL;
+
 ConcurrentHashMap *vars = NULL;
 
 extern BOOL logicalValue(void * restrict self);
@@ -17,7 +21,10 @@ extern void printReferenceCounts();
 
 void Interface_initialise() {
   keywords = ConcurrentHashMap_create(10); // 2^10
-  vars = ConcurrentHashMap_create(10); // 2^10
+  keywordsInverted = ConcurrentHashMap_create(10);  // 2^10
+  vars = ConcurrentHashMap_create(10);              // 2^10
+  symbols = ConcurrentHashMap_create(10);
+  symbolsInverted = ConcurrentHashMap_create(10);  
 }
 
 void printReferenceCounts() {

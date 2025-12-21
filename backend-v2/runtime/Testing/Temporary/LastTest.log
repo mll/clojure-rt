@@ -1,0 +1,350 @@
+Start testing: Dec 20 22:39 CET
+----------------------------------------------------------
+1/3 Testing: ConcurrentHashMap_test
+1/3 Test: ConcurrentHashMap_test
+Command: "/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/ConcurrentHashMap_test" "LABELS" "Unit"
+Directory: /Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime
+"ConcurrentHashMap_test" start time: Dec 20 22:39 CET
+Output:
+----------------------------------------------------------
+[==========] tests: Running 1 test(s).
+[ RUN      ] testScalingBehavior
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap assoc. Time: 0.882696 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap get. Time: 0.000835 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap release. Time: 1.124553 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 10000: 2.008125 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap assoc. Time: 0.782199 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap get. Time: 0.001164 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap release. Time: 0.672551 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 20000: 1.455946 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap assoc. Time: 0.867502 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap get. Time: 0.002185 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap release. Time: 0.754179 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 30000: 1.623897 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap assoc. Time: 0.828054 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap get. Time: 0.002859 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap release. Time: 0.751618 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 40000: 1.582557 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap assoc. Time: 0.827827 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap get. Time: 0.003746 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap release. Time: 0.736135 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 50000: 1.567733 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap assoc. Time: 0.972009 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap get. Time: 0.011380 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap release. Time: 0.737797 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 100000: 1.721203 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap assoc. Time: 3.548469 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap get. Time: 0.713526 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+ConcurrentHashMap release. Time: 1.149312 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 1000000: 5.411351 s
+
+Scaling Analysis:
+Slope (a): 3.885327e-06 s/item
+R^2 (Linearity): 0.976721
+[       OK ] testScalingBehavior
+[==========] tests: 1 test(s) run.
+[  PASSED  ] 1 test(s).
+<end of output>
+Test time =  15.79 sec
+----------------------------------------------------------
+Test Passed.
+"ConcurrentHashMap_test" end time: Dec 20 22:39 CET
+"ConcurrentHashMap_test" time elapsed: 00:00:15
+----------------------------------------------------------
+
+2/3 Testing: PersistentList_test
+2/3 Test: PersistentList_test
+Command: "/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/PersistentList_test" "LABELS" "Unit"
+Directory: /Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime
+"PersistentList_test" start time: Dec 20 22:39 CET
+Output:
+----------------------------------------------------------
+[==========] tests: Running 1 test(s).
+[ RUN      ] testScalingBehavior
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+PersistentList Conj. Time: 0.000225 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+PersistentList Sum Time: 0.000017 seconds
+PersistentList release: 0.000311 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 10000: 0.000563 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+PersistentList Conj. Time: 0.000407 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+PersistentList Sum Time: 0.000038 seconds
+PersistentList release: 0.000616 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 20000: 0.001062 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+PersistentList Conj. Time: 0.000678 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+PersistentList Sum Time: 0.000064 seconds
+PersistentList release: 0.001043 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 30000: 0.001789 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+PersistentList Conj. Time: 0.000886 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+PersistentList Sum Time: 0.000089 seconds
+PersistentList release: 0.001363 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 40000: 0.002343 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+PersistentList Conj. Time: 0.001083 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+PersistentList Sum Time: 0.000113 seconds
+PersistentList release: 0.001697 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 50000: 0.002896 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+PersistentList Conj. Time: 0.002496 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+PersistentList Sum Time: 0.000213 seconds
+PersistentList release: 0.003363 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 100000: 0.006084 s
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+PersistentList Conj. Time: 0.031164 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+PersistentList Sum Time: 0.001982 seconds
+PersistentList release: 0.030673 seconds
+Ref counters: 0 0 0 0 0 0 0 0 0 0 0 0 0
+Size 1000000: 0.063832 s
+
+Scaling Analysis:
+Slope (a): 6.402902e-08 s/item
+R^2 (Linearity): 0.999986
+[       OK ] testScalingBehavior
+[==========] tests: 1 test(s) run.
+[  PASSED  ] 1 test(s).
+<end of output>
+Test time =   0.28 sec
+----------------------------------------------------------
+Test Passed.
+"PersistentList_test" end time: Dec 20 22:39 CET
+"PersistentList_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/3 Testing: PersistentVector_test
+3/3 Test: PersistentVector_test
+Command: "/Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime/PersistentVector_test" "LABELS" "Unit"
+Directory: /Users/mareklipert/documents/prog/clojure/clojure-rt/backend/runtime
+"PersistentVector_test" start time: Dec 20 22:39 CET
+Output:
+----------------------------------------------------------
+[==========] tests: Running 6 test(s).
+[ RUN      ] testScalingBehavior
+
+Vector Conj (NO REUSE) Time: 0.001623s
+Size 10000: 0.001798 s
+
+Vector Conj (NO REUSE) Time: 0.003411s
+Size 20000: 0.003756 s
+
+Vector Conj (NO REUSE) Time: 0.005294s
+Size 30000: 0.005818 s
+
+Vector Conj (NO REUSE) Time: 0.007039s
+Size 40000: 0.007752 s
+
+Vector Conj (NO REUSE) Time: 0.008816s
+Size 50000: 0.009678 s
+
+Vector Conj (NO REUSE) Time: 0.016948s
+Size 100000: 0.018460 s
+
+Vector Conj (NO REUSE) Time: 0.140877s
+Size 1000000: 0.156588 s
+
+Scaling Analysis:
+Slope (a): 1.553655e-07 s/item
+R^2 (Linearity): 0.999760
+[       OK ] testScalingBehavior
+[ RUN      ] testScalingBehavior
+
+Vector Standard Conj Time: 0.000151s (Size: 10000)
+Size 10000: 0.000309 s
+
+Vector Standard Conj Time: 0.000305s (Size: 20000)
+Size 20000: 0.000616 s
+
+Vector Standard Conj Time: 0.000436s (Size: 30000)
+Size 30000: 0.000923 s
+
+Vector Standard Conj Time: 0.000611s (Size: 40000)
+Size 40000: 0.001247 s
+
+Vector Standard Conj Time: 0.000735s (Size: 50000)
+Size 50000: 0.001537 s
+
+Vector Standard Conj Time: 0.001538s (Size: 100000)
+Size 100000: 0.003149 s
+
+Vector Standard Conj Time: 0.019008s (Size: 1000000)
+Size 1000000: 0.037351 s
+
+Scaling Analysis:
+Slope (a): 3.758296e-08 s/item
+R^2 (Linearity): 0.999834
+[       OK ] testScalingBehavior
+[ RUN      ] testScalingBehavior
+Vector Transient Conj Time: 0.000154s
+Size 10000: 0.000291 s
+Vector Transient Conj Time: 0.000282s
+Size 20000: 0.000546 s
+Vector Transient Conj Time: 0.000419s
+Size 30000: 0.000815 s
+Vector Transient Conj Time: 0.000582s
+Size 40000: 0.001111 s
+Vector Transient Conj Time: 0.000706s
+Size 50000: 0.001392 s
+Vector Transient Conj Time: 0.001458s
+Size 100000: 0.002805 s
+Vector Transient Conj Time: 0.018325s
+Size 1000000: 0.034094 s
+
+Scaling Analysis:
+Slope (a): 3.432568e-08 s/item
+R^2 (Linearity): 0.999786
+[       OK ] testScalingBehavior
+[ RUN      ] testScalingBehavior
+Traversal Performance (Size 10000):
+  - nth sum time:    0.000098s
+  - iterator time:   0.000024s
+Size 10000: 0.000428 s
+Traversal Performance (Size 20000):
+  - nth sum time:    0.000207s
+  - iterator time:   0.000050s
+Size 20000: 0.000840 s
+Traversal Performance (Size 30000):
+  - nth sum time:    0.000290s
+  - iterator time:   0.000069s
+Size 30000: 0.001255 s
+Traversal Performance (Size 40000):
+  - nth sum time:    0.000389s
+  - iterator time:   0.000096s
+Size 40000: 0.001731 s
+Traversal Performance (Size 50000):
+  - nth sum time:    0.000477s
+  - iterator time:   0.000118s
+Size 50000: 0.002041 s
+Traversal Performance (Size 100000):
+  - nth sum time:    0.000956s
+  - iterator time:   0.000242s
+Size 100000: 0.004212 s
+Traversal Performance (Size 1000000):
+  - nth sum time:    0.010111s
+  - iterator time:   0.002688s
+Size 1000000: 0.047658 s
+
+Scaling Analysis:
+Slope (a): 4.786482e-08 s/item
+R^2 (Linearity): 0.999899
+[       OK ] testScalingBehavior
+[ RUN      ] testScalingBehavior
+Vector Assoc Update Time: 0.002317s
+Size 10000: 0.002504 s
+Vector Assoc Update Time: 0.005192s
+Size 20000: 0.005578 s
+Vector Assoc Update Time: 0.008202s
+Size 30000: 0.008835 s
+Vector Assoc Update Time: 0.012822s
+Size 40000: 0.013747 s
+Vector Assoc Update Time: 0.015653s
+Size 50000: 0.016890 s
+Vector Assoc Update Time: 0.032369s
+Size 100000: 0.034944 s
+Vector Assoc Update Time: 0.356817s
+Size 1000000: 0.382643 s
+
+Scaling Analysis:
+Slope (a): 3.848013e-07 s/item
+R^2 (Linearity): 0.999974
+[       OK ] testScalingBehavior
+[ RUN      ] testScalingBehavior
+C array Update Time: 0.000001s
+Size 10000: 0.000004 s
+C array Update Time: 0.000001s
+Size 20000: 0.000004 s
+C array Update Time: 0.000002s
+Size 30000: 0.000017 s
+C array Update Time: 0.000002s
+Size 40000: 0.000012 s
+C array Update Time: 0.000002s
+Size 50000: 0.000011 s
+C array Update Time: 0.000008s
+Size 100000: 0.000033 s
+C array Update Time: 0.000063s
+Size 1000000: 0.000441 s
+
+Scaling Analysis:
+Slope (a): 4.452254e-10 s/item
+R^2 (Linearity): 0.998866
+[       OK ] testScalingBehavior
+[==========] tests: 6 test(s) run.
+[  PASSED  ] 6 test(s).
+<end of output>
+Test time =   1.01 sec
+----------------------------------------------------------
+Test Passed.
+"PersistentVector_test" end time: Dec 20 22:39 CET
+"PersistentVector_test" time elapsed: 00:00:01
+----------------------------------------------------------
+
+End testing: Dec 20 22:39 CET

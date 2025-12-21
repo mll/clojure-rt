@@ -2,8 +2,20 @@
 #define RT_BOOLEAN
 #include "String.h"
 #include "defines.h"
-#include "RTValue.h"
 
-String *Boolean_toString(bool self); 
+typedef struct Object Object;
+
+struct Boolean {
+  Object super;
+  unsigned char value;
+};
+
+typedef struct Boolean Boolean;
+
+Boolean* Boolean_create(BOOL initial);
+BOOL Boolean_equals(Boolean *self, Boolean *other);
+uint64_t Boolean_hash(Boolean *self);
+String *Boolean_toString(Boolean *self); 
+void Boolean_destroy(Boolean *self);
 
 #endif

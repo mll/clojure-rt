@@ -12,7 +12,6 @@
 #include <unistd.h>
 #include <assert.h>
 #include <execinfo.h>
-#include "RTValue.h"
 #include "defines.h"
 #include "PersistentVectorIterator.h"
 #include <stdatomic.h>
@@ -144,6 +143,9 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
 //  printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t));
  // printReferenceCounts();
   switch((objectType)self->type) {
+  case integerType:
+    Integer_destroy((Integer *)self);
+    break;          
   case stringType:
     String_destroy((String *) self);
     break;          
@@ -156,14 +158,29 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
   case persistentVectorNodeType:
     PersistentVectorNode_destroy((PersistentVectorNode *)self, deallocateChildren);
     break;
+  case doubleType:
+    Double_destroy((Double *) self);
+    break;          
+  case booleanType:
+    Boolean_destroy((Boolean *) self);
+    break;
+  case symbolType:
+    Symbol_destroy((Symbol *) self);
+    break;
   case classType:
     Class_destroy((Class *) self);
     break;
   case deftypeType:
     Deftype_destroy((Deftype *) self);
     break;
+  case nilType:
+    Nil_destroy((Nil *) self);
+    break;
   case concurrentHashMapType:
     ConcurrentHashMap_destroy((ConcurrentHashMap *) self);
+    break;
+  case keywordType:
+    Keyword_destroy((Keyword *) self);
     break;
   case functionType:
     Function_destroy((ClojureFunction *) self);
@@ -180,8 +197,6 @@ inline void Object_destroy(Object *restrict self, BOOL deallocateChildren) {
   case persistentArrayMapType:
     PersistentArrayMap_destroy((PersistentArrayMap *)self, deallocateChildren);
     break;
-  default:
-    return;
   }
   deallocate(self);
  // printf("dealloc end %lld\n", (uint64_t));
@@ -201,8 +216,8 @@ inline BOOL Object_isReusable(Object *restrict self) {
   return refCount == 1;
 }
 
-inline BOOL isReusable(RTValue self) {
-  return !RT_isPtr(self) || Object_isReusable(RT_unboxPtr(self));
+inline BOOL isReusable(void *restrict self) {
+  return Object_isReusable((Object *)self);
 }
 
 inline BOOL Object_release_internal(Object *restrict self, BOOL deallocateChildren) {
@@ -237,6 +252,9 @@ inline BOOL Object_release_internal(Object *restrict self, BOOL deallocateChildr
 /* Outside of refcount system */
 inline uint64_t Object_hash(Object *restrict self) {
       switch((objectType)self->type) {
+      case integerType:
+        return Integer_hash((Integer *) self);
+        break;          
       case stringType:
         return String_hash((String *) self);
         break;          
@@ -249,12 +267,25 @@ inline uint64_t Object_hash(Object *restrict self) {
       case persistentVectorNodeType:
         return PersistentVectorNode_hash((PersistentVectorNode *) self);
         break;
+      case doubleType:
+        return Double_hash((Double *) self);
+        break;          
+      case booleanType:
+        return Boolean_hash((Boolean *) self);
+        break;
+      case nilType:
+        return Nil_hash((Nil *) self);
+        break;
+      case symbolType:
+        return Symbol_hash((Symbol *) self);
       case classType:
         return Class_hash((Class *) self);
       case deftypeType:
         return Deftype_hash((Deftype *) self);
       case concurrentHashMapType:
         return ConcurrentHashMap_hash((ConcurrentHashMap *) self);
+      case keywordType:
+        return Keyword_hash((Keyword *) self);
       case functionType:
         return Function_hash((ClojureFunction *) self);
       case varType:
@@ -269,32 +300,20 @@ inline uint64_t Object_hash(Object *restrict self) {
 }
 
 /* Outside of refcount system */
-inline uint64_t hash(RTValue v) {
-    objectType t = getType(v);
-    switch(t) {
-        case integerType: return (uint64_t)RT_unboxInt32(v);
-        case booleanType: return (uint64_t)RT_unboxBool(v);
-        case nilType:     return 0xDEADBEEF; // Standard nil hash
-        case keywordType: return (uint64_t)RT_unboxKeyword(v);
-        case doubleType: {
-            double d = RT_unboxDouble(v);
-            uint64_t u;
-            memcpy(&u, &d, 8);
-            return u;
-        }
-        default:
-            if (RT_isPtr(v)) {
-                return Object_hash((Object*)RT_unboxPtr(v));
-            }
-            return 0;
-    }
+inline uint64_t hash(void *restrict self) {
+  return Object_hash((Object *)self);
 }
 
 /* Outside of refcount system */
 inline BOOL Object_equals(Object *self, Object *other) {
+  if (self == other) return TRUE;
+  if (self->type != other->type) return FALSE;
   if (Object_hash(self) != Object_hash(other)) return FALSE;
 
   switch((objectType)self->type) {
+  case integerType:
+    return Integer_equals((Integer *)self, (Integer *)other);
+    break;          
   case stringType:
     return String_equals((String *)self, (String *)other);
     break;          
@@ -307,6 +326,18 @@ inline BOOL Object_equals(Object *self, Object *other) {
   case persistentVectorNodeType:
     return PersistentVectorNode_equals((PersistentVectorNode *)self, (PersistentVectorNode *)other);
     break;
+  case doubleType:
+    return Double_equals((Double *)self, (Double *)other);
+    break;
+  case booleanType:
+    return Boolean_equals((Boolean *)self, (Boolean *)other);
+    break;
+  case nilType:
+    return Nil_equals((Nil *)self, (Nil *)other);
+    break;
+  case symbolType:
+    return Symbol_equals((Symbol *)self, (Symbol *)other);
+    break;
   case classType:
     return Class_equals((Class *)self, (Class *)other);
     break;
@@ -315,6 +346,9 @@ inline BOOL Object_equals(Object *self, Object *other) {
     break;
   case concurrentHashMapType:
     return ConcurrentHashMap_equals((ConcurrentHashMap *)self, (ConcurrentHashMap *)other);
+    break;
+  case keywordType:
+    return Keyword_equals((Keyword *)self, (Keyword *)other);
     break;
   case functionType:
     return Function_equals((ClojureFunction *)self, (ClojureFunction *)other);
@@ -335,26 +369,16 @@ inline BOOL Object_equals(Object *self, Object *other) {
 }
 
 /* Outside of refcount system */
-inline BOOL equals(RTValue self, RTValue other) {
-  if (self == other) return true; // Handles same-ints, same-bools, and same-pointers
-  
-  objectType t1 = getType(self);
-  objectType t2 = getType(other);
-  if (t1 != t2) return false;
-  
-  if (RT_isPtr(self)) {
-    return Object_equals((Object*)RT_unboxPtr(self), (Object*)RT_unboxPtr(other));
-  }
-  
-  if (t1 == doubleType) {
-    return RT_unboxDouble(self) == RT_unboxDouble(other);
-  }
-  return false;  
+inline BOOL equals(void *self, void *other) {
+  return Object_equals((Object *)self, (Object *)other);
 }
 
 
 inline String *Object_toString(Object *restrict self) {
   switch((objectType)self->type) {
+  case integerType:
+    return Integer_toString((Integer *)self);
+    break;          
   case stringType:
     return String_toString((String *)self);
     break;          
@@ -367,6 +391,17 @@ inline String *Object_toString(Object *restrict self) {
   case persistentVectorNodeType:
     return PersistentVectorNode_toString((PersistentVectorNode *)self);
     break;
+  case doubleType:
+    return Double_toString((Double *)self);
+    break;
+  case booleanType:
+    return Boolean_toString((Boolean *)self);
+    break;
+  case nilType:
+    return Nil_toString((Nil *)self);
+    break;
+  case symbolType:
+    return Symbol_toString((Symbol *)self);
   case classType:
     return Class_toString((Class *)self);
   case deftypeType:
@@ -388,16 +423,8 @@ inline String *Object_toString(Object *restrict self) {
   }
 }
 
-inline String *toString(RTValue self) {
-  if (RT_isInt32(self))  return Integer_toString(RT_unboxInt32(self));
-  if (RT_isDouble(self)) return Double_toString(RT_unboxDouble(self));
-  if (RT_isBool(self)) return Bool_toString(RT_unboxBool(self));
-  if (RT_isNil(self)) return Nil_toString();  
-  if (RT_isKeyword(self)) return Keyword_toString(RT_unboxKeyword(self));  
-  if (RT_isSymbol(self)) return Symbol_toString(RT_unboxSymbol(self));
-
-  assert(RT_isPtr(self) && "Internal error: Not a pointer");
-  return Object_toString((Object*)RT_unboxPtr(v));  
+inline String *toString(void *restrict self) {
+  return Object_toString((Object *)self);
 }
 
 inline BOOL Object_release(Object *restrict self) {
@@ -405,15 +432,8 @@ inline BOOL Object_release(Object *restrict self) {
 }
 
 /* Outside of refcount system */
-inline objectType getType(RTValue v) {
-  if (RT_isDouble(v))  return doubleType;
-  if (RT_isInt32(v))   return integerType;
-  if (RT_isBool(v))    return booleanType;
-  if (RT_isNil(v))     return nilType;
-  if (RT_isKeyword(v)) return keywordType;
-  if (RT_isSymbol(v))  return symbolType;
-  assert(RT_isPtr(v) && "Internal error: Not a pointer");
-  return ((Object*)RT_unboxPtr(v))->type;  
+inline objectType getType(Object *restrict obj) {
+  return obj->type;
 }
 
 inline void Object_autorelease(Object *restrict self) {
@@ -428,23 +448,16 @@ inline void Object_autorelease(Object *restrict self) {
   Object_release(self);
 }
 
-inline void autorelease(RTValue self) {
-  if (RT_isPtr(v)) {
-        Object_autorelease((Object*)RT_unboxPtr(v));
-  }  
+inline void autorelease(void *restrict self) {
+  Object_autorelease((Object *)self);
 }
 
-inline void retain(RTValue) {
-  if (RT_isPtr(v)) {
-        Object_retain((Object*)RT_unboxPtr(v));
-  }    
+inline void retain(void *restrict self) {
+  Object_retain((Object *)self);
 }
 
 inline BOOL release(void *restrict self) {
-  if (RT_isPtr(v)) {
-    return Object_release((Object*)RT_unboxPtr(v));
-  }      
-  return false;
+   return Object_release((Object *)self);
 }
 
 inline void Object_create(Object *restrict self, objectType type) {

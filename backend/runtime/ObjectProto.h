@@ -3,34 +3,34 @@
 #include <stdatomic.h>
 
 enum objectType {
-  integerType = 1,
-  doubleType,
-  nilType,
-  booleanType,
-  symbolType,
-  keywordType,
-  
-  stringType,  
-  persistentListType,
-  persistentVectorType,
-  persistentVectorNodeType,
-  classType,
-  deftypeType,
-  concurrentHashMapType,
-  functionType,
-  varType,
-  bigIntegerType,
-  ratioType,
-  persistentArrayMapType,
+   integerType = 1,
+   stringType,
+   persistentListType,
+   persistentVectorType,
+   persistentVectorNodeType,
+   doubleType,
+   nilType,
+   booleanType,
+   symbolType,
+   classType,
+   deftypeType,
+   concurrentHashMapType,
+   keywordType,
+   functionType,
+   varType,
+   bigIntegerType,
+   ratioType,
+   persistentArrayMapType,
 };
 
 typedef enum objectType objectType;
 
+
 struct Object {
 #ifdef REFCOUNT_NONATOMIC
-  uword_t refCount;
+  uint64_t refCount;
 #endif
-  _Atomic uword_t atomicRefCount;
+  volatile atomic_uint_fast64_t atomicRefCount;
   objectType type;
 #ifdef USE_MEMORY_BANKS
   unsigned char bankId;

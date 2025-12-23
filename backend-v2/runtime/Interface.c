@@ -10,14 +10,16 @@ ConcurrentHashMap *symbolsInverted = NULL;
 
 ConcurrentHashMap *vars = NULL;
 
-extern BOOL logicalValue(void * restrict self);
+extern bool logicalValue(RTValue self);
 extern void logException(const char *description);
-extern BOOL unboxedEqualsInteger(void *left, int64_t right);
-extern BOOL unboxedEqualsDouble(void *left, double right);
-extern BOOL unboxedEqualsBoolean(void *left, BOOL right);
+extern bool unboxedEqualsInteger(RTValue left, int32_t right);
+extern bool unboxedEqualsDouble(RTValue left, double right);
+extern bool unboxedEqualsBoolean(RTValue left, bool right);
 extern void logType(const objectType ll);
 extern void logText(const char *text);
 extern void printReferenceCounts();
+extern uint64_t avalanche_64(uint64_t h);
+
 
 void Interface_initialise() {
   keywords = ConcurrentHashMap_create(10); // 2^10
@@ -30,7 +32,7 @@ void Interface_initialise() {
 void printReferenceCounts() {
   printf("Ref counters: ");  
   for(unsigned char i= integerType; i <= persistentArrayMapType; i++) {
-    printf("%llu/%llu ", allocationCount[i-1], objectCount[i-1]);    
+    printf("%lu/%lu ", allocationCount[i-1], objectCount[i-1]);    
   }
   printf("\n");
 }
@@ -54,12 +56,12 @@ void logBacktrace() {
   free (strings);
 }
 
-void **packPointerArgs(uint64_t count, ...) {
+void **packPointerArgs(uword_t count, ...) {
   if (!count) return NULL;
   void **ptr = allocate(sizeof(void *) * count);
   va_list args;
   va_start(args, count);
-  for (uint64_t i = 0; i < count; ++i) {
+  for (uword_t i = 0; i < count; ++i) {
     ptr[i] = va_arg(args, void *);
   }
   va_end(args);

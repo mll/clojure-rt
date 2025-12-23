@@ -1,4 +1,5 @@
 #include "TestTools.h"
+#include <math.h>
 
 #define THREAD_COUNT 10
 
@@ -13,8 +14,7 @@ static void *startThread(void *param) {
   ConcurrentHashMap *l = p->map;
   
   for(int i=p->start; i<p->stop; i++) {
-    Integer *n = Integer_create(i);
-    retain(n);
+    RTValue n = RT_boxInt32(i);
     ConcurrentHashMap_assoc(l, n, n);
   }
  
@@ -24,26 +24,26 @@ static void *startThread(void *param) {
 static void concurrentMapThreadingAndPerformance(void **state) {
   TestParams *testParams = (TestParams *)*state;
   size_t size = testParams->current_size;
-  
   TimerContext timer;
   timerStart(&timer);
   pd();
-  
-  ConcurrentHashMap *l = ConcurrentHashMap_create(28);
-  int perThread = size / THREAD_COUNT;
 
+  ConcurrentHashMap *l = ConcurrentHashMap_create(((int)log2(size)) + 3);
+  word_t perThread = size / THREAD_COUNT;
+  timerStop(&timer);
+  printf("\nConcurrentHashMap start. Time: %f seconds\n", timerGetSeconds(&timer));
+  timerStart(&timer);  
   HashThreadParams params[THREAD_COUNT];
   pthread_t threads[THREAD_COUNT];
 
-  for(int i=0; i<THREAD_COUNT; i++) {
+  for(word_t i=0; i<THREAD_COUNT; i++) {
     params[i].start = i * perThread;
     params[i].stop = (i+1) * perThread;
     params[i].map = l;
     pthread_create(&(threads[i]), NULL, startThread, (void *) &params[i]);
   }
   
-  for(int i=0; i<THREAD_COUNT; i++) pthread_join(threads[i], NULL);
-
+  for(word_t i=0; i<THREAD_COUNT; i++) pthread_join(threads[i], NULL);
 
   timerStop(&timer);
   double assoc_time = timerGetSeconds(&timer);
@@ -53,34 +53,28 @@ static void concurrentMapThreadingAndPerformance(void **state) {
 
   timerStart(&timer);
   
-  int64_t sum = 0;
-  Integer *k = Integer_create(1);
-  for(int64_t i=0; i< (int) size; i++) {
-    k->value = i;
-    retain(k);
-    Object *o = (Object *)ConcurrentHashMap_get(l, k);
+  word_t sum = 0;
+  RTValue k = RT_boxInt32(1);
+  for(word_t i=0; i< (word_t) size; i++) {
+    k = RT_boxInt32(i);
+    RTValue o = ConcurrentHashMap_get(l, k);
     assert_true(o);
-    if(o->type != integerType) {
-      retain(k);
-      printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
-      retain(k);
-      o = (Object *)ConcurrentHashMap_get(l, k);
-      retain(k);
-      printf("Unknown type %d for entry %s\n", o->type, String_c_str(toString(k)));
-      retain(l);
+    if(getType(o) != integerType) {
+      printf("Unknown type %d for entry %s\n", getType(o), String_c_str(toString(k)));
+      o = ConcurrentHashMap_get(l, k);
+      printf("Unknown type %d for entry %s\n", getType(o), String_c_str(toString(k)));
+      Ptr_retain(l);
       retain(o);
       printf("Contents: %s %s\n", String_c_str(toString(o)),
-             String_c_str(String_compactify(toString(l))));
+             String_c_str(String_compactify(toString(RT_boxPtr(l)))));
     }
 
-    assert_true(o->type == integerType);
-    Integer *res = (Integer *) o;
-    assert(res->value == i);
-    sum += res->value;
-    release(res);
+    assert_true(getType(o) == integerType);
+    int32_t res = RT_unboxInt32(o);
+    assert(res == i);
+    sum += res;
   }
-  
-  release(k);
+
 
   timerStop(&timer);
   double get_time = timerGetSeconds(&timer);
@@ -91,7 +85,7 @@ static void concurrentMapThreadingAndPerformance(void **state) {
 
 
   timerStart(&timer);
-  release(l);
+  Ptr_release(l);
   timerStop(&timer);  
   printf("\nConcurrentHashMap release. Time: %f seconds\n", timerGetSeconds(&timer));
   pd();

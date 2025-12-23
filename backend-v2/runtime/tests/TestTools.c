@@ -3,7 +3,7 @@
 //#include <gperftools/profiler.h>
 
 void pd() {
-    printf("Ref counters: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n", allocationCount[0], allocationCount[1], allocationCount[2], allocationCount[3], allocationCount[4], allocationCount[5], allocationCount[6], allocationCount[7], allocationCount[8], allocationCount[9], allocationCount[10], allocationCount[11], allocationCount[12]);
+    printf("Ref counters: %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu\n", allocationCount[0], allocationCount[1], allocationCount[2], allocationCount[3], allocationCount[4], allocationCount[5], allocationCount[6], allocationCount[7], allocationCount[8], allocationCount[9], allocationCount[10], allocationCount[11], allocationCount[12]);
 }
 
 
@@ -85,6 +85,6 @@ void testScalingBehavior(void **state) {
     // ASSERTIONS:
     // 1. Ensure slope is positive and reasonable (example threshold)
     assert_true(res.slope > 0); 
-    // 2. Ensure linearity is high (R^2 > 0.9 is generally very linear)
-    assert_true(res.r_squared > 0.90);
+    // 2. Ensure linearity is high (R^2 > 0.99 is generally very linear)
+    assert_true(res.r_squared > 0.99);
 }

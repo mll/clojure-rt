@@ -18,9 +18,9 @@ static void listConjunctionAndPerformance(void **state) {
   timerStart(&timer_conj);
   pd();
   
-  PersistentList *l = PersistentList_create(NULL, NULL);
+  PersistentList *l = PersistentList_create(RT_boxNull(), NULL);
   for (size_t i = 0; i < size; i++) {
-    Integer *n = Integer_create(i);
+    RTValue n = RT_boxInt32(i);
     PersistentList *k = PersistentList_conj(l, n);
     l = k;
   }
@@ -42,7 +42,7 @@ static void listConjunctionAndPerformance(void **state) {
   timerStart(&timer_sum);
   while(tmp != NULL) {
     if(tmp->first) {
-      sum += ((Integer *)(tmp->first))->value;
+      sum += RT_unboxInt32(tmp->first);
     }
     tmp = tmp->rest;
   }
@@ -58,7 +58,7 @@ static void listConjunctionAndPerformance(void **state) {
   // --- 5. CLEANUP ---
   TimerContext timer_release;    
   timerStart(&timer_release);
-  release(l);
+  Ptr_release(l);
   timerStop(&timer_release);
   printf("PersistentList release: %f seconds\n",
          timerGetSeconds(&timer_release));

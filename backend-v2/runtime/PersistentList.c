@@ -7,7 +7,7 @@ static PersistentList *EMPTY = NULL;
 /* mem done */
 PersistentList* PersistentList_empty() {
   if (EMPTY == NULL) EMPTY = PersistentList_create(RT_boxNull(), NULL);
-  retain(RT_boxPtr(EMPTY));
+  Ptr_retain(EMPTY);
   return EMPTY;
 } 
 
@@ -61,7 +61,7 @@ String *PersistentList_toString(PersistentList *self) {
 
   while (current) {
     if (current != self && !RT_isNull(current->first)) {
-      retain(RT_boxPtr(space));
+      Ptr_retain(space);
       retVal = String_concat(retVal, space);
     }
     if(!RT_isNull(current->first)) {
@@ -72,8 +72,8 @@ String *PersistentList_toString(PersistentList *self) {
     current = current->rest;
   }
   retVal = String_concat(retVal, closing); 
-  release(RT_boxPtr(space));  
-  release(RT_boxPtr(self));
+  Ptr_release(space);  
+  Ptr_release(self);
   return retVal;
 }
 
@@ -83,7 +83,7 @@ void PersistentList_destroy(PersistentList *self, bool deallocateChildren) {
     PersistentList *child = self->rest;
     while(child) {
       PersistentList *next = child->rest;
-      if (!Object_release_internal((Object *)child, FALSE)) {
+      if (!Object_release_internal((Object *)child, false)) {
         break;
       }
 

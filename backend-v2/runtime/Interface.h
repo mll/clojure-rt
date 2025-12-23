@@ -43,7 +43,7 @@ inline bool unboxedEqualsBoolean(RTValue left, bool right) {
 
 void printReferenceCounts();
 
-void **packPointerArgs(uint64_t count, ...);
+void **packPointerArgs(uword_t count, ...);
 
 #endif
 

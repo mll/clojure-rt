@@ -1,4 +1,0 @@
-ConcurrentHashMap_test 30 0.526252
-PersistentList_test 41 0.00683971
-PersistentVector_test 18 0.0561448
----

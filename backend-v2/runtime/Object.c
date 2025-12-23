@@ -6,8 +6,8 @@
 #include "Interface.h"
 #include "RTValue.h"
 
-_Atomic uint64_t allocationCount[256]; 
-_Atomic uint64_t objectCount[256];
+_Atomic uword_t allocationCount[256]; 
+_Atomic uword_t objectCount[256];
 _Thread_local void *memoryBank[8] = {0};
 _Thread_local int memoryBankSize[8] = {0};
 
@@ -29,7 +29,6 @@ void initialise_memory() {
   /* poolInitialize(&globalPool2, 128, 100000); */
   /* poolInitialize(&globalPool3, 64, 100000); */
   PersistentVector_initialise();
-  Nil_initialise();
   Interface_initialise();
 }
 
@@ -54,7 +53,7 @@ extern bool release(RTValue self);
 extern void autorelease(RTValue self);
 extern bool release_internal(void * restrict self, bool deallocatesChildren);
 extern bool equals(RTValue self, RTValue other);
-extern uint64_t hash(RTValue self);
+extern uword_t hash(RTValue self);
 extern String *toString(RTValue self);
 
 extern void Object_create(Object * restrict self, objectType type);
@@ -64,12 +63,17 @@ extern bool Object_release_internal(Object * restrict self, bool deallocatesChil
 extern void Object_destroy(Object *restrict self, bool deallocateChildren);
 extern void Object_autorelease(Object * restrict self);
 extern bool Object_equals(Object * restrict self, Object * restrict other);
-extern uint64_t Object_hash(Object * restrict self);
+extern uword_t Object_hash(Object * restrict self);
 extern String *Object_toString(Object * restrict self);
 extern bool Object_isReusable(Object *restrict self);
 extern bool isReusable(RTValue self);
 extern objectType getType(RTValue obj);
 
-extern uint64_t combineHash(uint64_t lhs, uint64_t rhs);
+extern uword_t combineHash(uword_t lhs, uword_t rhs);
 
-
+extern void Ptr_autorelease(void *self);
+extern void Ptr_retain(void *self);
+extern bool Ptr_release(void *self);
+extern uword_t Ptr_hash(void *self);
+extern bool Ptr_equals(void *self, void *other);
+extern bool Ptr_isReusable(void *self);

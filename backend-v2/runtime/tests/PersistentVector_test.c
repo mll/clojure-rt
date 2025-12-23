@@ -26,14 +26,14 @@ static void vectorConjNoReuse(void **state) {
     timerStart(&timer);
     
     for (size_t i = 0; i < size; i++) {
-        Integer *n = Integer_create(i);
+        RTValue n = RT_boxInt32(i);
         
         // Force ref count up so 'v' cannot be mutated in-place
-        retain(v); 
+        Ptr_retain(v); 
         PersistentVector *next = PersistentVector_conj(v, n);
         
         // Release the old reference and the "forced" retention
-        release(v); 
+        Ptr_release(v); 
         
         v = next;
     }
@@ -42,7 +42,7 @@ static void vectorConjNoReuse(void **state) {
     printf("\nVector Conj (NO REUSE) Time: %fs\n", timerGetSeconds(&timer));
     
     assert_int_equal(size, v->count);
-    release(v);
+    Ptr_release(v);
 }
 
 
@@ -58,7 +58,7 @@ static void vectorStandardConjAndSum(void **state) {
     
     PersistentVector *v = PersistentVector_create();
     for (size_t i = 0; i < size; i++) {
-        Integer *n = Integer_create(i);
+        RTValue n = RT_boxInt32(i);        
         // Persistent way: original is released, new one is returned
         PersistentVector *next = PersistentVector_conj(v, n);
         v = next;
@@ -72,16 +72,16 @@ static void vectorStandardConjAndSum(void **state) {
     // Verify Sum using Iterator
     int64_t sum = 0;
     PersistentVectorIterator it = PersistentVector_iterator(v);
-    Object *obj = PersistentVector_iteratorGet(&it);
-    while(obj) {
-        sum += ((Integer *)obj)->value;
+    RTValue obj = PersistentVector_iteratorGet(&it);
+    while(!RT_isNull(obj)) {
+        sum += RT_unboxInt32(obj);
         obj = PersistentVector_iteratorNext(&it);
     }
 
     uint64_t expected_sum = (uint64_t)size * ((uint64_t)size - 1) / 2;
     assert_int_equal(expected_sum, sum);
 
-    release(v);
+    Ptr_release(v);
 }
 
 /**
@@ -96,9 +96,9 @@ static void vectorTransientConj(void **state) {
 
     // Enter transient mode
     PersistentVector *v = PersistentVector_transient(PersistentVector_create());
-    
+
     for (size_t i = 0; i < size; i++) {
-        Integer *n = Integer_create(i);
+        RTValue n = RT_boxInt32(i);        
         // Note: conj_BANG_ handles mutation internally in transient state
         v = PersistentVector_conj_BANG_(v, n);
     }
@@ -110,7 +110,7 @@ static void vectorTransientConj(void **state) {
     printf("Vector Transient Conj Time: %fs\n", timerGetSeconds(&timer));
     
     assert_int_equal(size, v->count);
-    release(v);
+    Ptr_release(v);
 }
 
 /**
@@ -119,11 +119,10 @@ static void vectorTransientConj(void **state) {
 static void vectorTraversalPerformance(void **state) {
     TestParams *params = (TestParams *)*state;
     size_t size = params->current_size;
-    
     // Setup: Create a vector
     PersistentVector *v = PersistentVector_transient(PersistentVector_create());
     for (size_t i = 0; i < size; i++) {
-        v = PersistentVector_conj_BANG_(v, Integer_create(i));
+        v = PersistentVector_conj_BANG_(v, RT_boxInt32(i));
     }
     v = PersistentVector_persistent_BANG_(v);
 
@@ -132,9 +131,9 @@ static void vectorTraversalPerformance(void **state) {
     int64_t sum_nth = 0;
     timerStart(&t_nth);
     for (size_t i = 0; i < v->count; i++) {
-        retain(v);
-        Integer *ob = (Integer *) PersistentVector_nth(v, i);
-        sum_nth += ob->value;
+        Ptr_retain(v);
+        RTValue ob = PersistentVector_nth(v, i);
+        sum_nth += RT_unboxInt32(ob);
         release(ob);
     }
     timerStop(&t_nth);
@@ -144,9 +143,10 @@ static void vectorTraversalPerformance(void **state) {
     int64_t sum_it = 0;
     timerStart(&t_it);
     PersistentVectorIterator it = PersistentVector_iterator(v);
-    Object *obj = PersistentVector_iteratorGet(&it);
-    while(obj) {
-        sum_it += ((Integer *)obj)->value;
+    RTValue obj = PersistentVector_iteratorGet(&it);
+    while (!RT_isNull(obj)) {
+        assert(getType(obj) == integerType);
+        sum_it += RT_unboxInt32(obj);
         obj = PersistentVector_iteratorNext(&it);
     }
     timerStop(&t_it);
@@ -156,7 +156,7 @@ static void vectorTraversalPerformance(void **state) {
     printf("  - iterator time:   %fs\n", timerGetSeconds(&t_it));
 
     assert_int_equal(sum_nth, sum_it);
-    release(v);
+    Ptr_release(v);
 }
 
 /**
@@ -168,33 +168,32 @@ static void vectorAssocUpdate(void **state) {
     
     PersistentVector *v = PersistentVector_transient(PersistentVector_create());
     for (size_t i = 0; i < size; i++) {
-        v = PersistentVector_conj_BANG_(v, Integer_create(0)); // Start with all zeros
+        v = PersistentVector_conj_BANG_(v, RT_boxInt32(0)); // Start with all zeros
     }
     v = PersistentVector_persistent_BANG_(v);
-
+    
     TimerContext timer;
     timerStart(&timer);
     for (size_t i = 0; i < size; i++) {
-        retain(v);
+        Ptr_retain(v);
         // Update index i to value 7
-        PersistentVector *next = PersistentVector_assoc(v, i, Integer_create(7));
+        PersistentVector *next = PersistentVector_assoc(v, i, RT_boxInt32(7));
         v = next;
     }
     timerStop(&timer);
-    
     printf("Vector Assoc Update Time: %fs\n", timerGetSeconds(&timer));
     
     // Check integrity: Sum should be 7 * size
     int64_t sum = 0;
     PersistentVectorIterator it = PersistentVector_iterator(v);
-    Object *obj = PersistentVector_iteratorGet(&it);
-    while(obj) {
-        sum += ((Integer *)obj)->value;
+    RTValue obj = PersistentVector_iteratorGet(&it);
+    while(!RT_isNull(obj)) {
+        sum += RT_unboxInt32(obj);
         obj = PersistentVector_iteratorNext(&it);
     }
     
     assert_int_equal((int64_t)size * 7, sum);
-    release(v);
+    Ptr_release(v);
 }
 
 /**
@@ -222,7 +221,7 @@ static void vectorUpdateC(void **state) {
     
     // Check integrity: Sum should be 7 * size
     int64_t sum = 0;
-    for(int i=0; i<size; i++) {
+    for(int i=0; i<(int)size; i++) {
         sum += array[i];
     }
     

@@ -1,15 +1,16 @@
 #include "Object.h"
+#include "RTValue.h"
 #include "String.h"
 #include <string.h>
 #include "Hash.h"
 #include "PersistentVector.h"
 
 /* outside refcount system */
-uint64_t String_computeHash(const char *str) {
-    uint64_t h = 5381;
-    int64_t c;
+uword_t String_computeHash(const char *str) {
+    uword_t h = 5381;
+    word_t c;
 
-    while ((c = *str++)) h += avalanche_64(c);
+    while ((c = *str++)) h += avalanche(c);
     return h;
 }
 
@@ -79,7 +80,7 @@ String* String_createDynamicStr(const char *str) {
 
 
 /* mem done */
-String* String_createStaticOptimised(char *string, uint64_t len, uint64_t hash) {
+String* String_createStaticOptimised(char *string, uword_t len, uword_t hash) {
   String *self = (String *)allocate(sizeof(String) + sizeof(char *)); 
   *((char **) &(self->value[0])) = string;
   self->count = len;
@@ -99,26 +100,26 @@ String* String_createCompound(String *left, String *right) {
 
   if(left->specialisation != compoundString) {
     PersistentVector *empty = PersistentVector_create();
-    v = PersistentVector_conj(empty, left);
+    v = PersistentVector_conj(empty, RT_boxPtr(left));
   } else {
     v = getVec(left);
     assert(((Object *)getVec(left))->type == persistentVectorType && "Wrong type");
-    retain(v);
-    release(left);
+    Ptr_retain(v);
+    Ptr_release(left);
   }
   
   if(right->specialisation != compoundString) {
-    v = PersistentVector_conj(v, right);
+    v = PersistentVector_conj(v, RT_boxPtr(right));
   } else {
     assert(((Object *)getVec(right))->type == persistentVectorType && "Wrong type");
     PersistentVector *rvec = getVec(right);
     PersistentVectorIterator it = PersistentVector_iterator(rvec);
-    for(uint64_t i=0; i< rvec->count; i++) { 
-      retain(rvec);
+    for(uword_t i=0; i< rvec->count; i++) { 
+      Ptr_retain(rvec);
       v = PersistentVector_conj(v, PersistentVector_iteratorGet(&it));
       PersistentVector_iteratorNext(&it);
     }
-    release(right);
+    Ptr_release(right);
   }
   *((PersistentVector **)&(self->value[0])) = v;
   Object_create((Object *)self, stringType);
@@ -181,18 +182,18 @@ String *String_compactify(String *self) {
   PersistentVector *v = getVec(self);
 
   int start = 0;
-  for(uint64_t i=0; i<v->count;i++) {
+  for(uword_t i=0; i<v->count;i++) {
     /* TODO - use vector iterator */
-    retain(v);
-    String *block = PersistentVector_nth(v, i);
+    Ptr_retain(v);
+    String *block = RT_unboxPtr(PersistentVector_nth(v, i));
     char *blockPtr = getStatDyn(block);
     memcpy(output + start, blockPtr, block->count);
     start += block->count;
-    release(block);
+    Ptr_release(block);
   }
   output[self->count] = 0;
   out->hash = String_computeHash(output);
-  release(self);
+  Ptr_release(self);
   return out;
 }
 
@@ -203,8 +204,8 @@ char *String_c_str(String *self) {
 }
 
 /* outside refcount system */
-BOOL String_equals(String *self, String *other) {
-  if(self->count != other->count) return FALSE;
+bool String_equals(String *self, String *other) {
+  if(self->count != other->count) return false;
   if(self->specialisation != compoundString && other->specialisation!= compoundString) {
     char *left = getStatDyn(self);
     char *right = getStatDyn(other);
@@ -216,15 +217,15 @@ BOOL String_equals(String *self, String *other) {
   char leftChar = *String_iteratorGet(&left);
   char rightChar = *String_iteratorGet(&right);
   while(leftChar != 0) {
-    if(leftChar != rightChar) return FALSE;
+    if(leftChar != rightChar) return false;
     leftChar = *String_iteratorNext(&left);
     rightChar = *String_iteratorNext(&right);
   }
-  return TRUE;
+  return true;
 }
 
 /* outside refcount system */
-uint64_t String_hash(String *self) {
+uword_t String_hash(String *self) {
   return self->hash;
 }
 
@@ -235,7 +236,7 @@ String *String_toString(String *self) {
 
 /* outside refcount system */
 void String_destroy(String *self) {
-  if(self->specialisation == compoundString) release(getVec(self));
+  if(self->specialisation == compoundString) Ptr_release(getVec(self));
 }
 
 /* mem done */
@@ -243,26 +244,26 @@ String *String_concat(String *self, String *other) {
   return String_createCompound(self, other);
 }
 
-BOOL String_contains(String *self, String *other) {
+bool String_contains(String *self, String *other) {
   return String_indexOf(self, other) > -1;
 }
 
-int64_t String_indexOf(String *self, String *other) {
+word_t String_indexOf(String *self, String *other) {
   return String_indexOfFrom(self, other, 0);
 }
 
-int64_t String_indexOfFrom(String *self, String *other, int64_t fromIndex) {
-  int64_t selfCount = self->count, otherCount = other->count;
+word_t String_indexOfFrom(String *self, String *other, word_t fromIndex) {
+  word_t selfCount = self->count, otherCount = other->count;
   
   if (fromIndex >= selfCount) {
-    release(self);
-    release(other);
+    Ptr_release(self);
+    Ptr_release(other);
     return (otherCount == 0 ? selfCount : -1);
   }
   if (fromIndex < 0) fromIndex = 0;
   if (otherCount == 0) {
-    release(self);
-    release(other);
+    Ptr_release(self);
+    Ptr_release(other);
     return fromIndex;
   }
  
@@ -273,33 +274,33 @@ int64_t String_indexOfFrom(String *self, String *other, int64_t fromIndex) {
   char *target = other->value;
   
   char first = target[0];
-  int64_t max = selfCount - otherCount;
+  word_t max = selfCount - otherCount;
  
-  for (int64_t i = fromIndex; i <= max; i++) {
+  for (word_t i = fromIndex; i <= max; i++) {
     if (source[i] != first) {
       while (++i <= max && source[i] != first);
     }
     if (i <= max) {
-      int64_t j = i + 1, k = 1, end = j + otherCount - 1;
+      word_t j = i + 1, k = 1, end = j + otherCount - 1;
       while (j < end && source[j] == target[k]) {++j; ++k;}
       if (j == end) {
         /* Found whole string */
-        release(compactSelf);
-        release(compactOther);
+        Ptr_release(compactSelf);
+        Ptr_release(compactOther);
         return i;
       }
     }
   }
-  release(compactSelf);
-  release(compactOther);
+  Ptr_release(compactSelf);
+  Ptr_release(compactOther);
   return -1;
 }
 
 // TODO: Only the most basic version implemented: target and replacement are both one-character strings
 String *String_replace(String *self, String *target, String *replacement) {
-  if (String_equals(target, replacement)) {
-    release(target);
-    release(replacement);
+  if (target == replacement && String_equals(target, replacement)) {
+    Ptr_release(target);
+    Ptr_release(replacement);
     return self;
   }
   String *retVal = String_compactify(self);
@@ -308,8 +309,8 @@ String *String_replace(String *self, String *target, String *replacement) {
   StringIterator retValIterator = String_iterator(retVal);
   char targetChar = *String_iteratorGet(&targetIterator);
   char replacementChar = *String_iteratorGet(&replacementIterator);
-  release(target);
-  release(replacement);
+  Ptr_release(target);
+  Ptr_release(replacement);
   char *retValChar = String_iteratorGet(&retValIterator);
   while (retValChar) {
     if (*retValChar == targetChar) {

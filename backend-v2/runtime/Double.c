@@ -12,6 +12,3 @@ String *Double_toString(double self) {
   return retVal;
 }
 
-/* outside refcount system */
-void Double_destroy(Double *self) {
-}

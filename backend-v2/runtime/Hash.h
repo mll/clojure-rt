@@ -1,7 +1,7 @@
 #ifndef RT_HASH
 #define RT_HASH
 
-inline uint32_t avalanche_32(uint32_t h) {
+static inline uint32_t avalanche_32(uint32_t h) {
     h ^= h >> 16;
     h *= 0x85ebca6b;
     h ^= h >> 13;
@@ -10,7 +10,7 @@ inline uint32_t avalanche_32(uint32_t h) {
     return h;
 }
 
-inline uint32_t deavalanche_32(uint32_t h) {
+static inline uint32_t deavalanche_32(uint32_t h) {
     h ^= h >> 16;
     h *= 0x7ed1b41d;
     h ^= (h ^ (h >> 13)) >> 13;
@@ -19,7 +19,7 @@ inline uint32_t deavalanche_32(uint32_t h) {
     return h;
 }
 
-inline uint64_t avalanche_64(uint64_t h) {
+static inline uint64_t avalanche_64(uint64_t h) {
     h ^= h >> 33;
     h *= 0xff51afd7ed558ccd;
     h ^= h >> 33;
@@ -28,7 +28,7 @@ inline uint64_t avalanche_64(uint64_t h) {
     return h;
 }
 
-inline uint64_t deavalanche_64(uint64_t h) {
+static inline uint64_t deavalanche_64(uint64_t h) {
     h ^= h >> 33;
     h *= 0x9cb4b2f8129337db;
     h ^= h >> 33;
@@ -36,5 +36,12 @@ inline uint64_t deavalanche_64(uint64_t h) {
     h ^= h >> 33;
     return h;
 }
+
+static inline uword_t avalanche(uword_t h) {
+    if (K_WORD_SIZE == 8)
+      return avalanche_64(h);
+    return avalanche_32(h);
+}    
+
 
 #endif

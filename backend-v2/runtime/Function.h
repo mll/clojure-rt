@@ -2,12 +2,13 @@
 #define RT_FUNCTION
 #include "String.h"
 #include "defines.h"
+#include "RTValue.h"
 
 #define INVOKATION_CACHE_SIZE 3
 
 struct InvokationCache {
-  uint64_t signature[3];
-  uint64_t packed;
+  uword_t signature[3];
+  uword_t packed;
 
   unsigned char returnType;
   void *fptr;
@@ -17,11 +18,11 @@ typedef struct InvokationCache InvokationCache;
 
 struct FunctionMethod  {
   unsigned char index;
-  uint64_t fixedArity;
-  uint64_t isVariadic;
-  uint64_t closedOversCount;
+  uword_t fixedArity;
+  uword_t isVariadic;
+  uword_t closedOversCount;
   char *loopId;
-  void **closedOvers;
+  RTValue *closedOvers;
   struct InvokationCache invokations[INVOKATION_CACHE_SIZE];
 };
 
@@ -31,23 +32,23 @@ typedef struct Object Object;
 
 struct ClojureFunction {
   Object super;
-  BOOL once;
-  BOOL executed;
-  uint64_t uniqueId;
-  uint64_t methodCount;
-  uint64_t maxArity;
+  bool once;
+  bool executed;
+  uword_t uniqueId;
+  uword_t methodCount;
+  uword_t maxArity;
   struct FunctionMethod methods[];
 };
 
 typedef struct ClojureFunction ClojureFunction;
 
-struct ClojureFunction* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity, BOOL once);
+struct ClojureFunction* Function_create(uword_t methodCount, uword_t uniqueId, uword_t maxArity, bool once);
 
-void Function_fillMethod(struct ClojureFunction *self, uint64_t position, uint64_t index, uint64_t fixedArity,  BOOL isVariadic, char *loopId, int64_t closedOversCount, ...);
+void Function_fillMethod(struct ClojureFunction *self, uword_t position, uword_t index, uword_t fixedArity,  bool isVariadic, char *loopId, word_t closedOversCount, ...);
 
-BOOL Function_validCallWithArgCount(ClojureFunction *self, uint64_t argCount);
-BOOL Function_equals(ClojureFunction *self, ClojureFunction *other);
-uint64_t Function_hash(ClojureFunction *self);
+bool Function_validCallWithArgCount(ClojureFunction *self, uword_t argCount);
+bool Function_equals(ClojureFunction *self, ClojureFunction *other);
+uword_t Function_hash(ClojureFunction *self);
 String *Function_toString(ClojureFunction *self); 
 void Function_destroy(ClojureFunction *self);
 void Function_cleanupOnce(ClojureFunction *self);

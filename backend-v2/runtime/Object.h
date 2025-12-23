@@ -40,8 +40,8 @@ typedef struct String String;
 extern void logBacktrace();
 void printReferenceCounts();
 
-extern _Atomic uint64_t allocationCount[256]; 
-extern _Atomic uint64_t objectCount[256]; 
+extern _Atomic uword_t allocationCount[256]; 
+extern _Atomic uword_t objectCount[256]; 
 
 // bank 0 - 32 bytes 2^5
 // bank 1 - 64 bytes
@@ -150,7 +150,7 @@ inline void Object_retain(Object *restrict self) {
 }
 
 inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
-//  printf("--> Deallocating type %d addres %lld\n", self->type, (uint64_t));
+//  printf("--> Deallocating type %d addres %lld\n", self->type, (uword_t));
  // printReferenceCounts();
   switch((objectType)self->type) {
   case stringType:
@@ -184,13 +184,13 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
     assert(false && "Internal error: hash computation for NaN tagged types should be computed earlier.");    
   }
   deallocate(self);
- // printf("dealloc end %lld\n", (uint64_t));
+ // printf("dealloc end %lld\n", (uword_t));
  // printReferenceCounts();
  // printf("=========================\n");
 }
 
 inline bool Object_isReusable(Object *restrict self) {
-  uint64_t refCount = atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
+  uword_t refCount = atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
   // Multithreading - is it really safe to assume it is reusable if refcount is 1? 
   /*  The reasoning here is that passing object to another thread is an operation that by 
       itself increases its reference count. Therefore it is assumed that if recount is 1 at 
@@ -202,7 +202,7 @@ inline bool Object_isReusable(Object *restrict self) {
 }
 
 inline bool isReusable(RTValue self) {
-  return !RT_isPtr(self) || Object_isReusable(RT_unboxPtr(self));
+  return RT_isPtr(self) && Object_isReusable(RT_unboxPtr(self));
 }
 
 inline bool Object_release_internal(Object *restrict self, bool deallocateChildren) {
@@ -218,24 +218,24 @@ inline bool Object_release_internal(Object *restrict self, bool deallocateChildr
 #ifdef REFCOUNT_NONATOMIC
   if (--self->refCount == 0) {
 #else
-  uint64_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_release);  
+  uword_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount), 1, memory_order_release);  
   assert(relVal >= 1 && "Memory corruption!");
   if (relVal == 1) {
 #ifdef REFCOUNT_TRACING
-    uint64_t countVal = atomic_fetch_sub_explicit(&(objectCount[self->type -1 ]), 1, memory_order_relaxed);
+    uword_t countVal = atomic_fetch_sub_explicit(&(objectCount[self->type -1 ]), 1, memory_order_relaxed);
     assert(countVal >= 1 && "Memory corruption!");
 #endif
 #endif
     atomic_thread_fence(memory_order_acquire);    
     Object_destroy(self, deallocateChildren);
-    return TRUE;
+    return true;
   }
-  return FALSE;
+  return false;
 }
 
 
 /* Outside of refcount system */
-inline uint64_t Object_hash(Object *restrict self) {
+inline uword_t Object_hash(Object *restrict self) {
       switch((objectType)self->type) {
       case stringType:
         return String_hash((String *) self);
@@ -265,30 +265,29 @@ inline uint64_t Object_hash(Object *restrict self) {
 }
 
 /* Outside of refcount system */
-inline uint64_t hash(RTValue v) {
+inline uword_t hash(RTValue v) {
     objectType t = getType(v);
     switch(t) {
-        case integerType: return (uint64_t)RT_unboxInt32(v);
-        case booleanType: return (uint64_t)RT_unboxBool(v);
+        case integerType: return (uword_t)RT_unboxInt32(v) + 1;
+        case booleanType: return (uword_t)RT_unboxBool(v) + 1;
         case nilType:     return 0xDEADBEEF; // Standard nil hash
-        case keywordType: return (uint64_t)RT_unboxKeyword(v);
+        case keywordType: return (uword_t)RT_unboxKeyword(v);
+        case symbolType:  return (uword_t)RT_unboxSymbol(v);        
         case doubleType: {
             double d = RT_unboxDouble(v);
             uint64_t u;
             memcpy(&u, &d, 8);
-            return u;
+            return u + 1;
         }
         default:
-            if (RT_isPtr(v)) {
-                return Object_hash((Object*)RT_unboxPtr(v));
-            }
-            return 0;
+          assert(RT_isPtr(v) && "Internal error - trying to compute hash from an unknown value");            
+          return Object_hash((Object*)RT_unboxPtr(v));
     }
 }
 
 /* Outside of refcount system */
 inline bool Object_equals(Object *self, Object *other) {
-  if (Object_hash(self) != Object_hash(other)) return FALSE;
+  if (Object_hash(self) != Object_hash(other)) return false;
 
   switch((objectType)self->type) {
   case stringType:
@@ -384,7 +383,7 @@ inline String *toString(RTValue self) {
 }
 
 inline bool Object_release(Object *restrict self) {
-  return Object_release_internal(self, TRUE);
+  return Object_release_internal(self, true);
 }
 
 inline void Object_autorelease(Object *restrict self) {
@@ -433,10 +432,23 @@ inline void Object_create(Object *restrict self, objectType type) {
 }
 
 
-inline uint64_t combineHash(uint64_t lhs, uint64_t rhs) {
+inline uword_t combineHash(uword_t lhs, uword_t rhs) {
   lhs ^= rhs + 0x9ddfea08eb382d69ULL + (lhs << 6) + (lhs >> 2);
   return lhs;
 }
+
+inline void Ptr_autorelease(void *self) { Object_autorelease((Object *)self); }
+inline void Ptr_retain(void *self) { Object_retain((Object *)self); }
+inline bool Ptr_release(void *self) { return Object_release((Object *)self); }
+inline uword_t Ptr_hash(void *self) { return Object_hash((Object*)self); }
+inline bool Ptr_isReusable(void *self) { return Object_isReusable((Object *)self); }
+inline bool Ptr_equals(void *self, void *other) {
+  if (self == other) return true;
+  return Object_equals((Object *)self, (Object *)other);
+}
+
+
+
 #pragma clang diagnostic pop
 
 #endif

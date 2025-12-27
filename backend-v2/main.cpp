@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "word.h"
+#include "runtime/word.h"
 #include "bytecode.pb.h"
 
 #include "llvm/ADT/APFloat.h"
@@ -20,19 +20,25 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
-
+#include "llvm/DebugInfo/Symbolize/Symbolize.h"
+#include "bridge/Exceptions.h"
 
 using namespace std;
 using namespace llvm;
 
 extern "C" {
-  typedef struct String String; 
-  String *toString(void * self);
-  String *String_compactify(String *self);
-  char *String_c_str(String *self);
-  void initialise_memory();
-  void printReferenceCounts();
-  void release(void *self);
+#include "runtime/ObjectProto.h"
+#include "runtime/Object.h"
+#include "runtime/String.h"
+}
+
+#include <mach-o/dyld.h>
+std::string getSelfExecutablePath() {
+    char path[1024];
+    uint32_t size = sizeof(path);
+    if (_NSGetExecutablePath(path, &size) == 0)
+        return std::string(path);
+    return "";
 }
 
 int main(int argc, char *argv[]) {
@@ -56,7 +62,24 @@ int main(int argc, char *argv[]) {
   }
 
   initialise_memory();
+
   
-  cout << "HEllo"  << endl;
+  cout << "HEllo" << endl;
+  try {
+    throwInternalInconsistencyException("Kuku");
+  } catch (rt::LanguageException e) {
+    llvm::symbolize::LLVMSymbolizer::Options options;
+    options.Demangle = true; 
+    options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
+//    options.DsymHints.push_back(getSelfExecutablePath() + ".dSYM/Contents/Resources/DWARF/" + "clojure-rt");
+    llvm::symbolize::LLVMSymbolizer symbolizer(options);
+    cout << e.toString(symbolizer,
+                       getSelfExecutablePath() +
+                           ".dSYM/Contents/Resources/DWARF/" + "clojure-rt",
+                       _dyld_get_image_vmaddr_slide(0))
+         << endl;
+    e.printRawTrace();
+  }    
+
   return 0;
 }  

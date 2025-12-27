@@ -1,13 +1,13 @@
 
 #include "ValueEncoder.h"
 #include <llvm/IR/Constants.h>
-#include "word.h"
+#include "../runtime/word.h"
 
 using namespace llvm;
 using namespace rt;
 
 ValueEncoder::ValueEncoder(LLVMContext& ctx, IRBuilder<>& b) 
-    : context(ctx), builder(b), word_size(kWordSize) {
+    : context(ctx), builder(b), word_size(K_WORD_SIZE) {
     
     // 1. Cache standard types
     i64Ty = Type::getInt64Ty(context);

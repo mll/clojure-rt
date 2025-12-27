@@ -17,7 +17,7 @@ backend/runtime/cmake_install*
 backend/Makefile
 backend/runtime/Makefile
 
-backend-v2/clojure-rt
+backend-v2/clojure-rt*
 backend-v2/runtime/libruntime.a
 backend-v2/runtime/runtime-tests
 backend-v2/*.clj
@@ -34,6 +34,7 @@ backend-v2/cmake_install*
 backend-v2/runtime/cmake_install*
 backend-v2/Makefile
 backend-v2/runtime/Makefile
+
 
 /.clj-kondo/babashka
 /.clj-kondo/.cache

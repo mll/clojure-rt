@@ -18,7 +18,7 @@ endif()
 #set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fstandalone-debug")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 set(CMAKE_CXX_STANDARD 17)
 
@@ -49,7 +49,7 @@ set(LLVM_COMPONENTS
     AArch64
     # Utility libraries for LLVM passes, etc. (often implicitly included, but good to be explicit)
     Analysis
-    Passes
+    Passes  
 )
 
 # 2. Map the component names to the actual library files.
@@ -67,7 +67,9 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 
 set(SOURCES
       main.cpp
-      ValueEncoder.cpp)
+      codegen/ValueEncoder.cpp
+      bridge/Exceptions.cpp
+      types/ObjectTypeSet.cpp)
 
 
 find_package(Protobuf REQUIRED)

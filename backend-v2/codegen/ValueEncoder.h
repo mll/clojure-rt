@@ -40,7 +40,7 @@ private:
 
 public:
     // Constructor
-    ValueEncoder(llvm::LLVMContext& ctx, llvm::IRBuilder<>& b);
+    explicit ValueEncoder(llvm::LLVMContext& ctx, llvm::IRBuilder<>& b);
 
     // Boxing (Creating safe 64-bit values)
     llvm::Value* boxDouble(llvm::Value* doubleVal);

@@ -202,7 +202,7 @@ inline bool Object_isReusable(Object *restrict self) {
 }
 
 inline bool isReusable(RTValue self) {
-  return RT_isPtr(self) && Object_isReusable(RT_unboxPtr(self));
+  return RT_isPtr(self) && Object_isReusable((Object *)RT_unboxPtr(self));
 }
 
 inline bool Object_release_internal(Object *restrict self, bool deallocateChildren) {

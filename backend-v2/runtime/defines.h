@@ -8,5 +8,4 @@
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define HASHTABLE_THRESHOLD 8
 
-
 #endif

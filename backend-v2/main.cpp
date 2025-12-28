@@ -23,6 +23,8 @@
 #include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "bridge/Exceptions.h"
 
+#include "state/ThreadsafeState.h"
+
 using namespace std;
 using namespace llvm;
 

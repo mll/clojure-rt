@@ -75,7 +75,7 @@ namespace rt {
 
 extern "C" {
   void throwInternalInconsistencyException(const std::string &errorMessage) {
-    throw rt::LanguageException("CodeGenerationException", RT_boxPtr(String_createDynamicStr(errorMessage.c_str())), RT_boxNil());
+    throw rt::LanguageException("InternalInconsistencyException", RT_boxPtr(String_createDynamicStr(errorMessage.c_str())), RT_boxNil());
   }
   
   void throwCodeGenerationException(const std::string &errorMessage,

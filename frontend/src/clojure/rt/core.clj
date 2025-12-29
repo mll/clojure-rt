@@ -119,8 +119,9 @@
 
 (defn -main
   ([infile] (let [parts (split infile #"\.")]
+              (compile (slurp "src/clojure/rt/intrinsics.clj") "../backend-v2/intrinsics.cljb" infile)
               (compile (slurp infile) (str (join "." (butlast parts)) ".cljb") infile)))
   ([] (println "Generating protobuf definitions into bytecode.proto file. To compile use file name as parameter")
-   (generate-protobuf-defs)))
+      (generate-protobuf-defs)))
 
 

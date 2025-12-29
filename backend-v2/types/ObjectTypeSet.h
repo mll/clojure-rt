@@ -42,7 +42,6 @@ class ObjectTypeSet {
     if(!constant && type == nilType) { 
       constant = static_cast<ObjectTypeConstant *>(new ConstantNil()); 
     } 
-    if(!isScalar()) this->isBoxed = true;
   }
   
   ObjectTypeSet() {}
@@ -94,11 +93,23 @@ class ObjectTypeSet {
   
   bool isDynamic() const {
     if(internal.size() > 1) {
-      assert(isBoxed == true && "Internal error");
       return true;
     }
     return false;
   }
+
+  bool isBoxedDynamic() const {
+    if(internal.size() > 1) {
+      return true;
+    }
+    return false;
+  }
+
+
+  
+  bool isBoxedType() const {
+    return isBoxed;
+  }    
 
   ObjectTypeSet unboxed() const {
     ObjectTypeSet retVal = *this;
@@ -112,6 +123,15 @@ class ObjectTypeSet {
     return retVal;
   }
 
+
+  bool isUnboxedPointer() const {
+    return !isScalar() && !isBoxedScalar() && !isBoxed;
+  }
+
+  bool isBoxedPointer() const {
+    return !isScalar() && !isBoxedScalar() && isBoxed;
+  }  
+  
   bool isScalar() const {
     if(isBoxed) return false;
     if(!isDetermined()) return false;
@@ -119,6 +139,9 @@ class ObjectTypeSet {
       case integerType:
       case booleanType:
       case doubleType:
+      case nilType:
+      case keywordType:
+      case symbolType:      
         return true;
     default:
       return false;
@@ -132,6 +155,9 @@ class ObjectTypeSet {
       case integerType:
       case booleanType:
       case doubleType:
+      case nilType:
+      case keywordType:
+      case symbolType:
         return true;
     default:
       return false;

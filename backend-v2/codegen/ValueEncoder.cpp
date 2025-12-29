@@ -2,6 +2,8 @@
 #include "ValueEncoder.h"
 #include <llvm/IR/Constants.h>
 #include "../runtime/word.h"
+#include "../cljassert.h"
+#include "TypedValue.h"
 
 using namespace llvm;
 using namespace rt;
@@ -25,127 +27,195 @@ ValueEncoder::ValueEncoder(LLVMContext& ctx, IRBuilder<>& b)
     TAG_INT32 = 0xFFFF000000000000ULL;
     TAG_PTR   = 0xFFFE000000000000ULL;
     TAG_BOOL  = 0xFFFD000000000000ULL;
-    TAG_NULL = 0xFFFC000000000000ULL;
+    TAG_NIL = 0xFFFC000000000000ULL;
     TAG_KEYWORD = 0xFFFB000000000000ULL;
     TAG_SYMBOL = 0xFFFA000000000000ULL;    
 }
 
-Value* ValueEncoder::u64(uint64_t val) {
+llvm::Value *ValueEncoder::u64(uint64_t val) {
     return ConstantInt::get(context, APInt(64, val));
 }
 
 // --- BOXING ---
 
-Value* ValueEncoder::boxDouble(Value* doubleVal) {
-    return builder.CreateBitCast(doubleVal, i64Ty, "box_dbl");
+TypedValue ValueEncoder::boxDouble(TypedValue doubleVal) {
+  if(!doubleVal.type.isUnboxedType(doubleType)) return doubleVal;
+  return TypedValue(
+                    doubleVal.type.boxed(),
+                    builder.CreateBitCast(doubleVal.value, i64Ty, "box_dbl"));
 }
 
-Value* ValueEncoder::boxInt32(Value* int32Val) {
-    Value* val64 = builder.CreateZExt(int32Val, i64Ty);
-    return builder.CreateOr(val64, u64(TAG_INT32), "box_int");
+TypedValue ValueEncoder::boxInt32(TypedValue int32Val) {
+  if(!int32Val.type.isUnboxedType(integerType)) return int32Val;
+  llvm::Value *val64 = builder.CreateZExt(int32Val.value, i64Ty);
+  return TypedValue(
+                    int32Val.type.boxed(),
+                    builder.CreateOr(val64, u64(TAG_INT32), "box_int"));
 }
 
-Value* ValueEncoder::boxBool(Value* boolVal) {
-    Value* val64 = builder.CreateZExt(boolVal, i64Ty);
-    return builder.CreateOr(val64, u64(TAG_BOOL), "box_bool");
+TypedValue ValueEncoder::boxBool(TypedValue boolVal) {
+  if(!boolVal.type.isUnboxedType(booleanType)) return boolVal;
+    llvm::Value *val64 = builder.CreateZExt(boolVal.value, i64Ty);
+    return TypedValue(boolVal.type.boxed(),
+                      builder.CreateOr(val64, u64(TAG_BOOL), "box_bool"));
 }
 
-Value* ValueEncoder::boxNull() {
-    return u64(TAG_NULL);
+TypedValue ValueEncoder::boxNil() {
+    return TypedValue(ObjectTypeSet(nilType, true, new ConstantNil()),
+                      u64(TAG_NIL));
 }
 
-Value* ValueEncoder::boxPointer(Value* rawPtr) {
-    // Cast Ptr -> Int. 
-    // On 32-bit arch, this results in i32, so we must ZExt to i64.
-    Value* ptrAsInt = builder.CreatePtrToInt(rawPtr, 
-        word_size == 64 ? i64Ty : i32Ty);
-        
-    if (word_size == 32) {
-        ptrAsInt = builder.CreateZExt(ptrAsInt, i64Ty);
-    }
-    return builder.CreateOr(ptrAsInt, u64(TAG_PTR), "box_ptr");
+TypedValue ValueEncoder::boxPointer(TypedValue rawPtr) {
+  if(!rawPtr.type.isUnboxedPointer()) return rawPtr;
+  // Cast Ptr -> Int. 
+  // On 32-bit arch, this results in i32, so we must ZExt to i64.
+  llvm::Value *ptrAsInt = builder.CreatePtrToInt(rawPtr.value, 
+                                                 word_size == 64 ? i64Ty : i32Ty);
+  
+  if (word_size == 32) {
+    ptrAsInt = builder.CreateZExt(ptrAsInt, i64Ty);
+  }
+  return TypedValue(rawPtr.type.boxed(),
+                    builder.CreateOr(ptrAsInt, u64(TAG_PTR), "box_ptr"));
 }
 
-Value* ValueEncoder::boxKeyword(Value* keywordId) {
-    // keywordId should be an i32 or i64 ID
-    Value* val64 = builder.CreateZExt(keywordId, i64Ty);
-    return builder.CreateOr(val64, u64(TAG_KEYWORD), "box_kw");
+TypedValue ValueEncoder::boxKeyword(TypedValue keywordId) {
+  if(!keywordId.type.isUnboxedType(keywordType)) return keywordId;
+  // keywordId should be an i32 ID
+  llvm::Value *val64 = builder.CreateZExt(keywordId.value, i64Ty);
+  return TypedValue(keywordId.type.boxed(),
+                    builder.CreateOr(val64, u64(TAG_KEYWORD), "box_kw"));
 }
 
-Value* ValueEncoder::boxSymbol(Value* symbolId) {
-    // symbolId should be an i32 or i64 ID
-    Value* val64 = builder.CreateZExt(symbolId, i64Ty);
-    return builder.CreateOr(val64, u64(TAG_SYMBOL), "box_kw");
+TypedValue ValueEncoder::boxSymbol(TypedValue symbolId) {
+  if(!symbolId.type.isUnboxedType(symbolType)) return symbolId;
+  // symbolId should be an i32 ID
+  llvm::Value *val64 = builder.CreateZExt(symbolId.value, i64Ty);
+  return TypedValue(symbolId.type.boxed(),
+                    builder.CreateOr(val64, u64(TAG_SYMBOL), "box_kw"));
 }
 
 // --- TYPE CHECKING ---
 
-Value* ValueEncoder::isDouble(Value* boxedVal) {
-    // Unsigned Less Than "Start of Tag Space" means it is a double
-    return builder.CreateICmpULT(boxedVal, u64(TAG_DOUBLE_START), "is_dbl");
+TypedValue ValueEncoder::isDouble(TypedValue boxedVal) {
+  CLJ_ASSERT(boxedVal.type.isBoxedType(), "Unboxed value passed to ValueEncoder");
+  if (boxedVal.type.isBoxedType(doubleType))
+    return TypedValue(
+        ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
+        builder.getInt1(true));
+  // Unsigned Less Than "Start of Tag Space" means it is a double
+  return TypedValue(ObjectTypeSet(booleanType, false),
+                    builder.CreateICmpULT(boxedVal.value, u64(TAG_DOUBLE_START), "is_dbl"));
 }
 
-Value* ValueEncoder::isInt32(Value* boxedVal) {
-    Value* masked = builder.CreateAnd(boxedVal, u64(TAG_MASK));
-    return builder.CreateICmpEQ(masked, u64(TAG_INT32), "is_int");
+TypedValue ValueEncoder::isInt32(TypedValue boxedVal) {
+  CLJ_ASSERT(boxedVal.type.isBoxedType(), "Unboxed value passed to ValueEncoder");  
+  if (boxedVal.type.isBoxedType(integerType))
+    return TypedValue(
+        ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
+        builder.getInt1(true));
+    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+    return TypedValue(ObjectTypeSet(booleanType, false),
+                      builder.CreateICmpEQ(masked, u64(TAG_INT32), "is_int"));
 }
 
-Value* ValueEncoder::isBool(Value* boxedVal) {
-    Value* masked = builder.CreateAnd(boxedVal, u64(TAG_MASK));
-    return builder.CreateICmpEQ(masked, u64(TAG_BOOL), "is_bool");
+TypedValue ValueEncoder::isBool(TypedValue boxedVal) {
+  CLJ_ASSERT(boxedVal.type.isBoxedType(), "Unboxed value passed to ValueEncoder");      
+  if (boxedVal.type.isBoxedType(booleanType))
+    return TypedValue(
+                      ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
+                      builder.getInt1(true));
+  llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+  return TypedValue(ObjectTypeSet(booleanType, false),  
+                    builder.CreateICmpEQ(masked, u64(TAG_BOOL), "is_bool"));
 }
 
-Value* ValueEncoder::isNull(Value* boxedVal) {
-    return builder.CreateICmpEQ(boxedVal, u64(TAG_NULL), "is_null");
+TypedValue ValueEncoder::isNil(TypedValue boxedVal) {
+  CLJ_ASSERT(boxedVal.type.isBoxedType(), "Unboxed value passed to ValueEncoder");  
+  if (boxedVal.type.isBoxedType(nilType))
+    return TypedValue(
+                      ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
+                      builder.getInt1(true));
+  return TypedValue(ObjectTypeSet(booleanType, false),  
+                    builder.CreateICmpEQ(boxedVal.value, u64(TAG_NIL), "is_null"));
 }
 
-Value* ValueEncoder::isPointer(Value* boxedVal) {
-    Value* masked = builder.CreateAnd(boxedVal, u64(TAG_MASK));
-    return builder.CreateICmpEQ(masked, u64(TAG_PTR), "is_ptr");
+TypedValue ValueEncoder::isPointer(TypedValue boxedVal) {
+  CLJ_ASSERT(boxedVal.type.isBoxedType(), "Unboxed value passed to ValueEncoder");    
+  if (boxedVal.type.isBoxedPointer())
+    return TypedValue(
+                      ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
+                      builder.getInt1(true));
+  llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+  return TypedValue(ObjectTypeSet(booleanType, false),
+                    builder.CreateICmpEQ(masked, u64(TAG_PTR), "is_ptr"));
 }
 
-Value* ValueEncoder::isKeyword(Value* boxedVal) {
-    Value* masked = builder.CreateAnd(boxedVal, u64(TAG_MASK));
-    return builder.CreateICmpEQ(masked, u64(TAG_KEYWORD), "is_kw");
+TypedValue ValueEncoder::isKeyword(TypedValue boxedVal) {
+  CLJ_ASSERT(boxedVal.type.isBoxedType(), "Unboxed value passed to ValueEncoder");
+    if (boxedVal.type.isBoxedType(keywordType))
+    return TypedValue(
+                      ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
+                      builder.getInt1(true));
+  llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+  return TypedValue(ObjectTypeSet(booleanType, false),
+                    builder.CreateICmpEQ(masked, u64(TAG_KEYWORD), "is_kw"));
 }
 
-Value* ValueEncoder::isSymbol(Value* boxedVal) {
-    Value* masked = builder.CreateAnd(boxedVal, u64(TAG_MASK));
-    return builder.CreateICmpEQ(masked, u64(TAG_SYMBOL), "is_sym");
+TypedValue ValueEncoder::isSymbol(TypedValue boxedVal) {
+  CLJ_ASSERT(boxedVal.type.isBoxedType(), "Unboxed value passed to ValueEncoder");
+  if (boxedVal.type.isBoxedType(symbolType))
+    return TypedValue(
+                      ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
+                      builder.getInt1(true));
+  llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+  return TypedValue(ObjectTypeSet(booleanType, false),
+                    builder.CreateICmpEQ(masked, u64(TAG_SYMBOL), "is_sym"));
 }
 
 // --- UNBOXING ---
 
-Value* ValueEncoder::unboxDouble(Value* boxedVal) {
-    return builder.CreateBitCast(boxedVal, doubleTy, "unbox_dbl");
+TypedValue ValueEncoder::unboxDouble(TypedValue boxedVal) {
+  if (boxedVal.type.isUnboxedType(doubleType)) return boxedVal;
+  return TypedValue(ObjectTypeSet(doubleType, false),
+                    builder.CreateBitCast(boxedVal.value, doubleTy, "unbox_dbl"));
 }
 
-Value* ValueEncoder::unboxInt32(Value* boxedVal) {
-    return builder.CreateTrunc(boxedVal, i32Ty, "unbox_int");
+TypedValue ValueEncoder::unboxInt32(TypedValue boxedVal) {
+  if(boxedVal.type.isUnboxedType(integerType)) return boxedVal;
+  return TypedValue(ObjectTypeSet(integerType, false),
+                    builder.CreateTrunc(boxedVal.value, i32Ty, "unbox_int"));
 }
 
-Value* ValueEncoder::unboxBool(Value* boxedVal) {
-    return builder.CreateTrunc(boxedVal, i1Ty, "unbox_bool");
+TypedValue ValueEncoder::unboxBool(TypedValue boxedVal) {
+  if(boxedVal.type.isUnboxedType(booleanType)) return boxedVal;
+  return TypedValue(ObjectTypeSet(booleanType, false),
+                    builder.CreateTrunc(boxedVal.value, i1Ty, "unbox_bool"));
 }
 
-Value* ValueEncoder::unboxPointer(Value* boxedVal) {
-    Value* cleanVal = builder.CreateAnd(boxedVal, u64(~TAG_MASK));
-    
-    // Cast back to Pointer
-    if (word_size == 32) {
-        Value* ptr32 = builder.CreateTrunc(cleanVal, i32Ty);
-        return builder.CreateIntToPtr(ptr32, ptrTy, "unbox_ptr");
-    } else {
-        return builder.CreateIntToPtr(cleanVal, ptrTy, "unbox_ptr");
-    }
+TypedValue ValueEncoder::unboxPointer(TypedValue boxedVal) {
+  if(boxedVal.type.isUnboxedPointer()) return boxedVal;      
+  llvm::Value *cleanVal = builder.CreateAnd(boxedVal.value, u64(~TAG_MASK));
+  
+  // Cast back to Pointer
+  if (word_size == 32) {
+    llvm::Value *ptr32 = builder.CreateTrunc(cleanVal, i32Ty);
+    return TypedValue(boxedVal.type.unboxed(), builder.CreateIntToPtr(ptr32, ptrTy, "unbox_ptr"));
+  } else {
+    return TypedValue(boxedVal.type.unboxed(), builder.CreateIntToPtr(cleanVal, ptrTy, "unbox_ptr"));
+  }
 }
 
-Value* ValueEncoder::unboxKeyword(Value* boxedVal) {
-    // Strip the tag and return the ID (usually i32 is enough for enum IDs)
-    return builder.CreateTrunc(boxedVal, i32Ty, "unbox_kw");
+TypedValue ValueEncoder::unboxKeyword(TypedValue boxedVal) {
+  if(boxedVal.type.isBoxedType(keywordType)) return boxedVal;      
+  // Strip the tag and return the ID (usually i32 is enough for enum IDs)
+  return TypedValue(ObjectTypeSet(keywordType, false),
+                    builder.CreateTrunc(boxedVal.value, i32Ty, "unbox_kw"));
 }
 
-Value* ValueEncoder::unboxSymbol(Value* boxedVal) {
-    // Strip the tag and return the ID (usually i32 is enough for enum IDs)
-    return builder.CreateTrunc(boxedVal, i32Ty, "unbox_sym");
+TypedValue ValueEncoder::unboxSymbol(TypedValue boxedVal) {
+  if(boxedVal.type.isBoxedType(symbolType)) return boxedVal;    
+  // Strip the tag and return the ID (usually i32 is enough for enum IDs)
+  return TypedValue(ObjectTypeSet(symbolType, false),
+                    builder.CreateTrunc(boxedVal.value, i32Ty, "unbox_sym"));
 }

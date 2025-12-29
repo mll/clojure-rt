@@ -7,8 +7,8 @@
 extern "C" {
 #include "runtime/ObjectProto.h"
 #include "runtime/Object.h"
-/* #include "runtime/Class.h" */
-/* #include "runtime/Interface.h" */
+#include "runtime/Class.h"
+#include "runtime/Interface.h"
 /* #include "runtime/Var.h" */
 }
 
@@ -26,8 +26,8 @@ namespace rt {
     ThreadsafeInlineCacheManager objectFieldIndexAccessCache;
     ThreadsafeInlineCacheManager methodCallCache;
 
-    /* ThreadsafeRegistry<Class> classRegistry; */
-    /* ThreadsafeRegistry<Interface> interfaceRegistry; */
+    ThreadsafeRegistry<Class> classRegistry;
+    ThreadsafeRegistry<Interface> interfaceRegistry;
     /* ThreadsafeRegistry<Var> varRegistry; */
 
     ThreadsafeRegistry<Node> functionAstRegistry;
@@ -38,7 +38,7 @@ namespace rt {
     ThreadsafeCompilerState(ThreadsafeCompilerState&&) = delete;
     void operator=(ThreadsafeCompilerState &&) = delete;
   private:
-    ThreadsafeCompilerState() : functionAstRegistry(false) {}// : classRegistry(true), interfaceRegistry(true), varRegistry(true) {}
+    ThreadsafeCompilerState(): classRegistry(true), interfaceRegistry(true), functionAstRegistry(false)/*, varRegistry(true)*/ {}
   };  
 }
 

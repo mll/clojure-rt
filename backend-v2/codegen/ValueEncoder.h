@@ -4,7 +4,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
-
+#include "TypedValue.h"
 
 namespace rt {
 
@@ -31,7 +31,7 @@ private:
     uint64_t TAG_INT32;
     uint64_t TAG_PTR;
     uint64_t TAG_BOOL;
-    uint64_t TAG_NULL;
+    uint64_t TAG_NIL;
     uint64_t TAG_KEYWORD;
     uint64_t TAG_SYMBOL;    
 
@@ -43,30 +43,30 @@ public:
     explicit ValueEncoder(llvm::LLVMContext& ctx, llvm::IRBuilder<>& b);
 
     // Boxing (Creating safe 64-bit values)
-    llvm::Value* boxDouble(llvm::Value* doubleVal);
-    llvm::Value* boxInt32(llvm::Value* int32Val);
-    llvm::Value* boxBool(llvm::Value* boolVal);
-    llvm::Value* boxNull();
-    llvm::Value* boxPointer(llvm::Value *rawPtr);
-    llvm::Value* boxKeyword(llvm::Value *keywordId);
-    llvm::Value* boxSymbol(llvm::Value* symbolId);    
+    TypedValue boxDouble(TypedValue doubleVal);
+    TypedValue boxInt32(TypedValue int32Val);
+    TypedValue boxBool(TypedValue boolVal);
+    TypedValue boxNil();
+    TypedValue boxPointer(TypedValue rawPtr);
+    TypedValue boxKeyword(TypedValue keywordId);
+    TypedValue boxSymbol(TypedValue symbolId);    
 
     // Type Checking (Returns i1 boolean)
-    llvm::Value* isDouble(llvm::Value* boxedVal);
-    llvm::Value* isInt32(llvm::Value* boxedVal);
-    llvm::Value* isBool(llvm::Value* boxedVal);
-    llvm::Value* isNull(llvm::Value* boxedVal);
-    llvm::Value* isPointer(llvm::Value *boxedVal);
-    llvm::Value* isKeyword(llvm::Value *boxedVal);
-    llvm::Value* isSymbol(llvm::Value* boxedVal);    
+    TypedValue isDouble(TypedValue boxedVal);
+    TypedValue isInt32(TypedValue boxedVal);
+    TypedValue isBool(TypedValue boxedVal);
+    TypedValue isNil(TypedValue boxedVal);
+    TypedValue isPointer(TypedValue boxedVal);
+    TypedValue isKeyword(TypedValue boxedVal);
+    TypedValue isSymbol(TypedValue boxedVal);    
 
     // Unboxing (Returns raw type)
-    llvm::Value* unboxDouble(llvm::Value* boxedVal);
-    llvm::Value* unboxInt32(llvm::Value* boxedVal);
-    llvm::Value* unboxBool(llvm::Value* boxedVal);
-    llvm::Value* unboxPointer(llvm::Value *boxedVal);
-    llvm::Value* unboxKeyword(llvm::Value *boxedVal);
-    llvm::Value* unboxSymbol(llvm::Value* boxedVal);    
+    TypedValue unboxDouble(TypedValue boxedVal);
+    TypedValue unboxInt32(TypedValue boxedVal);
+    TypedValue unboxBool(TypedValue boxedVal);
+    TypedValue unboxPointer(TypedValue boxedVal);
+    TypedValue unboxKeyword(TypedValue boxedVal);
+    TypedValue unboxSymbol(TypedValue boxedVal);    
 };
 
 } // namespace rt

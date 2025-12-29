@@ -4,6 +4,6 @@
 #include "defines.h"
 #include "RTValue.h"
 
-String *Double_toString(double self); 
+String *Double_toString(RTValue self); 
 
 #endif

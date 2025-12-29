@@ -10,8 +10,7 @@
 #include "ObjectProto.h"
 #include "RTValue.h"
 
-
 RTValue Keyword_create(String *string);
-String *Keyword_toString(uint32_t self);
+String *Keyword_toString(RTValue self);
 
 #endif

@@ -371,12 +371,12 @@ inline String *Object_toString(Object *restrict self) {
 }
 
 inline String *toString(RTValue self) {
-  if (RT_isInt32(self))  return Integer_toString(RT_unboxInt32(self));
-  if (RT_isDouble(self)) return Double_toString(RT_unboxDouble(self));
-  if (RT_isBool(self)) return Boolean_toString(RT_unboxBool(self));
+  if (RT_isInt32(self))  return Integer_toString(self);
+  if (RT_isDouble(self)) return Double_toString(self);
+  if (RT_isBool(self)) return Boolean_toString(self);
   if (RT_isNil(self)) return Nil_toString();  
-  if (RT_isKeyword(self)) return Keyword_toString(RT_unboxKeyword(self));  
-  if (RT_isSymbol(self)) return Symbol_toString(RT_unboxSymbol(self));
+  if (RT_isKeyword(self)) return Keyword_toString(self);  
+  if (RT_isSymbol(self)) return Symbol_toString(self);
 
   assert(RT_isPtr(self) && "Internal error: Not a pointer");
   return Object_toString((Object*)RT_unboxPtr(self));  

@@ -9,9 +9,9 @@
 #include "RTValue.h"
 
 /* mem done */
-String *Integer_toString(int32_t self) { 
+String *Integer_toString(RTValue self) { 
   String *retVal = String_createDynamic(21);
-  retVal->count = snprintf(retVal->value, 20, "%d", self);
+  retVal->count = snprintf(retVal->value, 20, "%d", RT_unboxInt32(self));
   String_recomputeHash(retVal);
   return retVal;
 }

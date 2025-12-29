@@ -42,9 +42,9 @@ RTValue Symbol_create(String *string) {
 }
 
 /* mem done */
-String *Symbol_toString(uint32_t self) {
+String *Symbol_toString(RTValue self) {
   String *colon = String_create(":");
-  RTValue retVal = ConcurrentHashMap_get(symbolsInverted, RT_boxSymbol(self));
+  RTValue retVal = ConcurrentHashMap_get(symbolsInverted, self);
   assert(!RT_isNil(retVal) && "Internal error: Symbol was not interned before printing.");
   String *result = String_concat(colon, toString(retVal));
   return result;

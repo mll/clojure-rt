@@ -42,9 +42,9 @@ RTValue Keyword_create(String *string) {
 }
 
 /* mem done */
-String *Keyword_toString(uint32_t self) {
+String *Keyword_toString(RTValue self) {
   String *colon = String_create(":");
-  RTValue retVal = ConcurrentHashMap_get(keywordsInverted, RT_boxKeyword(self));
+  RTValue retVal = ConcurrentHashMap_get(keywordsInverted, self);
   assert(!RT_isNil(retVal) && "Internal error: Keyword was not interned before printing.");
   return String_concat(colon, toString(retVal));
 }

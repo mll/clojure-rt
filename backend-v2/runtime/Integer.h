@@ -4,7 +4,7 @@
 #include "String.h"
 #include "defines.h"
 
-String *Integer_toString(int32_t self); 
+String *Integer_toString(RTValue self); 
 
 RTValue Integer_div(int32_t num, int32_t den);
 

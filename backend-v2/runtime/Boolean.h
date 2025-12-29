@@ -4,6 +4,6 @@
 #include "defines.h"
 #include "RTValue.h"
 
-String *Boolean_toString(bool self); 
+String *Boolean_toString(RTValue self); 
 
 #endif

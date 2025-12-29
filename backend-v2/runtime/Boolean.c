@@ -5,8 +5,8 @@
 
 
 /* mem done */
-String *Boolean_toString(bool self) {  
-  String *retVal = self ? String_create("true") : String_create("false");
+String *Boolean_toString(RTValue self) {  
+  String *retVal = RT_unboxBool(self) ? String_create("true") : String_create("false");
   return retVal;
 }
 

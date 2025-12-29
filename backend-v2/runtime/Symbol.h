@@ -10,6 +10,6 @@
 #include "RTValue.h"
 
 RTValue Symbol_create(String *name);
-String *Symbol_toString(uint32_t self);
+String *Symbol_toString(RTValue self);
 
 #endif

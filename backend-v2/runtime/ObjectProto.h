@@ -10,8 +10,8 @@ enum objectType {
   booleanType,
   symbolType,
   keywordType,
-  
-  stringType,  
+
+  stringType,
   persistentListType,
   persistentVectorType,
   persistentVectorNodeType,
@@ -19,6 +19,8 @@ enum objectType {
   functionType,
   bigIntegerType,
   ratioType,
+  classType,
+  interfaceType,
   persistentArrayMapType,
 };
 

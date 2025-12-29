@@ -22,6 +22,3 @@ class ConstantFunction: public ObjectTypeConstant {
 } // namespace rt
 
 #endif
-
-
-

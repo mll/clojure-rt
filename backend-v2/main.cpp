@@ -55,33 +55,42 @@ int main(int argc, char *argv[]) {
   
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  clojure::rt::protobuf::bytecode::Programme astRoot;
-  
-  fstream input(argv[1], ios::in | ios::binary);
-  if (!astRoot.ParseFromIstream(&input)) {
+  clojure::rt::protobuf::bytecode::Programme astIntrinsics;
+  {
+    fstream intrinsicsInput("intrinsics.cljb", ios::in | ios::binary);
+    if (!astIntrinsics.ParseFromIstream(&intrinsicsInput)) {
       cerr << "Failed to parse bytecode." << endl;
       return -1;
+    }
   }
-
+  clojure::rt::protobuf::bytecode::Programme astRoot;
+  {
+    fstream input(argv[1], ios::in | ios::binary);
+    if (!astRoot.ParseFromIstream(&input)) {
+      cerr << "Failed to parse bytecode." << endl;
+      return -1;
+    }
+  }
+  
   initialise_memory();
 
   
   cout << "HEllo" << endl;
-  try {
-    throwInternalInconsistencyException("Kuku");
-  } catch (rt::LanguageException e) {
-    llvm::symbolize::LLVMSymbolizer::Options options;
-    options.Demangle = true; 
-    options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
-//    options.DsymHints.push_back(getSelfExecutablePath() + ".dSYM/Contents/Resources/DWARF/" + "clojure-rt");
-    llvm::symbolize::LLVMSymbolizer symbolizer(options);
-    cout << e.toString(symbolizer,
-                       getSelfExecutablePath() +
-                           ".dSYM/Contents/Resources/DWARF/" + "clojure-rt",
-                       _dyld_get_image_vmaddr_slide(0))
-         << endl;
-    e.printRawTrace();
-  }    
+  // try {
+//     throwInternalInconsistencyException("Kuku");
+//   } catch (rt::LanguageException e) {
+//     llvm::symbolize::LLVMSymbolizer::Options options;
+//     options.Demangle = true; 
+//     options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
+// //    options.DsymHints.push_back(getSelfExecutablePath() + ".dSYM/Contents/Resources/DWARF/" + "clojure-rt");
+//     llvm::symbolize::LLVMSymbolizer symbolizer(options);
+//     cout << e.toString(symbolizer,
+//                        getSelfExecutablePath() +
+//                            ".dSYM/Contents/Resources/DWARF/" + "clojure-rt",
+//                        _dyld_get_image_vmaddr_slide(0))
+//          << endl;
+//     e.printRawTrace();
+//   }    
 
   return 0;
 }  

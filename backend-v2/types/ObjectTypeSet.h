@@ -22,6 +22,7 @@
 #include "ConstantRatio.h"
 #include "ConstantString.h"
 #include "ConstantSymbol.h"
+#include "ConstantClass.h"
 
 namespace rt {
 
@@ -218,6 +219,8 @@ class ObjectTypeSet {
     retVal.insert(functionType);
     retVal.insert(bigIntegerType);
     retVal.insert(ratioType);
+    retVal.insert(classType);
+    retVal.insert(interfaceType);    
     retVal.insert(persistentArrayMapType);
     retVal.isBoxed = true;
     return retVal;
@@ -262,6 +265,10 @@ class ObjectTypeSet {
         return "LI";
       case ratioType:
         return "LR";
+      case classType:
+        return "LC";
+      case interfaceType:
+        return "LE";        
       case persistentArrayMapType:
         return "LA";
       }

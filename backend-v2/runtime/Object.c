@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdatomic.h>
-#include "Interface.h"
+#include "RuntimeInterface.h"
 #include "RTValue.h"
 
 _Atomic uword_t allocationCount[256]; 
@@ -21,7 +21,6 @@ _Thread_local int memoryBankSize[8] = {0};
 #define BLOCK_SIZE 8 * 40
 
 void PersistentVector_initialise();
-void Nil_initialise();
 
 void initialise_memory() {
   for(int i=0; i<200; i++) atomic_exchange(&(allocationCount[i]), 0); 
@@ -29,7 +28,7 @@ void initialise_memory() {
   /* poolInitialize(&globalPool2, 128, 100000); */
   /* poolInitialize(&globalPool3, 64, 100000); */
   PersistentVector_initialise();
-  Interface_initialise();
+  RuntimeInterface_initialise();
 }
 
 /* BOOL poolFreeCheck(void *ptr, pool *mempool) { */

@@ -1,49 +1,39 @@
 #ifndef RT_INTERFACE
 #define RT_INTERFACE
-#include "Object.h"
-#include "RTValue.h"
 
-void Interface_initialise();
+#include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "defines.h"
+#include "Function.h"
+#include "word.h"
 
 
-inline bool logicalValue(RTValue self) {
-  if(RT_isNil(self)) return false;
-  if(RT_isBool(self)) return RT_unboxBool(self);
-  return true;
-}
+typedef struct Object Object;
 
-inline void logException(const char *description) {
-  printf("%s\n", description);
-  logBacktrace();
-  exit(1);
-}
+typedef struct Interface {
+  Object super;
+  uword_t registerId;
+  String *name;
+  String *className;
 
-inline void logType(const objectType ll) {
-  printf("Type: %d\n", ll);
-}
+  uword_t methodCount;
+  /* Keywords */
+  RTValue *methodNames;
+  ClojureFunction **methods; 
+} Interface;
 
-inline void logText(const char *text) {
-  printf("Log: %s\n", text);
-}
+// Interface owns all its arguments
 
-inline bool unboxedEqualsInteger(RTValue left, int32_t right) {
-  if(!RT_isInt32(left)) return false;
-  return RT_unboxInt32(left) == right;
-}
+Interface *Interface_create(String *name, String * className,
+                            uword_t methodCount,
+                            RTValue * methodNames, ClojureFunction * *methods);
 
-inline bool unboxedEqualsDouble(RTValue left, double right) {
-  if(!RT_isDouble(left)) return false;
-  return RT_unboxDouble(left) == right;  
-}
-
-inline bool unboxedEqualsBoolean(RTValue left, bool right) {
-  if(!RT_isBool(left)) return false;
-  return RT_unboxBool(left) == right;    
-}
-
-void printReferenceCounts();
-
-void **packPointerArgs(uword_t count, ...);
+bool Interface_equals(Interface *self, Interface *other);
+uword_t Interface_hash(Interface *self);
+String *Interface_toString(Interface *self);
+void Interface_destroy(Interface *self);
 
 #endif
-

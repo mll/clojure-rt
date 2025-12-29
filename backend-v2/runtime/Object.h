@@ -31,6 +31,7 @@
 #include "Function.h"
 #include "BigInteger.h"
 #include "Ratio.h"
+#include "Class.h"
 #include "PersistentArrayMap.h"
 
 typedef struct String String; 
@@ -155,7 +156,13 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   switch((objectType)self->type) {
   case stringType:
     String_destroy((String *) self);
-    break;          
+    break;
+  case classType:
+    Class_destroy((Class *) self);
+    break;
+  case interfaceType:
+    Interface_destroy((Interface *) self);
+    break;              
   case persistentListType:
     PersistentList_destroy((PersistentList *)self, deallocateChildren);
     break;          
@@ -239,7 +246,13 @@ inline uword_t Object_hash(Object *restrict self) {
       switch((objectType)self->type) {
       case stringType:
         return String_hash((String *) self);
-        break;          
+        break;
+      case classType:
+        return Class_hash((Class *)self);
+        break;
+      case interfaceType:
+        return Interface_hash((Interface *)self);
+        break;        
       case persistentListType:
         return PersistentList_hash((PersistentList *) self);
         break;          
@@ -292,7 +305,13 @@ inline bool Object_equals(Object *self, Object *other) {
   switch((objectType)self->type) {
   case stringType:
     return String_equals((String *)self, (String *)other);
-    break;          
+    break;
+  case classType:
+    return Class_equals((Class *)self, (Class *)other);
+    break;
+  case interfaceType:
+    return Interface_equals((Interface *)self, (Interface *)other);
+    break;    
   case persistentListType:
     return PersistentList_equals((PersistentList *)self, (PersistentList *)other);
     break;          
@@ -345,7 +364,13 @@ inline String *Object_toString(Object *restrict self) {
   switch((objectType)self->type) {
   case stringType:
     return String_toString((String *)self);
-    break;          
+    break;
+  case classType:
+    return Class_toString((Class *)self);
+    break;
+  case interfaceType:
+    return Interface_toString((Interface *)self);
+    break;    
   case persistentListType:
     return PersistentList_toString((PersistentList *)self);
     break;          

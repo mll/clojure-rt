@@ -6,24 +6,16 @@
 
 #define INVOKATION_CACHE_SIZE 3
 
-struct InvokationCache {
-  uword_t signature[3];
-  uword_t packed;
-
-  unsigned char returnType;
-  void *fptr;
-};
-
 typedef struct InvokationCache InvokationCache;
 
 struct FunctionMethod  {
   unsigned char index;
   uword_t fixedArity;
   uword_t isVariadic;
+  void *baselineImplementation;
+  char *loopId;  
   uword_t closedOversCount;
-  char *loopId;
   RTValue *closedOvers;
-  struct InvokationCache invokations[INVOKATION_CACHE_SIZE];
 };
 
 typedef struct FunctionMethod FunctionMethod;

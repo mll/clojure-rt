@@ -36,7 +36,26 @@
   clojure.lang.Symbol
   {:inherits-from java.lang.Object}
 
+  clojure.asm.Opcodes
+  {:is-interface true
+   :static-fields
+   {ACC_PUBLIC       0x1      ACC_PRIVATE      0x2      ACC_PROTECTED    0x4
+    ACC_STATIC       0x8      ACC_FINAL        0x10     ACC_SUPER        0x20
+    ACC_SYNCHRONIZED 0x20     ACC_OPEN         0x20     ACC_TRANSITIVE   0x20
+    ACC_VOLATILE     0x40     ACC_BRIDGE       0x40     ACC_STATIC_PHASE 0x40
+    ACC_VARARGS      0x80     ACC_TRANSIENT    0x80     ACC_NATIVE       0x100
+    ACC_INTERFACE    0x200    ACC_ABSTRACT     0x400    ACC_STRICT       0x800
+    ACC_SYNTHETIC    0x1000   ACC_ANNOTATION   0x2000   ACC_ENUM         0x4000
+    ACC_MANDATED     0x8000   ACC_MODULE       0x8000
+    
+    V1_1 0x3002D   V1_2 0x2E   V1_3 0x2F   V1_4 0x30   V1_5 0x31
+    V1_6 0x32      V1_7 0x33   V1_8 0x34   V9   0x35   V10  0x36   V11 0x37}}
+  
   ;; character: clojure.lang.Character
+
+  clojure.lang.Var
+  {:inherits-from java.lang.Object}
+
 
   clojure.lang.Numbers
   {:static-fns

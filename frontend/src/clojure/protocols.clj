@@ -1,7 +1,4 @@
-(ns clojure.rt.protocols
-  (:refer-clojure :exclude [compile])
-  (:require [clojure.string :refer [join split]]
-            [clojure.tools.reader.reader-types :as t]))
+(ns clojure.protocols)
 
 ;; clojure.lang 
 

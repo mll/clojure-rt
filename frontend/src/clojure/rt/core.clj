@@ -78,6 +78,26 @@
      ;(pprint (schedule rt-passes {:debug? true}))
      (schedule rt-passes))))
 
+(defn print-readable-tree [node depth]
+  (if (map? node)
+    (let [pre (join (repeat depth ">"))
+          post (join (repeat depth "<"))]
+      (println (str pre " Op​ " (if (= (:op node) :const)
+                                  (str "Const type​ " (:type node))
+                                  (:op node))))
+      (when-not (= (:op node) :map)
+        (println (str pre " Form​ "  (with-out-str (pprint (:form node))))))
+      (doseq [child (:children node)]
+        (println (str pre "! Child: " child))
+        (print-readable-tree (child node) (inc depth))
+        (println (str post "! Child: " child)))
+      (println (str post "|||| Op​ " (if (= (:op node) :const)
+                                       (str "Const type​ " (:type node))
+                                       (:op node)))))
+    (doseq [subnode node]
+      (print-readable-tree subnode depth))))
+
+
 (def passes-opts
   ":passes-opts for `analyze`"
   {:collect/what                    #{:constants :callsites}
@@ -97,8 +117,12 @@
                   validate-interfaces (fn [_])]
       (let [reader (t/source-logging-push-back-reader s 1 filename)]
         (loop [form (r/read {:eof :eof} reader) ret-val []]
-          (if (= :eof form) (do ;;(clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) ;; uncomment to see simple tree
-                                ret-val)
+          (if (= :eof form) (do
+                              ;; Uncomment to see a trivial tree:
+                              ;; (print-readable-tree ret-val 1)  
+                              ;; Uncomment to see a simple tree:
+                              ;; (clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) 
+                              ret-val)
               (do
                 (eval form)
                 (recur (r/read {:eof :eof} reader)
@@ -119,8 +143,9 @@
 
 (defn -main
   ([infile] (let [parts (split infile #"\.")]
-              (compile (slurp "src/clojure/rt/intrinsics.clj") "../backend-v2/intrinsics.cljb" infile)
-              (compile (slurp infile) (str (join "." (butlast parts)) ".cljb") infile)))
+              (compile (slurp "src/clojure/intrinsics.clj") "../backend-v2/intrinsics.cljb" infile)
+              (compile (slurp infile) (str (join "." (butlast parts)) ".cljb") infile)
+              ))
   ([] (println "Generating protobuf definitions into bytecode.proto file. To compile use file name as parameter")
       (generate-protobuf-defs)))
 

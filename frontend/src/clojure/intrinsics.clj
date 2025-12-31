@@ -1,5 +1,45 @@
-'{clojure.lang.Numbers
-  {:static
+(ns clojure.intrinsics)
+
+'{java.lang.Object
+  {:instance-fns
+   {toString [{:args [] :type :call :symbol "toString" :returns java.lang.String}]}}
+
+  java.lang.Class 
+  {:inherits-from java.lang.Object}
+  
+  java.lang.Long 
+  {:inherits-from java.lang.Object
+   :static-fields
+   {BYTES 4
+    MAX_VALUE 2147483647
+    MIN_VALUE -2147483647
+    SIZE 32}}
+
+  java.lang.Double
+  {:inherits-from java.lang.Object}
+
+  java.lang.PersistentArrayMap
+  {:inherits-from java.lang.Object}
+
+  clojure.lang.BigInt
+  {:inherits-from java.lang.Object}
+
+  clojure.lang.Ratio
+  {:inherits-from java.lang.Object}
+  
+  clojure.lang.Boolean
+  {:inherits-from java.lang.Object}
+
+  clojure.lang.Keyword
+  {:inherits-from java.lang.Object}
+
+  clojure.lang.Symbol
+  {:inherits-from java.lang.Object}
+
+  ;; character: clojure.lang.Character
+
+  clojure.lang.Numbers
+  {:static-fns
    {add   [{:args [:double :double] :type :intrinsic :symbol "FAdd"         :returns :double}
            {:args [:int :int]       :type :intrinsic :symbol "Add"          :returns :int}
            {:args [:any :any]       :type :call      :symbol "Object_add"   :returns :any}]
@@ -20,7 +60,7 @@
          {:args [:any :any]       :type :call      :symbol "lt"               :returns :bool}]}}
 
   java.lang.Math
-  {:static
+  {:static-fns
    {sin   [{:args [:double] :type :call :symbol "sin"   :returns :double}]
     cos   [{:args [:double] :type :call :symbol "cos"   :returns :double}]
     tan   [{:args [:double] :type :call :symbol "tan"   :returns :double}]
@@ -44,22 +84,22 @@
     hypot [{:args [:double :double] :type :call :symbol "hypot" :returns :double}]}}
 
   java.lang.String
-  {:static
+  {:static-fns
    {print [:args [:any] :type :call :symbol "print" :returns :nil]}
-   :instance
+   :instance-fns
    {contains [{:args [java.lang.String] :type :call :symbol "String_contains" :returns :bool}]
     indexOf  [{:args [java.lang.String] :type :call :symbol "String_indexOf"  :returns :int}
               {:args [java.lang.String :int] :type :call :symbol "String_indexOfFrom"  :returns :int}]
     replace [{:args [java.lang.String java.lang.String] :type :call :symbol "String_replace" :returns java.lang.String}]}}
 
   clojure.lang.Util
-  {:static
+  {:static-fns
    {equiv [{:args [:int :int] :type :intrinsic :symbol "ICmpEQ" :returns :bool}
            {:args [:double :double] :type :intrinsic :symbol "FCmpOEQ" :returns :bool}
            {:args [:any :any] :type :call :symbol "equals" :returns :bool}]}}
 
   clojure.lang.PersistentVector
-  {:instance 
+  {:instance-fns 
    {asTransient [{:args [] :type :call :symbol "PersistentVector_transient" :returns clojure.lang.PersistentVector}]
     persistent [{:args [] :type :call :symbol "PersistentVector_persistent_BANG_" :returns clojure.lang.PersistentVector}]
     conj [{:args [:any] :type :call :symbol "PersistentVector_conj_BANG_" :returns clojure.lang.PersistentVector}]
@@ -67,7 +107,7 @@
     pop [{:args [clojure.lang.PersistentVector] :type :call :symbol "PersistentVector_pop_BANG_" :returns clojure.lang.PersistentVector}]}}
 
   clojure.lang.RT
-  {:static 
+  {:static-fns 
    {conj [{:args [clojure.lang.PersistentVector :any] :type :call :symbol "PersistentVector_conj" :returns clojure.lang.PersistentVector}]
     assoc [{:args [clojure.lang.PersistentVector :int :any] :type :call :symbol "PersistentVector_assoc" :returns clojure.lang.PersistentVector}]
     pop [{:args [clojure.lang.PersistentVector] :type :call :symbol "PersistentVector_pop" :returns clojure.lang.PersistentVector}]}}}

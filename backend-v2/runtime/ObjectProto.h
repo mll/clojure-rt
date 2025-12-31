@@ -20,7 +20,6 @@ enum objectType {
   bigIntegerType,
   ratioType,
   classType,
-  interfaceType,
   persistentArrayMapType,
 };
 

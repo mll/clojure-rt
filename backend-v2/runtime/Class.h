@@ -13,6 +13,7 @@
 
 
 typedef struct Object Object;
+typedef struct Class Interface;
 
 typedef struct ImplementedInterface {
   Interface *interface;
@@ -22,8 +23,11 @@ typedef struct ImplementedInterface {
 typedef struct Class {
   Object super;
   uword_t registerId;
+  bool isInterface;
+
   String *name;
   String *className;
+  
   struct Class *superclass;
 
   uword_t staticFieldCount;
@@ -53,7 +57,8 @@ typedef struct Class {
 
 // Class owns all its arguments
 
-Class *Class_create(String *name, String * className, struct Class * superclass,
+Class *Class_create(bool isInterface, String *name,
+                    String * className, struct Class * superclass,
 
                     uword_t staticFieldCount, RTValue * staticFieldNames,
                     RTValue * staticFields,

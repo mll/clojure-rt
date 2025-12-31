@@ -97,15 +97,6 @@ class ObjectTypeSet {
     }
     return false;
   }
-
-  bool isBoxedDynamic() const {
-    if(internal.size() > 1) {
-      return true;
-    }
-    return false;
-  }
-
-
   
   bool isBoxedType() const {
     return isBoxed;
@@ -246,7 +237,6 @@ class ObjectTypeSet {
     retVal.insert(bigIntegerType);
     retVal.insert(ratioType);
     retVal.insert(classType);
-    retVal.insert(interfaceType);    
     retVal.insert(persistentArrayMapType);
     retVal.isBoxed = true;
     return retVal;
@@ -293,8 +283,6 @@ class ObjectTypeSet {
         return "LR";
       case classType:
         return "LC";
-      case interfaceType:
-        return "LE";        
       case persistentArrayMapType:
         return "LA";
       }

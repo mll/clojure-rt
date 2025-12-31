@@ -5,7 +5,8 @@
 #include <stdarg.h>
 
 
-Class *Class_create(String *name, String * className, struct Class * superclass,
+Class *Class_create(bool isInterface,
+                    String *name, String * className, struct Class * superclass,
 
                     uword_t staticFieldCount, RTValue * staticFieldNames,
                     RTValue * staticFields,
@@ -20,8 +21,9 @@ Class *Class_create(String *name, String * className, struct Class * superclass,
 
                     uword_t implementedInterfacesCount,
                     ImplementedInterface * *implementedInterfaces) {
-  
+
   Class *self = allocate(sizeof(Class));
+  self->isInterface = isInterface;
   self->registerId = 0; // unregistered
   self->name = name;
   self->className = className;
@@ -91,7 +93,8 @@ void Class_destroy(Class *self) {
   
   for (uword_t i = 0; i < self->methodCount; ++i) {
     release(self->methodNames[i]);
-    Ptr_release(self->methods[i]);
+    // Will be NULL for interfaces
+    if(self->methods) Ptr_release(self->methods[i]);
   }
   if (self->methodNames) deallocate(self->methodNames);
   if (self->methods) deallocate(self->methods);

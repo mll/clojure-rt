@@ -159,9 +159,6 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
     break;
   case classType:
     Class_destroy((Class *) self);
-    break;
-  case interfaceType:
-    Interface_destroy((Interface *) self);
     break;              
   case persistentListType:
     PersistentList_destroy((PersistentList *)self, deallocateChildren);
@@ -250,9 +247,6 @@ inline uword_t Object_hash(Object *restrict self) {
       case classType:
         return Class_hash((Class *)self);
         break;
-      case interfaceType:
-        return Interface_hash((Interface *)self);
-        break;        
       case persistentListType:
         return PersistentList_hash((PersistentList *) self);
         break;          
@@ -309,9 +303,6 @@ inline bool Object_equals(Object *self, Object *other) {
   case classType:
     return Class_equals((Class *)self, (Class *)other);
     break;
-  case interfaceType:
-    return Interface_equals((Interface *)self, (Interface *)other);
-    break;    
   case persistentListType:
     return PersistentList_equals((PersistentList *)self, (PersistentList *)other);
     break;          
@@ -368,9 +359,6 @@ inline String *Object_toString(Object *restrict self) {
   case classType:
     return Class_toString((Class *)self);
     break;
-  case interfaceType:
-    return Interface_toString((Interface *)self);
-    break;    
   case persistentListType:
     return PersistentList_toString((PersistentList *)self);
     break;          

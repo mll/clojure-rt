@@ -27,7 +27,6 @@ set(SOURCES
     Boolean.c 
     Symbol.c 
     ConcurrentHashMap.c 
-    Interface.c 
     Keyword.c 
     Function.c
     BigInteger.c

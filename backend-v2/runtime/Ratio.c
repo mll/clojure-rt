@@ -15,7 +15,7 @@ Ratio* Ratio_createUnassigned() {
 }
 
 /* mem done */
-Ratio* Ratio_createFromStr(char * value) {
+Ratio* Ratio_createFromStr(const char * value) {
   Ratio *self = Ratio_createUnassigned();
   assert(mpq_set_str(self->value, value, 10) == 0 && "Failed to initialize Ratio");
   mpq_canonicalize(self->value);

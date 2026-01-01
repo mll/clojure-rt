@@ -5,44 +5,41 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
 #include "TypedValue.h"
+#include "LLVMTypes.h"
 
 namespace rt {
 
 /**
  * NaN boxing.
  */
-
-class ValueEncoder {
-private:
+  
+  class ValueEncoder {
+  private:
     llvm::LLVMContext& context;
-    llvm::IRBuilder<>& builder;
+    llvm::IRBuilder<> &builder;
+    LLVMTypes &types;
     int word_size; // 32 or 64
-
-    // LLVM Types (Cached for speed)
-    llvm::Type* i64Ty;
-    llvm::Type* i32Ty;
-    llvm::Type* i1Ty;
-    llvm::Type* doubleTy;
-    llvm::Type* ptrTy;
-
-    // Tag Constants
-    uint64_t TAG_MASK;
-    uint64_t TAG_DOUBLE_START;
-    uint64_t TAG_INT32;
-    uint64_t TAG_PTR;
-    uint64_t TAG_BOOL;
-    uint64_t TAG_NIL;
-    uint64_t TAG_KEYWORD;
-    uint64_t TAG_SYMBOL;    
-
+    
     // Internal helper
     llvm::Value* u64(uint64_t val);
+    
+  public:
+    // Tag Constants
+    static constexpr uint64_t TAG_MASK = 0xFFFF000000000000ULL;
+    static constexpr uint64_t TAG_DOUBLE_START = 0xFFF0000000000000ULL;
+    static constexpr uint64_t TAG_INT32 = 0xFFFF000000000000ULL;
+    static constexpr uint64_t TAG_PTR = 0xFFFE000000000000ULL;
+    static constexpr uint64_t TAG_BOOL = 0xFFFD000000000000ULL;
+    static constexpr uint64_t TAG_NIL = 0xFFFC000000000000ULL;
+    static constexpr uint64_t TAG_KEYWORD = 0xFFFB000000000000ULL;
+    static constexpr uint64_t TAG_SYMBOL = 0xFFFA000000000000ULL;    
 
-public:
     // Constructor
-    explicit ValueEncoder(llvm::LLVMContext& ctx, llvm::IRBuilder<>& b);
+    explicit ValueEncoder(llvm::LLVMContext& ctx, llvm::IRBuilder<>& b, LLVMTypes &t);
 
     // Boxing (Creating safe 64-bit values)
+    TypedValue box(TypedValue val);
+    
     TypedValue boxDouble(TypedValue doubleVal);
     TypedValue boxInt32(TypedValue int32Val);
     TypedValue boxBool(TypedValue boolVal);
@@ -58,9 +55,11 @@ public:
     TypedValue isNil(TypedValue boxedVal);
     TypedValue isPointer(TypedValue boxedVal);
     TypedValue isKeyword(TypedValue boxedVal);
-    TypedValue isSymbol(TypedValue boxedVal);    
+    TypedValue isSymbol(TypedValue boxedVal);
 
     // Unboxing (Returns raw type)
+    TypedValue unbox(TypedValue val);
+    
     TypedValue unboxDouble(TypedValue boxedVal);
     TypedValue unboxInt32(TypedValue boxedVal);
     TypedValue unboxBool(TypedValue boxedVal);

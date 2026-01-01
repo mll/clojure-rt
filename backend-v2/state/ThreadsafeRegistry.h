@@ -6,10 +6,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
-extern "C" {
-#include "../runtime/ObjectProto.h"
-#include "../runtime/Object.h"
-}
+#include "../RuntimeHeaders.h"
 #include "../bridge/Exceptions.h"
 
 namespace rt {

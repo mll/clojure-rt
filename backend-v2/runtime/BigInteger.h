@@ -14,7 +14,7 @@ typedef struct BigInteger BigInteger;
 
 BigInteger* BigInteger_createUninitialized();
 BigInteger* BigInteger_createUnassigned();
-BigInteger* BigInteger_createFromStr(char * value);
+BigInteger* BigInteger_createFromStr(const char * value);
 BigInteger* BigInteger_createFromMpz(mpz_t value);
 BigInteger* BigInteger_createFromInt(word_t value);
 bool BigInteger_equals(BigInteger *self, BigInteger *other);

@@ -9,8 +9,6 @@
 #include "defines.h"
 #include "Function.h"
 #include "word.h"
-#include "Interface.h"
-
 
 typedef struct Object Object;
 typedef struct Class Interface;

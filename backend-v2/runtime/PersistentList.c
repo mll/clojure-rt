@@ -1,6 +1,8 @@
 #include "Object.h"
 #include "PersistentList.h"
 #include "RTValue.h"
+#include <stdarg.h>
+
 
 static PersistentList *EMPTY = NULL;
 // How to mark 
@@ -9,7 +11,57 @@ PersistentList* PersistentList_empty() {
   if (EMPTY == NULL) EMPTY = PersistentList_create(RT_boxNull(), NULL);
   Ptr_retain(EMPTY);
   return EMPTY;
-} 
+}
+
+struct ListPair {
+  PersistentList *first;
+  PersistentList *last;
+};
+
+
+/* outside refcount system, mutable */
+PersistentList *reverse(PersistentList *self) {
+  if (self == NULL) return NULL;
+
+  PersistentList *prev = NULL;
+  PersistentList *current = self;
+  PersistentList *next = NULL;
+  
+  while (current != NULL) {
+    next = current->rest; 
+    current->rest = prev;
+    prev = current;
+    
+    current = next;       
+  }
+
+  PersistentList *temp = prev;
+  uword_t runningCount = 0;
+    
+  while (temp != NULL) {
+    temp->count = runningCount;
+    runningCount++;
+    temp = temp->rest;
+  }
+  
+  return prev;
+}
+
+PersistentList *PersistentList_createMany(uword_t argCount, ...) {
+  PersistentList *retVal = PersistentList_empty();
+
+  va_list args;  
+  va_start(args, argCount);  
+
+  while (argCount > 0) {
+    retVal = PersistentList_conj(retVal, va_arg(args, RTValue));
+    argCount--;
+  }
+  
+  va_end(args);  
+  return reverse(retVal);
+}  
+
 
 /* outside refcount system */
 PersistentList* PersistentList_create(RTValue first, PersistentList *rest) {

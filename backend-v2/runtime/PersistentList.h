@@ -21,8 +21,10 @@ uint64_t PersistentList_hash(PersistentList *self);
 String *PersistentList_toString(PersistentList *self);
 void PersistentList_destroy(PersistentList *self, bool deallocateChildren);
 
+PersistentList *PersistentList_createMany(uword_t argCount, ...);
 PersistentList* PersistentList_create(RTValue first, PersistentList *rest);
-PersistentList* PersistentList_conj(PersistentList *self, RTValue other);
+PersistentList *PersistentList_conj(PersistentList *self, RTValue other);
+PersistentList* PersistentList_createMany(uword_t argCount, ...);
 
 
 #endif

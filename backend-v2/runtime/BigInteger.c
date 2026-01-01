@@ -15,7 +15,7 @@ BigInteger* BigInteger_createUnassigned() {
 }
 
 /* mem done */
-BigInteger* BigInteger_createFromStr(char * value) {
+BigInteger* BigInteger_createFromStr(const char * value) {
   BigInteger *self = BigInteger_createUninitialized();
   assert(mpz_init_set_str(self->value, value, 10) == 0 && "Failed to initialize BigInteger");
   return self;

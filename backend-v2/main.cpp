@@ -24,15 +24,12 @@
 #include "bridge/Exceptions.h"
 
 #include "state/ThreadsafeState.h"
+#include "codegen/CodeGen.h"
 
 using namespace std;
 using namespace llvm;
 
-extern "C" {
-#include "runtime/ObjectProto.h"
-#include "runtime/Object.h"
-#include "runtime/String.h"
-}
+#include "RuntimeHeaders.h"
 
 #include <mach-o/dyld.h>
 std::string getSelfExecutablePath() {

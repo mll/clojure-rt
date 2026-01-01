@@ -8,7 +8,7 @@ namespace rt {
 class ConstantKeyword: public ObjectTypeConstant {
   public:
   std::string value;
-  ConstantKeyword(std::string val) : ObjectTypeConstant(keywordType), value(val) {}
+  ConstantKeyword(const std::string &val) : ObjectTypeConstant(keywordType), value(val) {}
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantKeyword(value)); }
   virtual std::string toString() { return value; }
   virtual bool equals(ObjectTypeConstant *other) {   

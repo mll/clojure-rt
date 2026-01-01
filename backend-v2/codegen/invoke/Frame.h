@@ -1,12 +1,7 @@
 #ifndef FRAME_H
 #define FRAME_H
 
-extern "C" {
-#include "../runtime/ObjectProto.h"
-#include "../runtime/Object.h"
-#include "../runtime/RTValue.h"
-#include "../runtime/Function.h"
-}
+#include "../../RuntimeHeaders.h"
 
 namespace rt {
   struct Frame {

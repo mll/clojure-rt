@@ -68,6 +68,9 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 set(SOURCES
       main.cpp
       codegen/ValueEncoder.cpp
+      codegen/CodeGen.cpp
+      codegen/LLVMTypes.cpp
+      codegen/DynamicConstructor.cpp
       bridge/Exceptions.cpp
       types/ObjectTypeSet.cpp)
 

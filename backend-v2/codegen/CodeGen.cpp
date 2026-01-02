@@ -10,8 +10,15 @@ namespace rt {
 
     switch (node.op()) {
     case opConst:
-      return codegen(node, node.subnode().const_(), typeRestrictions);    
+      return codegen(node, node.subnode().const_(), typeRestrictions);
+    case opQuote:
+      return codegen(node, node.subnode().quote(), typeRestrictions);    
+    case opMap:
+      return codegen(node, node.subnode().map(), typeRestrictions);    
+    case opVector:
+      return codegen(node, node.subnode().vector(), typeRestrictions);    
 
+      
     // case opBinding:
     //   return codegen(node, node.subnode().binding(), typeRestrictions);    
     // case opCase:
@@ -56,8 +63,6 @@ namespace rt {
     //   return codegen(node, node.subnode().local(), typeRestrictions);    
     // case opLoop:
     //   return codegen(node, node.subnode().loop(), typeRestrictions);    
-    // case opMap:
-    //   return codegen(node, node.subnode().map(), typeRestrictions);    
     // case opMethod:
     //   return codegen(node, node.subnode().method(), typeRestrictions);    
     // case opMonitorEnter:
@@ -70,8 +75,6 @@ namespace rt {
     //   return codegen(node, node.subnode().priminvoke(), typeRestrictions);    
     // case opProtocolInvoke:
     //   return codegen(node, node.subnode().protocolinvoke(), typeRestrictions);    
-    // case opQuote:
-    //   return codegen(node, node.subnode().quote(), typeRestrictions);    
     // case opRecur:
     //   return codegen(node, node.subnode().recur(), typeRestrictions);    
     // case opReify:
@@ -92,8 +95,6 @@ namespace rt {
     //   return codegen(node, node.subnode().try_(), typeRestrictions);    
     // case opVar:
     //   return codegen(node, node.subnode().var(), typeRestrictions);    
-    // case opVector:
-    //   return codegen(node, node.subnode().vector(), typeRestrictions);    
     // case opWithMeta:
     //   return codegen(node, node.subnode().withmeta(), typeRestrictions);
     default:
@@ -105,7 +106,15 @@ namespace rt {
   ObjectTypeSet CodeGen::getType(const Node &node, const ObjectTypeSet &typeRestrictions) {
     switch (node.op()) {
     case opConst:
-      return getType(node, node.subnode().const_(), typeRestrictions);          
+      return getType(node, node.subnode().const_(), typeRestrictions);
+    case opQuote:
+      return getType(node, node.subnode().quote(), typeRestrictions);
+    case opVector:
+      return getType(node, node.subnode().vector(), typeRestrictions);    
+    case opMap:
+      return getType(node, node.subnode().map(), typeRestrictions);    
+
+      
     // case opBinding:
     //   return getType(node, node.subnode().binding(), typeRestrictions);    
     // case opCase:
@@ -150,8 +159,6 @@ namespace rt {
     //   return getType(node, node.subnode().local(), typeRestrictions);    
     // case opLoop:
     //   return getType(node, node.subnode().loop(), typeRestrictions);    
-    // case opMap:
-    //   return getType(node, node.subnode().map(), typeRestrictions);    
     // case opMethod:
     //   return getType(node, node.subnode().method(), typeRestrictions);    
     // case opMonitorEnter:
@@ -164,8 +171,6 @@ namespace rt {
     //   return getType(node, node.subnode().priminvoke(), typeRestrictions);    
     // case opProtocolInvoke:
     //   return getType(node, node.subnode().protocolinvoke(), typeRestrictions);    
-    // case opQuote:
-    //   return getType(node, node.subnode().quote(), typeRestrictions);    
     // case opRecur:
     //   return getType(node, node.subnode().recur(), typeRestrictions);    
     // case opReify:
@@ -186,8 +191,6 @@ namespace rt {
     //   return getType(node, node.subnode().try_(), typeRestrictions);    
     // case opVar:
     //   return getType(node, node.subnode().var(), typeRestrictions);    
-    // case opVector:
-    //   return getType(node, node.subnode().vector(), typeRestrictions);    
     // case opWithMeta:
     //   return getType(node, node.subnode().withmeta(), typeRestrictions);
     default:

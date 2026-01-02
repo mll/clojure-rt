@@ -75,7 +75,10 @@ set(SOURCES
       codegen/DynamicConstructor.cpp
       codegen/invoke/InvokeManager.cpp
       codegen/MemoryManagement.cpp
-      codegen/ops/ConstNode.cpp)
+      codegen/ops/ConstNode.cpp
+      codegen/ops/QuoteNode.cpp
+      codegen/ops/VectorNode.cpp       
+      codegen/ops/MapNode.cpp)
 
 
 find_package(Protobuf REQUIRED)

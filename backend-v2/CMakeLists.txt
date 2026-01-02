@@ -67,14 +67,15 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 
 set(SOURCES
       main.cpp
+      bridge/Exceptions.cpp
+      types/ObjectTypeSet.cpp
       codegen/ValueEncoder.cpp
       codegen/CodeGen.cpp
       codegen/LLVMTypes.cpp
       codegen/DynamicConstructor.cpp
       codegen/invoke/InvokeManager.cpp
       codegen/MemoryManagement.cpp
-      bridge/Exceptions.cpp
-      types/ObjectTypeSet.cpp)
+      codegen/ops/ConstNode.cpp)
 
 
 find_package(Protobuf REQUIRED)

@@ -8,26 +8,7 @@
 
 
 #include <gmp.h>
-
-extern "C" {
-
-#ifdef __cplusplus
-  // Jeśli kompilujemy jako C++, zamień 'restrict' na wersję rozumianą przez kompilator
-  #if defined(__GNUC__) || defined(__clang__)
-    #define restrict __restrict__
-  #elif defined(_MSC_VER)
-    #define restrict __restrict
-  #else
-    #define restrict
-  #endif
-#endif
-
-#include "../runtime/RTValue.h"
-#include "../runtime/word.h"
-#include "../runtime/ObjectProto.h"
-#include "../runtime/Object.h"
-#include "../runtime/String.h"
-}
+#include "../RuntimeHeaders.h"
 
 #include <execinfo.h> 
 #include <vector>

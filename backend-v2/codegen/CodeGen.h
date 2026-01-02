@@ -14,23 +14,30 @@
 #include "../bytecode.pb.h"
 #include "LLVMTypes.h"
 #include "DynamicConstructor.h"
+#include "VariableBindings.h"
+#include "invoke/InvokeManager.h"
+#include "MemoryManagement.h"
 
 using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
-  class CodeGen {
+  class CodeGen {   
     llvm::orc::ThreadSafeContext TSContext;
-
+    
     llvm::LLVMContext &TheContext;
     std::unique_ptr<llvm::Module> TheModule;    
     llvm::IRBuilder<> Builder;
 
+    VariableBindings<TypedValue> variableBindingStack;
+    VariableBindings<ObjectTypeSet> variableTypesBindingsStack;    
+    
     LLVMTypes types;
     ValueEncoder valueEncoder;
+    InvokeManager invokeManager;
     DynamicConstructor dynamicConstructor;
+    MemoryManagement memoryManagement;    
     
-    std::shared_ptr<ThreadsafeCompilerState> compilerState;    
-    
+    std::shared_ptr<ThreadsafeCompilerState> compilerState;
   public:
     CodeGen(std::string_view ModuleName,
             std::shared_ptr<ThreadsafeCompilerState> state)
@@ -39,8 +46,12 @@ namespace rt {
           TheModule(std::make_unique<llvm::Module>(ModuleName, TheContext)),
           Builder(TheContext), types(TheContext),
           valueEncoder(TheContext, Builder, types),
-          dynamicConstructor(Builder, *TheModule, valueEncoder, types),
-          compilerState(std::move(state))
+          invokeManager(Builder, *TheModule, valueEncoder, types),
+          dynamicConstructor(types, invokeManager),
+          memoryManagement(TheContext, Builder, valueEncoder, types,
+                           variableBindingStack, invokeManager,
+                           dynamicConstructor),          
+          compilerState(std::move(state))          
     {}
 
     TypedValue codegen(const Node &node, const ObjectTypeSet &typeRestrictions);

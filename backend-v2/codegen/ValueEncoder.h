@@ -14,7 +14,6 @@ namespace rt {
  */
   
   class ValueEncoder {
-  private:
     llvm::LLVMContext& context;
     llvm::IRBuilder<> &builder;
     LLVMTypes &types;

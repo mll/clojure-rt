@@ -248,7 +248,7 @@ namespace rt {
       return unboxSymbol(val);
     }
 
-    throwInternalInconsistencyException("Unallowed type for unboxing: " +
+    throwInternalInconsistencyException("Only determined types can be unboxed: " +
                                         val.type.toString());
     return val;
   }

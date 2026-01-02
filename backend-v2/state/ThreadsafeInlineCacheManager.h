@@ -11,9 +11,10 @@ namespace rt {
 struct ThreadsafeInlineCacheSlot {
     std::atomic<void*> tag{nullptr};
 
-    union {
+    union Payload {
         std::atomic<uword_t> offset;
-        std::atomic<void*> pointer;
+        std::atomic<void *> pointer;
+      Payload() : offset(0) {}        
     } payload;
 
     enum class Kind { Field, Call } kind;

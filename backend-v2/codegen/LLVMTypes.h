@@ -4,6 +4,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
+#include "../types/ObjectTypeSet.h"
 
 namespace rt {
 
@@ -15,8 +16,14 @@ struct LLVMTypes {
   llvm::Type* i1Ty;
   llvm::Type* doubleTy;
   llvm::Type* ptrTy;
+  llvm::Type *voidTy;
   
-  explicit LLVMTypes(llvm::LLVMContext& ctx);
+  llvm::Type *RT_valueTy;
+  llvm::StructType *RT_objectTy;
+
+  explicit LLVMTypes(llvm::LLVMContext &ctx);
+
+  llvm::Type *typeForType(const ObjectTypeSet &type);
 };
 
 } // namespace rt

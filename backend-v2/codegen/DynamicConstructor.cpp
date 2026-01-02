@@ -1,4 +1,3 @@
-
 #include "DynamicConstructor.h"
 #include <llvm/IR/Constants.h>
 #include <string>
@@ -11,13 +10,14 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "../RuntimeHeaders.h"
 #include "../bridge/Exceptions.h"
+#include "invoke/InvokeManager.h"
 
 using namespace llvm;
 
 namespace rt {
 
-  DynamicConstructor::DynamicConstructor(IRBuilder<>& b, Module &m, ValueEncoder &v, LLVMTypes &t) 
-    : builder(b), theModule(m), valueEncoder(v), types(t) {}
+DynamicConstructor::DynamicConstructor(LLVMTypes &t, InvokeManager &i)
+    : types(t), invokeManager(i) {}
 
   TypedValue DynamicConstructor::createDouble(const char *s) {
     return TypedValue(
@@ -106,20 +106,15 @@ namespace rt {
   }
 
   TypedValue DynamicConstructor::createVector(std::vector<TypedValue> &items) {
-    std::string fname = "PersistentVector_createMany";
-    FunctionType *functionType = FunctionType::get(types.ptrTy, {types.wordTy}, true);
-    Function *toCall =
-        theModule.getFunction(fname)
-            ?: Function::Create(functionType, Function::ExternalLinkage,
-                                fname, theModule);
-
-    std::vector<Value *> args;
-    args.push_back(ConstantInt::get(types.wordTy, items.size()));
-    for (auto &item : items) {      
-      args.push_back(valueEncoder.box(item).value);
-    }
-    return TypedValue(ObjectTypeSet(persistentVectorType, false),
-                      builder.CreateCall(toCall, args, std::string("call_") + fname));
+    auto retValType = ObjectTypeSet(persistentVectorType, false);
+    std::vector<TypedValue> allArgs;
+    allArgs.push_back(createInt32(items.size()));
+    for(auto &item : items) allArgs.push_back(item);
+    return invokeManager.invokeRuntime(
+        "PersistentVector_createMany",
+        &retValType,
+        {ObjectTypeSet(integerType, false)},
+        allArgs);
   }
   
   
@@ -130,40 +125,37 @@ namespace rt {
       throwInternalInconsistencyException(
                                           "Keys and values need to have the same size");
     
-    if (keys.size() > HASHTABLE_THRESHOLD) throwInternalInconsistencyException(
-                                                                               "PersistentArrayMap can store at most " + std::to_string(HASHTABLE_THRESHOLD) + " key-value pairs");
-    std::string fname = "PersistentArrayMap_createMany";
-    FunctionType *functionType = FunctionType::get(types.ptrTy, {types.wordTy}, true);
-    Function *toCall =
-      theModule.getFunction(fname)
-      ?: Function::Create(functionType, Function::ExternalLinkage,
-                          fname, theModule);
+    if (keys.size() > HASHTABLE_THRESHOLD)
+      throwInternalInconsistencyException(
+          "PersistentArrayMap can store at most " +
+          std::to_string(HASHTABLE_THRESHOLD) + " key-value pairs");
+    auto retValType = ObjectTypeSet(persistentArrayMapType, false);    
+    std::vector<TypedValue> allArgs;
+    allArgs.push_back(createInt32(keys.size()));
+    for (auto &item : keys)
+      allArgs.push_back(item);
+    for (auto &item : values)
+      allArgs.push_back(item);
     
-    std::vector<Value *> args;
-    args.push_back(ConstantInt::get(types.wordTy, keys.size()));
-    for (size_t i = 0; i < keys.size(); i++) {
-      args.push_back(valueEncoder.box(keys[i]).value);
-      args.push_back(valueEncoder.box(values[i]).value);      
-    }
-    return TypedValue(ObjectTypeSet(persistentArrayMapType, false),
-                      builder.CreateCall(toCall, args, std::string("call_") + fname));
+    return invokeManager.invokeRuntime(
+        "PersistentArrayMap_createMany",
+        &retValType,
+        {ObjectTypeSet(integerType, false)},
+        allArgs);
   }
-  TypedValue DynamicConstructor::createList(std::vector<TypedValue> &items) {
-    std::string fname = "PersistentList_createMany";
-    FunctionType *functionType = FunctionType::get(types.ptrTy, {types.wordTy}, true);
-    Function *toCall =
-        theModule.getFunction(fname)
-            ?: Function::Create(functionType, Function::ExternalLinkage,
-                                fname, theModule);
 
-    std::vector<Value *> args;
-    args.push_back(ConstantInt::get(types.wordTy, items.size()));
-    for (auto &item : items) {      
-      args.push_back(valueEncoder.box(item).value);
-    }
-    return TypedValue(ObjectTypeSet(persistentVectorType, false),
-                      builder.CreateCall(toCall, args, std::string("call_") + fname));
-  }    
+  TypedValue DynamicConstructor::createList(std::vector<TypedValue> &items) {
+    auto retValType = ObjectTypeSet(persistentListType, false);
+    std::vector<TypedValue> allArgs;
+    allArgs.push_back(createInt32(items.size()));
+    for(auto &item : items) allArgs.push_back(item);
+    return invokeManager.invokeRuntime(
+        "PersistentList_createMany",
+        &retValType,
+        {ObjectTypeSet(integerType, false)},
+        allArgs);
+  }
+
 } // namespace rt
 
 

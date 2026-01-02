@@ -8,19 +8,17 @@
 #include "TypedValue.h"
 #include "ValueEncoder.h"
 #include "LLVMTypes.h"
+#include "invoke/InvokeManager.h"
 
 namespace rt {
   
   class DynamicConstructor {
   private:
-    llvm::IRBuilder<> &builder;
-    llvm::Module &theModule;
-    ValueEncoder &valueEncoder;
     LLVMTypes &types;
+    InvokeManager &invokeManager;
     
 public:
-  explicit DynamicConstructor(llvm::IRBuilder<> &b, llvm::Module &m,
-                              ValueEncoder &v, LLVMTypes &t);  
+  explicit DynamicConstructor(LLVMTypes &t, InvokeManager &i);  
   /*
    *  Always tries to create an unboxed value, even for pointers.
    *  Only nil cannot be created this way as it exists only in boxed state.

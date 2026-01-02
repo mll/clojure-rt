@@ -87,6 +87,8 @@
                                   (:op node))))
       (when-not (= (:op node) :map)
         (println (str pre " Form​ "  (with-out-str (pprint (:form node))))))
+      (println (str pre " Drop memory: " (:drop-memory node)))
+      (println (str pre " Unwind memory: " (:unwind-memory node)))
       (doseq [child (:children node)]
         (println (str pre "! Child: " child))
         (print-readable-tree (child node) (inc depth))

@@ -20,7 +20,7 @@ endif()
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fstandalone-debug")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(runtime)
 
@@ -71,6 +71,8 @@ set(SOURCES
       codegen/CodeGen.cpp
       codegen/LLVMTypes.cpp
       codegen/DynamicConstructor.cpp
+      codegen/invoke/InvokeManager.cpp
+      codegen/MemoryManagement.cpp
       bridge/Exceptions.cpp
       types/ObjectTypeSet.cpp)
 

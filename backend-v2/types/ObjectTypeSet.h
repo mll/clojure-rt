@@ -120,7 +120,7 @@ class ObjectTypeSet {
   }
 
   bool isBoxedPointer() const {
-    return !isScalar() && !isBoxedScalar() && isBoxed;
+    return isDetermined() && !isScalar() && !isBoxedScalar() && isBoxed;
   }  
   
   bool isScalar() const {

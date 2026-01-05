@@ -22,12 +22,16 @@ namespace rt {
     verifyFunction(*F);
     return fname;  
   }
-  
+
   TypedValue CodeGen::codegen(const Node &node,
                               const ObjectTypeSet &typeRestrictions) {
-    // TODO - memory guidance
-    // codegenDynamicMemoryGuidance(node);
     CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
+    
+    for(int i=0; i<node.dropmemory_size(); i++) {
+      auto guidance = node.dropmemory(i);
+      memoryManagement.dynamicMemoryGuidance(guidance);
+    }
+    
     switch (node.op()) {
     case opConst:
       return codegen(node, node.subnode().const_(), typeRestrictions);

@@ -16,9 +16,10 @@ namespace rt {
 
   std::future<llvm::orc::ExecutorAddr>
   JITEngine::compileAST(const Node &AST, const std::string &moduleName,
-                        llvm::OptimizationLevel level) {
+                        llvm::OptimizationLevel level,
+                        bool printModule) {
     // Wrap logic in a task for the pool
-    return pool.enqueue([this, AST, level, moduleName]() -> llvm::orc::ExecutorAddr {           
+    return pool.enqueue([this, AST, level, moduleName, printModule]() -> llvm::orc::ExecutorAddr {           
       auto codeGenerator = CodeGen(moduleName, threadsafeState);
       auto fName = codeGenerator.codegenTopLevel(AST);
       
@@ -30,7 +31,7 @@ namespace rt {
       // }
 
       // --- TUTAJ WYPISUJEMY IR ---
-      if (module) {
+      if (module && printModule) {
         llvm::outs() << "\n--- Generated LLVM IR for: " << moduleName << " ---\n";
         module->print(llvm::outs(), nullptr); // Wypisuje IR do standardowego wyjścia LLVM
         llvm::outs() << "------------------------------------------\n";

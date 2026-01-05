@@ -50,8 +50,9 @@ namespace rt {
      * Returns a future that resolves to the function address once compiled.
      */
     std::future<llvm::orc::ExecutorAddr>
-      compileAST(const Node &AST, const std::string &moduleName,
-                 llvm::OptimizationLevel Level);
+    compileAST(const Node &AST, const std::string &moduleName,
+               llvm::OptimizationLevel Level,
+               bool printModule = false);
     
     void invalidate(const std::string& name);
   };

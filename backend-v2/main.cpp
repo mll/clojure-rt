@@ -69,30 +69,34 @@ int main(int argc, char *argv[]) {
   
   initialise_memory();
 
-
-  
-  
-  cout << "HEllo" << endl;
   try {
     rt::ThreadsafeCompilerState state;
     rt::JITEngine engine(state);
 
-    auto f = engine.compileAST(astIntrinsics.nodes(1), "__intrinsics",
-                               llvm::OptimizationLevel::O0);
+    RTValue intrinsics =
+        engine.compileAST(astIntrinsics.nodes(1), "__intrinsics",
+                          llvm::OptimizationLevel::O0,
+                          false)
+      .get()
+      .toPtr<RTValue (*)()>()();
+    
+    
+    release(intrinsics);
+    
     // auto f = engine.compileAST(astRoot.nodes(0), "__root", llvm::OptimizationLevel::O0);    
-    cout << "Compiling!!!" << endl;
-    printReferenceCounts();    
-    RTValue (*res)() = f.get().toPtr<RTValue (*)()>();
-    RTValue whaat = res();
-    printReferenceCounts();
-    String *s = toString(whaat);
-    s = String_compactify(s);
+    // cout << "Compiling!!!" << endl;
+    // printReferenceCounts();    
 
-     cout << "Result" << endl;
-     cout << std::string(String_c_str(s)) << endl;
-     cout << "!!!Result" << endl;
-    Ptr_release(s);
-    printReferenceCounts();
+    // RTValue whaat = res();
+    // printReferenceCounts();
+    // String *s = toString(whaat);
+    // s = String_compactify(s);
+
+    //  cout << "Result" << endl;
+    //  cout << std::string(String_c_str(s)) << endl;
+    //  cout << "!!!Result" << endl;
+    // Ptr_release(s);
+    // printReferenceCounts();
   } catch (rt::LanguageException e) {
     llvm::symbolize::LLVMSymbolizer::Options options;
     options.Demangle = true; 

@@ -115,7 +115,7 @@ String* String_createCompound(String *left, String *right) {
     PersistentVector *rvec = getVec(right);
     PersistentVectorIterator it = PersistentVector_iterator(rvec);
     for(uword_t i=0; i< rvec->count; i++) { 
-      Ptr_retain(rvec);
+      retain(PersistentVector_iteratorGet(&it));
       v = PersistentVector_conj(v, PersistentVector_iteratorGet(&it));
       PersistentVector_iteratorNext(&it);
     }

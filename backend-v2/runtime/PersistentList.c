@@ -47,7 +47,7 @@ PersistentList *reverse(PersistentList *self) {
   return prev;
 }
 
-PersistentList *PersistentList_createMany(uword_t argCount, ...) {
+PersistentList *PersistentList_createMany(int32_t argCount, ...) {
   PersistentList *retVal = PersistentList_empty();
 
   va_list args;  

@@ -1,13 +1,33 @@
 #include "CodeGen.h"
 #include "../bridge/Exceptions.h"
 #include "TypedValue.h"
+#include "../cljassert.h"
+
+using namespace llvm;
 
 namespace rt {
+  CodeGenResult CodeGen::release() && {
+    return { std::move(TSContext), std::move(TheModule) };
+  }
+  
+  std::string CodeGen::codegenTopLevel(const Node &node) {
+    CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
+    uword_t i = compilerState.functionAstRegistry.registerObject(&node);    
+    std::string fname = std::string("__anon__") + std::to_string(i);
+    FunctionType *FT = FunctionType::get(types.i64Ty, {}, false);
+    Function *F = Function::Create(FT, Function::ExternalLinkage, fname, *TheModule);
+    BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
+    Builder.SetInsertPoint(BB);
+    Builder.CreateRet(valueEncoder.box(codegen(node, ObjectTypeSet::all())).value);
+    verifyFunction(*F);
+    return fname;  
+  }
+  
   TypedValue CodeGen::codegen(const Node &node,
-                                    const ObjectTypeSet &typeRestrictions) {
+                              const ObjectTypeSet &typeRestrictions) {
     // TODO - memory guidance
     // codegenDynamicMemoryGuidance(node);
-
+    CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
     switch (node.op()) {
     case opConst:
       return codegen(node, node.subnode().const_(), typeRestrictions);
@@ -103,7 +123,9 @@ namespace rt {
     return TypedValue(ObjectTypeSet::all(), nullptr);
   }
 
-  ObjectTypeSet CodeGen::getType(const Node &node, const ObjectTypeSet &typeRestrictions) {
+  ObjectTypeSet CodeGen::getType(const Node &node,
+                                 const ObjectTypeSet &typeRestrictions) {
+    CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");    
     switch (node.op()) {
     case opConst:
       return getType(node, node.subnode().const_(), typeRestrictions);

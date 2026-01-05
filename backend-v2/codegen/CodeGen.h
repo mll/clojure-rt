@@ -8,6 +8,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
+#include <memory>
 #include "TypedValue.h"
 #include "ValueEncoder.h"
 #include "../state/ThreadsafeState.h"
@@ -21,8 +22,13 @@
 using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
+  struct CodeGenResult {
+    std::unique_ptr<llvm::orc::ThreadSafeContext> context;
+    std::unique_ptr<llvm::Module> module;
+  };
+
   class CodeGen {   
-    llvm::orc::ThreadSafeContext TSContext;
+    std::unique_ptr<llvm::orc::ThreadSafeContext> TSContext;
     
     llvm::LLVMContext &TheContext;
     std::unique_ptr<llvm::Module> TheModule;    
@@ -37,12 +43,13 @@ namespace rt {
     DynamicConstructor dynamicConstructor;
     MemoryManagement memoryManagement;    
     
-    std::shared_ptr<ThreadsafeCompilerState> compilerState;
+    ThreadsafeCompilerState &compilerState;
+
   public:
-    CodeGen(std::string_view ModuleName,
-            std::shared_ptr<ThreadsafeCompilerState> state)
-        : TSContext(std::make_unique<llvm::LLVMContext>()),
-          TheContext(*TSContext.getContext()),
+    CodeGen(std::string_view ModuleName, ThreadsafeCompilerState &state)
+        : TSContext(std::make_unique<llvm::orc::ThreadSafeContext>(
+              std::make_unique<llvm::LLVMContext>())),          
+          TheContext(*(TSContext->getContext())),
           TheModule(std::make_unique<llvm::Module>(ModuleName, TheContext)),
           Builder(TheContext), types(TheContext),
           valueEncoder(TheContext, Builder, types),
@@ -51,9 +58,13 @@ namespace rt {
           memoryManagement(TheContext, Builder, valueEncoder, types,
                            variableBindingStack, invokeManager,
                            dynamicConstructor),          
-          compilerState(std::move(state))          
+          compilerState(state)          
     {}
 
+    CodeGenResult release() &&;
+    
+    std::string codegenTopLevel(const Node &node);
+    
     TypedValue codegen(const Node &node, const ObjectTypeSet &typeRestrictions);
 
     TypedValue codegen(const Node &node, const ConstNode &subnode, const ObjectTypeSet &typeRestrictions);    

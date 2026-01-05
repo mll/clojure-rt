@@ -5,22 +5,22 @@
 
 enum objectType {
   integerType = 1,
-  doubleType,
-  nilType,
-  booleanType,
-  symbolType,
-  keywordType,
+  doubleType,               // 2 
+  nilType,                  // 3 
+  booleanType,              // 4
+  symbolType,               // 5
+  keywordType,              // 6
 
-  stringType,
-  persistentListType,
-  persistentVectorType,
-  persistentVectorNodeType,
-  concurrentHashMapType,
-  functionType,
-  bigIntegerType,
-  ratioType,
-  classType,
-  persistentArrayMapType,
+  stringType,               // 7
+  persistentListType,       // 8
+  persistentVectorType,     // 9
+  persistentVectorNodeType, // 10
+  concurrentHashMapType,    // 11
+  functionType,             // 12
+  bigIntegerType,           // 13
+  ratioType,                // 14
+  classType,                // 15
+  persistentArrayMapType,   // 16
 };
 
 typedef enum objectType objectType;

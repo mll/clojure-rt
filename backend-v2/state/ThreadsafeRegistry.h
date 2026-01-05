@@ -14,8 +14,8 @@ namespace rt {
   class ThreadsafeRegistry {
   private:
     mutable std::shared_mutex registryMutex;
-    std::unordered_map<std::string, T *> registry;
-    std::unordered_map<uword_t, T *> indexedRegistry;
+    std::unordered_map<std::string, const T *> registry;
+    std::unordered_map<uword_t, const T *> indexedRegistry;
     uword_t currentIndex = 1;
     bool manageRuntimeMemory;
 
@@ -23,13 +23,13 @@ namespace rt {
     ThreadsafeRegistry(bool _manageRuntimeMemory)
         : manageRuntimeMemory(_manageRuntimeMemory) {}
 
-    uword_t registerObject(T *newDef) {
+    uword_t registerObject(const T *newDef) {
       std::unique_lock<std::shared_mutex> lock(registryMutex);
       indexedRegistry[currentIndex] = newDef;
       return ++currentIndex;
     }      
     
-    void registerObject(const char *name, T *newDef) {
+    void registerObject(const char *name, const T *newDef) {
       std::unique_lock<std::shared_mutex> lock(registryMutex);
       
       std::string key(name);

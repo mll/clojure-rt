@@ -29,7 +29,7 @@ struct PersistentVector {
 };
 
 PersistentVector* PersistentVector_create();
-PersistentVector* PersistentVector_createMany(uword_t objCount, ...);
+PersistentVector* PersistentVector_createMany(int32_t objCount, ...);
 
 bool PersistentVector_equals(PersistentVector *restrict self, PersistentVector *restrict other);
 uword_t PersistentVector_hash(PersistentVector *restrict self);

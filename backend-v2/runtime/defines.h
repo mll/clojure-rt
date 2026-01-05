@@ -6,6 +6,8 @@
 //#define USE_MEMORY_BANKS
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-#define HASHTABLE_THRESHOLD 8
+// #define HASHTABLE_THRESHOLD 8
+
+#define HASHTABLE_THRESHOLD 128
 
 #endif

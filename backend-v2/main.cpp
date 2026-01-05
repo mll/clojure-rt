@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "runtime/word.h"
+#include "RuntimeHeaders.h"
 #include "bytecode.pb.h"
 
 #include "llvm/ADT/APFloat.h"
@@ -24,7 +24,8 @@
 #include "bridge/Exceptions.h"
 
 #include "state/ThreadsafeState.h"
-#include "codegen/CodeGen.h"
+#include "jit/JITEngine.h"
+
 
 using namespace std;
 using namespace llvm;
@@ -46,9 +47,6 @@ int main(int argc, char *argv[]) {
     cout << "Please specify the filename for compilation" << endl;
     return -1;
   }
-  InitializeNativeTarget();
-  InitializeNativeTargetAsmPrinter();
-  InitializeNativeTargetAsmParser();
   
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -71,23 +69,43 @@ int main(int argc, char *argv[]) {
   
   initialise_memory();
 
+
+  
   
   cout << "HEllo" << endl;
-  // try {
-//     throwInternalInconsistencyException("Kuku");
-//   } catch (rt::LanguageException e) {
-//     llvm::symbolize::LLVMSymbolizer::Options options;
-//     options.Demangle = true; 
-//     options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
-// //    options.DsymHints.push_back(getSelfExecutablePath() + ".dSYM/Contents/Resources/DWARF/" + "clojure-rt");
-//     llvm::symbolize::LLVMSymbolizer symbolizer(options);
-//     cout << e.toString(symbolizer,
-//                        getSelfExecutablePath() +
-//                            ".dSYM/Contents/Resources/DWARF/" + "clojure-rt",
-//                        _dyld_get_image_vmaddr_slide(0))
-//          << endl;
-//     e.printRawTrace();
-//   }    
+  try {
+    rt::ThreadsafeCompilerState state;
+    rt::JITEngine engine(state);
+
+    auto f = engine.compileAST(astIntrinsics.nodes(1), "__intrinsics",
+                               llvm::OptimizationLevel::O0);
+    // auto f = engine.compileAST(astRoot.nodes(0), "__root", llvm::OptimizationLevel::O0);    
+    cout << "Compiling!!!" << endl;
+    printReferenceCounts();    
+    RTValue (*res)() = f.get().toPtr<RTValue (*)()>();
+    RTValue whaat = res();
+    printReferenceCounts();
+    String *s = toString(whaat);
+    s = String_compactify(s);
+
+     cout << "Result" << endl;
+     cout << std::string(String_c_str(s)) << endl;
+     cout << "!!!Result" << endl;
+    Ptr_release(s);
+    printReferenceCounts();
+  } catch (rt::LanguageException e) {
+    llvm::symbolize::LLVMSymbolizer::Options options;
+    options.Demangle = true; 
+    options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
+//    options.DsymHints.push_back(getSelfExecutablePath() + ".dSYM/Contents/Resources/DWARF/" + "clojure-rt");
+    llvm::symbolize::LLVMSymbolizer symbolizer(options);
+    cout << e.toString(symbolizer,
+                       getSelfExecutablePath() +
+                           ".dSYM/Contents/Resources/DWARF/" + "clojure-rt",
+                       _dyld_get_image_vmaddr_slide(0))
+         << endl;
+    e.printRawTrace();
+  }    
 
   return 0;
 }  

@@ -3,7 +3,9 @@
 
 #include <gmp.h>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 #ifdef __cplusplus
   #if defined(__GNUC__) || defined(__clang__)
     #define restrict __restrict__
@@ -14,6 +16,7 @@ extern "C" {
   #endif
 #endif
 
+#include "runtime/defines.h"
 #include "runtime/RTValue.h"
 #include "runtime/word.h"
 #include "runtime/ObjectProto.h"
@@ -26,8 +29,9 @@ extern "C" {
 #include "runtime/Symbol.h"
 #include "runtime/BigInteger.h"
 #include "runtime/Ratio.h"
+
+#ifdef __cplusplus
 }
-
 #endif
-
+#endif
 

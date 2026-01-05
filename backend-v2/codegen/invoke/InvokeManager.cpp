@@ -10,20 +10,23 @@ namespace rt {
                                ValueEncoder &v, LLVMTypes &t)
     : builder(b), theModule(m), valueEncoder(v), types(t) {}
 
-  
+
   TypedValue
   InvokeManager::invokeRuntime(const std::string &fname,
                                const ObjectTypeSet *retValType,
                                const std::vector<ObjectTypeSet> &argTypes,
-                               const std::vector<TypedValue> &args) {
+                               const std::vector<TypedValue> &args,
+                               const bool isVariadic) {
     if(argTypes.size() > args.size()) throwInternalInconsistencyException("Internal error: To litle arguments passed");
     std::vector<llvm::Type *> llvmTypes;
     for (auto &t : argTypes) {
       llvmTypes.push_back(types.typeForType(t));
     }
+
+    if(!isVariadic && argTypes.size() != args.size()) throwInternalInconsistencyException("Internal error: Wrong arg count");
     
     FunctionType *functionType = FunctionType::get(
-        retValType ? types.typeForType(*retValType) : types.voidTy, llvmTypes, argTypes.size() < args.size());
+        retValType ? types.typeForType(*retValType) : types.voidTy, llvmTypes, isVariadic);
 
     Function *toCall =
       theModule.getFunction(fname)

@@ -47,7 +47,7 @@ DynamicConstructor::DynamicConstructor(LLVMTypes &t, InvokeManager &i)
 
   TypedValue DynamicConstructor::createNil() {
     return TypedValue(ObjectTypeSet(nilType, true, new ConstantNil()),
-                      ConstantInt::get(types.i64Ty, ValueEncoder::TAG_NIL));
+                      ConstantInt::get(types.i64Ty, RT_TAG_NIL));
     
   }
 
@@ -111,10 +111,8 @@ DynamicConstructor::DynamicConstructor(LLVMTypes &t, InvokeManager &i)
     allArgs.push_back(createInt32(items.size()));
     for(auto &item : items) allArgs.push_back(item);
     return invokeManager.invokeRuntime(
-        "PersistentVector_createMany",
-        &retValType,
-        {ObjectTypeSet(integerType, false)},
-        allArgs);
+        "PersistentVector_createMany", &retValType,
+        {ObjectTypeSet(integerType, false)}, allArgs, true);
   }
   
   
@@ -132,16 +130,15 @@ DynamicConstructor::DynamicConstructor(LLVMTypes &t, InvokeManager &i)
     auto retValType = ObjectTypeSet(persistentArrayMapType, false);    
     std::vector<TypedValue> allArgs;
     allArgs.push_back(createInt32(keys.size()));
-    for (auto &item : keys)
-      allArgs.push_back(item);
-    for (auto &item : values)
-      allArgs.push_back(item);
-    
+
+    for (size_t i = 0; i < keys.size(); i++) {
+      allArgs.push_back(keys[i]);
+      allArgs.push_back(values[i]);
+    }
+
     return invokeManager.invokeRuntime(
-        "PersistentArrayMap_createMany",
-        &retValType,
-        {ObjectTypeSet(integerType, false)},
-        allArgs);
+        "PersistentArrayMap_createMany", &retValType,
+        {ObjectTypeSet(integerType, false)}, allArgs, true);
   }
 
   TypedValue DynamicConstructor::createList(std::vector<TypedValue> &items) {
@@ -149,11 +146,9 @@ DynamicConstructor::DynamicConstructor(LLVMTypes &t, InvokeManager &i)
     std::vector<TypedValue> allArgs;
     allArgs.push_back(createInt32(items.size()));
     for(auto &item : items) allArgs.push_back(item);
-    return invokeManager.invokeRuntime(
-        "PersistentList_createMany",
-        &retValType,
-        {ObjectTypeSet(integerType, false)},
-        allArgs);
+    return invokeManager.invokeRuntime("PersistentList_createMany", &retValType,
+                                       {ObjectTypeSet(integerType, false)},
+                                       allArgs, true);    
   }
 
 } // namespace rt

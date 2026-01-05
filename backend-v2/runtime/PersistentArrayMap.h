@@ -32,6 +32,6 @@ RTValue PersistentArrayMap_dynamic_get(RTValue self, RTValue key);
 word_t PersistentArrayMap_indexOf(PersistentArrayMap *self, RTValue key);
 
 PersistentArrayMap* PersistentArrayMap_create();
-PersistentArrayMap* PersistentArrayMap_createMany(uword_t pairCount, ...);
+PersistentArrayMap* PersistentArrayMap_createMany(int32_t pairCount, ...);
 
 #endif

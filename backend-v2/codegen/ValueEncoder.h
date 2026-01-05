@@ -6,7 +6,7 @@
 #include <llvm/IR/Type.h>
 #include "TypedValue.h"
 #include "LLVMTypes.h"
-
+#include "../RuntimeHeaders.h"
 namespace rt {
 
 /**
@@ -23,16 +23,6 @@ namespace rt {
     llvm::Value* u64(uint64_t val);
     
   public:
-    // Tag Constants
-    static constexpr uint64_t TAG_MASK = 0xFFFF000000000000ULL;
-    static constexpr uint64_t TAG_DOUBLE_START = 0xFFF0000000000000ULL;
-    static constexpr uint64_t TAG_INT32 = 0xFFFF000000000000ULL;
-    static constexpr uint64_t TAG_PTR = 0xFFFE000000000000ULL;
-    static constexpr uint64_t TAG_BOOL = 0xFFFD000000000000ULL;
-    static constexpr uint64_t TAG_NIL = 0xFFFC000000000000ULL;
-    static constexpr uint64_t TAG_KEYWORD = 0xFFFB000000000000ULL;
-    static constexpr uint64_t TAG_SYMBOL = 0xFFFA000000000000ULL;    
-
     // Constructor
     explicit ValueEncoder(llvm::LLVMContext& ctx, llvm::IRBuilder<>& b, LLVMTypes &t);
 

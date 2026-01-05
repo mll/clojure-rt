@@ -51,7 +51,7 @@ namespace rt {
      Metadata * metaPtr = dyn_cast<Metadata>(MDString::get(context, "retain"));
      MDNode * meta = MDNode::get(context, metaPtr);
 
-#ifndef RUNTIME_MEMORY_TRACKING
+#ifndef REFCOUNT_TRACING
      if (target.type.isDetermined()) {
        auto prepare =
            target.type.isBoxedPointer() ? valueEncoder.unbox(target) : target;
@@ -80,7 +80,7 @@ namespace rt {
      Metadata * metaPtr = dyn_cast<Metadata>(MDString::get(context, "release"));
      MDNode * meta = MDNode::get(context, metaPtr);
      
-#ifndef RUNTIME_MEMORY_TRACKING
+#ifndef REFCOUNT_TRACKING
      if (target.type.isDetermined()) {
        auto prepare =
            target.type.isBoxedPointer() ? valueEncoder.unbox(target) : target;

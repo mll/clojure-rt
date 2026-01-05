@@ -23,8 +23,8 @@ namespace rt {
     ThreadsafeRegistry<Class> classRegistry;
     /* ThreadsafeRegistry<Var> varRegistry; */
 
-    ThreadsafeRegistry<Node> functionAstRegistry;    
-  private:
+    ThreadsafeRegistry<Node> functionAstRegistry;
+    
     ThreadsafeCompilerState(): classRegistry(true), functionAstRegistry(false)/*, varRegistry(true)*/ {}
   };  
 }

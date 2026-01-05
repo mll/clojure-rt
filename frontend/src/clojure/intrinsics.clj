@@ -104,7 +104,7 @@
 
   java.lang.String
   {:static-fns
-   {print [:args [:any] :type :call :symbol "print" :returns :nil]}
+   {print [{:args [:any] :type :call :symbol "print" :returns :nil}]}
    :instance-fns
    {contains [{:args [java.lang.String] :type :call :symbol "String_contains" :returns :bool}]
     indexOf  [{:args [java.lang.String] :type :call :symbol "String_indexOf"  :returns :int}

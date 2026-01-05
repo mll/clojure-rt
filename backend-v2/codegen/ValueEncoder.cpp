@@ -6,24 +6,14 @@
 #include "TypedValue.h"
 #include <llvm/IR/Constants.h>
 #include "../bridge/Exceptions.h"
+#include <iostream>
 
 using namespace llvm;
+using namespace std;
 
-namespace rt {
-  // Define Tag Constants
-  // Top 16 bits are used for tagging.
-  // Format: FFFF = Int, FFFE = Ptr, etc.
-  constexpr uint64_t ValueEncoder::TAG_MASK;
-  constexpr uint64_t ValueEncoder::TAG_DOUBLE_START;
-  constexpr uint64_t ValueEncoder::TAG_INT32;
-  constexpr uint64_t ValueEncoder::TAG_PTR;
-  constexpr uint64_t ValueEncoder::TAG_BOOL;
-  constexpr uint64_t ValueEncoder::TAG_NIL;
-  constexpr uint64_t ValueEncoder::TAG_KEYWORD;
-  constexpr uint64_t ValueEncoder::TAG_SYMBOL;    
-  
+namespace rt {  
   ValueEncoder::ValueEncoder(LLVMContext &ctx, IRBuilder<> &b, LLVMTypes &t)
-    : context(ctx), builder(b), types(t), word_size(K_WORD_SIZE) {}
+    : context(ctx), builder(b), types(t), word_size(K_WORD_SIZE*8) {}
   
   llvm::Value *ValueEncoder::u64(uint64_t val) {
     return ConstantInt::get(context, APInt(64, val));
@@ -82,7 +72,7 @@ namespace rt {
       return int32Val;
     llvm::Value *val64 = builder.CreateZExt(int32Val.value, types.i64Ty);
     return TypedValue(int32Val.type.boxed(),
-                      builder.CreateOr(val64, u64(TAG_INT32), "box_int"));
+                      builder.CreateOr(val64, u64(RT_TAG_INT32), "box_int"));
   }
 
   TypedValue ValueEncoder::boxBool(TypedValue boolVal) {
@@ -90,12 +80,12 @@ namespace rt {
       return boolVal;
     llvm::Value *val64 = builder.CreateZExt(boolVal.value, types.i64Ty);
     return TypedValue(boolVal.type.boxed(),
-                      builder.CreateOr(val64, u64(TAG_BOOL), "box_bool"));
+                      builder.CreateOr(val64, u64(RT_TAG_BOOL), "box_bool"));
   }
 
   TypedValue ValueEncoder::boxNil() {
     return TypedValue(ObjectTypeSet(nilType, true, new ConstantNil()),
-                      u64(TAG_NIL));
+                      u64(RT_TAG_NIL));
   }
 
   TypedValue ValueEncoder::boxPointer(TypedValue rawPtr) {
@@ -110,7 +100,7 @@ namespace rt {
       ptrAsInt = builder.CreateZExt(ptrAsInt, types.i64Ty);
     }
     return TypedValue(rawPtr.type.boxed(),
-                      builder.CreateOr(ptrAsInt, u64(TAG_PTR), "box_ptr"));
+                      builder.CreateOr(ptrAsInt, u64(RT_TAG_PTR), "box_ptr"));
   }
 
   TypedValue ValueEncoder::boxKeyword(TypedValue keywordId) {
@@ -119,7 +109,7 @@ namespace rt {
     // keywordId should be an i32 ID
     llvm::Value *val64 = builder.CreateZExt(keywordId.value, types.i64Ty);
     return TypedValue(keywordId.type.boxed(),
-                      builder.CreateOr(val64, u64(TAG_KEYWORD), "box_kw"));
+                      builder.CreateOr(val64, u64(RT_TAG_KEYWORD), "box_kw"));
   }
 
   TypedValue ValueEncoder::boxSymbol(TypedValue symbolId) {
@@ -128,7 +118,7 @@ namespace rt {
     // symbolId should be an i32 ID
     llvm::Value *val64 = builder.CreateZExt(symbolId.value, types.i64Ty);
     return TypedValue(symbolId.type.boxed(),
-                      builder.CreateOr(val64, u64(TAG_SYMBOL), "box_kw"));
+                      builder.CreateOr(val64, u64(RT_TAG_SYMBOL), "box_kw"));
   }
 
   // --- TYPE CHECKING ---
@@ -143,7 +133,7 @@ namespace rt {
     // Unsigned Less Than "Start of Tag Space" means it is a double
     return TypedValue(
         ObjectTypeSet(booleanType, false),
-        builder.CreateICmpULT(boxedVal.value, u64(TAG_DOUBLE_START), "is_dbl"));
+        builder.CreateICmpULT(boxedVal.value, u64(RT_TAG_DOUBLE_START), "is_dbl"));
   }
 
   TypedValue ValueEncoder::isInt32(TypedValue boxedVal) {
@@ -153,9 +143,9 @@ namespace rt {
       return TypedValue(
           ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
           builder.getInt1(true));
-    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(RT_TAG_MASK));
     return TypedValue(ObjectTypeSet(booleanType, false),
-                      builder.CreateICmpEQ(masked, u64(TAG_INT32), "is_int"));
+                      builder.CreateICmpEQ(masked, u64(RT_TAG_INT32), "is_int"));
   }
 
   TypedValue ValueEncoder::isBool(TypedValue boxedVal) {
@@ -165,9 +155,9 @@ namespace rt {
       return TypedValue(
           ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
           builder.getInt1(true));
-    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(RT_TAG_MASK));
     return TypedValue(ObjectTypeSet(booleanType, false),
-                      builder.CreateICmpEQ(masked, u64(TAG_BOOL), "is_bool"));
+                      builder.CreateICmpEQ(masked, u64(RT_TAG_BOOL), "is_bool"));
   }
 
   TypedValue ValueEncoder::isNil(TypedValue boxedVal) {
@@ -179,7 +169,7 @@ namespace rt {
           builder.getInt1(true));
     return TypedValue(
         ObjectTypeSet(booleanType, false),
-        builder.CreateICmpEQ(boxedVal.value, u64(TAG_NIL), "is_null"));
+        builder.CreateICmpEQ(boxedVal.value, u64(RT_TAG_NIL), "is_null"));
   }
 
   TypedValue ValueEncoder::isPointer(TypedValue boxedVal) {
@@ -189,9 +179,9 @@ namespace rt {
       return TypedValue(
           ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
           builder.getInt1(true));
-    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(RT_TAG_MASK));
     return TypedValue(ObjectTypeSet(booleanType, false),
-                      builder.CreateICmpEQ(masked, u64(TAG_PTR), "is_ptr"));
+                      builder.CreateICmpEQ(masked, u64(RT_TAG_PTR), "is_ptr"));
   }
 
   TypedValue ValueEncoder::isKeyword(TypedValue boxedVal) {
@@ -201,9 +191,9 @@ namespace rt {
       return TypedValue(
           ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
           builder.getInt1(true));
-    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(RT_TAG_MASK));
     return TypedValue(ObjectTypeSet(booleanType, false),
-                      builder.CreateICmpEQ(masked, u64(TAG_KEYWORD), "is_kw"));
+                      builder.CreateICmpEQ(masked, u64(RT_TAG_KEYWORD), "is_kw"));
   }
 
   TypedValue ValueEncoder::isSymbol(TypedValue boxedVal) {
@@ -213,9 +203,9 @@ namespace rt {
       return TypedValue(
           ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
           builder.getInt1(true));
-    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(TAG_MASK));
+    llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(RT_TAG_MASK));
     return TypedValue(ObjectTypeSet(booleanType, false),
-                      builder.CreateICmpEQ(masked, u64(TAG_SYMBOL), "is_sym"));
+                      builder.CreateICmpEQ(masked, u64(RT_TAG_SYMBOL), "is_sym"));
   }
 
   // --- UNBOXING ---
@@ -280,7 +270,7 @@ namespace rt {
   TypedValue ValueEncoder::unboxPointer(TypedValue boxedVal) {
     if (boxedVal.type.isUnboxedPointer())
       return boxedVal;
-    llvm::Value *cleanVal = builder.CreateAnd(boxedVal.value, u64(~TAG_MASK));
+    llvm::Value *cleanVal = builder.CreateAnd(boxedVal.value, u64(~RT_TAG_MASK));
 
     // Cast back to Pointer
     if (word_size == 32) {

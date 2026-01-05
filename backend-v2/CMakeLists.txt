@@ -22,6 +22,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 set(CMAKE_CXX_STANDARD 20)
 
+set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+
 add_subdirectory(runtime)
 
 # Use LLVM's new approach for finding packages.
@@ -69,6 +71,8 @@ set(SOURCES
       main.cpp
       bridge/Exceptions.cpp
       types/ObjectTypeSet.cpp
+      tools/ThreadPool.cpp
+      jit/JITEngine.cpp
       codegen/ValueEncoder.cpp
       codegen/CodeGen.cpp
       codegen/LLVMTypes.cpp
@@ -97,6 +101,27 @@ include_directories(${GMP_INCLUDE_DIRS})
 # Update the target_link_libraries call to use the newly defined LLVM_LIBS variable
 # which now contains all necessary LLVM components.
 target_link_libraries(clojure-rt PUBLIC runtime ${LLVM_LIBS} ${Protobuf_LIBRARIES} ${GMP_LIBRARY})
+
+if(APPLE)
+    find_program(DSYMUTIL_TOOL dsymutil)
+    if(DSYMUTIL_TOOL)
+        add_custom_command(TARGET clojure-rt POST_BUILD
+            COMMAND ${DSYMUTIL_TOOL} $<TARGET_FILE:clojure-rt>
+            COMMENT "Generowanie pliku .dSYM dla clojure-rt..."
+            VERBATIM
+        )
+    endif()
+
+    # Opcjonalnie: jeśli chcesz, aby binarka po wyciągnięciu symboli była mniejsza:
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_custom_command(TARGET clojure-rt POST_BUILD
+            COMMAND strip -x $<TARGET_FILE:clojure-rt>
+            COMMENT "Stripping binarki (usuwanie zbędnych symboli)..."
+            DEPENDS clojure-rt
+        )
+    endif()
+endif()
+
 
 # The linker options block is commented out, but if you re-enable it, ensure it comes after add_executable.
 # if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")

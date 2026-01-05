@@ -114,7 +114,7 @@ String* String_createCompound(String *left, String *right) {
     PersistentVector *rvec = getVec(right);
     PersistentVectorIterator it = PersistentVector_iterator(rvec);
     for(uint64_t i=0; i< rvec->count; i++) { 
-      retain(rvec);
+      retain(rvec); // tu jest blad, powinno byc retain na tym co zwroci iterator ??
       v = PersistentVector_conj(v, PersistentVector_iteratorGet(&it));
       PersistentVector_iteratorNext(&it);
     }

@@ -26,13 +26,13 @@ PersistentVector* PersistentVector_allocate(uword_t transientID) {
 }
 
 /* mem done */
-PersistentVector* PersistentVector_createMany(uword_t objCount, ...) {
+PersistentVector *PersistentVector_createMany(int32_t objCount, ...) {
   va_list args;
   va_start(args, objCount);
-  uword_t initialCount = MIN(objCount, RRB_BRANCHING);
+  int32_t initialCount = MIN(objCount, RRB_BRANCHING);
   PersistentVector *v = PersistentVector_allocate(PERSISTENT);
   v->tail = PersistentVectorNode_allocate(initialCount, leafNode, PERSISTENT);
-  for(uword_t i=0; i < initialCount; i++) {
+  for(int32_t i=0; i < initialCount; i++) {
     RTValue obj = va_arg(args, RTValue);
     v->tail->array[i] = obj;
   }
@@ -40,7 +40,7 @@ PersistentVector* PersistentVector_createMany(uword_t objCount, ...) {
 
   if (objCount > initialCount) {
     int remainingCount = objCount - initialCount;
-    for(int i=0; i<remainingCount; i++) {
+    for(int32_t i=0; i<remainingCount; i++) {
       v = PersistentVector_conj_internal(v, va_arg(args, RTValue));
     }
   }

@@ -35,7 +35,7 @@ PersistentArrayMap* PersistentArrayMap_copy(PersistentArrayMap *other) {
 }
 
 /* mem done */
-PersistentArrayMap* PersistentArrayMap_createMany(uword_t pairCount, ...) {
+PersistentArrayMap* PersistentArrayMap_createMany(int32_t pairCount, ...) {
   assert(pairCount < HASHTABLE_THRESHOLD+1 && "Maps of size > 8 not supported yet");
   va_list args;
   va_start(args, pairCount);

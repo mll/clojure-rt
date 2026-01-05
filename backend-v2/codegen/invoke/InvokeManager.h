@@ -22,12 +22,13 @@ namespace rt {
     LLVMTypes &types;
   public:
     explicit InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
-                           ValueEncoder &v, LLVMTypes &t);    
+                           ValueEncoder &v, LLVMTypes &t);
 
     TypedValue invokeRuntime(const std::string &fname,
                              const ObjectTypeSet *retValType,
                              const std::vector<ObjectTypeSet> &argTypes,
-                             const std::vector<TypedValue> &args);
+                             const std::vector<TypedValue> &args,
+                             const bool isVariadic = false);
     
   };
 

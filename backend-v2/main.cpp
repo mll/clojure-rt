@@ -26,7 +26,6 @@
 #include "state/ThreadsafeState.h"
 #include "jit/JITEngine.h"
 
-
 using namespace std;
 using namespace llvm;
 
@@ -50,14 +49,24 @@ int main(int argc, char *argv[]) {
   
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  clojure::rt::protobuf::bytecode::Programme astIntrinsics;
+  clojure::rt::protobuf::bytecode::Programme astInterfaces;
   {
-    fstream intrinsicsInput("intrinsics.cljb", ios::in | ios::binary);
-    if (!astIntrinsics.ParseFromIstream(&intrinsicsInput)) {
+    fstream interfacesInput("rt_protocols.cljb", ios::in | ios::binary);
+    if (!astInterfaces.ParseFromIstream(&interfacesInput)) {
       cerr << "Failed to parse bytecode." << endl;
       return -1;
     }
   }
+
+  clojure::rt::protobuf::bytecode::Programme astClasses;
+  {
+    fstream classesInput("rt_classes.cljb", ios::in | ios::binary);
+    if (!astClasses.ParseFromIstream(&classesInput)) {
+      cerr << "Failed to parse bytecode." << endl;
+      return -1;
+    }
+  }
+  
   clojure::rt::protobuf::bytecode::Programme astRoot;
   {
     fstream input(argv[1], ios::in | ios::binary);
@@ -73,15 +82,39 @@ int main(int argc, char *argv[]) {
     rt::ThreadsafeCompilerState state;
     rt::JITEngine engine(state);
 
-    RTValue intrinsics =
-        engine.compileAST(astIntrinsics.nodes(1), "__intrinsics",
+    RTValue interfaces =
+        engine.compileAST(astInterfaces.nodes(1), "__interfaces",
+                          llvm::OptimizationLevel::O0,
+                          false)
+      .get()
+      .toPtr<RTValue (*)()>()();
+
+    RTValue classes =
+        engine.compileAST(astClasses.nodes(1), "__classes",
                           llvm::OptimizationLevel::O0,
                           false)
       .get()
       .toPtr<RTValue (*)()>()();
     
+    String *s = toString(interfaces);
+    s = String_compactify(s);
     
-    release(intrinsics);
+    cout << "Result" << endl;
+    cout << std::string(String_c_str(s)) << endl;
+    cout << "!!!Result" << endl;
+    Ptr_release(s);
+
+    s = toString(classes);
+    s = String_compactify(s);
+    
+    cout << "Result" << endl;
+    cout << std::string(String_c_str(s)) << endl;
+    cout << "!!!Result" << endl;
+    Ptr_release(s);
+    
+    
+    
+//    release(intrinsics);
     
     // auto f = engine.compileAST(astRoot.nodes(0), "__root", llvm::OptimizationLevel::O0);    
     // cout << "Compiling!!!" << endl;
@@ -108,7 +141,7 @@ int main(int argc, char *argv[]) {
                            ".dSYM/Contents/Resources/DWARF/" + "clojure-rt",
                        _dyld_get_image_vmaddr_slide(0))
          << endl;
-    e.printRawTrace();
+    //e.printRawTrace();
   }    
 
   return 0;

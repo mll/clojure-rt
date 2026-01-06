@@ -20,67 +20,77 @@ typedef struct ImplementedInterface {
 
 typedef struct Class {
   Object super;
-  uword_t registerId;
+  int32_t registerId;
   bool isInterface;
 
   String *name;
   String *className;
-  
-  struct Class *superclass;
 
-  uword_t staticFieldCount;
+  int32_t superclassCount;
+  struct Class **superclasses;
+
+  int32_t staticFieldCount;
   /* Keywords */
   RTValue *staticFieldNames;
   /* Anythings */
   RTValue *staticFields;
 
-  uword_t staticMethodCount;
+  int32_t staticMethodCount;
   /* Keywords */  
   RTValue *staticMethodNames;
   ClojureFunction **staticMethods;
 
-  uword_t fieldCount;
+  int32_t fieldCount;
   /* Keywords */
   RTValue *fieldNames;
 
-  uword_t methodCount;
+  int32_t methodCount;
   /* Keywords */
   RTValue *methodNames;
   ClojureFunction **methods; 
   
   // This does not contain interfaces of the superclass
-  uword_t implementedInterfacesCount;
+  int32_t implementedInterfacesCount;
   ImplementedInterface **implementedInterfaces;
 } Class;
 
 // Class owns all its arguments
 
-Class *Class_create(bool isInterface, String *name,
-                    String * className, struct Class * superclass,
+Class *Class_create(String *name, String *className, int32_t superclassCount,
+                    Class **superclasses,
 
-                    uword_t staticFieldCount, RTValue * staticFieldNames,
-                    RTValue * staticFields,
+                    int32_t staticFieldCount, RTValue *staticFieldNames,
+                    RTValue *staticFields,
 
-                    uword_t staticMethodCount, RTValue * staticMethodNames,
-                    ClojureFunction * *staticMethods,
+                    int32_t staticMethodCount, RTValue *staticMethodNames,
+                    ClojureFunction **staticMethods,
 
-                    uword_t fieldCount, RTValue * fieldNames,
+                    int32_t fieldCount, RTValue *fieldNames,
+                    int32_t methodCount, RTValue *methodNames,
+                    ClojureFunction **methods,
 
-                    uword_t methodCount, RTValue * methodNames,
-                    ClojureFunction * *methods,
+                    int32_t implementedInterfacesCount,
+                    ImplementedInterface **implementedInterfaces);
 
-                    uword_t implementedInterfacesCount,
-                    ImplementedInterface * *implementedInterfaces);
+
+
+Class *Class_createInterface(String *name, String *className,
+                             int32_t extendsInterfaceCount,
+                             Class **extendsInterfaces,
+                             int32_t staticMethodCount,
+                             RTValue *staticMethodNames,
+                             ClojureFunction **staticMethods,
+                             int32_t methodCount, RTValue *methodNames);
 
 bool Class_equals(Class *self, Class *other);
-uword_t Class_hash(Class *self);
+int32_t Class_hash(Class *self);
 String *Class_toString(Class *self);
 void Class_destroy(Class *self);
 
-word_t Class_fieldIndex(Class *self, /* Keyword */ RTValue field);
-word_t Class_staticFieldIndex(Class *self, /* Keyword */ RTValue staticField);
-RTValue Class_setIndexedStaticField(Class *self, word_t i, RTValue value);
-RTValue Class_getIndexedStaticField(Class *self, word_t i);
-ClojureFunction *Class_resolveInstanceCall(Class *self, RTValue name, uword_t argCount);
+int32_t Class_fieldIndex(Class *self, /* Keyword */ RTValue field);
+int32_t Class_staticFieldIndex(Class *self, /* Keyword */ RTValue staticField);
+RTValue Class_setIndexedStaticField(Class *self, int32_t i, RTValue value);
+RTValue Class_getIndexedStaticField(Class *self, int32_t i);
+ClojureFunction *Class_resolveInstanceCall(Class *self, RTValue name, int32_t argCount);
 
 #endif

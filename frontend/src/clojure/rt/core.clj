@@ -121,7 +121,7 @@
         (loop [form (r/read {:eof :eof} reader) ret-val []]
           (if (= :eof form) (do
                               ;; Uncomment to see a trivial tree:
-                              ;; (print-readable-tree ret-val 1)  
+;;                               (print-readable-tree ret-val 1)  
                               ;; Uncomment to see a simple tree:
                               ;; (clojure.pprint/pprint (identity #_passes/clean-tree ret-val)) 
                               ret-val)
@@ -145,7 +145,8 @@
 
 (defn -main
   ([infile] (let [parts (split infile #"\.")]
-              (compile (slurp "src/clojure/intrinsics.clj") "../backend-v2/intrinsics.cljb" infile)
+              (compile (slurp "src/clojure/rt_protocols.clj") "../backend-v2/rt_protocols.cljb" infile)
+              (compile (slurp "src/clojure/rt_classes.clj") "../backend-v2/rt_classes.cljb" infile)
               (compile (slurp infile) (str (join "." (butlast parts)) ".cljb") infile)
               ))
   ([] (println "Generating protobuf definitions into bytecode.proto file. To compile use file name as parameter")

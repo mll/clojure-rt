@@ -15,18 +15,23 @@ namespace rt {
   private:
     mutable std::shared_mutex registryMutex;
     std::unordered_map<std::string, const T *> registry;
-    std::unordered_map<uword_t, const T *> indexedRegistry;
-    uword_t currentIndex = 1;
+    std::unordered_map<int32_t, const T *> indexedRegistry;
+    int32_t currentIndex = 10000;
     bool manageRuntimeMemory;
 
   public:
     ThreadsafeRegistry(bool _manageRuntimeMemory)
         : manageRuntimeMemory(_manageRuntimeMemory) {}
 
-    uword_t registerObject(const T *newDef) {
+    uword_t registerObject(const T *newDef, int32_t requiredIndex = -1) {
       std::unique_lock<std::shared_mutex> lock(registryMutex);
+      requiredIndex = requiredIndex == -1 ? currentIndex : requiredIndex;
+      auto it = indexedRegistry.find(requiredIndex);
+      if (manageRuntimeMemory &&  it != indexedRegistry.end()) {
+        Ptr_release((void*)it->second); 
+      }                
       indexedRegistry[currentIndex] = newDef;
-      return ++currentIndex;
+      return currentIndex++;
     }      
     
     void registerObject(const char *name, const T *newDef) {
@@ -42,7 +47,7 @@ namespace rt {
       registry[name] = newDef;
     }
 
-    T *getCurrent(const uword_t index) const {
+    T *getCurrent(const int32_t index) const {
       std::shared_lock<std::shared_mutex> lock(registryMutex);
       auto it = indexedRegistry.find(index);
 
@@ -80,6 +85,12 @@ namespace rt {
           Ptr_release((void*)definition);
         }
       }
+
+      for (auto const& [index, definition] : indexedRegistry) {
+        if (definition != nullptr) {
+          Ptr_release((void*)definition);
+        }
+      }      
     }      
   };
 }

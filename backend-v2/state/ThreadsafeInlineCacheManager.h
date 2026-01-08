@@ -9,10 +9,10 @@
 
 namespace rt {
 struct ThreadsafeInlineCacheSlot {
-    std::atomic<void*> tag{nullptr};
+    std::atomic<RTValue> tag{0};
 
     union Payload {
-        std::atomic<uword_t> offset;
+        std::atomic<uint32_t> offset;
         std::atomic<void *> pointer;
       Payload() : offset(0) {}        
     } payload;

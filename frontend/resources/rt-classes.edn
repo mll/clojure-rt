@@ -1,5 +1,3 @@
-(ns clojure.rt-classes)
-
 '{java.lang.Object
   {:alias :any
    :instance-fns

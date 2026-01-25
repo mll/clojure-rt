@@ -1,5 +1,3 @@
-(ns clojure.rt-protocols)
-
 '{clojure.asm.Opcodes
   {:is-interface true
    :static-fields

@@ -145,8 +145,8 @@
 
 (defn -main
   ([infile] (let [parts (split infile #"\.")]
-              (compile (slurp "src/clojure/rt_protocols.clj") "../backend-v2/rt_protocols.cljb" infile)
-              (compile (slurp "src/clojure/rt_classes.clj") "../backend-v2/rt_classes.cljb" infile)
+              (compile (slurp "resources/rt-protocols.edn") "../backend-v2/rt-protocols.cljb" infile)
+              (compile (slurp "resources/rt-classes.edn") "../backend-v2/rt-classes.cljb" infile)
               (compile (slurp infile) (str (join "." (butlast parts)) ".cljb") infile)
               ))
   ([] (println "Generating protobuf definitions into bytecode.proto file. To compile use file name as parameter")

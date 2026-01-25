@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
   clojure::rt::protobuf::bytecode::Programme astInterfaces;
   {
-    fstream interfacesInput("rt_protocols.cljb", ios::in | ios::binary);
+    fstream interfacesInput("rt-protocols.cljb", ios::in | ios::binary);
     if (!astInterfaces.ParseFromIstream(&interfacesInput)) {
       cerr << "Failed to parse bytecode." << endl;
       return -1;
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
 
   clojure::rt::protobuf::bytecode::Programme astClasses;
   {
-    fstream classesInput("rt_classes.cljb", ios::in | ios::binary);
+    fstream classesInput("rt-classes.cljb", ios::in | ios::binary);
     if (!astClasses.ParseFromIstream(&classesInput)) {
       cerr << "Failed to parse bytecode." << endl;
       return -1;
@@ -83,14 +83,14 @@ int main(int argc, char *argv[]) {
     rt::JITEngine engine(state);
 
     RTValue interfaces =
-        engine.compileAST(astInterfaces.nodes(1), "__interfaces",
+        engine.compileAST(astInterfaces.nodes(0), "__interfaces",
                           llvm::OptimizationLevel::O0,
                           false)
       .get()
       .toPtr<RTValue (*)()>()();
 
     RTValue classes =
-        engine.compileAST(astClasses.nodes(1), "__classes",
+        engine.compileAST(astClasses.nodes(0), "__classes",
                           llvm::OptimizationLevel::O0,
                           false)
       .get()

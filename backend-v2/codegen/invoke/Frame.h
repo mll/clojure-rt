@@ -5,8 +5,7 @@
 
 namespace rt {
   struct Frame {
-    // Frame linking might not be needed? - we keep this comment as a possible concept
-    // Frame* callerFrame;    
+    struct Frame* leafFrame;    
     
     FunctionMethod *method;
     RTValue variadicSeq;         

@@ -43,9 +43,9 @@ void String_recomputeHash(String *s) {
 }
 
 /* mem done */
-String* String_createStatic(char *string) {
+String* String_createStatic(const char *string) {
   String *self = (String *)allocate(sizeof(String) + sizeof(char *)); 
-  *((char **)&(self->value[0])) = string;
+  *((const char **)&(self->value[0])) = string;
   self->count = strlen(string);
   self->hash = String_computeHash(string);
   self->specialisation = staticString;
@@ -54,7 +54,7 @@ String* String_createStatic(char *string) {
 }
 
 /* mem done */
-String* String_create(char *string) {
+String* String_create(const char *string) {
   return String_createStatic(string);
 }
 
@@ -198,9 +198,9 @@ String *String_compactify(String *self) {
 }
 
 /* outside refcount system */
-char *String_c_str(String *self) {
+const char *String_c_str(String *self) {
   assert(self->specialisation != compoundString);
-  return getStatDyn(self);
+  return (const char *)getStatDyn(self);
 }
 
 /* outside refcount system */

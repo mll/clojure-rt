@@ -30,7 +30,7 @@
 #include <future>
 #include <algorithm>
 #include "../bytecode.pb.h"
-#include "../state/ThreadsafeState.h"
+#include "../state/ThreadsafeCompilerState.h"
 #include "../codegen/CodeGen.h"
 #include "../tools/ThreadPool.h"
 

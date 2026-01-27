@@ -11,7 +11,7 @@
 #include <memory>
 #include "TypedValue.h"
 #include "ValueEncoder.h"
-#include "../state/ThreadsafeState.h"
+#include "../state/ThreadsafeCompilerState.h"
 #include "../bytecode.pb.h"
 #include "LLVMTypes.h"
 #include "DynamicConstructor.h"

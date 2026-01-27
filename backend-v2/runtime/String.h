@@ -45,9 +45,9 @@ typedef struct StringIterator StringIterator;
 
 String* String_createDynamicStr(const char *str);
 String* String_createStaticOptimised(char *string, uword_t len, uword_t hash);
-String* String_create(char *string);
+String* String_create(const char *string);
 String* String_createDynamic(size_t size);
-String* String_createStatic(char *string);
+String* String_createStatic(const char *string);
 
 StringIterator String_iterator(String *self);
 char *String_iteratorGet(StringIterator *it);
@@ -56,7 +56,7 @@ char *String_iteratorNext(StringIterator *it);
 String *String_concat(String *self, String *other);
 /* Creates a version of the string that has guaranteed 'value' field */
 String *String_compactify(String *self);
-char *String_c_str(String *self);
+const char *String_c_str(String *self);
 void String_recomputeHash(String *s);
 
 bool String_equals(String *self, String *other);

@@ -4,10 +4,12 @@
    {toString [{:args [] :type :call :symbol "toString" :returns java.lang.String}]}}
 
   java.lang.Class
-  {:extends java.lang.Object}
+  {:object-type 15
+   :extends java.lang.Object}
 
   java.lang.Long
-  {:alias :int
+  {:object-type 1
+   :alias :int
    :extends java.lang.Object
    :static-fields
    {BYTES 4
@@ -16,28 +18,35 @@
     SIZE 32}}
 
   java.lang.Double
-  {:alias :double
+  {:object-type 2
+   :alias :double
    :extends java.lang.Object}
 
   java.lang.PersistentArrayMap
-  {:extends java.lang.Object}
+  {:object-type 16
+   :extends java.lang.Object}
 
   clojure.lang.BigInt
-  {:extends java.lang.Object}
+  {:extends java.lang.Object
+   :object-type 13}
 
   clojure.lang.Ratio
-  {:extends java.lang.Object}
+  {:extends java.lang.Object
+   :object-type 14}
 
   clojure.lang.Boolean
   {:alias :bool
+   :object-type 4
    :extends java.lang.Object}
 
   clojure.lang.Keyword
   {:alias :keyword
+   :object-type 6
    :extends java.lang.Object}
 
   clojure.lang.Symbol
   {:alias :symbol
+   :object-type 5
    :extends java.lang.Object}
 
   ;; character: clojure.lang.Character
@@ -91,7 +100,8 @@
     hypot [{:args [:double :double] :type :call :symbol "hypot" :returns :double}]}}
 
   java.lang.String
-  {:static-fns
+  {:object-type 7
+   :static-fns
    {print [{:args [:any] :type :call :symbol "print" :returns :nil}]}
    :instance-fns
    {contains [{:args [java.lang.String] :type :call :symbol "String_contains" :returns :bool}]
@@ -106,7 +116,8 @@
            {:args [:any :any] :type :call :symbol "equals" :returns :bool}]}}
 
   clojure.lang.PersistentVector
-  {:instance-fns
+  {:object-type 9
+   :instance-fns
    {asTransient [{:args [:this] :type :call :symbol "PersistentVector_transient" :returns clojure.lang.PersistentVector}]
     persistent [{:args [:this] :type :call :symbol "PersistentVector_persistent_BANG_" :returns clojure.lang.PersistentVector}]
     conj [{:args [:this :any] :type :call :symbol "PersistentVector_conj_BANG_" :returns clojure.lang.PersistentVector}]

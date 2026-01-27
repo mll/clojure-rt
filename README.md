@@ -79,14 +79,16 @@ TL;DR: The whole process is automated and can be run this way:
 cd model
 ./generate.sh
 
-## self-hosted compiler roadmap
+## Self-hosted compiler roadmap
 
 The self-hosted compiler will consist of:
 
-A. Compiler backend, exactly as (2) above.
-B. Compiled protobuf file of clojure itself. It will be generated from the main clojure repository using the bootstrap compiler (1)
-C. Compiled protobuf files of (1) with all its dependencies.
-D. Bootstrapper as main function of the C++ application:
+<ol type="A">
+  <li>Compiler backend, exactly as (2) above.</li>
+  <li>Compiled protobuf file of clojure itself. It will be generated from the main clojure repository using the bootstrap compiler (1)</li>
+  <li>Compiled protobuf files of (1) with all its dependencies.</li>
+  <li>Bootstrapper as main function of the C++ application:</li>
+</ol>
 
 The bootstrapper would launch the backend with pre-build protobuf files as initial input. Then, it will compile the frontend 
 (later we could use the LLVM representation of the complete compilation result so that backend would start more rapidly).
@@ -99,7 +101,7 @@ parts of the compiler would reside inside the same process.
 
 clojure-rt is being distributed on GPLv2 license. See LICENSE.md for details.
 
-Copyright © 2022-2024 Marek Lipert, Aleksander Wiacek
+Copyright © 2022-2026 Marek Lipert, Aleksander Wiacek
 
 
 

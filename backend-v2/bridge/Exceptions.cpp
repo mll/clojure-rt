@@ -42,30 +42,40 @@ namespace rt {
     Ptr_release(payloadString);
     
     ss << "Stack Trace:\n";
-
+    bool found = false;
     for (uword_t addr : stackAddresses) {
 
       uword_t lookupAddr = addr - slide;      
       
       auto resOrErr = symbolizer.symbolizeCode(moduleName, {lookupAddr, llvm::object::SectionedAddress::UndefSection});
       
-      ss << "  at ";
       if (resOrErr) {
-        auto& info = resOrErr.get();
-        if (info.FunctionName != "<invalid>") {
-          ss << info.FunctionName;
-        } else {
-          ss << "0x" << std::hex << std::setw(sizeof(uword_t) * 2) 
-             << std::setfill('0') << addr << std::dec;
+        auto &info = resOrErr.get();
+        if (!found && info.FunctionName == "throwInternalInconsistencyException") {
+          found = true;
+          continue;
         }
-        if (info.FileName != "<invalid>") {
-          ss << " [" << info.FileName << ":" << info.Line << "]";
+        if(found) {
+          ss << "  at ";
+
+          if (info.FunctionName != "<invalid>") {
+            ss << info.FunctionName;
+          } else {            
+            ss << "0x" << std::hex << std::setw(sizeof(uword_t) * 2) 
+               << std::setfill('0') << addr << std::dec;
+          }
+          if (info.FileName != "<invalid>") {
+            ss << " [" << info.FileName << ":" << info.Line << "]";
+          }
         }
       } else {
-        ss << "?? [0x" << std::hex << addr << std::dec << "]";
-        llvm::consumeError(resOrErr.takeError());
+        if (found) {          
+          ss << "  at ";
+          ss << "?? [0x" << std::hex << addr << std::dec << "]";
+          llvm::consumeError(resOrErr.takeError());
+        }
       }
-      ss << "\n";
+      if(found) ss << "\n";
     }
     
     return ss.str();

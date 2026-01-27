@@ -1,5 +1,6 @@
 #!/bin/bash
 
+BACKEND=backend-v2
 TIME=
 
 while getopts t opt; do
@@ -46,8 +47,9 @@ if [ -f "$BINARY" ]; then
 else
     exit 1
 fi
-mv $BINARY ../backend
-cd ../backend
+mv $BINARY ../$BACKEND
+cd ../$BACKEND
+make -j 8
 echo "Executing..."
 # lldb ./clojure-rt 
 ./clojure-rt $BINARY

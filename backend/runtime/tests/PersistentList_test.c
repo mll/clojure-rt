@@ -71,5 +71,6 @@ int main(void) {
         cmocka_unit_test_prestate(testScalingBehavior, listConjunctionAndPerformance),
     };
     initialise_memory();
+    srand(0);
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

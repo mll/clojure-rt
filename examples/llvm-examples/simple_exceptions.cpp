@@ -17,7 +17,7 @@ class Exception {
 
 void bar()
 {
-  throw new Exception("Exception requested by caller");
+  throw Exception("Exception requested by caller");
 }
 
 void foo() {
@@ -38,7 +38,7 @@ int main(int argc, const char* argv[])
   try {
     doo();
     foo();
-  } catch (Exception e) {
+  } catch (Exception &e) {
     printf("xxx %s", e.GetText());
   }
   return 0;

@@ -54,10 +54,9 @@
     (let [start-time (System/nanoTime)
           
           ;; This 'reduce' acts like your for-loop: v = assoc(v, i, 7)
-          final-v (reduce (fn [v i] 
-                            (assoc v i 7)) 
-                          initial-v 
-                          (range size))
+          final-v (loop [i 0 v initial-v] 
+                    (if (< i size) (recur (inc i) (assoc v i 7))
+                        v))
           
           end-time (System/nanoTime)
           duration (/ (- end-time start-time) 1e9)]

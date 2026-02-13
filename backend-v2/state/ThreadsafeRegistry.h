@@ -1,7 +1,6 @@
 #ifndef THREADSAFE_REGISTRY_H
 #define THREADSAFE_REGISTRY_H
 
-#include <shared_mutex>
 #include <mutex>
 #include <unordered_map>
 #include <string>
@@ -13,7 +12,7 @@ namespace rt {
   template <typename T>
   class ThreadsafeRegistry {
   private:
-    mutable std::shared_mutex registryMutex;
+    mutable std::mutex registryMutex;
     std::unordered_map<std::string, const T *> registry;
     std::unordered_map<int32_t, const T *> indexedRegistry;
     int32_t currentIndex = 10000;
@@ -24,7 +23,7 @@ namespace rt {
         : manageRuntimeMemory(_manageRuntimeMemory) {}
 
     uword_t registerObject(const T *newDef, int32_t requiredIndex = -1) {
-      std::unique_lock<std::shared_mutex> lock(registryMutex);
+      std::lock_guard<std::mutex> lock(registryMutex);
       requiredIndex = requiredIndex == -1 ? currentIndex : requiredIndex;
       auto it = indexedRegistry.find(requiredIndex);
       if (manageRuntimeMemory &&  it != indexedRegistry.end()) {
@@ -32,10 +31,10 @@ namespace rt {
       }                
       indexedRegistry[currentIndex] = newDef;
       return currentIndex++;
-    }      
-    
+    }
+
     void registerObject(const char *name, const T *newDef) {
-      std::unique_lock<std::shared_mutex> lock(registryMutex);
+      std::lock_guard<std::mutex> lock(registryMutex);      
       
       std::string key(name);
       auto it = registry.find(key); 
@@ -48,22 +47,19 @@ namespace rt {
     }
 
     T *getCurrent(const int32_t index) const {
-      std::shared_lock<std::shared_mutex> lock(registryMutex);
+      std::lock_guard<std::mutex> lock(registryMutex);            
       auto it = indexedRegistry.find(index);
 
       if (it != registry.end()) {
         if(manageRuntimeMemory) Ptr_retain((void *)it->second);
         return it->second;
       }
-
-      throwInternalInconsistencyException(
-          std::string("There is no definition for ") + std::to_string(index));
       
       return nullptr;
-    }      
-    
+    }
+
     T *getCurrent(const char *name) const {
-      std::shared_lock<std::shared_mutex> lock(registryMutex);
+      std::lock_guard<std::mutex> lock(registryMutex);                  
       
       auto it = registry.find(name);
 
@@ -72,14 +68,13 @@ namespace rt {
         return it->second;
       }
       
-      throwInternalInconsistencyException(std::string("There is no definition for ") + name);
-      
       return nullptr;
     }
 
     ~ThreadsafeRegistry() {
-      if(!manageRuntimeMemory) return;
-      std::unique_lock<std::shared_mutex> lock(registryMutex);      
+      if (!manageRuntimeMemory)
+        return;
+      std::lock_guard<std::mutex> lock(registryMutex);                  
       for (auto const& [name, definition] : registry) {
         if (definition != nullptr) {
           Ptr_release((void*)definition);

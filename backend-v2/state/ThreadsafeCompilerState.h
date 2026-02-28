@@ -22,7 +22,7 @@ namespace rt {
     ThreadsafeInlineCacheManager methodCallInlineCache;
 
     ThreadsafeRegistry<Class> classRegistry;
-    ThreadsafeRegistry<Node> functionAstRegistry;
+    ThreadsafeRegistry<const Node> functionAstRegistry;
     ThreadsafeRegistry<PersistentArrayMap> internalClassRegistry;
     ThreadsafeRegistry<PersistentArrayMap> internalProtocolRegistry;    
     /* ThreadsafeRegistry<Var> varRegistry; */

@@ -13,8 +13,8 @@ namespace rt {
   class ThreadsafeRegistry {
   private:
     mutable std::mutex registryMutex;
-    std::unordered_map<std::string, const T *> registry;
-    std::unordered_map<int32_t, const T *> indexedRegistry;
+    std::unordered_map<std::string, T *> registry;
+    std::unordered_map<int32_t, T *> indexedRegistry;
     int32_t currentIndex = 10000;
     bool manageRuntimeMemory;
 
@@ -22,7 +22,7 @@ namespace rt {
     ThreadsafeRegistry(bool _manageRuntimeMemory)
         : manageRuntimeMemory(_manageRuntimeMemory) {}
 
-    uword_t registerObject(const T *newDef, int32_t requiredIndex = -1) {
+    uword_t registerObject(T *newDef, int32_t requiredIndex = -1) {
       std::lock_guard<std::mutex> lock(registryMutex);
       requiredIndex = requiredIndex == -1 ? currentIndex : requiredIndex;
       auto it = indexedRegistry.find(requiredIndex);
@@ -33,7 +33,7 @@ namespace rt {
       return currentIndex++;
     }
 
-    void registerObject(const char *name, const T *newDef) {
+    void registerObject(const char *name, T *newDef) {
       std::lock_guard<std::mutex> lock(registryMutex);      
       
       std::string key(name);
@@ -50,7 +50,7 @@ namespace rt {
       std::lock_guard<std::mutex> lock(registryMutex);            
       auto it = indexedRegistry.find(index);
 
-      if (it != registry.end()) {
+      if (it != indexedRegistry.end()) {
         if(manageRuntimeMemory) Ptr_retain((void *)it->second);
         return it->second;
       }

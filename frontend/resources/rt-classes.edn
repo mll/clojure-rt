@@ -71,8 +71,8 @@
     gte  [{:args [:double :double] :type :intrinsic :symbol "FCmpOGE"       :returns :bool}
           {:args [:int :int]       :type :intrinsic :symbol "ICmpSGE"       :returns :bool}
           {:args [:any :any]       :type :call      :symbol "gte"           :returns :bool}]
-    lt  [{:args [:double :double] :type :intrinsic :symbol "FCmpOLT"        :returns :double}
-         {:args [:int :int]       :type :intrinsic :symbol "ICmpOLT"        :returns :int}
+    lt  [{:args [:double :double] :type :intrinsic :symbol "FCmpOLT"        :returns :bool}
+         {:args [:int :int]       :type :intrinsic :symbol "ICmpOLT"        :returns :bool}
          {:args [:any :any]       :type :call      :symbol "lt"             :returns :bool}]}}
 
   java.lang.Math

@@ -100,11 +100,11 @@ class ObjectTypeSet {
   
   bool isBoxedType() const {
     return isBoxed;
-  }    
+  }
 
   ObjectTypeSet unboxed() const {
     ObjectTypeSet retVal = *this;
-    if(retVal.isBoxedScalar()) retVal.isBoxed = false;
+    if(retVal.isDetermined()) retVal.isBoxed = false;
     return retVal;
   }
 

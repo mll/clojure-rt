@@ -53,7 +53,7 @@ namespace rt {
           TheModule(std::make_unique<llvm::Module>(ModuleName, TheContext)),
           Builder(TheContext), types(TheContext),
           valueEncoder(TheContext, Builder, types),
-          invokeManager(Builder, *TheModule, valueEncoder, types),
+          invokeManager(Builder, *TheModule, valueEncoder, types, state),
           dynamicConstructor(types, invokeManager),
           memoryManagement(TheContext, Builder, valueEncoder, types,
                            variableBindingStack, invokeManager,

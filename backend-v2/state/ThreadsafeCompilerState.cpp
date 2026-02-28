@@ -18,22 +18,54 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
       throwInternalInconsistencyException(
           "Class definition value is not a map.");
 
+    retain(key);
+    retain(value);
+
+    value = RT_boxPtr(
+        PersistentArrayMap_assoc((PersistentArrayMap *)RT_unboxPtr(value),
+                                 Keyword_create(String_create("name")), key));        
+                                     
     retain(value);
     RTValue classId =
         PersistentArrayMap_get((PersistentArrayMap *)RT_unboxPtr(value),
                                Keyword_create(String_create("object-type")));
-
-    
     
     if (getType(classId) == integerType) {
       retain(value);
       internalClassRegistry.registerObject((PersistentArrayMap *)RT_unboxPtr(value), RT_unboxInt32(classId));
     } else {
-      if(getType(classId) != nilType)
+      if (getType(classId) != nilType) {
+        release(classId);
+        release(key);
+        release(value);
         throwInternalInconsistencyException(":object-type must be an integer.");
+      }
+    }
+
+    release(classId);
+
+    retain(value);
+    RTValue alias =
+        PersistentArrayMap_get((PersistentArrayMap *)RT_unboxPtr(value),
+                               Keyword_create(String_create("alias")));
+
+    /* Aliases are stored in the same way as classes themselves - we abuse
+       alias string representation that starts with a colon */
+    
+    if (getType(alias) == keywordType) {
+     String *ss = String_compactify(toString(alias));
+     retain(value);
+     internalClassRegistry.registerObject(String_c_str(ss), (PersistentArrayMap *)RT_unboxPtr(value));
+     Ptr_release(ss);
+    } else {
+      if (getType(alias) != nilType) {
+        release(alias);
+        release(key);
+        release(value);
+        throwInternalInconsistencyException(":alias must be a keyword.");
+      }
     }
     
-    release(classId);
     retain(key);
     String *s = String_compactify(toString(key));
 

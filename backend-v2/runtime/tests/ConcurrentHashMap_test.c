@@ -12,12 +12,12 @@ typedef struct HashThreadParams {
 static void *startThread(void *param) {
   HashThreadParams *p = (HashThreadParams *)param;
   ConcurrentHashMap *l = p->map;
-  
-  for(int i=p->start; i<p->stop; i++) {
+
+  for (int i = p->start; i < p->stop; i++) {
     RTValue n = RT_boxInt32(i);
     ConcurrentHashMap_assoc(l, n, n);
   }
- 
+
   return NULL;
 }
 
@@ -31,19 +31,21 @@ static void concurrentMapThreadingAndPerformance(void **state) {
   ConcurrentHashMap *l = ConcurrentHashMap_create(((int)log2(size)) + 3);
   word_t perThread = size / THREAD_COUNT;
   timerStop(&timer);
-  printf("\nConcurrentHashMap start. Time: %f seconds\n", timerGetSeconds(&timer));
-  timerStart(&timer);  
+  printf("\nConcurrentHashMap start. Time: %f seconds\n",
+         timerGetSeconds(&timer));
+  timerStart(&timer);
   HashThreadParams params[THREAD_COUNT];
   pthread_t threads[THREAD_COUNT];
 
-  for(word_t i=0; i<THREAD_COUNT; i++) {
+  for (word_t i = 0; i < THREAD_COUNT; i++) {
     params[i].start = i * perThread;
-    params[i].stop = (i+1) * perThread;
+    params[i].stop = (i + 1) * perThread;
     params[i].map = l;
-    pthread_create(&(threads[i]), NULL, startThread, (void *) &params[i]);
+    pthread_create(&(threads[i]), NULL, startThread, (void *)&params[i]);
   }
-  
-  for(word_t i=0; i<THREAD_COUNT; i++) pthread_join(threads[i], NULL);
+
+  for (word_t i = 0; i < THREAD_COUNT; i++)
+    pthread_join(threads[i], NULL);
 
   timerStop(&timer);
   double assoc_time = timerGetSeconds(&timer);
@@ -52,17 +54,19 @@ static void concurrentMapThreadingAndPerformance(void **state) {
   pd();
 
   timerStart(&timer);
-  
+
   word_t sum = 0;
   RTValue k = RT_boxInt32(1);
-  for(word_t i=0; i< (word_t) size; i++) {
+  for (word_t i = 0; i < (word_t)size; i++) {
     k = RT_boxInt32(i);
     RTValue o = ConcurrentHashMap_get(l, k);
     assert_true(o);
-    if(getType(o) != integerType) {
-      printf("Unknown type %d for entry %s\n", getType(o), String_c_str(toString(k)));
+    if (getType(o) != integerType) {
+      printf("Unknown type %d for entry %s\n", getType(o),
+             String_c_str(toString(k)));
       o = ConcurrentHashMap_get(l, k);
-      printf("Unknown type %d for entry %s\n", getType(o), String_c_str(toString(k)));
+      printf("Unknown type %d for entry %s\n", getType(o),
+             String_c_str(toString(k)));
       Ptr_retain(l);
       retain(o);
       printf("Contents: %s %s\n", String_c_str(toString(o)),
@@ -75,32 +79,31 @@ static void concurrentMapThreadingAndPerformance(void **state) {
     sum += res;
   }
 
-
   timerStop(&timer);
   double get_time = timerGetSeconds(&timer);
 
   printf("\nConcurrentHashMap get. Time: %f seconds\n", get_time);
   pd();
-  assert_int_equal(sum, (size - 1) * size / 2);  
-
+  assert_int_equal(sum, (size - 1) * size / 2);
 
   timerStart(&timer);
   Ptr_release(l);
-  timerStop(&timer);  
-  printf("\nConcurrentHashMap release. Time: %f seconds\n", timerGetSeconds(&timer));
+  timerStop(&timer);
+  printf("\nConcurrentHashMap release. Time: %f seconds\n",
+         timerGetSeconds(&timer));
   pd();
 }
 
 int main(void) {
   const struct CMUnitTest tests[] = {
-    // There are problems with the map - bad performance all around and possible
-    // race conditions.
-    // Needs to be re-implemented? or at least checked with emini 
-        cmocka_unit_test_prestate(testScalingBehavior, concurrentMapThreadingAndPerformance),
-    };
-    initialise_memory();
-    srand(0);
-    return cmocka_run_group_tests(tests, NULL, NULL);
+      // There are problems with the map - bad performance all around and
+      // possible
+      // race conditions.
+      // Needs to be re-implemented? or at least checked with emini
+      cmocka_unit_test_prestate(testScalingBehavior,
+                                concurrentMapThreadingAndPerformance),
+  };
+  initialise_memory();
+  srand(0);
+  return cmocka_run_group_tests(tests, NULL, NULL);
 }
-
-

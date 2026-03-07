@@ -260,35 +260,40 @@ word_t String_indexOf(String *self, String *other) {
  */
 word_t String_indexOfFrom(String *self, String *other, word_t fromIndex) {
   word_t selfCount = self->count, otherCount = other->count;
-  
+
   if (fromIndex >= selfCount) {
     Ptr_release(self);
     Ptr_release(other);
     return (otherCount == 0 ? selfCount : -1);
   }
-  if (fromIndex < 0) fromIndex = 0;
+  if (fromIndex < 0)
+    fromIndex = 0;
   if (otherCount == 0) {
     Ptr_release(self);
     Ptr_release(other);
     return fromIndex;
   }
- 
+
   String *compactSelf = String_compactify(self);
   String *compactOther = String_compactify(other);
   // TODO: Iterator?
-  char *source = self->value;
-  char *target = other->value;
-  
+  const char *source = String_c_str(compactSelf);
+  const char *target = String_c_str(compactOther);
+
   char first = target[0];
   word_t max = selfCount - otherCount;
- 
+
   for (word_t i = fromIndex; i <= max; i++) {
     if (source[i] != first) {
-      while (++i <= max && source[i] != first);
+      while (++i <= max && source[i] != first)
+        ;
     }
     if (i <= max) {
       word_t j = i + 1, k = 1, end = j + otherCount - 1;
-      while (j < end && source[j] == target[k]) {++j; ++k;}
+      while (j < end && source[j] == target[k]) {
+        ++j;
+        ++k;
+      }
       if (j == end) {
         /* Found whole string */
         Ptr_release(compactSelf);
@@ -306,32 +311,27 @@ String *String_replace(String *self, String *target, String *replacement) {
   if (target == replacement && String_equals(target, replacement)) {
     Ptr_release(target);
     Ptr_release(replacement);
-    Ptr_retain(self);
     return self;
   }
+  // TODO: Only the most basic version implemented: target and replacement are
+  // both one-character strings
 
-  String *compacted = String_compactify(self);
-  // We must return a new string, not mutate a compacted string in-place if it
-  // happens to just be a retained 'self'
-  String *retVal = String_createDynamic(compacted->count);
-  memcpy(getDyn(retVal), getStatDyn(compacted), compacted->count);
-  getDyn(retVal)[compacted->count] = '\0';
+  assert(target->count == 1 && replacement->count == 1);
 
+  String *retVal = String_compactify(self);
   StringIterator targetIterator = String_iterator(target);
   StringIterator replacementIterator = String_iterator(replacement);
+  StringIterator retValIterator = String_iterator(retVal);
   char targetChar = *String_iteratorGet(&targetIterator);
   char replacementChar = *String_iteratorGet(&replacementIterator);
-
   Ptr_release(target);
   Ptr_release(replacement);
-
-  for (uword_t i = 0; i < retVal->count; i++) {
-    if (getDyn(retVal)[i] == targetChar) {
-      getDyn(retVal)[i] = replacementChar;
+  char *retValChar = String_iteratorGet(&retValIterator);
+  while (retValChar) {
+    if (*retValChar == targetChar) {
+      *retValChar = replacementChar;
     }
+    retValChar = String_iteratorNext(&retValIterator);
   }
-
-  String_recomputeHash(retVal);
-  Ptr_release(compacted);
   return retVal;
 }

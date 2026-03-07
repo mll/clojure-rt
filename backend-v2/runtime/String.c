@@ -174,7 +174,6 @@ StringIterator String_iterator(String *self) {
 /* mem done */
 String *String_compactify(String *self) {
   if (self->specialisation != compoundString) {
-    Ptr_retain(self);
     return self;
   }
 

@@ -227,8 +227,151 @@ static void vectorUpdateC(void **state) {
   assert_int_equal((int64_t)size * 7, sum);
 }
 
+static void vectorCreateTest(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v = PersistentVector_create();
+    assert_int_equal(v->count, 0);
+    assert_int_equal(v->shift, 0);
+    assert_null(v->root);
+    assert_non_null(v->tail);
+    Ptr_release(v);
+  });
+}
+
+static void vectorSingleEqualityTest(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v1 = PersistentVector_create();
+    PersistentVector *v2 = PersistentVector_create();
+    PersistentVector *v3 = PersistentVector_conj(v1, RT_boxInt32(42));
+    // v1 is consumed by conj
+    PersistentVector *v4 = PersistentVector_conj(v2, RT_boxInt32(42));
+    // v2 is consumed by conj
+
+    assert_true(PersistentVector_equals(v3, v4)); // 1 item same value
+    // equals does not consume v3 and v4
+
+    Ptr_release(v3);
+    Ptr_release(v4);
+  });
+}
+
+static void vectorConjAndPopTest(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v1 = PersistentVector_create();
+    PersistentVector *v2 = PersistentVector_conj(v1, RT_boxInt32(10));
+    // v1 is consumed by conj
+
+    assert_int_equal(v2->count, 1);
+
+    Ptr_retain(v2);
+    PersistentVector *v3 = PersistentVector_pop(v2);
+    // v2 is consumed by pop
+
+    assert_int_equal(v3->count, 0);
+    assert_int_equal(v2->count, 1);
+
+    Ptr_release(v2);
+    Ptr_release(v3);
+  });
+}
+
+static void vectorNthOutOfBoundsTest(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v1 = PersistentVector_create();
+
+    // Bounds check on empty vector
+    Ptr_retain(v1); // nth consumes
+    RTValue out1 = PersistentVector_nth(v1, 0);
+    assert_true(RT_isNil(out1));
+
+    PersistentVector *v2 =
+        PersistentVector_conj(v1, RT_boxInt32(99)); // v1 consumed
+
+    // Valid access
+    Ptr_retain(v2); // nth consumes
+    RTValue valid = PersistentVector_nth(v2, 0);
+    assert_int_equal(RT_unboxInt32(valid), 99);
+
+    // Bounds check on size 1 vector (index 1 is out of bounds)
+    // Here we let nth consume v2 for the last time
+    RTValue out2 = PersistentVector_nth(v2, 1);
+    assert_true(RT_isNil(out2));
+
+    // Ptr_release(v2) is no longer needed since the second nth consumed it
+  });
+}
+
+static void vectorStructuralConjTest(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v = PersistentVector_create();
+    for (int i = 0; i < 5; i++) {
+      v = PersistentVector_conj(v, RT_boxInt32(i * 10)); // v consumed each loop
+    }
+
+    assert_int_equal(v->count, 5);
+
+    for (int i = 0; i < 5; i++) {
+      Ptr_retain(v);
+      RTValue item = PersistentVector_nth(v, i);
+      assert_int_equal(RT_unboxInt32(item), i * 10);
+    }
+
+    Ptr_release(v);
+  });
+}
+
+static void vectorAssocTest(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v = PersistentVector_create();
+    for (int i = 0; i < 5; i++) {
+      v = PersistentVector_conj(v, RT_boxInt32(i * 10)); // v consumed
+    }
+
+    // Replace element at index 2 (currently 20) with 999
+    Ptr_retain(v);
+    PersistentVector *v_new =
+        PersistentVector_assoc(v, 2, RT_boxInt32(999)); // v consumed
+
+    // Check old vector v is unchanged
+    RTValue old_item = PersistentVector_nth(v, 2); // v consumed
+    assert_int_equal(RT_unboxInt32(old_item), 20);
+
+    // Check new vector has updated value
+    RTValue new_item = PersistentVector_nth(v_new, 2); // v_new consumed
+    assert_int_equal(RT_unboxInt32(new_item), 999);
+  });
+}
+
+static void vectorTransientTest(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v = PersistentVector_create();
+    PersistentVector *tv = PersistentVector_transient(v); // v consumed
+
+    for (int i = 0; i < 5; i++) {
+      tv = PersistentVector_conj_BANG_(tv, RT_boxInt32(i * 10)); // tv consumed
+    }
+
+    tv = PersistentVector_assoc_BANG_(tv, 2, RT_boxInt32(999)); // tv consumed
+
+    PersistentVector *v_final =
+        PersistentVector_persistent_BANG_(tv); // tv consumed
+
+    assert_int_equal(v_final->count, 5);
+
+    RTValue item2 = PersistentVector_nth(v_final, 2); // consumes v_final
+    assert_int_equal(RT_unboxInt32(item2), 999);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
+      cmocka_unit_test(vectorCreateTest),
+      cmocka_unit_test(vectorSingleEqualityTest),
+      cmocka_unit_test(vectorConjAndPopTest),
+      cmocka_unit_test(vectorNthOutOfBoundsTest),
+      cmocka_unit_test(vectorStructuralConjTest),
+      cmocka_unit_test(vectorAssocTest),
+      cmocka_unit_test(vectorTransientTest),
       cmocka_unit_test_prestate(testScalingBehavior, vectorConjNoReuse),
       cmocka_unit_test_prestate(testScalingBehavior, vectorStandardConjAndSum),
       cmocka_unit_test_prestate(testScalingBehavior, vectorTransientConj),

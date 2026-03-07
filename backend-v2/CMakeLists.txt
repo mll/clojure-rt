@@ -74,6 +74,7 @@ set(SOURCES
       tools/ThreadPool.cpp
       jit/JITEngine.cpp
       state/ThreadsafeCompilerState.cpp
+      tools/EdnParser.cpp
       codegen/ValueEncoder.cpp
       codegen/CodeGen.cpp
       codegen/LLVMTypes.cpp

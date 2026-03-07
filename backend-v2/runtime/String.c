@@ -146,7 +146,8 @@ char *String_iteratorNext(StringIterator *it) {
   it->inBlockIndex = 0;
   it->index++;
 
-  String *child = (String *)PersistentVector_iteratorNext(&(it->iterator));
+  String *child =
+      (String *)RT_unboxPtr(PersistentVector_iteratorNext(&(it->iterator)));
   it->blockLength = child->count;
   it->block = getStatDyn(child);
   return &it->block[it->inBlockIndex];
@@ -160,8 +161,8 @@ StringIterator String_iterator(String *self) {
   it.current = self;
   if (self->specialisation == compoundString) {
     it.iterator = PersistentVector_iterator(getVec(self));
-    String *child = (String *)PersistentVector_iteratorGet(&(it.iterator));
-    it.current = child;
+    String *child =
+        (String *)RT_unboxPtr(PersistentVector_iteratorGet(&(it.iterator)));
     it.blockLength = child->count;
     it.block = getStatDyn(child);
     return it;
@@ -307,7 +308,7 @@ word_t String_indexOfFrom(String *self, String *other, word_t fromIndex) {
 }
 
 String *String_replace(String *self, String *target, String *replacement) {
-  if (target == replacement && String_equals(target, replacement)) {
+  if (target == replacement || String_equals(target, replacement)) {
     Ptr_release(target);
     Ptr_release(replacement);
     return self;
@@ -317,7 +318,12 @@ String *String_replace(String *self, String *target, String *replacement) {
 
   assert(target->count == 1 && replacement->count == 1);
 
-  String *retVal = String_compactify(self);
+  String *compactified = String_compactify(self);
+  String *retVal = String_createDynamic(compactified->count);
+  memcpy(getDyn(retVal), String_c_str(compactified), compactified->count);
+  getDyn(retVal)[compactified->count] = '\0';
+  Ptr_release(compactified);
+
   StringIterator targetIterator = String_iterator(target);
   StringIterator replacementIterator = String_iterator(replacement);
   StringIterator retValIterator = String_iterator(retVal);

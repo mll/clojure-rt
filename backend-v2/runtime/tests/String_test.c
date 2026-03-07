@@ -16,7 +16,6 @@ static void testStaticStringMemory(void **state) {
     assert_true(String_equals(s1, s2));
     assert_int_equal(s1->count, 5);
 
-    // Test indexOf (outside refsystem)
     String *s3 = String_createStatic("ell");
     assert_int_equal(String_indexOf(s1, s3), 1);
 
@@ -43,6 +42,7 @@ static void testDynamicStringMemory(void **state) {
 
     // String_replace consumes the references to target and replacement, returns
     // new string natively retaining count of 1.
+    Ptr_retain(s1);
     String *s3 = String_replace(s1, target, replacement); // "woxld"
     assert_false(String_equals(s1, s3));
 

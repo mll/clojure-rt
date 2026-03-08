@@ -67,8 +67,7 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 
 # --- END OF CRITICAL CHANGES FOR LINKING ---
 
-set(SOURCES
-      main.cpp
+set(BACKEND_SOURCES
       bridge/Exceptions.cpp
       types/ObjectTypeSet.cpp
       tools/ThreadPool.cpp
@@ -91,7 +90,12 @@ find_package(Protobuf REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ../model/bytecode.proto)
-add_executable(clojure-rt ${SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
+
+add_library(backend_lib STATIC ${BACKEND_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries(backend_lib PUBLIC runtime ${LLVM_LIBS} ${Protobuf_LIBRARIES} ${GMP_LIBRARY})
+
+add_executable(clojure-rt main.cpp)
+target_link_libraries(clojure-rt PUBLIC backend_lib)
 
 find_path(GMP_INCLUDE_DIRS NAMES gmp.h)
 find_library(GMP_LIBRARY NAMES gmp libgmp)
@@ -100,9 +104,11 @@ find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
 mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
 include_directories(${GMP_INCLUDE_DIRS})
 
-# Update the target_link_libraries call to use the newly defined LLVM_LIBS variable
-# which now contains all necessary LLVM components.
-target_link_libraries(clojure-rt PUBLIC runtime ${LLVM_LIBS} ${Protobuf_LIBRARIES} ${GMP_LIBRARY})
+enable_testing()
+find_package(Cmocka REQUIRED)
+include_directories(${CMOCKA_INCLUDE_DIRS})
+
+add_subdirectory(tests)
 
 if(APPLE)
     find_program(DSYMUTIL_TOOL dsymutil)

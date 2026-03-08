@@ -206,6 +206,29 @@ static void test_duplicate_keys(void **state) {
   });
 }
 
+static void test_get_ownership_race(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    RTValue key = RT_boxPtr(String_create("my-key"));
+    RTValue val = RT_boxPtr(String_create("my-val"));
+
+    PersistentArrayMap *m = PersistentArrayMap_empty();
+    m = PersistentArrayMap_assoc(m, key, val);
+
+    RTValue lookupKey = RT_boxPtr(String_create("my-key"));
+
+    // This should consume m and lookupKey.
+    // If the bug exists, m is released (and its children) before val is
+    // retained.
+    RTValue result = PersistentArrayMap_get(m, lookupKey);
+
+    assert_true(RT_isPtr(result));
+    assert_string_equal("my-val", String_c_str((String *)RT_unboxPtr(result)));
+
+    release(result);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_basic_operations),
@@ -216,6 +239,7 @@ int main(void) {
       cmocka_unit_test(test_nil_support),
       cmocka_unit_test(test_to_string),
       cmocka_unit_test(test_duplicate_keys),
+      cmocka_unit_test(test_get_ownership_race),
   };
   initialise_memory();
   PersistentArrayMap *warmup = PersistentArrayMap_empty();

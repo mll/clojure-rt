@@ -222,6 +222,8 @@ RTValue PersistentArrayMap_get(PersistentArrayMap *self, RTValue key) {
   for (uword_t i = 0; i < self->count; i++) {
     if (equals(key, self->keys[i])) {
       retVal = self->values[i];
+      if (!RT_isNull(retVal))
+        retain(retVal);
       break;
     }
   }
@@ -229,7 +231,6 @@ RTValue PersistentArrayMap_get(PersistentArrayMap *self, RTValue key) {
   release(key);
 
   if (!RT_isNull(retVal)) {
-    retain(retVal);
     return retVal;
   }
 

@@ -94,12 +94,107 @@ static void testStringCompactify(void **state) {
   });
 }
 
+static void testStringSearch(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    String *s = String_createStatic("hello world");
+    String *target = String_createStatic("world");
+
+    // String_indexOfFrom and String_contains consume their arguments.
+    Ptr_retain(s);
+    Ptr_retain(target);
+    assert_int_equal(String_indexOfFrom(s, target, 0), 6);
+
+    Ptr_retain(s);
+    Ptr_retain(target);
+    assert_true(String_contains(s, target));
+
+    // Test not found
+    Ptr_retain(s);
+    String *missing = String_createStatic("missing");
+    assert_int_equal(String_indexOf(s, missing), -1);
+
+    // cleanup is handled by consumption, but we need to release 'target' if we
+    // didn't use it in last call
+    Ptr_release(target);
+    Ptr_release(s);
+  });
+}
+
+static void testStringHashUpdate(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    String *s = String_createDynamicStr("temp");
+    uword_t oldHash = String_hash(s);
+
+    // Simulate mutation if we were to allow it (recomputeHash expects
+    // non-compound)
+    char *dyn =
+        &(s->value[0]); // Using implementation detail since it's a runtime test
+    dyn[0] = 'z';
+    String_recomputeHash(s);
+
+    assert_false(String_hash(s) == oldHash);
+    assert_int_equal(String_hash(s), String_computeHash("zemp"));
+
+    Ptr_release(s);
+  });
+}
+
+static void testStringEdgeCases(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    String *empty = String_createStatic("");
+    String *s = String_createStatic("content");
+
+    Ptr_retain(empty);
+    Ptr_retain(s);
+    assert_int_equal(String_indexOf(s, empty), 0);
+
+    Ptr_retain(empty);
+    Ptr_retain(s);
+    assert_int_equal(String_indexOf(empty, s), -1);
+
+    // Compound chain
+    String *c = String_createStatic("");
+    for (int i = 0; i < 10; i++) {
+      c = String_concat(c, String_createStatic("a"));
+    }
+    assert_int_equal(c->count, 10);
+    String *compact = String_compactify(c);
+    assert_string_equal("aaaaaaaaaa", String_c_str(compact));
+    Ptr_release(compact);
+    Ptr_release(s);
+    Ptr_release(empty);
+  });
+}
+
+static void testStringMemoryManagement(void **state) {
+  (void)state;
+  // This test explicitly checks if memory balances when expecting consumption
+  MemoryState before, after;
+  captureMemoryState(&before);
+
+  String *s = String_createDynamicStr("long string to be searched");
+  String *sub = String_createDynamicStr("searched");
+
+  // String_contains(s, sub) should consume both
+  assert_true(String_contains(s, sub));
+
+  captureMemoryState(&after);
+  assertMemoryBalance(&before, &after);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(testStaticStringMemory),
       cmocka_unit_test(testDynamicStringMemory),
       cmocka_unit_test(testCompoundStringMemory),
       cmocka_unit_test(testStringCompactify),
+      cmocka_unit_test(testStringSearch),
+      cmocka_unit_test(testStringHashUpdate),
+      cmocka_unit_test(testStringEdgeCases),
+      cmocka_unit_test(testStringMemoryManagement),
   };
   initialise_memory();
   srand(0);

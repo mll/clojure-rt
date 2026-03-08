@@ -94,6 +94,11 @@ TemporaryClassData::TemporaryClassData(RTValue from) {
 
 ClassDescription::ClassDescription(RTValue from,
                                    TemporaryClassData &classData) {
+  retain(from);
+  String *s = String_compactify(toString(from));
+  printf("!!! from: '''%s'''\n", String_c_str(s));
+  Ptr_release(s);
+
   if (getType(from) != persistentArrayMapType) {
     release(from);
     throwInternalInconsistencyException(
@@ -105,28 +110,33 @@ ClassDescription::ClassDescription(RTValue from,
   RTValue typeRaw = PersistentArrayMap_get(
       description, Keyword_create(String_create("object-type")));
 
-  if (getType(typeRaw) != integerType) {
+  if (getType(typeRaw) == integerType) {
+    this->type = (objectType)RT_unboxInt32(typeRaw);
+  } else if (getType(typeRaw) == nilType) {
+    this->type = classType;
+  } else {
     release(typeRaw);
     Ptr_release(description);
     throwInternalInconsistencyException("Object-type is not an integer");
   }
-
-  this->type = (objectType)RT_unboxInt32(typeRaw);
+  release(typeRaw);
 
   Ptr_retain(description);
 
   RTValue nameRaw = PersistentArrayMap_get(
       description, Keyword_create(String_create("name")));
 
-  if (getType(nameRaw) != stringType) {
+  if (getType(nameRaw) != stringType && getType(nameRaw) != symbolType) {
     release(nameRaw);
     Ptr_release(description);
-    throwInternalInconsistencyException("Name is not a string");
+    printf("type: %d\n", getType(nameRaw));
+    throwInternalInconsistencyException("Name is not a string or symbol");
   }
 
-  String *compactifiedName = String_compactify((String *)RT_unboxPtr(nameRaw));
+  String *compactifiedName = String_compactify(toString(nameRaw));
   this->name = String_c_str(compactifiedName);
   Ptr_release(compactifiedName);
+  release(nameRaw);
 
   extends = nullptr;
 
@@ -142,6 +152,8 @@ ClassDescription::ClassDescription(RTValue from,
       Ptr_release(description);
       throw;
     }
+  } else {
+    release(staticFieldsRaw);
   }
 
   Ptr_retain(description);
@@ -156,6 +168,8 @@ ClassDescription::ClassDescription(RTValue from,
       Ptr_release(description);
       throw;
     }
+  } else {
+    release(staticFnsRaw);
   }
 
   Ptr_retain(description);
@@ -170,7 +184,10 @@ ClassDescription::ClassDescription(RTValue from,
       Ptr_release(description);
       throw;
     }
+  } else {
+    release(instanceFnsRaw);
   }
+
   Ptr_release(description);
 }
 
@@ -260,10 +277,168 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData) {
 }
 
 IntrinsicDescription::IntrinsicDescription(RTValue from,
-                                           TemporaryClassData &classData) {}
+                                           TemporaryClassData &classData) {
+  if (getType(from) != persistentArrayMapType) {
+    fprintf(stderr, "Intrinsic collection is not a map\n");
+    release(from);
+    throwInternalInconsistencyException("Intrinsic collection is not a map");
+  }
 
+  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(from);
+
+  Ptr_retain(map);
+  RTValue typeRaw =
+      PersistentArrayMap_get(map, Keyword_create(String_create("type")));
+  if (getType(typeRaw) != keywordType) {
+    fprintf(stderr, "Intrinsic :type is not a keyword.\n");
+    release(typeRaw);
+    Ptr_release(map);
+    throwInternalInconsistencyException("Intrinsic :type is not a keyword.");
+  }
+  String *typeStr = String_compactify(toString(typeRaw));
+  string sType = String_c_str(typeStr);
+  Ptr_release(typeStr);
+  release(typeRaw);
+
+  if (sType == ":call") {
+    this->type = CallType::Call;
+  } else if (sType == ":intrinsic") {
+    this->type = CallType::Intrinsic;
+  } else {
+    fprintf(stderr, "Intrinsic :type must be :call or :intrinsic. Got %s\n",
+            sType.c_str());
+    Ptr_release(map);
+    release(from);
+    throwInternalInconsistencyException(
+        "Intrinsic :type must be :call or :intrinsic");
+  }
+
+  Ptr_retain(map);
+  RTValue symbolRaw =
+      PersistentArrayMap_get(map, Keyword_create(String_create("symbol")));
+  if (getType(symbolRaw) != stringType) {
+    fprintf(stderr, "Intrinsic :symbol is not a string.\n");
+    release(symbolRaw);
+    Ptr_release(map);
+    throwInternalInconsistencyException("Intrinsic :symbol is not a string.");
+  }
+  String *symbolStr = String_compactify((String *)RT_unboxPtr(symbolRaw));
+  this->symbol = String_c_str(symbolStr);
+  Ptr_release(symbolStr);
+  release(symbolRaw);
+
+  Ptr_retain(map);
+  RTValue argsRaw =
+      PersistentArrayMap_get(map, Keyword_create(String_create("args")));
+  if (getType(argsRaw) != persistentVectorType && getType(argsRaw) != nilType) {
+    fprintf(stderr, "Intrinsic :args is not a vector.\n");
+    release(argsRaw);
+    Ptr_release(map);
+    throwInternalInconsistencyException("Intrinsic :args is not a vector.");
+  }
+
+  if (getType(argsRaw) == persistentVectorType) {
+    PersistentVector *argsVector = (PersistentVector *)RT_unboxPtr(argsRaw);
+    Ptr_retain(argsVector);
+    uword_t argCnt = PersistentVector_count(argsVector);
+    PersistentVectorIterator it = PersistentVector_iterator(argsVector);
+    for (uword_t j = 0; j < argCnt; j++) {
+      RTValue argRaw = PersistentVector_iteratorGet(&it);
+      retain(argRaw);
+      String *argStr = String_compactify(toString(argRaw));
+      string sArgKey = String_c_str(argStr);
+      Ptr_release(argStr);
+      release(argRaw);
+
+      if (sArgKey == ":this") {
+        this->argTypes.push_back(ObjectTypeSet(classType));
+      } else if (sArgKey == ":any") {
+        this->argTypes.push_back(ObjectTypeSet::dynamicType());
+      } else {
+        if (classData.classesByName.find(sArgKey) ==
+            classData.classesByName.end()) {
+          fprintf(stderr, "Unknown arg type: %s\n", sArgKey.c_str());
+          Ptr_release(argsVector);
+          release(argsRaw);
+          Ptr_release(map);
+          throwInternalInconsistencyException("Unknown arg type: " + sArgKey);
+        }
+        PersistentArrayMap *argClassMap = classData.classesByName[sArgKey];
+        Ptr_retain(argClassMap);
+        RTValue argTypeRaw = PersistentArrayMap_get(
+            argClassMap, Keyword_create(String_create("object-type")));
+        if (getType(argTypeRaw) == integerType) {
+          objectType t = (objectType)RT_unboxInt32(argTypeRaw);
+          this->argTypes.push_back(ObjectTypeSet(t));
+        } else {
+          this->argTypes.push_back(ObjectTypeSet(classType));
+        }
+        release(argTypeRaw);
+      }
+      PersistentVector_iteratorNext(&it);
+    }
+    Ptr_release(argsVector);
+  }
+  release(argsRaw);
+
+  Ptr_retain(map);
+  RTValue returnsRaw =
+      PersistentArrayMap_get(map, Keyword_create(String_create("returns")));
+  if (getType(returnsRaw) != nilType) {
+    retain(returnsRaw);
+    String *retStr = String_compactify(toString(returnsRaw));
+    string sRetKey = String_c_str(retStr);
+    Ptr_release(retStr);
+
+    if (sRetKey == ":any") {
+      this->returnType = ObjectTypeSet::dynamicType();
+    } else if (classData.classesByName.find(sRetKey) !=
+               classData.classesByName.end()) {
+      PersistentArrayMap *retClassMap = classData.classesByName[sRetKey];
+      Ptr_retain(retClassMap);
+      RTValue retTypeRaw = PersistentArrayMap_get(
+          retClassMap, Keyword_create(String_create("object-type")));
+      if (getType(retTypeRaw) == integerType) {
+        objectType t = (objectType)RT_unboxInt32(retTypeRaw);
+        this->returnType = ObjectTypeSet(t);
+      } else {
+        this->returnType = ObjectTypeSet(classType);
+      }
+      release(retTypeRaw);
+    } else {
+      fprintf(stderr, "Unknown return type: %s\n", sRetKey.c_str());
+      release(returnsRaw);
+      Ptr_release(map);
+      throwInternalInconsistencyException("Unknown return type: " + sRetKey);
+    }
+    release(returnsRaw);
+  } else {
+    this->returnType = ObjectTypeSet::dynamicType();
+    release(returnsRaw);
+  }
+
+  Ptr_release(map);
+}
+
+#include <unordered_set>
 vector<ClassDescription> buildClasses(RTValue from) {
-  return vector<ClassDescription>();
+  retain(from);
+  TemporaryClassData classData(from);
+  vector<ClassDescription> retVal;
+
+  unordered_set<PersistentArrayMap *> processed;
+
+  for (auto const &pair : classData.classesByName) {
+    PersistentArrayMap *map = pair.second;
+    if (processed.find(map) == processed.end()) {
+      processed.insert(map);
+      Ptr_retain(map);
+      RTValue mapVal = RT_boxPtr(map);
+      retVal.push_back(ClassDescription(mapVal, classData));
+    }
+  }
+
+  return retVal;
 }
 
 } // namespace rt

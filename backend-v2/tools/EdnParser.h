@@ -42,6 +42,8 @@ public:
   unordered_map<string, vector<IntrinsicDescription>> instanceFns;
 
   ClassDescription(RTValue from, TemporaryClassData &classData);
+  ClassDescription(ClassDescription &&other) = default;
+  ClassDescription &operator=(ClassDescription &&other) = default;
   ~ClassDescription();
 };
 

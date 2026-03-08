@@ -61,6 +61,9 @@ set(TEST_MODULES
     Keyword_test
     Symbol_test
     PersistentArrayMap_test
+    BigInteger_test
+    Ratio_test
+    Boolean_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

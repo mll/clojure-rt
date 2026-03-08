@@ -97,11 +97,6 @@ static void test_equality_and_hashing(void **state) {
     m2 = PersistentArrayMap_assoc(m2, RT_boxInt32(1), RT_boxInt32(10));
     m2 = PersistentArrayMap_assoc(m2, RT_boxInt32(2), RT_boxInt32(20));
 
-    // PersistentArrayMap_equals consumes args?
-    // Wait, based on the user's fix, it seems NOT to consume them anymore?
-    // Actually, usually in this model if it's NOT marked "outside ref system"
-    // it consumes. BUT PersistentArrayMap_equals is marked /* outside refcount
-    // system */.
     assert_true(PersistentArrayMap_equals(m1, m2));
     assert_int_equal(PersistentArrayMap_hash(m1), PersistentArrayMap_hash(m2));
 
@@ -136,15 +131,93 @@ static void test_large_map(void **state) {
   });
 }
 
+static void test_reusability(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentArrayMap *m = PersistentArrayMap_create();
+    // Initially count is 0, refcount is 1
+    PersistentArrayMap *m1 =
+        PersistentArrayMap_assoc(m, RT_boxInt32(1), RT_boxInt32(10));
+    // Since m had refcount 1, assoc should have returned m itself (in-place
+    // update)
+    assert_ptr_equal(m, m1);
+
+    PersistentArrayMap *m2 =
+        PersistentArrayMap_assoc(m1, RT_boxInt32(2), RT_boxInt32(20));
+    assert_ptr_equal(m1, m2);
+
+    Ptr_release(m2);
+  });
+}
+
+static void test_nil_support(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentArrayMap *m = PersistentArrayMap_empty();
+
+    PersistentArrayMap *m1 =
+        PersistentArrayMap_assoc(m, RT_boxNil(), RT_boxInt32(100));
+    Ptr_retain(m1);
+    RTValue v1 = PersistentArrayMap_get(m1, RT_boxNil());
+    assert_int_equal(100, RT_unboxInt32(v1));
+    release(v1);
+
+    PersistentArrayMap *m2 =
+        PersistentArrayMap_assoc(m1, RT_boxInt32(1), RT_boxNil());
+    Ptr_retain(m2);
+    RTValue v2 = PersistentArrayMap_get(m2, RT_boxInt32(1));
+    assert_true(RT_isNil(v2));
+
+    Ptr_release(m2);
+  });
+}
+
+static void test_to_string(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    RTValue k1 = RT_boxInt32(1);
+    RTValue v1 = RT_boxInt32(10);
+    PersistentArrayMap *m = PersistentArrayMap_createMany(1, k1, v1);
+
+    String *s = PersistentArrayMap_toString(m);
+    s = String_compactify(s);
+    assert_non_null(s);
+    const char *cstr = String_c_str(s);
+    assert_string_equal("{1 10}", cstr);
+
+    Ptr_release(s);
+  });
+}
+
+static void test_duplicate_keys(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentArrayMap *m = PersistentArrayMap_empty();
+    m = PersistentArrayMap_assoc(m, RT_boxInt32(1), RT_boxInt32(10));
+    m = PersistentArrayMap_assoc(m, RT_boxInt32(1), RT_boxInt32(20));
+
+    assert_int_equal(1, m->count);
+    Ptr_retain(m);
+    RTValue v = PersistentArrayMap_get(m, RT_boxInt32(1));
+    assert_int_equal(20, RT_unboxInt32(v));
+    release(v);
+
+    Ptr_release(m);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_basic_operations),
       cmocka_unit_test(test_immutability),
       cmocka_unit_test(test_equality_and_hashing),
       cmocka_unit_test(test_large_map),
+      cmocka_unit_test(test_reusability),
+      cmocka_unit_test(test_nil_support),
+      cmocka_unit_test(test_to_string),
+      cmocka_unit_test(test_duplicate_keys),
   };
   initialise_memory();
-  // Warm up the EMPTY singleton to avoid memory imbalance in tests
   PersistentArrayMap *warmup = PersistentArrayMap_empty();
   Ptr_release(warmup);
 

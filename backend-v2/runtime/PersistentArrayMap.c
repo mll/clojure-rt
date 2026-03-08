@@ -151,8 +151,8 @@ PersistentArrayMap *PersistentArrayMap_assoc(PersistentArrayMap *self,
            "Maps of size > 8 not supported yet");
     PersistentArrayMap *retVal =
         reusable ? self : PersistentArrayMap_copy(self);
-    self->keys[retVal->count] = key;
-    self->values[retVal->count] = value;
+    retVal->keys[retVal->count] = key;
+    retVal->values[retVal->count] = value;
     retVal->count++;
     if (!reusable) {
       PersistentArrayMap_retainChildren(retVal, retVal->count - 1);

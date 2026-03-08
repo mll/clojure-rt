@@ -14,6 +14,7 @@ foreach(TEST_MODULE ${TEST_MODULES})
     add_test(
         NAME ${EXEC_NAME} 
         COMMAND ${EXEC_NAME}
-        LABELS "Unit"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
+    set_tests_properties(${EXEC_NAME} PROPERTIES LABELS "Unit")
 endforeach()

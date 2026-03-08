@@ -55,8 +55,9 @@ set(LLVM_COMPONENTS
 )
 
 # 2. Map the component names to the actual library files.
-# This function is the standard way to get library names in modern LLVM CMake builds.
-llvm_map_components_to_libnames(LLVM_LIBS ${LLVM_COMPONENTS})
+# We map to the dynamic library (LLVM) instead of static components to prevent
+# ODR violations between our ASAN-instrumented std::string and LLVM. 
+set(LLVM_LIBS LLVM)
 message(STATUS "LLVM Components required: ${LLVM_COMPONENTS}")
 message(STATUS "LLVM Libraries to link: ${LLVM_LIBS}")
 

@@ -85,7 +85,7 @@ static void vectorStandardConjAndSum(void **state) {
 }
 
 /**
- * @brief Tests high-performance creation using Transients (!).
+ * @brief Tests high-performance creation using Transients.
  */
 static void vectorTransientConj(void **state) {
   TestParams *params = (TestParams *)*state;
@@ -343,6 +343,7 @@ static void vectorAssocTest(void **state) {
 }
 
 static void vectorTransientTest(void **state) {
+  (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     PersistentVector *v = PersistentVector_create();
     PersistentVector *tv = PersistentVector_transient(v); // v consumed
@@ -363,6 +364,117 @@ static void vectorTransientTest(void **state) {
   });
 }
 
+static void test_vector_hashing(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v1 = PersistentVector_createMany(
+        3, RT_boxInt32(1), RT_boxInt32(2), RT_boxInt32(3));
+    PersistentVector *v2 = PersistentVector_createMany(
+        3, RT_boxInt32(1), RT_boxInt32(2), RT_boxInt32(3));
+    PersistentVector *v3 = PersistentVector_createMany(
+        3, RT_boxInt32(1), RT_boxInt32(2), RT_boxInt32(4));
+
+    assert_int_equal(PersistentVector_hash(v1), PersistentVector_hash(v2));
+    assert_false(PersistentVector_hash(v1) == PersistentVector_hash(v3));
+
+    Ptr_release(v1);
+    Ptr_release(v2);
+    Ptr_release(v3);
+  });
+}
+
+static void test_vector_to_string(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v =
+        PersistentVector_createMany(2, RT_boxInt32(1), RT_boxInt32(2));
+    String *s = PersistentVector_toString(v); // consumes v
+    s = String_compactify(s);
+    assert_string_equal("[1 2]", String_c_str(s));
+    Ptr_release(s);
+  });
+}
+
+static void test_vector_pop_bang(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v = PersistentVector_createMany(
+        3, RT_boxInt32(1), RT_boxInt32(2), RT_boxInt32(3));
+    PersistentVector *tv = PersistentVector_transient(v);
+
+    tv = PersistentVector_pop_BANG_(tv);
+    assert_int_equal(2, tv->count);
+
+    PersistentVector *v_final = PersistentVector_persistent_BANG_(tv);
+    assert_int_equal(2, v_final->count);
+
+    RTValue last = PersistentVector_nth(v_final, 1); // consumes v_final
+    assert_int_equal(2, RT_unboxInt32(last));
+  });
+}
+
+static void test_vector_contains(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v =
+        PersistentVector_createMany(2, RT_boxInt32(10), RT_boxInt32(20));
+    Ptr_retain(v);
+    assert_true(PersistentVector_contains(v, RT_boxInt32(10)));
+    Ptr_retain(v);
+    assert_true(PersistentVector_contains(v, RT_boxInt32(20)));
+    // Last call consumes v
+    assert_false(PersistentVector_contains(v, RT_boxInt32(30)));
+  });
+}
+
+static void test_vector_large_structural(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    // Test size > 32 to trigger root/shift mechanics
+    PersistentVector *v = PersistentVector_create();
+    for (int i = 0; i < 100; i++) {
+      v = PersistentVector_conj(v, RT_boxInt32(i));
+    }
+    assert_int_equal(100, v->count);
+    assert_true(v->shift > 0);
+
+    for (int i = 0; i < 100; i++) {
+      Ptr_retain(v);
+      RTValue val = PersistentVector_nth(v, i);
+      assert_int_equal(i, RT_unboxInt32(val));
+      release(val);
+    }
+
+    // Pop back down
+    while (v->count > 0) {
+      v = PersistentVector_pop(v);
+    }
+    assert_int_equal(0, v->count);
+    Ptr_release(v);
+  });
+}
+
+static void test_vector_equality_deep(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v1 = PersistentVector_create();
+    PersistentVector *v2 = PersistentVector_create();
+    for (int i = 0; i < 100; i++) {
+      v1 = PersistentVector_conj(v1, RT_boxInt32(i));
+      v2 = PersistentVector_conj(v2, RT_boxInt32(i));
+    }
+
+    assert_true(PersistentVector_equals(v1, v2));
+
+    PersistentVector *v3 =
+        PersistentVector_assoc(v1, 50, RT_boxInt32(999)); // consumes v1
+    assert_false(PersistentVector_equals(v3, v2));
+
+    Ptr_release(v2);
+    Ptr_release(v3);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(vectorCreateTest),
@@ -372,6 +484,12 @@ int main(void) {
       cmocka_unit_test(vectorStructuralConjTest),
       cmocka_unit_test(vectorAssocTest),
       cmocka_unit_test(vectorTransientTest),
+      cmocka_unit_test(test_vector_hashing),
+      cmocka_unit_test(test_vector_to_string),
+      cmocka_unit_test(test_vector_pop_bang),
+      cmocka_unit_test(test_vector_contains),
+      cmocka_unit_test(test_vector_large_structural),
+      cmocka_unit_test(test_vector_equality_deep),
       cmocka_unit_test_prestate(testScalingBehavior, vectorConjNoReuse),
       cmocka_unit_test_prestate(testScalingBehavior, vectorStandardConjAndSum),
       cmocka_unit_test_prestate(testScalingBehavior, vectorTransientConj),

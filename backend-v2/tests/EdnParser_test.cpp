@@ -22,6 +22,15 @@ extern "C" {
 
 #include "../tools/EdnParser.h"
 
+#include <mach-o/dyld.h>
+std::string getSelfExecutablePath() {
+  char path[1024];
+  uint32_t size = sizeof(path);
+  if (_NSGetExecutablePath(path, &size) == 0)
+    return std::string(path);
+  return "";
+}
+
 static void test_trivial_memory(void **state) {
   (void)state; // unused
 
@@ -88,11 +97,24 @@ static void test_edn_parser_class_parsing_memory(void **state) {
     RTValue classes = res.toPtr<RTValue (*)()>()();
 
     {
-      rt::TemporaryClassData classData(classes);
-      // Let classData process the ArrayMap. We do not explicitly release
-      // `classes` here, as `TemporaryClassData` constructor
-      // `rt::TemporaryClassData::TemporaryClassData(RTValue from)` calls
-      // `release(from)` at the very end of processing it!
+      try {
+        vector<rt::ClassDescription> classesList = rt::buildClasses(classes);
+        assert_true(classesList.size() > 0);
+      } catch (const rt::LanguageException &e) {
+        llvm::symbolize::LLVMSymbolizer::Options options;
+        options.Demangle = true;
+        options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
+        llvm::symbolize::LLVMSymbolizer symbolizer(options);
+        cout << e.toString(symbolizer,
+                           getSelfExecutablePath() +
+                               ".dSYM/Contents/Resources/DWARF/" + "clojure-rt",
+                           _dyld_get_image_vmaddr_slide(0))
+             << endl;
+        assert_true(false);
+      } catch (...) {
+        printf("Unknown exception caught\n");
+        assert_true(false);
+      }
     }
   });
 }

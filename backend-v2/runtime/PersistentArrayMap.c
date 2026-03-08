@@ -63,11 +63,13 @@ bool PersistentArrayMap_equals(PersistentArrayMap *self,
   for (uword_t i = 0; i < self->count; i++) {
     RTValue key = self->keys[i];
     RTValue val = self->values[i];
-    Ptr_retain(self);
+    Ptr_retain(other);
     retain(key);
     RTValue otherVal = PersistentArrayMap_get(other, key);
-    if (!equals(otherVal, val))
+    if (!equals(otherVal, val)) {
+      release(otherVal);
       return false;
+    }
   }
   return true;
 }

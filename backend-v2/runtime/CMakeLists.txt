@@ -60,6 +60,7 @@ set(TEST_MODULES
     String_test
     Keyword_test
     Symbol_test
+    PersistentArrayMap_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

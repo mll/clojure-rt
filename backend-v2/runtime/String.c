@@ -188,6 +188,7 @@ String *String_compactify(String *self) {
     /* TODO - use vector iterator */
     Ptr_retain(v);
     String *block = RT_unboxPtr(PersistentVector_nth(v, i));
+    assert(block->specialisation != compoundString);
     char *blockPtr = getStatDyn(block);
     memcpy(output + start, blockPtr, block->count);
     start += block->count;

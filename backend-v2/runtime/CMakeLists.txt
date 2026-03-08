@@ -58,6 +58,8 @@ set(TEST_MODULES
     PersistentList_test
     PersistentVector_test
     String_test
+    Keyword_test
+    Symbol_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

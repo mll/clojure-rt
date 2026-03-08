@@ -261,4 +261,8 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData) {
 IntrinsicDescription::IntrinsicDescription(RTValue from,
                                            TemporaryClassData &classData) {}
 
+vector<ClassDescription> buildClasses(RTValue from) {
+  return vector<ClassDescription>();
+}
+
 } // namespace rt

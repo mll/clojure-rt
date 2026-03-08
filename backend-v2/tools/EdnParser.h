@@ -45,7 +45,7 @@ public:
   ~ClassDescription();
 };
 
-vector<ClassDescription> buildClasses(RTValue from) {}
+vector<ClassDescription> buildClasses(RTValue from);
 } // namespace rt
 
 #endif

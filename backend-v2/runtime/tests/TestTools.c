@@ -1,4 +1,7 @@
 #include "TestTools.h"
+#include "../Keyword.h"
+#include "../ObjectProto.h"
+#include "../Symbol.h"
 
 // #include <gperftools/profiler.h>
 
@@ -98,16 +101,32 @@ void captureMemoryState(MemoryState *state) {
   for (int i = 0; i < 256; i++) {
     state->counts[i] = allocationCount[i];
   }
+  state->internedKeywords = Keyword_getInternCount();
+  state->internedSymbols = Symbol_getInternCount();
 }
 
 void assertMemoryBalance(MemoryState *before, MemoryState *after) {
+  uint32_t stringLeaks =
+      (after->internedKeywords - before->internedKeywords) * 2 +
+      (after->internedSymbols - before->internedSymbols) * 2;
   for (int i = 0; i < 256; i++) {
-    assert_int_equal(before->counts[i], after->counts[i]);
+    uword_t expected = before->counts[i];
+    if (i == stringType - 1) {
+      expected += stringLeaks;
+    }
+    if (expected != after->counts[i]) {
+      printf("assertMemoryBalance mismatch: type %d, expected %lu, got %lu\n",
+             i + 1, expected, after->counts[i]);
+    }
+    assert_int_equal(expected, after->counts[i]);
   }
 }
 
 void assertMemoryBalanceExcept(MemoryState *before, MemoryState *after,
                                int except_types[], size_t num_exceptions) {
+  uint32_t stringLeaks =
+      (after->internedKeywords - before->internedKeywords) * 2 +
+      (after->internedSymbols - before->internedSymbols) * 2;
   for (int i = 0; i < 256; i++) {
     bool skip = false;
     for (size_t j = 0; j < num_exceptions; j++) {
@@ -118,7 +137,16 @@ void assertMemoryBalanceExcept(MemoryState *before, MemoryState *after,
       }
     }
     if (!skip) {
-      assert_int_equal(before->counts[i], after->counts[i]);
+      uword_t expected = before->counts[i];
+      if (i == stringType - 1) {
+        expected += stringLeaks;
+      }
+      if (expected != after->counts[i]) {
+        printf("assertMemoryBalanceExcept mismatch: type %d, expected %lu, got "
+               "%lu\n",
+               i + 1, expected, after->counts[i]);
+      }
+      assert_int_equal(expected, after->counts[i]);
     }
   }
 }

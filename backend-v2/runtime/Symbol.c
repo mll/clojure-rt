@@ -1,8 +1,8 @@
-#include "Object.h"
 #include "Symbol.h"
+#include "ConcurrentHashMap.h"
+#include "Object.h"
 #include "RTValue.h"
 #include "String.h"
-#include "ConcurrentHashMap.h"
 #include <pthread.h>
 
 extern ConcurrentHashMap *symbols;
@@ -14,7 +14,7 @@ static _Atomic uint32_t minUnusedSymbol = 1;
 /* mem done */
 RTValue Symbol_create(String *string) {
   RTValue stringVal = RT_boxPtr(string);
-  Ptr_retain(string);  
+  Ptr_retain(string);
   RTValue retVal = ConcurrentHashMap_get(symbols, stringVal);
 
   if (RT_isNil(retVal)) {
@@ -22,19 +22,21 @@ RTValue Symbol_create(String *string) {
     pthread_mutex_lock(&intern_mutex);
     /* interning */
     RTValue retVal2 = ConcurrentHashMap_get(symbols, stringVal);
-    if (RT_isSymbol(retVal)) {
+    if (RT_isSymbol(retVal2)) {
       pthread_mutex_unlock(&intern_mutex);
       Ptr_release(string);
       return retVal2;
-    }      
-    
+    }
+
     RTValue new = RT_boxSymbol(
         atomic_fetch_add_explicit(&minUnusedSymbol, 1, memory_order_relaxed));
 
     Ptr_retain(string);
     ConcurrentHashMap_assoc(symbolsInverted, new, stringVal);
+    Ptr_retain(string);
     ConcurrentHashMap_assoc(symbols, stringVal, new);
     pthread_mutex_unlock(&intern_mutex);
+    Ptr_release(string);
     return new;
   }
   Ptr_release(string);
@@ -44,11 +46,11 @@ RTValue Symbol_create(String *string) {
 /* mem done */
 String *Symbol_toString(RTValue self) {
   RTValue retVal = ConcurrentHashMap_get(symbolsInverted, self);
-  assert(!RT_isNil(retVal) && "Internal error: Symbol was not interned before printing.");
+  assert(!RT_isNil(retVal) &&
+         "Internal error: Symbol was not interned before printing.");
   return toString(retVal);
 }
 
-
-
-
-
+uint32_t Symbol_getInternCount() {
+  return atomic_load_explicit(&minUnusedSymbol, memory_order_relaxed) - 1;
+}

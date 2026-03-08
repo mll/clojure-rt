@@ -34,6 +34,17 @@ backend-v2/cmake_install*
 backend-v2/runtime/cmake_install*
 backend-v2/Makefile
 backend-v2/runtime/Makefile
+backend-v2/tests/CMakeFiles/*
+backend-v2/tests/CMakeCache/*
+backend-v2/tests/Makefile
+backend-v2/tests/Testing*
+backend-v2/tests/CTestTestfile.cmake
+backend-v2/tests/*_test
+backend-v2/tests/cmake_install*
+backend-v2/Testing*
+backend-v2/build_cov/*
+backend-v2/libbackend_lib.a
+backend-v2/.cache*
 
 
 /.clj-kondo/babashka

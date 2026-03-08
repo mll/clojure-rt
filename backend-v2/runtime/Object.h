@@ -332,7 +332,7 @@ inline bool Object_equals(Object *self, Object *other) {
   }
 }
 
-/* Outside of refcount system */
+/* Outside of refcount system - should it be like this? It probably shouldnt */
 inline bool equals(RTValue self, RTValue other) {
   if (self == other) return true; // Handles same-ints, same-bools, and same-pointers
   

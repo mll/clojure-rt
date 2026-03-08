@@ -8,6 +8,7 @@ extern "C" {
 #include "runtime/ObjectProto.h"
 #include "runtime/Object.h"
 #include "runtime/Class.h"
+#include "runtime/PersistentArrayMap.h"
 /* #include "runtime/Var.h" */
 }
 
@@ -21,11 +22,19 @@ namespace rt {
     ThreadsafeInlineCacheManager methodCallInlineCache;
 
     ThreadsafeRegistry<Class> classRegistry;
+    ThreadsafeRegistry<const Node> functionAstRegistry;
+    ThreadsafeRegistry<PersistentArrayMap> internalClassRegistry;
+    ThreadsafeRegistry<PersistentArrayMap> internalProtocolRegistry;    
     /* ThreadsafeRegistry<Var> varRegistry; */
 
-    ThreadsafeRegistry<Node> functionAstRegistry;
-    
-    ThreadsafeCompilerState(): classRegistry(true), functionAstRegistry(false)/*, varRegistry(true)*/ {}
+
+    ThreadsafeCompilerState()
+        : classRegistry(true), functionAstRegistry(false),
+          internalClassRegistry(true),
+          internalProtocolRegistry(true) /*, varRegistry(true)*/ {}
+
+    void storeInternalClasses(RTValue from);
+    void storeInternalProtocols(RTValue from);        
   };  
 }
 

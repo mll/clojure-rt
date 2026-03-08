@@ -57,6 +57,13 @@ set(TEST_MODULES
     ConcurrentHashMap_test
     PersistentList_test
     PersistentVector_test
+    String_test
+    Keyword_test
+    Symbol_test
+    PersistentArrayMap_test
+    BigInteger_test
+    Ratio_test
+    Boolean_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

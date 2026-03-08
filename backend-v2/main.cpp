@@ -23,7 +23,7 @@
 #include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "bridge/Exceptions.h"
 
-#include "state/ThreadsafeState.h"
+#include "state/ThreadsafeCompilerState.h"
 #include "jit/JITEngine.h"
 
 using namespace std;
@@ -89,31 +89,19 @@ int main(int argc, char *argv[]) {
       .get()
       .toPtr<RTValue (*)()>()();
 
+    state.storeInternalProtocols(interfaces);
+    
     RTValue classes =
         engine.compileAST(astClasses.nodes(0), "__classes",
                           llvm::OptimizationLevel::O0,
                           false)
       .get()
       .toPtr<RTValue (*)()>()();
-    
-    String *s = toString(interfaces);
-    s = String_compactify(s);
-    
-    cout << "Result" << endl;
-    cout << std::string(String_c_str(s)) << endl;
-    cout << "!!!Result" << endl;
-    Ptr_release(s);
 
-    s = toString(classes);
-    s = String_compactify(s);
-    
-    cout << "Result" << endl;
-    cout << std::string(String_c_str(s)) << endl;
-    cout << "!!!Result" << endl;
-    Ptr_release(s);
+    state.storeInternalClasses(classes);
     
     
-    
+        
 //    release(intrinsics);
     
     // auto f = engine.compileAST(astRoot.nodes(0), "__root", llvm::OptimizationLevel::O0);    

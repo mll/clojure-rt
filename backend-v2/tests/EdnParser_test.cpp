@@ -46,20 +46,54 @@ static void test_edn_parser_memory(void **state) {
     }
   }
 
-  rt::ThreadsafeCompilerState compState;
-  rt::JITEngine engine(compState);
-
-  llvm::orc::ExecutorAddr res =
-      engine
-          .compileAST(astClasses.nodes(0), "__classes",
-                      llvm::OptimizationLevel::O0, false)
-          .get();
-
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    rt::JITEngine engine(compState);
+
+    llvm::orc::ExecutorAddr res =
+        engine
+            .compileAST(astClasses.nodes(0), "__classes",
+                        llvm::OptimizationLevel::O0, false)
+            .get();
+
     RTValue classes = res.toPtr<RTValue (*)()>()();
 
     // Release the final map holding the entire structure
     release(classes);
+  });
+}
+
+static void test_edn_parser_class_parsing_memory(void **state) {
+  (void)state; // unused
+
+  clojure::rt::protobuf::bytecode::Programme astClasses;
+  {
+    std::fstream classesInput("tests/rt-classes.cljb",
+                              std::ios::in | std::ios::binary);
+    if (!astClasses.ParseFromIstream(&classesInput)) {
+      fail_msg("Failed to parse bytecode.");
+    }
+  }
+
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    rt::JITEngine engine(compState);
+
+    llvm::orc::ExecutorAddr res =
+        engine
+            .compileAST(astClasses.nodes(0), "__classes",
+                        llvm::OptimizationLevel::O0, false)
+            .get();
+
+    RTValue classes = res.toPtr<RTValue (*)()>()();
+
+    {
+      rt::TemporaryClassData classData(classes);
+      // Let classData process the ArrayMap. We do not explicitly release
+      // `classes` here, as `TemporaryClassData` constructor
+      // `rt::TemporaryClassData::TemporaryClassData(RTValue from)` calls
+      // `release(from)` at the very end of processing it!
+    }
   });
 }
 
@@ -68,6 +102,7 @@ int main(int argc, char **argv) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_trivial_memory),
       cmocka_unit_test(test_edn_parser_memory),
+      cmocka_unit_test(test_edn_parser_class_parsing_memory),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -87,6 +87,7 @@ TemporaryClassData::TemporaryClassData(RTValue from) {
     classesByName[string(String_c_str(s))] =
         (PersistentArrayMap *)RT_unboxPtr(value);
     Ptr_release(s);
+    release(value);
   }
   release(from);
 }

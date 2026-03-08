@@ -4,6 +4,7 @@ set(COMMON_TEST_SOURCES
 
 set(TEST_MODULES
     EdnParser_test
+    EdnParser_functional_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

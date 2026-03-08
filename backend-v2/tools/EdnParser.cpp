@@ -1,4 +1,5 @@
 #include "EdnParser.h"
+#include "RTValueWrapper.h"
 
 namespace rt {
 ClassDescription::~ClassDescription() {
@@ -17,12 +18,15 @@ TemporaryClassData::~TemporaryClassData() {
 }
 
 TemporaryClassData::TemporaryClassData(RTValue from) {
-  if (getType(from) != persistentArrayMapType)
+  ConsumedValue root(from);
+  if (getType(root.get()) != persistentArrayMapType)
     throwInternalInconsistencyException("Class definitions are not a map");
-  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(from);
+
+  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(root.get());
   for (uword_t i = 0; i < map->count; i++) {
     RTValue key = map->keys[i];
     RTValue value = map->values[i];
+
     if (getType(key) != symbolType)
       throwInternalInconsistencyException(
           "Class definition key is not a symbol.");
@@ -30,399 +34,360 @@ TemporaryClassData::TemporaryClassData(RTValue from) {
       throwInternalInconsistencyException(
           "Class definition value is not a map.");
 
-    retain(key);
+    // PersistentArrayMap_assoc consumes its arguments.
+    // Protect borrowed value and key for assoc.
     retain(value);
-
-    value = RT_boxPtr(
+    retain(key);
+    RTValue updatedValue = RT_boxPtr(
         PersistentArrayMap_assoc((PersistentArrayMap *)RT_unboxPtr(value),
                                  Keyword_create(String_create("name")), key));
 
-    retain(value);
-    RTValue classId =
-        PersistentArrayMap_get((PersistentArrayMap *)RT_unboxPtr(value),
-                               Keyword_create(String_create("object-type")));
+    // updatedValue has refcount 1. wrapped in valWrapper for cleanup.
+    ConsumedValue valWrapper(updatedValue);
 
-    if (getType(classId) == integerType) {
-      retain(value);
-      classesById[RT_unboxInt32(classId)] =
-          (PersistentArrayMap *)RT_unboxPtr(value);
-    } else {
-      if (getType(classId) != nilType) {
-        release(classId);
-        release(key);
-        release(value);
-        throwInternalInconsistencyException(":object-type must be an integer.");
-      }
+    // PersistentArrayMap_get consumes its arguments.
+    // Protect valWrapper for multiple gets.
+    retain(valWrapper.get());
+    RTValue classId = PersistentArrayMap_get(
+        (PersistentArrayMap *)RT_unboxPtr(valWrapper.get()),
+        Keyword_create(String_create("object-type")));
+    ConsumedValue classIdWrapper(classId);
+
+    if (getType(classIdWrapper.get()) == integerType) {
+      PersistentArrayMap *pMap =
+          (PersistentArrayMap *)RT_unboxPtr(valWrapper.get());
+      classesById[RT_unboxInt32(classIdWrapper.get())] = pMap;
+      Ptr_retain(pMap); // for storage
+    } else if (getType(classIdWrapper.get()) != nilType) {
+      throwInternalInconsistencyException(":object-type must be an integer.");
     }
 
-    release(classId);
+    retain(valWrapper.get()); // for get
+    RTValue alias = PersistentArrayMap_get(
+        (PersistentArrayMap *)RT_unboxPtr(valWrapper.get()),
+        Keyword_create(String_create("alias")));
+    ConsumedValue aliasWrapper(alias);
 
-    retain(value);
-    RTValue alias =
-        PersistentArrayMap_get((PersistentArrayMap *)RT_unboxPtr(value),
-                               Keyword_create(String_create("alias")));
-
-    /* Aliases are stored in the same way as classes themselves - we abuse
-       alias string representation that starts with a colon */
-
-    if (getType(alias) == keywordType) {
-      String *ss = String_compactify(toString(alias));
-      retain(value);
-      classesByName[string(String_c_str(ss))] =
-          (PersistentArrayMap *)RT_unboxPtr(value);
+    if (getType(aliasWrapper.get()) == keywordType) {
+      // toString consumes.
+      String *ss = String_compactify(toString(aliasWrapper.take()));
+      PersistentArrayMap *pMap =
+          (PersistentArrayMap *)RT_unboxPtr(valWrapper.get());
+      classesByName[string(String_c_str(ss))] = pMap;
+      Ptr_retain(pMap); // for storage
       Ptr_release(ss);
-    } else {
-      if (getType(alias) != nilType) {
-        release(alias);
-        release(key);
-        release(value);
-        throwInternalInconsistencyException(":alias must be a keyword.");
-      }
+    } else if (getType(aliasWrapper.get()) != nilType) {
+      throwInternalInconsistencyException(":alias must be a keyword.");
     }
 
+    // toString consumes. Protect borrowed key.
     retain(key);
     String *s = String_compactify(toString(key));
-
-    retain(value);
-    classesByName[string(String_c_str(s))] =
-        (PersistentArrayMap *)RT_unboxPtr(value);
+    PersistentArrayMap *pMap =
+        (PersistentArrayMap *)RT_unboxPtr(valWrapper.get());
+    classesByName[string(String_c_str(s))] = pMap;
+    Ptr_retain(pMap); // for storage
     Ptr_release(s);
-    release(value);
   }
-  release(from);
 }
 
 ClassDescription::ClassDescription(RTValue from,
                                    TemporaryClassData &classData) {
-  retain(from);
-  String *s = String_compactify(toString(from));
-  printf("!!! from: '''%s'''\n", String_c_str(s));
-  Ptr_release(s);
+  ConsumedValue root(from);
 
-  if (getType(from) != persistentArrayMapType) {
-    release(from);
+  if (getType(root.get()) != persistentArrayMapType) {
     throwInternalInconsistencyException(
         "ClassDescription: requires a map as an argument");
   }
-  PersistentArrayMap *description = (PersistentArrayMap *)RT_unboxPtr(from);
-  Ptr_retain(description);
+  PersistentArrayMap *description =
+      (PersistentArrayMap *)RT_unboxPtr(root.get());
 
-  RTValue typeRaw = PersistentArrayMap_get(
-      description, Keyword_create(String_create("object-type")));
+  retain(root.get());
+  ConsumedValue typeWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("object-type"))));
 
-  if (getType(typeRaw) == integerType) {
-    this->type = (objectType)RT_unboxInt32(typeRaw);
-  } else if (getType(typeRaw) == nilType) {
+  if (getType(typeWrapper.get()) == integerType) {
+    this->type = (objectType)RT_unboxInt32(typeWrapper.get());
+  } else if (getType(typeWrapper.get()) == nilType) {
     this->type = classType;
   } else {
-    release(typeRaw);
-    Ptr_release(description);
     throwInternalInconsistencyException("Object-type is not an integer");
   }
-  release(typeRaw);
 
-  Ptr_retain(description);
+  retain(root.get());
+  ConsumedValue nameWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("name"))));
 
-  RTValue nameRaw = PersistentArrayMap_get(
-      description, Keyword_create(String_create("name")));
-
-  if (getType(nameRaw) != stringType && getType(nameRaw) != symbolType) {
-    release(nameRaw);
-    Ptr_release(description);
-    printf("type: %d\n", getType(nameRaw));
+  if (getType(nameWrapper.get()) != stringType &&
+      getType(nameWrapper.get()) != symbolType) {
     throwInternalInconsistencyException("Name is not a string or symbol");
   }
 
-  String *compactifiedName = String_compactify(toString(nameRaw));
+  // toString consumes.
+  String *compactifiedName = String_compactify(toString(nameWrapper.take()));
   this->name = String_c_str(compactifiedName);
   Ptr_release(compactifiedName);
-  release(nameRaw);
 
   extends = nullptr;
 
-  Ptr_retain(description);
+  retain(root.get());
+  ConsumedValue sfWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("static-fields"))));
 
-  RTValue staticFieldsRaw = PersistentArrayMap_get(
-      description, Keyword_create(String_create("static-fields")));
-
-  if (getType(staticFieldsRaw) == persistentArrayMapType) {
-    try {
-      this->staticFields = parseStaticFields(staticFieldsRaw);
-    } catch (...) {
-      Ptr_release(description);
-      throw;
-    }
-  } else {
-    release(staticFieldsRaw);
+  if (getType(sfWrapper.get()) == persistentArrayMapType) {
+    this->staticFields = parseStaticFields(sfWrapper.take());
+  } else if (getType(sfWrapper.get()) != nilType) {
+    throwInternalInconsistencyException(":static-fields must be a map.");
   }
 
-  Ptr_retain(description);
+  retain(root.get());
+  ConsumedValue sfnsWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("static-fns"))));
 
-  RTValue staticFnsRaw = PersistentArrayMap_get(
-      description, Keyword_create(String_create("static-fns")));
-
-  if (getType(staticFnsRaw) == persistentArrayMapType) {
-    try {
-      this->staticFns = parseIntrinsics(staticFnsRaw, classData);
-    } catch (...) {
-      Ptr_release(description);
-      throw;
-    }
-  } else {
-    release(staticFnsRaw);
+  // sfnsWrapper is consumed by parseIntrinsics.
+  if (getType(sfnsWrapper.get()) == persistentArrayMapType) {
+    this->staticFns = parseIntrinsics(sfnsWrapper.take(), classData);
+  } else if (getType(sfnsWrapper.get()) != nilType) {
+    throwInternalInconsistencyException(":static-fns must be a map.");
   }
 
-  Ptr_retain(description);
+  retain(root.get());
+  ConsumedValue ifnsWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("instance-fns"))));
 
-  RTValue instanceFnsRaw = PersistentArrayMap_get(
-      description, Keyword_create(String_create("instance-fns")));
-
-  if (getType(instanceFnsRaw) == persistentArrayMapType) {
-    try {
-      this->instanceFns = parseIntrinsics(instanceFnsRaw, classData);
-    } catch (...) {
-      Ptr_release(description);
-      throw;
-    }
-  } else {
-    release(instanceFnsRaw);
+  if (getType(ifnsWrapper.get()) == persistentArrayMapType) {
+    this->instanceFns = parseIntrinsics(ifnsWrapper.take(), classData);
+  } else if (getType(ifnsWrapper.get()) != nilType) {
+    throwInternalInconsistencyException(":instance-fns must be a map.");
   }
-
-  Ptr_release(description);
 }
 
 unordered_map<string, RTValue>
 ClassDescription::parseStaticFields(RTValue from) {
+  ConsumedValue root(from);
   unordered_map<string, RTValue> retVal;
-  if (getType(from) != persistentArrayMapType)
+  if (getType(root.get()) != persistentArrayMapType)
     throwInternalInconsistencyException("Static fields are not a map");
-  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(from);
+
+  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(root.get());
   for (uword_t i = 0; i < map->count; i++) {
     RTValue key = map->keys[i];
     RTValue value = map->values[i];
     if (getType(key) != symbolType)
       throwInternalInconsistencyException("Static fields key is not a symbol.");
-    retain(key);
-    retain(value);
 
+    // toString consumes. Protect key for the map.
+    retain(key);
     String *ss = String_compactify(toString(key));
     string sKey = String_c_str(ss);
     Ptr_release(ss);
+
+    // Value will be owned by staticFields (ClassDescription destructor releases
+    // it).
+    retain(value);
     retVal[sKey] = value;
   }
 
-  release(from);
   return retVal;
 }
 
 unordered_map<string, vector<IntrinsicDescription>>
 ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData) {
+  ConsumedValue root(from);
   unordered_map<string, vector<IntrinsicDescription>> retVal;
-  if (getType(from) != persistentArrayMapType) {
-    release(from);
+  if (getType(root.get()) != persistentArrayMapType) {
     throwInternalInconsistencyException("Intrinsic collection is not a map");
   }
-  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(from);
+
+  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(root.get());
   for (uword_t i = 0; i < map->count; i++) {
     RTValue key = map->keys[i];
     RTValue value = map->values[i];
     if (getType(key) != symbolType) {
-      release(from);
       throwInternalInconsistencyException(
           "Intrinsic collection key is not a symbol.");
     }
 
-    RTValue descriptionsRaw = value;
-    objectType descriptionsType = getType(descriptionsRaw);
+    if (getType(value) == nilType)
+      continue;
 
-    if (descriptionsType != nilType) {
-      if (descriptionsType != persistentVectorType) {
-        release(from);
-        throwInternalInconsistencyException(
-            "Intrinsic collection is not a map");
-      }
-
-      vector<IntrinsicDescription> descriptions;
-
-      PersistentVector *descriptionsVector =
-          (PersistentVector *)RT_unboxPtr(descriptionsRaw);
-
-      Ptr_retain(descriptionsVector);
-      uword_t intrinsicCnt = PersistentVector_count(descriptionsVector);
-      PersistentVectorIterator it =
-          PersistentVector_iterator(descriptionsVector);
-      for (uword_t j = 0; j < intrinsicCnt; j++) {
-        RTValue intrinsicRaw = PersistentVector_iteratorGet(&it);
-        try {
-          descriptions.push_back(IntrinsicDescription(intrinsicRaw, classData));
-        } catch (...) {
-          release(from);
-          throw;
-        }
-
-        PersistentVector_iteratorNext(&it);
-      }
-
-      retain(key);
-      String *ss = String_compactify(toString(key));
-      string sKey = String_c_str(ss);
-      Ptr_release(ss);
-
-      retVal[sKey] = descriptions;
+    if (getType(value) != persistentVectorType) {
+      throwInternalInconsistencyException(
+          "Intrinsic collection value is not a vector");
     }
+
+    vector<IntrinsicDescription> descriptions;
+    PersistentVector *vec = (PersistentVector *)RT_unboxPtr(value);
+
+    uword_t count = vec->count; // Safe borrowed access.
+
+    // PersistentVector_iterator does not consume vec.
+    PersistentVectorIterator it = PersistentVector_iterator(vec);
+
+    for (uword_t j = 0; j < count; j++) {
+      RTValue intrinsicRaw = PersistentVector_iteratorGet(&it);
+      // IntrinsicDescription constructor consumes. Protect borrowed entry.
+      retain(intrinsicRaw);
+      descriptions.push_back(IntrinsicDescription(intrinsicRaw, classData));
+      PersistentVector_iteratorNext(&it);
+    }
+
+    // toString(key) consumes. Protect borrowed key for the map.
+    retain(key);
+    String *ss = String_compactify(toString(key));
+    string sKey = String_c_str(ss);
+    Ptr_release(ss);
+
+    retVal[sKey] = descriptions;
   }
 
-  release(from);
   return retVal;
 }
 
 IntrinsicDescription::IntrinsicDescription(RTValue from,
                                            TemporaryClassData &classData) {
-  if (getType(from) != persistentArrayMapType) {
-    fprintf(stderr, "Intrinsic collection is not a map\n");
-    release(from);
-    throwInternalInconsistencyException("Intrinsic collection is not a map");
+  ConsumedValue root(from);
+  if (getType(root.get()) != persistentArrayMapType) {
+    throwInternalInconsistencyException("Intrinsic description is not a map");
   }
 
-  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(from);
+  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(root.get());
 
-  Ptr_retain(map);
+  retain(root.get());
   RTValue typeRaw =
       PersistentArrayMap_get(map, Keyword_create(String_create("type")));
-  if (getType(typeRaw) != keywordType) {
-    fprintf(stderr, "Intrinsic :type is not a keyword.\n");
-    release(typeRaw);
-    Ptr_release(map);
+  ConsumedValue typeWrapper(typeRaw);
+
+  if (getType(typeWrapper.get()) != keywordType) {
     throwInternalInconsistencyException("Intrinsic :type is not a keyword.");
   }
-  String *typeStr = String_compactify(toString(typeRaw));
+
+  // toString consumes.
+  String *typeStr = String_compactify(toString(typeWrapper.take()));
   string sType = String_c_str(typeStr);
   Ptr_release(typeStr);
-  release(typeRaw);
 
   if (sType == ":call") {
     this->type = CallType::Call;
   } else if (sType == ":intrinsic") {
     this->type = CallType::Intrinsic;
   } else {
-    fprintf(stderr, "Intrinsic :type must be :call or :intrinsic. Got %s\n",
-            sType.c_str());
-    Ptr_release(map);
-    release(from);
     throwInternalInconsistencyException(
         "Intrinsic :type must be :call or :intrinsic");
   }
 
-  Ptr_retain(map);
+  retain(root.get());
   RTValue symbolRaw =
       PersistentArrayMap_get(map, Keyword_create(String_create("symbol")));
-  if (getType(symbolRaw) != stringType) {
-    fprintf(stderr, "Intrinsic :symbol is not a string.\n");
-    release(symbolRaw);
-    Ptr_release(map);
+  ConsumedValue symbolWrapper(symbolRaw);
+
+  if (getType(symbolWrapper.get()) != stringType) {
     throwInternalInconsistencyException("Intrinsic :symbol is not a string.");
   }
-  String *symbolStr = String_compactify((String *)RT_unboxPtr(symbolRaw));
+
+  // symbolWrapper is consumed by String_compactify.
+  String *symbolStr =
+      String_compactify((String *)RT_unboxPtr(symbolWrapper.take()));
   this->symbol = String_c_str(symbolStr);
   Ptr_release(symbolStr);
-  release(symbolRaw);
 
-  Ptr_retain(map);
+  retain(root.get());
   RTValue argsRaw =
       PersistentArrayMap_get(map, Keyword_create(String_create("args")));
-  if (getType(argsRaw) != persistentVectorType && getType(argsRaw) != nilType) {
-    fprintf(stderr, "Intrinsic :args is not a vector.\n");
-    release(argsRaw);
-    Ptr_release(map);
+  ConsumedValue argsWrapper(argsRaw);
+
+  if (getType(argsWrapper.get()) != persistentVectorType &&
+      getType(argsWrapper.get()) != nilType) {
     throwInternalInconsistencyException("Intrinsic :args is not a vector.");
   }
 
-  if (getType(argsRaw) == persistentVectorType) {
-    PersistentVector *argsVector = (PersistentVector *)RT_unboxPtr(argsRaw);
-    Ptr_retain(argsVector);
-    uword_t argCnt = PersistentVector_count(argsVector);
+  if (getType(argsWrapper.get()) == persistentVectorType) {
+    PersistentVector *argsVector =
+        (PersistentVector *)RT_unboxPtr(argsWrapper.get());
+
+    uword_t argCnt = argsVector->count; // Safe borrowed access.
+
+    // PersistentVector_iterator does not consume argsVector.
     PersistentVectorIterator it = PersistentVector_iterator(argsVector);
     for (uword_t j = 0; j < argCnt; j++) {
       RTValue argRaw = PersistentVector_iteratorGet(&it);
+      // toString consumes. Protect borrowed entry for iterator.
       retain(argRaw);
       String *argStr = String_compactify(toString(argRaw));
       string sArgKey = String_c_str(argStr);
       Ptr_release(argStr);
-      release(argRaw);
 
       if (sArgKey == ":this") {
         this->argTypes.push_back(ObjectTypeSet(classType));
       } else if (sArgKey == ":any") {
         this->argTypes.push_back(ObjectTypeSet::dynamicType());
+      } else if (sArgKey == ":nil") {
+        this->argTypes.push_back(ObjectTypeSet(nilType));
       } else {
         if (classData.classesByName.find(sArgKey) ==
             classData.classesByName.end()) {
-          fprintf(stderr, "Unknown arg type: %s\n", sArgKey.c_str());
-          Ptr_release(argsVector);
-          release(argsRaw);
-          Ptr_release(map);
           throwInternalInconsistencyException("Unknown arg type: " + sArgKey);
         }
         PersistentArrayMap *argClassMap = classData.classesByName[sArgKey];
+
+        // Protect borrowed argClassMap for get.
         Ptr_retain(argClassMap);
         RTValue argTypeRaw = PersistentArrayMap_get(
             argClassMap, Keyword_create(String_create("object-type")));
-        if (getType(argTypeRaw) == integerType) {
-          objectType t = (objectType)RT_unboxInt32(argTypeRaw);
+        ConsumedValue atWrapper(argTypeRaw);
+
+        if (getType(atWrapper.get()) == integerType) {
+          objectType t = (objectType)RT_unboxInt32(atWrapper.get());
           this->argTypes.push_back(ObjectTypeSet(t));
         } else {
           this->argTypes.push_back(ObjectTypeSet(classType));
         }
-        release(argTypeRaw);
       }
       PersistentVector_iteratorNext(&it);
     }
-    Ptr_release(argsVector);
   }
-  release(argsRaw);
 
-  Ptr_retain(map);
+  retain(root.get());
   RTValue returnsRaw =
       PersistentArrayMap_get(map, Keyword_create(String_create("returns")));
-  if (getType(returnsRaw) != nilType) {
-    retain(returnsRaw);
-    String *retStr = String_compactify(toString(returnsRaw));
+  ConsumedValue returnsWrapper(returnsRaw);
+
+  if (getType(returnsWrapper.get()) != nilType) {
+    // toString consumes.
+    String *retStr = String_compactify(toString(returnsWrapper.take()));
     string sRetKey = String_c_str(retStr);
     Ptr_release(retStr);
 
     if (sRetKey == ":any") {
       this->returnType = ObjectTypeSet::dynamicType();
+    } else if (sRetKey == ":nil") {
+      this->returnType = ObjectTypeSet(nilType);
     } else if (classData.classesByName.find(sRetKey) !=
                classData.classesByName.end()) {
       PersistentArrayMap *retClassMap = classData.classesByName[sRetKey];
+
       Ptr_retain(retClassMap);
       RTValue retTypeRaw = PersistentArrayMap_get(
           retClassMap, Keyword_create(String_create("object-type")));
-      if (getType(retTypeRaw) == integerType) {
-        objectType t = (objectType)RT_unboxInt32(retTypeRaw);
+      ConsumedValue rtWrapper(retTypeRaw);
+
+      if (getType(rtWrapper.get()) == integerType) {
+        objectType t = (objectType)RT_unboxInt32(rtWrapper.get());
         this->returnType = ObjectTypeSet(t);
       } else {
         this->returnType = ObjectTypeSet(classType);
       }
-      release(retTypeRaw);
     } else {
-      fprintf(stderr, "Unknown return type: %s\n", sRetKey.c_str());
-      release(returnsRaw);
-      Ptr_release(map);
       throwInternalInconsistencyException("Unknown return type: " + sRetKey);
     }
-    release(returnsRaw);
   } else {
     this->returnType = ObjectTypeSet::dynamicType();
-    release(returnsRaw);
   }
-
-  Ptr_release(map);
 }
 
 #include <unordered_set>
 vector<ClassDescription> buildClasses(RTValue from) {
-  retain(from);
+  // from is consumed by TemporaryClassData
   TemporaryClassData classData(from);
   vector<ClassDescription> retVal;
 

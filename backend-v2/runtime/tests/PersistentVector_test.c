@@ -178,6 +178,7 @@ static void vectorAssocUpdate(void **state) {
     Ptr_retain(v);
     // Update index i to value 7
     PersistentVector *next = PersistentVector_assoc(v, i, RT_boxInt32(7));
+    Ptr_release(v); // Release the old reference
     v = next;
   }
   timerStop(&timer);

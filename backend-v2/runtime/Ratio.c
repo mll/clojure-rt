@@ -89,7 +89,9 @@ uword_t Ratio_hash(Ratio *self) {
 /* mem done */
 String *Ratio_toString(Ratio *self) {
   // Do not use BigInteger_toString! Numerator and denominator do not display N
-  String *num = String_create(mpq_get_str(NULL, 10, self->value));
+  char *str = mpq_get_str(NULL, 10, self->value);
+  String *num = String_createDynamicStr(str);
+  free(str);
   Ptr_release(self);
   return num;
 }

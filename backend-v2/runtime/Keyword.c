@@ -24,7 +24,7 @@ RTValue Keyword_create(String *string) {
     RTValue retVal2 = ConcurrentHashMap_get(keywords, stringVal);
     if (RT_isKeyword(retVal2)) {
       pthread_mutex_unlock(&intern_mutex);
-      Ptr_release(string);
+      Ptr_release(string); // Finalize consumption
       return retVal2;
     }
 
@@ -32,12 +32,14 @@ RTValue Keyword_create(String *string) {
         atomic_fetch_add_explicit(&minUnusedKeyword, 1, memory_order_relaxed));
 
     Ptr_retain(string);
+    Ptr_retain(string);
     ConcurrentHashMap_assoc(keywordsInverted, new, stringVal);
     ConcurrentHashMap_assoc(keywords, stringVal, new);
     pthread_mutex_unlock(&intern_mutex);
+    Ptr_release(string); // Finalize consumption
     return new;
   }
-  Ptr_release(string);
+  Ptr_release(string); // Finalize consumption
   return retVal;
 }
 

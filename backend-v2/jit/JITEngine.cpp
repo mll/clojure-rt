@@ -14,13 +14,20 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
   if (!JITExp)
     throw std::runtime_error("Failed to init LLJIT");
   jit = std::move(*JITExp);
+
+  // Expose symbols from the current process to the JIT.
+  // This is required on Linux to find runtime functions.
+  auto &DL = jit->getDataLayout();
+  jit->getMainJITDylib().addGenerator(
+      cantFail(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
+          DL.getGlobalPrefix())));
 }
 
 std::future<llvm::orc::ExecutorAddr>
 JITEngine::compileAST(const Node &AST, const std::string &moduleName,
                       llvm::OptimizationLevel level, bool printModule) {
   // Wrap logic in a task for the pool
-  return pool.enqueue([this, AST, level, moduleName,
+  return pool.enqueue([this, AST, moduleName,
                        printModule]() -> llvm::orc::ExecutorAddr {
     auto codeGenerator = CodeGen(moduleName, threadsafeState);
     auto fName = codeGenerator.codegenTopLevel(AST);

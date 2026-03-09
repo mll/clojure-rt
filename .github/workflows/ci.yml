@@ -2,9 +2,9 @@ name: C++ CI Linux
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master" ]
 
 jobs:
   build-and-test:
@@ -30,11 +30,16 @@ jobs:
         sudo apt-get install -y clang-20 lld-20 libc++-20-dev libc++abi-20-dev llvm-20-dev
 
     - name: Configure CMake
-      run: cmake -S . -B build
+      run: |
+        cmake -S . -B build \
+          -DCMAKE_C_COMPILER=clang-20 \
+          -DCMAKE_CXX_COMPILER=clang++-20 \
+          -DLLVM_DIR=/usr/lib/llvm-20/lib/cmake/llvm \
+          -DCMAKE_BUILD_TYPE=Debug
 
     - name: Build
-      run: cmake --build build --config Release
+      run: cmake --build build -j$(nproc)
 
     - name: Run Tests
       working-directory: ./backend-v2/build
-      run: ctest --output-on-failure -C Release
+      run: ctest --output-on-failure

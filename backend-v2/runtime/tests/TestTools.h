@@ -55,7 +55,14 @@ void testScalingBehavior(void **state);
 
 #define ASSERT_MEMORY_BALANCE(type, block)                                     \
   do {                                                                         \
-    uword_t start_count = allocationCount[(type)-1];                           \
+    _Pragma("GCC diagnostic push")                                             \
+        _Pragma("GCC diagnostic ignored \"-Wstringop-overflow\"") if (         \
+            strstr(BUILD_TYPE, "Release")) {                                   \
+      fail_msg("ASSERT_MEMORY_BALANCE cannot be used in Release mode as "      \
+               "memory tracking results may be unreliable or disabled.");      \
+    }                                                                          \
+    _Pragma("GCC diagnostic pop") uword_t start_count =                        \
+        allocationCount[(type)-1];                                             \
     block uword_t end_count = allocationCount[(type)-1];                       \
     assert_int_equal(start_count, end_count);                                  \
   } while (0)
@@ -78,6 +85,10 @@ void assertMemoryDifference(MemoryState *before, MemoryState *after, int type,
 // type
 #define ASSERT_MEMORY_ALL_BALANCED(block)                                      \
   do {                                                                         \
+    if (strstr(BUILD_TYPE, "Release")) {                                       \
+      fail_msg("ASSERT_MEMORY_ALL_BALANCED cannot be used in Release mode as " \
+               "memory tracking results may be unreliable or disabled.");      \
+    }                                                                          \
     MemoryState __before, __after;                                             \
     captureMemoryState(&__before);                                             \
     {block} captureMemoryState(&__after);                                      \

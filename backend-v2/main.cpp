@@ -1,10 +1,12 @@
-#include <iostream>
-#include <fstream>
 #include "RuntimeHeaders.h"
 #include "bytecode.pb.h"
+#include <fstream>
+#include <iostream>
 
+#include "bridge/Exceptions.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -20,33 +22,45 @@
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
-#include "llvm/DebugInfo/Symbolize/Symbolize.h"
-#include "bridge/Exceptions.h"
 
-#include "state/ThreadsafeCompilerState.h"
 #include "jit/JITEngine.h"
+#include "state/ThreadsafeCompilerState.h"
 
 using namespace std;
 using namespace llvm;
 
 #include "RuntimeHeaders.h"
 
+#ifdef __APPLE__
 #include <mach-o/dyld.h>
+#elif defined(__linux__)
+#include <limits.h>
+#include <unistd.h>
+#endif
+
 std::string getSelfExecutablePath() {
-    char path[1024];
-    uint32_t size = sizeof(path);
-    if (_NSGetExecutablePath(path, &size) == 0)
-        return std::string(path);
-    return "";
+#ifdef __APPLE__
+  char path[1024];
+  uint32_t size = sizeof(path);
+  if (_NSGetExecutablePath(path, &size) == 0)
+    return std::string(path);
+#elif defined(__linux__)
+  char path[PATH_MAX];
+  ssize_t count = readlink("/proc/self/exe", path, PATH_MAX);
+  if (count != -1) {
+    return std::string(path, count);
+  }
+#endif
+  return "";
 }
 
 int main(int argc, char *argv[]) {
-  setbuf(stdout, NULL);  
-  if(argc != 2) {
+  setbuf(stdout, NULL);
+  if (argc != 2) {
     cout << "Please specify the filename for compilation" << endl;
     return -1;
   }
-  
+
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   clojure::rt::protobuf::bytecode::Programme astInterfaces;
@@ -66,7 +80,7 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
-  
+
   clojure::rt::protobuf::bytecode::Programme astRoot;
   {
     fstream input(argv[1], ios::in | ios::binary);
@@ -75,38 +89,34 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
-  
+
   initialise_memory();
 
   try {
     rt::ThreadsafeCompilerState state;
     rt::JITEngine engine(state);
 
-    RTValue interfaces =
-        engine.compileAST(astInterfaces.nodes(0), "__interfaces",
-                          llvm::OptimizationLevel::O0,
-                          false)
-      .get()
-      .toPtr<RTValue (*)()>()();
+    RTValue interfaces = engine
+                             .compileAST(astInterfaces.nodes(0), "__interfaces",
+                                         llvm::OptimizationLevel::O0, false)
+                             .get()
+                             .toPtr<RTValue (*)()>()();
 
     state.storeInternalProtocols(interfaces);
-    
-    RTValue classes =
-        engine.compileAST(astClasses.nodes(0), "__classes",
-                          llvm::OptimizationLevel::O0,
-                          false)
-      .get()
-      .toPtr<RTValue (*)()>()();
+
+    RTValue classes = engine
+                          .compileAST(astClasses.nodes(0), "__classes",
+                                      llvm::OptimizationLevel::O0, false)
+                          .get()
+                          .toPtr<RTValue (*)()>()();
 
     state.storeInternalClasses(classes);
-    
-    
-        
-//    release(intrinsics);
-    
-    // auto f = engine.compileAST(astRoot.nodes(0), "__root", llvm::OptimizationLevel::O0);    
-    // cout << "Compiling!!!" << endl;
-    // printReferenceCounts();    
+
+    //    release(intrinsics);
+
+    // auto f = engine.compileAST(astRoot.nodes(0), "__root",
+    // llvm::OptimizationLevel::O0); cout << "Compiling!!!" << endl;
+    // printReferenceCounts();
 
     // RTValue whaat = res();
     // printReferenceCounts();
@@ -120,17 +130,23 @@ int main(int argc, char *argv[]) {
     // printReferenceCounts();
   } catch (rt::LanguageException e) {
     llvm::symbolize::LLVMSymbolizer::Options options;
-    options.Demangle = true; 
+    options.Demangle = true;
     options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
-//    options.DsymHints.push_back(getSelfExecutablePath() + ".dSYM/Contents/Resources/DWARF/" + "clojure-rt");
+    //    options.DsymHints.push_back(getSelfExecutablePath() +
+    //    ".dSYM/Contents/Resources/DWARF/" + "clojure-rt");
     llvm::symbolize::LLVMSymbolizer symbolizer(options);
     cout << e.toString(symbolizer,
                        getSelfExecutablePath() +
                            ".dSYM/Contents/Resources/DWARF/" + "clojure-rt",
-                       _dyld_get_image_vmaddr_slide(0))
+#ifdef __APPLE__
+                       _dyld_get_image_vmaddr_slide(0)
+#else
+                       0
+#endif
+                           )
          << endl;
-    //e.printRawTrace();
-  }    
+    // e.printRawTrace();
+  }
 
   return 0;
-}  
+}

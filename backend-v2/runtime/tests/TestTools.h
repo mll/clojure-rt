@@ -8,7 +8,25 @@
 #include <pthread.h>
 #include <setjmp.h>
 #include <stdarg.h>
+#ifdef __cplusplus
+#include <atomic>
+using std::atomic_compare_exchange_strong_explicit;
+using std::atomic_compare_exchange_weak_explicit;
+using std::atomic_exchange_explicit;
+using std::atomic_fetch_add_explicit;
+using std::atomic_fetch_sub_explicit;
+using std::atomic_load_explicit;
+using std::atomic_store_explicit;
+using std::memory_order;
+using std::memory_order_acq_rel;
+using std::memory_order_acquire;
+using std::memory_order_relaxed;
+using std::memory_order_release;
+using std::memory_order_seq_cst;
+#define _Atomic(X) std::atomic<X>
+#else
 #include <stdatomic.h>
+#endif
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -55,7 +73,14 @@ void testScalingBehavior(void **state);
 
 #define ASSERT_MEMORY_BALANCE(type, block)                                     \
   do {                                                                         \
-    uword_t start_count = allocationCount[(type)-1];                           \
+    _Pragma("GCC diagnostic push")                                             \
+        _Pragma("GCC diagnostic ignored \"-Wstringop-overflow\"") if (         \
+            strstr(BUILD_TYPE, "Release")) {                                   \
+      fail_msg("ASSERT_MEMORY_BALANCE cannot be used in Release mode as "      \
+               "memory tracking results may be unreliable or disabled.");      \
+    }                                                                          \
+    _Pragma("GCC diagnostic pop") uword_t start_count =                        \
+        allocationCount[(type)-1];                                             \
     block uword_t end_count = allocationCount[(type)-1];                       \
     assert_int_equal(start_count, end_count);                                  \
   } while (0)
@@ -78,6 +103,10 @@ void assertMemoryDifference(MemoryState *before, MemoryState *after, int type,
 // type
 #define ASSERT_MEMORY_ALL_BALANCED(block)                                      \
   do {                                                                         \
+    if (strstr(BUILD_TYPE, "Release")) {                                       \
+      fail_msg("ASSERT_MEMORY_ALL_BALANCED cannot be used in Release mode as " \
+               "memory tracking results may be unreliable or disabled.");      \
+    }                                                                          \
     MemoryState __before, __after;                                             \
     captureMemoryState(&__before);                                             \
     {block} captureMemoryState(&__after);                                      \

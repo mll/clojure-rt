@@ -1,16 +1,15 @@
 #include "Object.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include "RTValue.h"
+#include "RuntimeInterface.h"
 #include <assert.h>
 #include <stdatomic.h>
-#include "RuntimeInterface.h"
-#include "RTValue.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-_Atomic uword_t allocationCount[256]; 
-_Atomic uword_t objectCount[256];
+_Atomic(uword_t) allocationCount[256];
+_Atomic(uword_t) objectCount[256];
 _Thread_local void *memoryBank[8] = {0};
 _Thread_local int memoryBankSize[8] = {0};
-
 
 /* pool globalPool1; */
 /* pool globalPool2; */
@@ -23,7 +22,8 @@ _Thread_local int memoryBankSize[8] = {0};
 void PersistentVector_initialise();
 
 void initialise_memory() {
-  for(int i=0; i<200; i++) atomic_exchange(&(allocationCount[i]), 0); 
+  for (int i = 0; i < 200; i++)
+    atomic_exchange(&(allocationCount[i]), 0);
   /* poolInitialize(&globalPool1, BLOCK_SIZE, 100000); */
   /* poolInitialize(&globalPool2, 128, 100000); */
   /* poolInitialize(&globalPool3, 64, 100000); */
@@ -45,25 +45,26 @@ void initialise_memory() {
 /* } */
 
 extern void *allocate(size_t size);
-extern void deallocate(void * restrict ptr);
+extern void deallocate(void *restrict ptr);
 
 extern void retain(RTValue self);
 extern bool release(RTValue self);
 extern void autorelease(RTValue self);
-extern bool release_internal(void * restrict self, bool deallocatesChildren);
+extern bool release_internal(void *restrict self, bool deallocatesChildren);
 extern bool equals(RTValue self, RTValue other);
 extern uword_t hash(RTValue self);
 extern String *toString(RTValue self);
 
-extern void Object_create(Object * restrict self, objectType type);
-extern void Object_retain(Object * restrict self);
-extern bool Object_release(Object * restrict self);
-extern bool Object_release_internal(Object * restrict self, bool deallocatesChildren);
+extern void Object_create(Object *restrict self, objectType type);
+extern void Object_retain(Object *restrict self);
+extern bool Object_release(Object *restrict self);
+extern bool Object_release_internal(Object *restrict self,
+                                    bool deallocatesChildren);
 extern void Object_destroy(Object *restrict self, bool deallocateChildren);
-extern void Object_autorelease(Object * restrict self);
-extern bool Object_equals(Object * restrict self, Object * restrict other);
-extern uword_t Object_hash(Object * restrict self);
-extern String *Object_toString(Object * restrict self);
+extern void Object_autorelease(Object *restrict self);
+extern bool Object_equals(Object *restrict self, Object *restrict other);
+extern uword_t Object_hash(Object *restrict self);
+extern String *Object_toString(Object *restrict self);
 extern bool Object_isReusable(Object *restrict self);
 extern bool isReusable(RTValue self);
 extern objectType getType(RTValue obj);

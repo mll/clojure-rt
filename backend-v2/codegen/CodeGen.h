@@ -1,7 +1,6 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
-#include "../bytecode.pb.h"
 #include "../state/ThreadsafeCompilerState.h"
 #include "DynamicConstructor.h"
 #include "LLVMTypes.h"
@@ -9,6 +8,7 @@
 #include "TypedValue.h"
 #include "ValueEncoder.h"
 #include "VariableBindings.h"
+#include "bytecode.pb.h"
 #include "invoke/InvokeManager.h"
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <llvm/IR/DerivedTypes.h>

@@ -1,35 +1,36 @@
 #include "BigInteger.h"
-#include "String.h"
 #include "Object.h"
+#include "String.h"
 
-BigInteger* BigInteger_createUninitialized() {
-  BigInteger *self = (BigInteger *)allocate(sizeof(BigInteger)); 
+BigInteger *BigInteger_createUninitialized() {
+  BigInteger *self = (BigInteger *)allocate(sizeof(BigInteger));
   Object_create((Object *)self, bigIntegerType);
   return self;
 }
 
-BigInteger* BigInteger_createUnassigned() {
+BigInteger *BigInteger_createUnassigned() {
   BigInteger *self = BigInteger_createUninitialized();
   mpz_init(self->value);
   return self;
 }
 
 /* mem done */
-BigInteger* BigInteger_createFromStr(const char * value) {
+BigInteger *BigInteger_createFromStr(const char *value) {
   BigInteger *self = BigInteger_createUninitialized();
-  assert(mpz_init_set_str(self->value, value, 10) == 0 && "Failed to initialize BigInteger");
+  assert(mpz_init_set_str(self->value, value, 10) == 0 &&
+         "Failed to initialize BigInteger");
   return self;
 }
 
 /* mem done */
-BigInteger* BigInteger_createFromMpz(mpz_t value) {
+BigInteger *BigInteger_createFromMpz(mpz_t value) {
   BigInteger *self = BigInteger_createUninitialized();
   mpz_init_set(self->value, value);
   return self;
 }
 
 /* mem done */
-BigInteger* BigInteger_createFromInt(word_t value) {
+BigInteger *BigInteger_createFromInt(word_t value) {
   BigInteger *self = BigInteger_createUninitialized();
   mpz_init_set_si(self->value, value);
   return self;
@@ -47,8 +48,10 @@ uword_t BigInteger_hash(BigInteger *self) {
 }
 
 /* mem done */
-String *BigInteger_toString(BigInteger *self) {  
-  String *num = String_create(mpz_get_str(NULL, 10, self->value));
+String *BigInteger_toString(BigInteger *self) {
+  char *str = mpz_get_str(NULL, 10, self->value);
+  String *num = String_createDynamicStr(str);
+  free(str);
   String *suffix = String_create("N");
   String *retVal = String_concat(num, suffix);
   Ptr_release(self);
@@ -56,9 +59,7 @@ String *BigInteger_toString(BigInteger *self) {
 }
 
 /* outside refcount system */
-void BigInteger_destroy(BigInteger *self) {
-  mpz_clear(self->value);
-}
+void BigInteger_destroy(BigInteger *self) { mpz_clear(self->value); }
 
 double BigInteger_toDouble(BigInteger *self) {
   double retVal = mpz_get_d(self->value);
@@ -70,13 +71,21 @@ BigInteger *BigInteger_add(BigInteger *self, BigInteger *other) {
   bool selfReusable = Ptr_isReusable(self);
   bool otherReusable = Ptr_isReusable(other);
   BigInteger *retVal;
-  if (selfReusable) retVal = self;
-  else if (otherReusable) retVal = other;
-  else retVal = BigInteger_createUnassigned();
+  if (selfReusable)
+    retVal = self;
+  else if (otherReusable)
+    retVal = other;
+  else
+    retVal = BigInteger_createUnassigned();
   mpz_add(retVal->value, self->value, other->value);
-  if (selfReusable) Ptr_release(other);
-  else if (otherReusable) Ptr_release(self);
-  else { Ptr_release(self); Ptr_release(other); }
+  if (selfReusable)
+    Ptr_release(other);
+  else if (otherReusable)
+    Ptr_release(self);
+  else {
+    Ptr_release(self);
+    Ptr_release(other);
+  }
   return retVal;
 }
 
@@ -84,13 +93,21 @@ BigInteger *BigInteger_sub(BigInteger *self, BigInteger *other) {
   bool selfReusable = Ptr_isReusable(self);
   bool otherReusable = Ptr_isReusable(other);
   BigInteger *retVal;
-  if (selfReusable) retVal = self;
-  else if (otherReusable) retVal = other;
-  else retVal = BigInteger_createUnassigned();
+  if (selfReusable)
+    retVal = self;
+  else if (otherReusable)
+    retVal = other;
+  else
+    retVal = BigInteger_createUnassigned();
   mpz_sub(retVal->value, self->value, other->value);
-  if (selfReusable) Ptr_release(other);
-  else if (otherReusable) Ptr_release(self);
-  else { Ptr_release(self); Ptr_release(other); }
+  if (selfReusable)
+    Ptr_release(other);
+  else if (otherReusable)
+    Ptr_release(self);
+  else {
+    Ptr_release(self);
+    Ptr_release(other);
+  }
   return retVal;
 }
 
@@ -98,13 +115,21 @@ BigInteger *BigInteger_mul(BigInteger *self, BigInteger *other) {
   bool selfReusable = Ptr_isReusable(self);
   bool otherReusable = Ptr_isReusable(other);
   BigInteger *retVal;
-  if (selfReusable) retVal = self;
-  else if (otherReusable) retVal = other;
-  else retVal = BigInteger_createUnassigned();
+  if (selfReusable)
+    retVal = self;
+  else if (otherReusable)
+    retVal = other;
+  else
+    retVal = BigInteger_createUnassigned();
   mpz_mul(retVal->value, self->value, other->value);
-  if (selfReusable) Ptr_release(other);
-  else if (otherReusable) Ptr_release(self);
-  else { Ptr_release(self); Ptr_release(other); }
+  if (selfReusable)
+    Ptr_release(other);
+  else if (otherReusable)
+    Ptr_release(self);
+  else {
+    Ptr_release(self);
+    Ptr_release(other);
+  }
   return retVal;
 }
 
@@ -114,18 +139,26 @@ void *BigInteger_div(BigInteger *self, BigInteger *other) {
     Ptr_release(other);
     return NULL; // Exception: divide by zero
   }
-  
+
   if (mpz_divisible_p(self->value, other->value)) {
     bool selfReusable = Ptr_isReusable(self);
     bool otherReusable = Ptr_isReusable(other);
-    BigInteger * retVal;
-    if (selfReusable) retVal = self;
-    else if (otherReusable) retVal = other;
-    else retVal = BigInteger_createUnassigned();
+    BigInteger *retVal;
+    if (selfReusable)
+      retVal = self;
+    else if (otherReusable)
+      retVal = other;
+    else
+      retVal = BigInteger_createUnassigned();
     mpz_divexact(retVal->value, self->value, other->value);
-    if (selfReusable) Ptr_release(other);
-    else if (otherReusable) Ptr_release(self);
-    else { Ptr_release(self); Ptr_release(other); }
+    if (selfReusable)
+      Ptr_release(other);
+    else if (otherReusable)
+      Ptr_release(self);
+    else {
+      Ptr_release(self);
+      Ptr_release(other);
+    }
     return retVal;
   } else {
     Ratio *ratio = Ratio_createUnassigned();

@@ -23,10 +23,10 @@
 #include "llvm/Support/raw_ostream.h"
 
 // Standard Library
-#include "../bytecode.pb.h"
 #include "../codegen/CodeGen.h"
 #include "../state/ThreadsafeCompilerState.h"
 #include "../tools/ThreadPool.h"
+#include "bytecode.pb.h"
 #include <algorithm>
 #include <future>
 #include <map>

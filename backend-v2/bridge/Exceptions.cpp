@@ -1,7 +1,15 @@
 #include "Exceptions.h"
+#include <cstdint>
 #include <iomanip>
+#include <iostream>
 #include <stdio.h>
-#include <sys/_types/_intptr_t.h>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#elif defined(__linux__)
+#include <limits.h>
+#include <unistd.h>
+#endif
 
 namespace rt {
 
@@ -16,6 +24,11 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
   for (int i = 0; i < size; i++) {
     stackAddresses.push_back(reinterpret_cast<uword_t>(buffer[i]));
   }
+}
+
+LanguageException::~LanguageException() noexcept {
+  release(message);
+  release(payload);
 }
 
 void LanguageException::printRawTrace() const {
@@ -83,6 +96,46 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
 
   return ss.str();
 }
+
+std::string getSelfExecutablePath() {
+#ifdef __APPLE__
+  char path[1024];
+  uint32_t size = sizeof(path);
+  if (_NSGetExecutablePath(path, &size) == 0)
+    return std::string(path);
+#elif defined(__linux__)
+  char path[PATH_MAX];
+  ssize_t count = readlink("/proc/self/exe", path, PATH_MAX);
+  if (count != -1) {
+    return std::string(path, count);
+  }
+#endif
+  return "";
+}
+
+std::string getExceptionString(const LanguageException &e) {
+  llvm::symbolize::LLVMSymbolizer::Options options;
+  options.Demangle = true;
+  options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
+  llvm::symbolize::LLVMSymbolizer symbolizer(options);
+
+  std::string exePath = getSelfExecutablePath();
+  std::string moduleName = exePath;
+
+#ifdef __APPLE__
+  size_t lastSlash = exePath.find_last_of('/');
+  std::string basename = (lastSlash != std::string::npos)
+                             ? exePath.substr(lastSlash + 1)
+                             : "clojure-rt";
+  moduleName = exePath + ".dSYM/Contents/Resources/DWARF/" + basename;
+  intptr_t slide = _dyld_get_image_vmaddr_slide(0);
+#else
+  intptr_t slide = 0;
+#endif
+
+  return e.toString(symbolizer, moduleName, slide);
+}
+
 } // namespace rt
 
 extern "C" {

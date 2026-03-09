@@ -9,7 +9,7 @@ extern ConcurrentHashMap *symbols;
 extern ConcurrentHashMap *symbolsInverted;
 
 static pthread_mutex_t intern_mutex = PTHREAD_MUTEX_INITIALIZER;
-static _Atomic uint32_t minUnusedSymbol = 1;
+static _Atomic(uint32_t) minUnusedSymbol = 1;
 
 /* mem done */
 RTValue Symbol_create(String *string) {
@@ -33,10 +33,8 @@ RTValue Symbol_create(String *string) {
 
     Ptr_retain(string);
     ConcurrentHashMap_assoc(symbolsInverted, new, stringVal);
-    Ptr_retain(string);
     ConcurrentHashMap_assoc(symbols, stringVal, new);
     pthread_mutex_unlock(&intern_mutex);
-    Ptr_release(string);
     return new;
   }
   Ptr_release(string);

@@ -9,7 +9,7 @@ extern ConcurrentHashMap *keywords;
 extern ConcurrentHashMap *keywordsInverted;
 
 static pthread_mutex_t intern_mutex = PTHREAD_MUTEX_INITIALIZER;
-static _Atomic uint32_t minUnusedKeyword = 1;
+static _Atomic(uint32_t) minUnusedKeyword = 1;
 
 /* mem done */
 RTValue Keyword_create(String *string) {
@@ -33,10 +33,8 @@ RTValue Keyword_create(String *string) {
 
     Ptr_retain(string);
     ConcurrentHashMap_assoc(keywordsInverted, new, stringVal);
-    Ptr_retain(string);
     ConcurrentHashMap_assoc(keywords, stringVal, new);
     pthread_mutex_unlock(&intern_mutex);
-    Ptr_release(string);
     return new;
   }
   Ptr_release(string);

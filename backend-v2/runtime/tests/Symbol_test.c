@@ -23,8 +23,7 @@ static void test_symbol_interning(void **state) {
     PersistentVector *v = PersistentVector_create();
     v = PersistentVector_conj(v, sym);
 
-    release(RT_boxPtr(v));
-    release(sym);
+    Ptr_release(v);
   });
 }
 
@@ -33,5 +32,7 @@ int main(int argc, char **argv) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_symbol_interning),
   };
-  return cmocka_run_group_tests(tests, NULL, NULL);
+  int result = cmocka_run_group_tests(tests, NULL, NULL);
+  RuntimeInterface_cleanup();
+  return result;
 }

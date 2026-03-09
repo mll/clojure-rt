@@ -32,5 +32,7 @@ int main(int argc, char **argv) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_keyword_interning),
   };
-  return cmocka_run_group_tests(tests, NULL, NULL);
+  int result = cmocka_run_group_tests(tests, NULL, NULL);
+  RuntimeInterface_cleanup();
+  return result;
 }

@@ -12,6 +12,11 @@ foreach(TEST_MODULE ${TEST_MODULES})
     add_executable(${EXEC_NAME} ${TEST_MODULE}.cpp ${COMMON_TEST_SOURCES})
     target_link_libraries(${EXEC_NAME} PUBLIC backend_lib runtime ${CMOCKA_LIBRARIES} ${GMP_LIBRARY})
     
+    # On Linux, export symbols so the JIT can find runtime functions
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_options(${EXEC_NAME} PRIVATE -rdynamic)
+    endif()
+
     add_test(
         NAME ${EXEC_NAME} 
         COMMAND ${EXEC_NAME}

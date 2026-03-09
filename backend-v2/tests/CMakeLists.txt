@@ -3,13 +3,12 @@ set(COMMON_TEST_SOURCES
 )
 
 set(TEST_MODULES
-    EdnParser_test
-    EdnParser_functional_test
-    EdnParser_negative_test
+    tools/EdnParser_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})
-    set(EXEC_NAME backend_${TEST_MODULE})
+    string(REPLACE "/" "_" SAFE_TEST_MODULE ${TEST_MODULE})
+    set(EXEC_NAME backend_${SAFE_TEST_MODULE})
     add_executable(${EXEC_NAME} ${TEST_MODULE}.cpp ${COMMON_TEST_SOURCES})
     target_link_libraries(${EXEC_NAME} PUBLIC backend_lib runtime ${CMOCKA_LIBRARIES} ${GMP_LIBRARY})
     

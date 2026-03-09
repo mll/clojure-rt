@@ -23,14 +23,48 @@ set(CMAKE_CXX_STANDARD 20)
 add_compile_definitions(BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
 if(APPLE)
+    if(NOT CMAKE_OSX_ARCHITECTURES)
+        set(CMAKE_OSX_ARCHITECTURES "arm64")
+    endif()
     set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
 endif()
 
 add_subdirectory(runtime)
 
-# Use LLVM's new approach for finding packages.
-# LLVM 20.1 is very new, ensure your system has LLVMConfig.cmake for it.
-find_package(LLVM 20.1 CONFIG REQUIRED) # Added REQUIRED for stricter checking.
+# --- Dependency Discovery ---
+
+# Helper function to find Homebrew prefix on macOS
+macro(find_homebrew_prefix PREFIX_VAR FORMULA_NAME)
+    if(APPLE AND NOT ${PREFIX_VAR})
+        execute_process(
+            COMMAND brew --prefix ${FORMULA_NAME}
+            RESULT_VARIABLE BREW_RESULT
+            OUTPUT_VARIABLE BREW_PREFIX
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        if(BREW_RESULT EQUAL 0)
+            set(${PREFIX_VAR} "${BREW_PREFIX}")
+        endif()
+    endif()
+endmacro()
+
+# 1. LLVM Detection
+# We prefer LLVM 20.x for API stability (getContext() availability).
+find_package(LLVM 20.1 CONFIG QUIET)
+
+# Fallback for macOS Homebrew if not found in standard paths
+if(NOT LLVM_FOUND AND APPLE)
+    find_homebrew_prefix(LLVM_PREFIX llvm@20)
+    if(LLVM_PREFIX)
+        set(LLVM_DIR "${LLVM_PREFIX}/lib/cmake/llvm")
+        find_package(LLVM 20.1 CONFIG REQUIRED)
+    endif()
+endif()
+
+# Final check for LLVM
+if(NOT LLVM_FOUND)
+    find_package(LLVM REQUIRED CONFIG)
+endif()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -90,13 +124,31 @@ set(BACKEND_SOURCES
       codegen/ops/MapNode.cpp)
 
 
-find_package(Protobuf REQUIRED)
+# 2. Protobuf Detection
+find_package(Protobuf CONFIG QUIET)
+if(NOT Protobuf_FOUND)
+    find_package(Protobuf REQUIRED)
+endif()
+
 include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ../model/bytecode.proto)
+
+# Use the modern protobuf_generate command if available, fallback to protobuf_generate_cpp
+if(COMMAND protobuf_generate)
+    protobuf_generate(LANGUAGE cpp OUT_VAR PROTO_SRCS PROTOC_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}" APPEND_PATH PROTOS ../model/bytecode.proto)
+else()
+    protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ../model/bytecode.proto)
+endif()
 
 add_library(backend_lib STATIC ${BACKEND_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries(backend_lib PUBLIC runtime ${LLVM_LIBS} ${Protobuf_LIBRARIES} ${GMP_LIBRARY})
+# Use target-based linking for Protobuf to handle Abseil dependencies automatically
+if(TARGET protobuf::libprotobuf)
+    set(PROTOBUF_LINK_TARGET protobuf::libprotobuf)
+else()
+    set(PROTOBUF_LINK_TARGET ${Protobuf_LIBRARIES})
+endif()
+
+target_link_libraries(backend_lib PUBLIC runtime ${LLVM_LIBS} ${PROTOBUF_LINK_TARGET} ${GMP_LIBRARY})
 
 add_executable(clojure-rt main.cpp)
 target_link_libraries(clojure-rt PUBLIC backend_lib)

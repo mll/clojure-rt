@@ -26,6 +26,7 @@ class LanguageException : public std::exception {
 
 public:
   LanguageException(const std::string &name, RTValue message, RTValue payload);
+  ~LanguageException() noexcept override;
   void printRawTrace() const;
   std::string toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
                        const std::string &moduleName = "JITMemoryBuffer",

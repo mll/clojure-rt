@@ -26,6 +26,11 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
   }
 }
 
+LanguageException::~LanguageException() noexcept {
+  release(message);
+  release(payload);
+}
+
 void LanguageException::printRawTrace() const {
   for (uword_t addr : stackAddresses) {
     printf("  [JIT ADDR] %p\n", (void *)addr);

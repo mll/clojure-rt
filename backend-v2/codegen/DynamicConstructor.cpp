@@ -8,9 +8,9 @@
 #include "ValueEncoder.h"
 #include "invoke/InvokeManager.h"
 #include "llvm/ADT/StringSwitch.h"
+#include <cstdint>
 #include <llvm/IR/Constants.h>
 #include <string>
-#include <sys/_types/_int64_t.h>
 
 using namespace llvm;
 

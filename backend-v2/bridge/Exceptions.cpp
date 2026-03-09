@@ -1,8 +1,8 @@
 #include "Exceptions.h"
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <stdio.h>
-#include <sys/_types/_intptr_t.h>
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>

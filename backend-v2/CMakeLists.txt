@@ -20,6 +20,7 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fstandalone-debug")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 set(CMAKE_CXX_STANDARD 20)
+add_compile_definitions(BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
 if(APPLE)
     set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
@@ -66,6 +67,7 @@ message(STATUS "LLVM Libraries to link: ${LLVM_LIBS}")
 include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # --- END OF CRITICAL CHANGES FOR LINKING ---
 

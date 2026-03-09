@@ -775,5 +775,7 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_unknown_arg_type),
       cmocka_unit_test(test_unknown_return_type),
   };
-  return cmocka_run_group_tests(tests, NULL, NULL);
+  int result = cmocka_run_group_tests(tests, NULL, NULL);
+  RuntimeInterface_cleanup();
+  return result;
 }

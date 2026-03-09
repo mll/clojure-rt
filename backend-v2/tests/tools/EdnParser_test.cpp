@@ -1,10 +1,3 @@
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#elif defined(__linux__)
-#include <limits.h>
-#include <unistd.h>
-#endif
-
 #include "../../RuntimeHeaders.h"
 #include "../../bytecode.pb.h"
 #include "../../jit/JITEngine.h"
@@ -30,24 +23,10 @@ extern "C" {
 #include <stdint.h>
 }
 
+#include "../../bridge/Exceptions.h"
+
 using namespace std;
 using namespace rt;
-
-std::string getSelfExecutablePath() {
-#ifdef __APPLE__
-  char path[1024];
-  uint32_t size = sizeof(path);
-  if (_NSGetExecutablePath(path, &size) == 0)
-    return std::string(path);
-#elif defined(__linux__)
-  char path[PATH_MAX];
-  ssize_t count = readlink("/proc/self/exe", path, PATH_MAX);
-  if (count != -1) {
-    return std::string(path, count);
-  }
-#endif
-  return "";
-}
 
 static void test_trivial_memory(void **state) {
   (void)state; // unused
@@ -119,20 +98,7 @@ static void test_edn_parser_class_parsing_memory(void **state) {
         vector<rt::ClassDescription> classesList = rt::buildClasses(classes);
         assert_true(classesList.size() > 0);
       } catch (const rt::LanguageException &e) {
-        llvm::symbolize::LLVMSymbolizer::Options options;
-        options.Demangle = true;
-        options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
-        llvm::symbolize::LLVMSymbolizer symbolizer(options);
-        cout << e.toString(symbolizer,
-                           getSelfExecutablePath() +
-                               ".dSYM/Contents/Resources/DWARF/" + "clojure-rt",
-#ifdef __APPLE__
-                           _dyld_get_image_vmaddr_slide(0)
-#else
-                           0
-#endif
-                               )
-             << endl;
+        cout << rt::getExceptionString(e) << endl;
         assert_true(false);
       } catch (...) {
         printf("Unknown exception caught\n");
@@ -147,10 +113,8 @@ static void run_test(void (*test_func)(void **), void **state,
   try {
     test_func(state);
   } catch (const LanguageException &e) {
-    llvm::symbolize::LLVMSymbolizer::Options options;
-    llvm::symbolize::LLVMSymbolizer symbolizer(options);
     fprintf(stderr, "Test %s failed with LanguageException:\n%s\n", name,
-            e.toString(symbolizer).c_str());
+            rt::getExceptionString(e).c_str());
     assert_true(false);
   } catch (const std::exception &e) {
     fprintf(stderr, "Test %s failed with std::exception: %s\n", name, e.what());

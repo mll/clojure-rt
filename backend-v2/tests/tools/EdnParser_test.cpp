@@ -1,8 +1,8 @@
 #include "../../RuntimeHeaders.h"
-#include "../../bytecode.pb.h"
 #include "../../jit/JITEngine.h"
 #include "../../state/ThreadsafeCompilerState.h"
 #include "../../tools/EdnParser.h"
+#include "bytecode.pb.h"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -108,8 +108,8 @@ static void test_edn_parser_class_parsing_memory(void **state) {
   });
 }
 
-static void run_test(void (*test_func)(void **), void **state,
-                     const char *name) {
+static void execute_test(void (*test_func)(void **), void **state,
+                         const char *name) {
   try {
     test_func(state);
   } catch (const LanguageException &e) {
@@ -206,7 +206,7 @@ static void test_class_aliasing_impl(void **state) {
 }
 
 static void test_class_aliasing(void **state) {
-  run_test(test_class_aliasing_impl, state, "test_class_aliasing");
+  execute_test(test_class_aliasing_impl, state, "test_class_aliasing");
 }
 
 static void test_static_fields_impl(void **state) {
@@ -248,7 +248,7 @@ static void test_static_fields_impl(void **state) {
 }
 
 static void test_static_fields(void **state) {
-  run_test(test_static_fields_impl, state, "test_static_fields");
+  execute_test(test_static_fields_impl, state, "test_static_fields");
 }
 
 static void test_special_types_impl(void **state) {
@@ -311,11 +311,11 @@ static void test_special_types_impl(void **state) {
 }
 
 static void test_special_types(void **state) {
-  run_test(test_special_types_impl, state, "test_special_types");
+  execute_test(test_special_types_impl, state, "test_special_types");
 }
 
-static void run_negative_test(void (*test_func)(void **), void **state,
-                              const char *name) {
+static void execute_negative_test(void (*test_func)(void **), void **state,
+                                  const char *name) {
   try {
     test_func(state);
     fprintf(stderr, "Test %s failed: Expected exception not thrown\n", name);
@@ -336,7 +336,7 @@ static void test_root_not_map_impl(void **state) {
 }
 
 static void test_root_not_map(void **state) {
-  run_negative_test(test_root_not_map_impl, state, "test_root_not_map");
+  execute_negative_test(test_root_not_map_impl, state, "test_root_not_map");
 }
 
 static void test_class_key_not_symbol_impl(void **state) {
@@ -350,8 +350,8 @@ static void test_class_key_not_symbol_impl(void **state) {
 }
 
 static void test_class_key_not_symbol(void **state) {
-  run_negative_test(test_class_key_not_symbol_impl, state,
-                    "test_class_key_not_symbol");
+  execute_negative_test(test_class_key_not_symbol_impl, state,
+                        "test_class_key_not_symbol");
 }
 
 static void test_class_value_not_map_impl(void **state) {
@@ -365,8 +365,8 @@ static void test_class_value_not_map_impl(void **state) {
 }
 
 static void test_class_value_not_map(void **state) {
-  run_negative_test(test_class_value_not_map_impl, state,
-                    "test_class_value_not_map");
+  execute_negative_test(test_class_value_not_map_impl, state,
+                        "test_class_value_not_map");
 }
 
 static void test_object_type_not_int_impl(void **state) {
@@ -384,8 +384,8 @@ static void test_object_type_not_int_impl(void **state) {
 }
 
 static void test_object_type_not_int(void **state) {
-  run_negative_test(test_object_type_not_int_impl, state,
-                    "test_object_type_not_int");
+  execute_negative_test(test_object_type_not_int_impl, state,
+                        "test_object_type_not_int");
 }
 
 static void test_alias_not_keyword_impl(void **state) {
@@ -403,8 +403,8 @@ static void test_alias_not_keyword_impl(void **state) {
 }
 
 static void test_alias_not_keyword(void **state) {
-  run_negative_test(test_alias_not_keyword_impl, state,
-                    "test_alias_not_keyword");
+  execute_negative_test(test_alias_not_keyword_impl, state,
+                        "test_alias_not_keyword");
 }
 
 // --- Group 2: ClassDescription ---
@@ -427,8 +427,8 @@ static void test_static_fields_not_map_impl(void **state) {
 }
 
 static void test_static_fields_not_map(void **state) {
-  run_negative_test(test_static_fields_not_map_impl, state,
-                    "test_static_fields_not_map");
+  execute_negative_test(test_static_fields_not_map_impl, state,
+                        "test_static_fields_not_map");
 }
 
 static void test_instance_fns_not_map_impl(void **state) {
@@ -449,8 +449,8 @@ static void test_instance_fns_not_map_impl(void **state) {
 }
 
 static void test_instance_fns_not_map(void **state) {
-  run_negative_test(test_instance_fns_not_map_impl, state,
-                    "test_instance_fns_not_map");
+  execute_negative_test(test_instance_fns_not_map_impl, state,
+                        "test_instance_fns_not_map");
 }
 
 // --- Group 3: Intrinsic Collections ---
@@ -476,8 +476,8 @@ static void test_static_field_key_not_symbol_impl(void **state) {
 }
 
 static void test_static_field_key_not_symbol(void **state) {
-  run_negative_test(test_static_field_key_not_symbol_impl, state,
-                    "test_static_field_key_not_symbol");
+  execute_negative_test(test_static_field_key_not_symbol_impl, state,
+                        "test_static_field_key_not_symbol");
 }
 
 static void test_intrinsic_key_not_symbol_impl(void **state) {
@@ -501,8 +501,8 @@ static void test_intrinsic_key_not_symbol_impl(void **state) {
 }
 
 static void test_intrinsic_key_not_symbol(void **state) {
-  run_negative_test(test_intrinsic_key_not_symbol_impl, state,
-                    "test_intrinsic_key_not_symbol");
+  execute_negative_test(test_intrinsic_key_not_symbol_impl, state,
+                        "test_intrinsic_key_not_symbol");
 }
 
 static void test_intrinsic_value_not_vector_impl(void **state) {
@@ -526,8 +526,8 @@ static void test_intrinsic_value_not_vector_impl(void **state) {
 }
 
 static void test_intrinsic_value_not_vector(void **state) {
-  run_negative_test(test_intrinsic_value_not_vector_impl, state,
-                    "test_intrinsic_value_not_vector");
+  execute_negative_test(test_intrinsic_value_not_vector_impl, state,
+                        "test_intrinsic_value_not_vector");
 }
 
 // --- Group 4: IntrinsicDescription ---
@@ -560,8 +560,8 @@ static void test_intrinsic_type_not_keyword_impl(void **state) {
 }
 
 static void test_intrinsic_type_not_keyword(void **state) {
-  run_negative_test(test_intrinsic_type_not_keyword_impl, state,
-                    "test_intrinsic_type_not_keyword");
+  execute_negative_test(test_intrinsic_type_not_keyword_impl, state,
+                        "test_intrinsic_type_not_keyword");
 }
 
 static void test_intrinsic_type_invalid_impl(void **state) {
@@ -592,8 +592,8 @@ static void test_intrinsic_type_invalid_impl(void **state) {
 }
 
 static void test_intrinsic_type_invalid(void **state) {
-  run_negative_test(test_intrinsic_type_invalid_impl, state,
-                    "test_intrinsic_type_invalid");
+  execute_negative_test(test_intrinsic_type_invalid_impl, state,
+                        "test_intrinsic_type_invalid");
 }
 
 static void test_intrinsic_symbol_not_string_impl(void **state) {
@@ -627,8 +627,8 @@ static void test_intrinsic_symbol_not_string_impl(void **state) {
 }
 
 static void test_intrinsic_symbol_not_string(void **state) {
-  run_negative_test(test_intrinsic_symbol_not_string_impl, state,
-                    "test_intrinsic_symbol_not_string");
+  execute_negative_test(test_intrinsic_symbol_not_string_impl, state,
+                        "test_intrinsic_symbol_not_string");
 }
 
 static void test_intrinsic_args_not_vector_impl(void **state) {
@@ -664,8 +664,8 @@ static void test_intrinsic_args_not_vector_impl(void **state) {
 }
 
 static void test_intrinsic_args_not_vector(void **state) {
-  run_negative_test(test_intrinsic_args_not_vector_impl, state,
-                    "test_intrinsic_args_not_vector");
+  execute_negative_test(test_intrinsic_args_not_vector_impl, state,
+                        "test_intrinsic_args_not_vector");
 }
 
 static void test_unknown_arg_type_impl(void **state) {
@@ -706,7 +706,8 @@ static void test_unknown_arg_type_impl(void **state) {
 }
 
 static void test_unknown_arg_type(void **state) {
-  run_negative_test(test_unknown_arg_type_impl, state, "test_unknown_arg_type");
+  execute_negative_test(test_unknown_arg_type_impl, state,
+                        "test_unknown_arg_type");
 }
 
 static void test_unknown_return_type_impl(void **state) {
@@ -743,8 +744,8 @@ static void test_unknown_return_type_impl(void **state) {
 }
 
 static void test_unknown_return_type(void **state) {
-  run_negative_test(test_unknown_return_type_impl, state,
-                    "test_unknown_return_type");
+  execute_negative_test(test_unknown_return_type_impl, state,
+                        "test_unknown_return_type");
 }
 
 int main(int argc, char **argv) {

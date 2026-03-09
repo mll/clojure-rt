@@ -1,0 +1,40 @@
+name: C++ CI Linux
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./backend-v2
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake gcc g++ libprotobuf-dev protobuf-compiler libcmocka-dev libgmp-dev lsb-release wget software-properties-common gnupg zlib1g-dev
+
+    - name: Install LLVM 20
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 20
+        sudo apt-get install -y clang-20 lld-20 libc++-20-dev libc++abi-20-dev llvm-20-dev
+
+    - name: Configure CMake
+      run: cmake -S . -B build
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Run Tests
+      working-directory: ./backend-v2/build
+      run: ctest --output-on-failure -C Release

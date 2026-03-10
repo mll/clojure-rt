@@ -16,7 +16,7 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
     String *className = String_createDynamicStr(desc.name.c_str());
 
     Class *c = Class_create(name, className, 0, NULL);
-
+    Ptr_retain(c);
     // Register by name
     classRegistry.registerObject(desc.name.c_str(), c);
 
@@ -26,15 +26,13 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
 
     // Register by ID if it's a built-in type
     auto *ext = static_cast<ClassDescription *>(c->compilerExtension);
-    if (ext->type.isDetermined() && ext->type.determinedType() != classType) {
-      Ptr_retain(c);
+    // We will have to somehow solve the custom class registration here.
+    if (ext->type.isDetermined()) {
       classRegistry.registerObject(c, (int32_t)ext->type.determinedType());
+    } else {
+      Ptr_release(c);
     }
   }
-}
-
-void ThreadsafeCompilerState::refineClasses() {
-  // No longer needed
 }
 
 void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {

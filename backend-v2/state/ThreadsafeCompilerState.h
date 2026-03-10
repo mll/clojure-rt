@@ -30,7 +30,6 @@ public:
 
   void storeInternalClasses(RTValue from);
   void storeInternalProtocols(RTValue from);
-  void refineClasses();
 };
 } // namespace rt
 

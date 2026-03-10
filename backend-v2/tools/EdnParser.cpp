@@ -8,6 +8,8 @@ extern "C" void delete_class_description(void *ptr) {
 }
 
 ClassDescription::~ClassDescription() {
+  if (extends)
+    Ptr_release(extends);
   for (auto const &s : staticFields) {
     release(s.second);
   }
@@ -99,6 +101,7 @@ TemporaryClassData::TemporaryClassData(RTValue from) {
 ClassDescription::ClassDescription(RTValue from,
                                    TemporaryClassData &classData) {
   ConsumedValue root(from);
+  this->extends = nullptr;
 
   if (getType(root.get()) != persistentArrayMapType) {
     throwInternalInconsistencyException(
@@ -146,6 +149,16 @@ ClassDescription::ClassDescription(RTValue from,
   }
 
   retain(root.get());
+  ConsumedValue extendsWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("extends"))));
+  if (getType(extendsWrapper.get()) == symbolType ||
+      getType(extendsWrapper.get()) == stringType) {
+    String *sParent = String_compactify(toString(extendsWrapper.take()));
+    this->parentName = String_c_str(sParent);
+    Ptr_release(sParent);
+  }
+
+  retain(root.get());
   ConsumedValue nameWrapper(PersistentArrayMap_get(
       description, Keyword_create(String_create("name"))));
 
@@ -158,8 +171,6 @@ ClassDescription::ClassDescription(RTValue from,
   String *compactifiedName = String_compactify(toString(nameWrapper.take()));
   this->name = String_c_str(compactifiedName);
   Ptr_release(compactifiedName);
-
-  extends = nullptr;
 
   retain(root.get());
   ConsumedValue sfWrapper(PersistentArrayMap_get(
@@ -529,10 +540,10 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
 }
 
 #include <unordered_set>
-vector<ClassDescription> buildClasses(RTValue from) {
+vector<unique_ptr<ClassDescription>> buildClasses(RTValue from) {
   // from is consumed by TemporaryClassData
   TemporaryClassData classData(from);
-  vector<ClassDescription> retVal;
+  vector<unique_ptr<ClassDescription>> retVal;
 
   unordered_set<PersistentArrayMap *> processed;
 
@@ -542,7 +553,8 @@ vector<ClassDescription> buildClasses(RTValue from) {
       processed.insert(map);
       Ptr_retain(map);
       RTValue mapVal = RT_boxPtr(map);
-      retVal.push_back(ClassDescription(mapVal, classData));
+      auto desc = make_unique<ClassDescription>(mapVal, classData);
+      retVal.push_back(std::move(desc));
     }
   }
 

@@ -22,7 +22,7 @@ public:
   ThreadsafeInlineCacheManager objectFieldIndexAccessInlineCache;
   ThreadsafeInlineCacheManager methodCallInlineCache;
 
-  ThreadsafeRegistry<Class> classRegistry;
+  ThreadsafeRegistry<::Class> classRegistry;
   ThreadsafeRegistry<const Node> functionAstRegistry;
   /* ThreadsafeRegistry<Var> varRegistry; */
 

@@ -331,6 +331,8 @@ inline uword_t Object_hash(Object *restrict self) {
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
   }
+  // To silence the compiler warning, this code should never be reached.
+  return 0;
 }
 
 /* Outside of refcount system */
@@ -405,6 +407,8 @@ inline bool Object_equals(Object *self, Object *other) {
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
   }
+  // To silence the compiler warning, this code should never be reached.
+  return false;
 }
 
 /* Outside of refcount system - should it be like this? It probably shouldnt */
@@ -458,6 +462,8 @@ inline String *Object_toString(Object *restrict self) {
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }
+  // To silence the compiler warning, this code should never be reached.
+  return NULL;
 }
 
 inline bool Object_release(Object *restrict self) {

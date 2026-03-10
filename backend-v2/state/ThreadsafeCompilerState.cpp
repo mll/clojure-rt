@@ -8,30 +8,63 @@ namespace rt {
 extern "C" void delete_class_description(void *ptr);
 
 void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
-  // Directly build ClassDescriptions from EDN
-  std::vector<ClassDescription> descriptions = buildClasses(from);
+  auto descriptions = buildClasses(from);
+  unordered_map<string, ::Class *> localMap;
 
+  // Phase 1: Create all hulls and attach metadata
   for (auto &desc : descriptions) {
-    String *name = String_createDynamicStr(desc.name.c_str());
-    String *className = String_createDynamicStr(desc.name.c_str());
+    String *nameStr = String_createDynamicStr(desc->name.c_str());
+    String *classNameStr = String_createDynamicStr(desc->name.c_str());
 
-    Class *c = Class_create(name, className, 0, NULL);
-    Ptr_retain(c);
-    // Register by name
-    classRegistry.registerObject(desc.name.c_str(), c);
+    ::Class *c = Class_create(nameStr, classNameStr, 0, NULL);
+    Ptr_retain(c); // Local reference for this function's logic
+    localMap[desc->name] = c;
 
-    // Attach the Compiler Metadata
-    c->compilerExtension = new ClassDescription(std::move(desc));
+    c->compilerExtension = desc.release();
     c->compilerExtensionDestructor = delete_class_description;
+  }
 
-    // Register by ID if it's a built-in type
-    auto *ext = static_cast<ClassDescription *>(c->compilerExtension);
-    // We will have to somehow solve the custom class registration here.
-    if (ext->type.isDetermined()) {
-      classRegistry.registerObject(c, (int32_t)ext->type.determinedType());
-    } else {
-      Ptr_release(c);
+  // Phase 2: Link inheritance
+  for (auto const &pair : localMap) {
+    ::Class *c = pair.second;
+    ClassDescription *desc =
+        static_cast<ClassDescription *>(c->compilerExtension);
+
+    if (!desc->parentName.empty()) {
+      ::Class *parentClass = nullptr;
+      auto it = localMap.find(desc->parentName);
+      if (it != localMap.end()) {
+        parentClass = it->second;
+        Ptr_retain(parentClass);
+      } else {
+        // Look in global registry
+        parentClass = classRegistry.getCurrent(desc->parentName.c_str());
+        // getCurrent already retains for us
+      }
+
+      if (parentClass) {
+        desc->extends = parentClass;
+      }
     }
+  }
+
+  // Phase 3: Register and cleanup local references
+  for (auto const &pair : localMap) {
+    ::Class *c = pair.second;
+    ClassDescription *desc =
+        static_cast<ClassDescription *>(c->compilerExtension);
+
+    // Give our local reference to the registry (registerObject name-based)
+    classRegistry.registerObject(desc->name.c_str(), c);
+
+    if (desc->type.isDetermined()) {
+      // If we register by ID too, we need another reference because the ID
+      // registry also releases on its own.
+      Ptr_retain(c);
+      classRegistry.registerObject(c, (int32_t)desc->type.determinedType());
+    }
+
+    Ptr_release(c); // Release the local reference
   }
 }
 

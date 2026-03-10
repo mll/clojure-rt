@@ -4,8 +4,11 @@
 #include "../RuntimeHeaders.h"
 #include "../bridge/Exceptions.h"
 #include "../types/ObjectTypeSet.h"
+#include <memory>
 #include <unordered_map>
 using namespace std;
+
+struct Class;
 
 namespace rt {
 
@@ -35,8 +38,9 @@ class ClassDescription {
 
 public:
   ObjectTypeSet type;
-  ClassDescription *extends;
+  ::Class *extends;
   string name;
+  string parentName;
   unordered_map<string, RTValue> staticFields;
   vector<RTValue> staticFieldValues;
   unordered_map<string, int32_t> staticFieldIndices;
@@ -67,7 +71,7 @@ ClojureFunction *ClassExtension_resolveInstanceCall(void *ext, RTValue name,
                                                     int32_t argCount);
 }
 
-vector<ClassDescription> buildClasses(RTValue from);
+vector<unique_ptr<ClassDescription>> buildClasses(RTValue from);
 } // namespace rt
 
 #endif

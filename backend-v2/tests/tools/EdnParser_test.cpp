@@ -95,7 +95,7 @@ static void test_edn_parser_class_parsing_memory(void **state) {
 
     {
       try {
-        vector<rt::ClassDescription> classesList = rt::buildClasses(classes);
+        auto classesList = rt::buildClasses(classes);
         assert_true(classesList.size() > 0);
 
         // Verification of specific classes from rt-classes.edn
@@ -105,14 +105,17 @@ static void test_edn_parser_class_parsing_memory(void **state) {
         rt::ClassDescription *stringDesc = nullptr;
 
         for (auto &c : classesList) {
-          if (c.name == "java.lang.Object")
-            objDesc = &c;
-          else if (c.name == "java.lang.Long")
-            longDesc = &c;
-          else if (c.name == "clojure.lang.Numbers")
-            numbersDesc = &c;
-          else if (c.name == "java.lang.String")
-            stringDesc = &c;
+          if (c->name == "java.lang.Object")
+            objDesc = c.get();
+          else if (c->name == "java.lang.Long")
+            longDesc = c.get();
+          else if (c->name == "clojure.lang.Numbers")
+            numbersDesc = c.get();
+          else if (c->name == "java.lang.String")
+            stringDesc = c.get();
+          else if (c->name == "java.lang.Class") {
+            assert_string_equal("java.lang.Object", c->parentName.c_str());
+          }
         }
 
         // Verify java.lang.Object
@@ -290,17 +293,17 @@ static void test_class_aliasing_impl(void **state) {
     // After assoc, rootMap owns a reference, but we must release our local
     // ones.
 
-    vector<ClassDescription> classes = buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
 
     assert_int_equal(2, classes.size());
 
     ClassDescription *descA = nullptr;
     ClassDescription *descB = nullptr;
     for (auto &c : classes) {
-      if (c.name == "com.foo/A")
-        descA = &c;
-      if (c.name == "com.foo/B")
-        descB = &c;
+      if (c->name == "com.foo/A")
+        descA = c.get();
+      if (c->name == "com.foo/B")
+        descB = c.get();
     }
 
     assert_non_null(descA);
@@ -344,10 +347,10 @@ static void test_static_fields_impl(void **state) {
         rootMap, Symbol_create(String_create("com.foo/MyClass")),
         RT_boxPtr(classMap));
 
-    vector<ClassDescription> classes = buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
     assert_int_equal(1, classes.size());
 
-    auto &c = classes[0];
+    auto &c = *classes[0];
     assert_int_equal(2, c.staticFields.size());
 
     auto itVersion = c.staticFields.find("VERSION");
@@ -408,10 +411,10 @@ static void test_special_types_impl(void **state) {
         rootMap, Symbol_create(String_create("com.foo/A")),
         RT_boxPtr(classAMap));
 
-    vector<ClassDescription> classes = buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
     assert_int_equal(1, classes.size());
 
-    auto &c = classes[0];
+    auto &c = *classes[0];
     auto it = c.instanceFns.find("f");
     assert_true(it != c.instanceFns.end());
     auto &intrinsic = it->second[0];
@@ -452,10 +455,10 @@ static void test_bridge_functions_impl(void **state) {
         rootMap, Symbol_create(String_create("com.foo/Test")),
         RT_boxPtr(classMap));
 
-    vector<ClassDescription> classes = buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
     assert_int_equal(1, classes.size());
 
-    ClassDescription &desc = classes[0];
+    ClassDescription &desc = *classes[0];
     void *ext = &desc;
 
     // Test instance field indices
@@ -544,7 +547,7 @@ static void test_class_key_not_symbol_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(rootMap, RT_boxInt32(1),
                                        RT_boxPtr(PersistentArrayMap_empty()));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -559,7 +562,7 @@ static void test_class_value_not_map_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxInt32(1));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -578,7 +581,7 @@ static void test_object_type_not_int_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -597,7 +600,7 @@ static void test_alias_not_keyword_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -621,7 +624,7 @@ static void test_static_fields_not_map_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -643,7 +646,7 @@ static void test_instance_fns_not_map_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -670,7 +673,7 @@ static void test_static_field_key_not_symbol_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -695,7 +698,7 @@ static void test_intrinsic_key_not_symbol_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -720,7 +723,7 @@ static void test_intrinsic_value_not_vector_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -754,7 +757,7 @@ static void test_intrinsic_type_not_keyword_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -786,7 +789,7 @@ static void test_intrinsic_type_invalid_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -821,7 +824,7 @@ static void test_intrinsic_symbol_not_string_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -858,7 +861,7 @@ static void test_intrinsic_args_not_vector_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -900,7 +903,7 @@ static void test_unknown_arg_type_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
@@ -938,13 +941,64 @@ static void test_unknown_return_type_impl(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
-    buildClasses(RT_boxPtr(rootMap));
+    auto classes = buildClasses(RT_boxPtr(rootMap));
   });
 }
 
 static void test_unknown_return_type(void **state) {
   execute_negative_test(test_unknown_return_type_impl, state,
                         "test_unknown_return_type");
+}
+
+static void test_class_inheritance_linkage_impl(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+
+    // {Parent {:object-type 100}, Child {:extends Parent, :object-type 101}}
+    PersistentArrayMap *parentMap = PersistentArrayMap_empty();
+    parentMap = PersistentArrayMap_assoc(
+        parentMap, Keyword_create(String_create("object-type")),
+        RT_boxInt32(100));
+
+    PersistentArrayMap *childMap = PersistentArrayMap_empty();
+    childMap = PersistentArrayMap_assoc(
+        childMap, Keyword_create(String_create("extends")),
+        Symbol_create(String_create("Parent")));
+    childMap = PersistentArrayMap_assoc(
+        childMap, Keyword_create(String_create("object-type")),
+        RT_boxInt32(101));
+
+    PersistentArrayMap *rootMap = PersistentArrayMap_empty();
+    rootMap = PersistentArrayMap_assoc(
+        rootMap, Symbol_create(String_create("Parent")), RT_boxPtr(parentMap));
+    rootMap = PersistentArrayMap_assoc(
+        rootMap, Symbol_create(String_create("Child")), RT_boxPtr(childMap));
+
+    compState.storeInternalClasses(RT_boxPtr(rootMap));
+
+    ::Class *parent = compState.classRegistry.getCurrent("Parent");
+    ::Class *child = compState.classRegistry.getCurrent("Child");
+
+    assert_non_null(parent);
+    assert_non_null(child);
+
+    // Check linkage (only in ClassDescription)
+    assert_int_equal(0, child->superclassCount);
+    assert_null(child->superclasses);
+
+    rt::ClassDescription *childDesc =
+        static_cast<rt::ClassDescription *>(child->compilerExtension);
+    assert_ptr_equal(parent, childDesc->extends);
+
+    Ptr_release(parent);
+    Ptr_release(child);
+  });
+}
+
+static void test_class_inheritance_linkage(void **state) {
+  execute_test(test_class_inheritance_linkage_impl, state,
+               "test_class_inheritance_linkage");
 }
 
 int main(int argc, char **argv) {
@@ -974,6 +1028,7 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_intrinsic_args_not_vector),
       cmocka_unit_test(test_unknown_arg_type),
       cmocka_unit_test(test_unknown_return_type),
+      cmocka_unit_test(test_class_inheritance_linkage),
   };
   int result = cmocka_run_group_tests(tests, NULL, NULL);
   RuntimeInterface_cleanup();

@@ -33,10 +33,22 @@ InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
        [](auto &b, auto args) { return b.CreateFCmpOGE(args[0], args[1]); }},
       {"ICmpSGE",
        [](auto &b, auto args) { return b.CreateICmpSGE(args[0], args[1]); }},
+      {"FCmpOGT",
+       [](auto &b, auto args) { return b.CreateFCmpOGT(args[0], args[1]); }},
+      {"ICmpSGT",
+       [](auto &b, auto args) { return b.CreateICmpSGT(args[0], args[1]); }},
       {"FCmpOLT",
        [](auto &b, auto args) { return b.CreateFCmpOLT(args[0], args[1]); }},
+      {"FCmpOLE",
+       [](auto &b, auto args) { return b.CreateFCmpOLE(args[0], args[1]); }},
       {"ICmpSLT",
-       [](auto &b, auto args) { return b.CreateICmpSLT(args[0], args[1]); }}};
+       [](auto &b, auto args) { return b.CreateICmpSLT(args[0], args[1]); }},
+      {"ICmpSLE",
+       [](auto &b, auto args) { return b.CreateICmpSLE(args[0], args[1]); }},
+      {"ICmpEQ",
+       [](auto &b, auto args) { return b.CreateICmpEQ(args[0], args[1]); }},
+      {"FCmpOEQ",
+       [](auto &b, auto args) { return b.CreateFCmpOEQ(args[0], args[1]); }}};
 }
 
 TypedValue

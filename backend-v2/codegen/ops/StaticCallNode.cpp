@@ -1,5 +1,4 @@
-#include "../../bridge/Exceptions.h"
-#include "../../tools/EdnParser.h"
+#include "../../tools/RTValueWrapper.h"
 #include "../CodeGen.h"
 #include <sstream>
 
@@ -23,7 +22,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   auto m = subnode.method();
   string name = (c.rfind("class ", 0) == 0) ? c.substr(6) : c;
 
-  Class *cls = compilerState.classRegistry.getCurrent(name.c_str());
+  PtrWrapper<Class> cls(compilerState.classRegistry.getCurrent(name.c_str()));
   if (!cls) {
     std::ostringstream oss;
     oss << "Class not found: " << name;
@@ -34,7 +33,6 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   if (!ext) {
     std::ostringstream oss;
     oss << "Class " << name << " does not have compiler metadata";
-    Ptr_release(cls);
     throwCodeGenerationException(oss.str(), node);
   }
 
@@ -42,7 +40,6 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   if (it_method == ext->staticFns.end()) {
     std::ostringstream oss;
     oss << "Class " << name << " does not have a static method " << m;
-    Ptr_release(cls);
     throwCodeGenerationException(oss.str(), node);
   }
 
@@ -58,14 +55,11 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
         }
       }
       if (match) {
-        auto retVal = invokeManager.generateIntrinsic(id, args);
-        Ptr_release(cls);
-        return retVal;
+        return invokeManager.generateIntrinsic(id, args);
       }
     }
   }
 
-  Ptr_release(cls);
   throwCodeGenerationException(
       "No matching arity/types found for " + name + "/" + m, node);
 }
@@ -82,7 +76,7 @@ ObjectTypeSet CodeGen::getType(const Node &node, const StaticCallNode &subnode,
   auto m = subnode.method();
   string name = (c.rfind("class ", 0) == 0) ? c.substr(6) : c;
 
-  Class *cls = compilerState.classRegistry.getCurrent(name.c_str());
+  PtrWrapper<Class> cls(compilerState.classRegistry.getCurrent(name.c_str()));
   if (!cls)
     return ObjectTypeSet::dynamicType();
 
@@ -106,14 +100,11 @@ ObjectTypeSet CodeGen::getType(const Node &node, const StaticCallNode &subnode,
         }
       }
       if (match) {
-        auto retVal = id.returnType;
-        Ptr_release(cls);
-        return retVal;
+        return id.returnType;
       }
     }
   }
 
-  Ptr_release(cls);
   return ObjectTypeSet::dynamicType();
 }
 

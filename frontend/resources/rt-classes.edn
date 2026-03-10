@@ -68,12 +68,18 @@
     divide  [{:args [:double :double] :type :intrinsic :symbol "FDiv"       :returns :double}
              {:args [:int :int]       :type :intrinsic :symbol "Div"        :returns :int}
              {:args [:any :any]       :type :call      :symbol "div"        :returns :any}]
+    gt  [{:args [:double :double] :type :intrinsic :symbol "FCmpOGT"       :returns :bool}
+         {:args [:int :int]       :type :intrinsic :symbol "ICmpSGT"       :returns :bool}
+         {:args [:any :any]       :type :call      :symbol "gt"           :returns :bool}]
     gte  [{:args [:double :double] :type :intrinsic :symbol "FCmpOGE"       :returns :bool}
           {:args [:int :int]       :type :intrinsic :symbol "ICmpSGE"       :returns :bool}
           {:args [:any :any]       :type :call      :symbol "gte"           :returns :bool}]
     lt  [{:args [:double :double] :type :intrinsic :symbol "FCmpOLT"        :returns :bool}
-         {:args [:int :int]       :type :intrinsic :symbol "ICmpOLT"        :returns :bool}
-         {:args [:any :any]       :type :call      :symbol "lt"             :returns :bool}]}}
+         {:args [:int :int]       :type :intrinsic :symbol "ICmpSLT"        :returns :bool}
+         {:args [:any :any]       :type :call      :symbol "lt"             :returns :bool}]
+    lte [{:args [:double :double] :type :intrinsic :symbol "FCmpOLE"        :returns :bool}
+         {:args [:int :int]       :type :intrinsic :symbol "ICmpSLE"        :returns :bool}
+         {:args [:any :any]       :type :call      :symbol "lte"            :returns :bool}]}}
 
   java.lang.Math
   {:static-fns

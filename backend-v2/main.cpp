@@ -37,8 +37,13 @@ int main(int argc, char *argv[]) {
     cout << "Please specify the filename for compilation" << endl;
     return -1;
   }
+  int retVal = -1;
 
   GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  MemoryState initialMemoryState;
+  captureMemoryState(&initialMemoryState);
+  initialise_memory();
 
   clojure::rt::protobuf::bytecode::Programme astInterfaces;
   {
@@ -67,8 +72,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  initialise_memory();
-
   try {
     rt::ThreadsafeCompilerState state;
     rt::JITEngine engine(state);
@@ -92,10 +95,8 @@ int main(int argc, char *argv[]) {
     auto f = engine.compileAST(astRoot.nodes(0), "__root",
                                llvm::OptimizationLevel::O0, true);
     cout << "Compiling!!!" << endl;
-    printReferenceCounts();
 
     RTValue whaat = f.get().toPtr<RTValue (*)()>()();
-    printReferenceCounts();
     String *s = toString(whaat);
     s = String_compactify(s);
 
@@ -103,11 +104,31 @@ int main(int argc, char *argv[]) {
     cout << std::string(String_c_str(s)) << endl;
     cout << "========== /Result ==========" << endl;
     Ptr_release(s);
-    printReferenceCounts();
+    retVal = 0;
   } catch (rt::LanguageException e) {
     cout << rt::getExceptionString(e) << endl;
-    return -1;
   }
 
-  return 0;
+  RuntimeInterface_cleanup();
+
+  if (strstr(BUILD_TYPE, "Debug")) {
+    MemoryState finalMemoryState;
+    captureMemoryState(&finalMemoryState);
+    bool leaked = false;
+    for (int i = 0; i < 256; i++) {
+      if (finalMemoryState.counts[i] != initialMemoryState.counts[i]) {
+        if (!leaked) {
+          printf("\n========== Memory Leak Detected ==========\n");
+          printReferenceCounts();
+          leaked = true;
+        }
+        printf("Type %d: expected %lu, got %lu\n", i + 1,
+               initialMemoryState.counts[i], finalMemoryState.counts[i]);
+      }
+    }
+    if (leaked) {
+      exit(-1);
+    }
+  }
+  return retVal;
 }

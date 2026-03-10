@@ -1,5 +1,8 @@
 #include "RuntimeInterface.h"
 #include "ConcurrentHashMap.h"
+#include "Keyword.h"
+#include "PersistentVector.h"
+#include "Symbol.h"
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -49,6 +52,7 @@ void RuntimeInterface_cleanup() {
     Ptr_release(vars);
     vars = NULL;
   }
+  PersistentVector_cleanup();
 }
 
 void printReferenceCounts() {
@@ -57,6 +61,14 @@ void printReferenceCounts() {
     printf("%lu/%lu ", allocationCount[i - 1], objectCount[i - 1]);
   }
   printf("\n");
+}
+
+void captureMemoryState(MemoryState *state) {
+  for (int i = 0; i < 256; i++) {
+    state->counts[i] = allocationCount[i];
+  }
+  state->internedKeywords = Keyword_getInternCount();
+  state->internedSymbols = Symbol_getInternCount();
 }
 
 void logBacktrace() {

@@ -1,6 +1,8 @@
 #ifndef RT_RUNTIME_INTERFACE
 #define RT_RUNTIME_INTERFACE
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -10,6 +12,14 @@ extern "C" {
 
 void RuntimeInterface_initialise();
 void RuntimeInterface_cleanup();
+
+typedef struct {
+  uword_t counts[256];
+  uint32_t internedKeywords;
+  uint32_t internedSymbols;
+} MemoryState;
+
+void captureMemoryState(MemoryState *state);
 
 #ifdef __cplusplus
 }

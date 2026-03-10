@@ -34,6 +34,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   if (!ext) {
     std::ostringstream oss;
     oss << "Class " << name << " does not have compiler metadata";
+    Ptr_release(cls);
     throwCodeGenerationException(oss.str(), node);
   }
 
@@ -41,6 +42,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   if (it_method == ext->staticFns.end()) {
     std::ostringstream oss;
     oss << "Class " << name << " does not have a static method " << m;
+    Ptr_release(cls);
     throwCodeGenerationException(oss.str(), node);
   }
 
@@ -56,11 +58,14 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
         }
       }
       if (match) {
-        return invokeManager.generateIntrinsic(id, args);
+        auto retVal = invokeManager.generateIntrinsic(id, args);
+        Ptr_release(cls);
+        return retVal;
       }
     }
   }
 
+  Ptr_release(cls);
   throwCodeGenerationException(
       "No matching arity/types found for " + name + "/" + m, node);
 }
@@ -100,11 +105,15 @@ ObjectTypeSet CodeGen::getType(const Node &node, const StaticCallNode &subnode,
           break;
         }
       }
-      if (match)
-        return id.returnType;
+      if (match) {
+        auto retVal = id.returnType;
+        Ptr_release(cls);
+        return retVal;
+      }
     }
   }
 
+  Ptr_release(cls);
   return ObjectTypeSet::dynamicType();
 }
 

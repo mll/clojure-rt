@@ -57,6 +57,13 @@ void PersistentVector_initialise() {
   EMPTY_VECTOR->tail->count = 0;
 }
 
+void PersistentVector_cleanup() {
+  if (EMPTY_VECTOR) {
+    Ptr_release(EMPTY_VECTOR);
+    EMPTY_VECTOR = NULL;
+  }
+}
+
 bool PersistentVector_equals(PersistentVector *restrict self,
                              PersistentVector *restrict other) {
   if (self->count != other->count)

@@ -97,13 +97,7 @@ void testScalingBehavior(void **state) {
   assert_true(res.r_squared > 0.99);
 }
 
-void captureMemoryState(MemoryState *state) {
-  for (int i = 0; i < 256; i++) {
-    state->counts[i] = allocationCount[i];
-  }
-  state->internedKeywords = Keyword_getInternCount();
-  state->internedSymbols = Symbol_getInternCount();
-}
+// captureMemoryState is now implemented in RuntimeInterface.c
 
 void assertMemoryBalance(MemoryState *before, MemoryState *after) {
   uint32_t stringLeaks =

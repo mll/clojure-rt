@@ -10,8 +10,8 @@ extern "C" void delete_class_description(void *ptr) {
 ClassDescription::~ClassDescription() {
   if (extends)
     Ptr_release(extends);
-  for (auto const &s : staticFields) {
-    release(s.second);
+  for (auto v : staticFieldValues) {
+    release(v);
   }
 }
 

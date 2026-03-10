@@ -2,6 +2,7 @@
 #define RUNTIME_TESTS
 
 #include "../Object.h"
+#include "../RuntimeInterface.h"
 #include "../defines.h"
 #include <assert.h>
 #include <gmp.h>
@@ -85,13 +86,6 @@ void testScalingBehavior(void **state);
     assert_int_equal(start_count, end_count);                                  \
   } while (0)
 
-typedef struct {
-  uword_t counts[256];
-  uint32_t internedKeywords;
-  uint32_t internedSymbols;
-} MemoryState;
-
-void captureMemoryState(MemoryState *state);
 void assertMemoryBalance(MemoryState *before, MemoryState *after);
 // `except_types` expects 1-based objectType values (like integerType)
 void assertMemoryBalanceExcept(MemoryState *before, MemoryState *after,
@@ -103,9 +97,9 @@ void assertMemoryDifference(MemoryState *before, MemoryState *after, int type,
 // type
 #define ASSERT_MEMORY_ALL_BALANCED(block)                                      \
   do {                                                                         \
-    if (strstr(BUILD_TYPE, "Release")) {                                       \
-      fail_msg("ASSERT_MEMORY_ALL_BALANCED cannot be used in Release mode as " \
-               "memory tracking results may be unreliable or disabled.");      \
+    if (!strstr(BUILD_TYPE, "Debug")) {                                        \
+      fail_msg("ASSERT_MEMORY_ALL_BALANCED must be used in Debug mode as "     \
+               "memory tracking results are disabled in Release mode.");       \
     }                                                                          \
     MemoryState __before, __after;                                             \
     captureMemoryState(&__before);                                             \

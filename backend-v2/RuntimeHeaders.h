@@ -35,6 +35,7 @@
 #include "runtime/PersistentVectorIterator.h"
 #include "runtime/PersistentVectorNode.h"
 #include "runtime/Ratio.h"
+#include "runtime/RuntimeInterface.h"
 #include "runtime/String.h"
 #include "runtime/Symbol.h"
 

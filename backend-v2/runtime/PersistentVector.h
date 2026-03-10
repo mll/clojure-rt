@@ -13,6 +13,9 @@ extern "C" {
 #define RRB_BRANCHING (1 << RRB_BITS)
 #define RRB_MASK (RRB_BRANCHING - 1)
 
+void PersistentVector_initialise();
+void PersistentVector_cleanup();
+
 /*
  * The persistent vector's update performance is generally between 5-8x slower
  * than an ArrayList. The transient vector's update performance is comparable to

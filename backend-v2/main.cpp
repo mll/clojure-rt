@@ -106,6 +106,7 @@ int main(int argc, char *argv[]) {
     printReferenceCounts();
   } catch (rt::LanguageException e) {
     cout << rt::getExceptionString(e) << endl;
+    return -1;
   }
 
   return 0;

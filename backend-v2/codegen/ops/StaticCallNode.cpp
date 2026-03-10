@@ -27,21 +27,21 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   if (!cls) {
     std::ostringstream oss;
     oss << "Class not found: " << name;
-    throwInternalInconsistencyException(oss.str());
+    throwCodeGenerationException(oss.str(), node);
   }
 
   auto *ext = static_cast<ClassDescription *>(cls->compilerExtension);
   if (!ext) {
     std::ostringstream oss;
     oss << "Class " << name << " does not have compiler metadata";
-    throwInternalInconsistencyException(oss.str());
+    throwCodeGenerationException(oss.str(), node);
   }
 
   auto it_method = ext->staticFns.find(m);
   if (it_method == ext->staticFns.end()) {
     std::ostringstream oss;
     oss << "Class " << name << " does not have a static method " << m;
-    throwInternalInconsistencyException(oss.str());
+    throwCodeGenerationException(oss.str(), node);
   }
 
   const std::vector<IntrinsicDescription> &versions = it_method->second;
@@ -61,8 +61,8 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     }
   }
 
-  throwInternalInconsistencyException("No matching arity/types found for " +
-                                      name + "/" + m);
+  throwCodeGenerationException(
+      "No matching arity/types found for " + name + "/" + m, node);
 }
 
 ObjectTypeSet CodeGen::getType(const Node &node, const StaticCallNode &subnode,

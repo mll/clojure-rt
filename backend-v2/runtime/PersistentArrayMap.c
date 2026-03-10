@@ -45,7 +45,7 @@ PersistentArrayMap *PersistentArrayMap_createMany(int32_t pairCount, ...) {
   PersistentArrayMap *self = PersistentArrayMap_create();
 
   self->count = pairCount;
-  for (uword_t i = 0; i < pairCount; i++) {
+  for (uword_t i = 0; i < (uword_t)pairCount; i++) {
     RTValue k = va_arg(args, RTValue);
     RTValue v = va_arg(args, RTValue);
     self->keys[i] = k;

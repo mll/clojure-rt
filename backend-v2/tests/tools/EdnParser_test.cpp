@@ -97,6 +97,117 @@ static void test_edn_parser_class_parsing_memory(void **state) {
       try {
         vector<rt::ClassDescription> classesList = rt::buildClasses(classes);
         assert_true(classesList.size() > 0);
+
+        // Verification of specific classes from rt-classes.edn
+        rt::ClassDescription *objDesc = nullptr;
+        rt::ClassDescription *longDesc = nullptr;
+        rt::ClassDescription *numbersDesc = nullptr;
+        rt::ClassDescription *stringDesc = nullptr;
+
+        for (auto &c : classesList) {
+          if (c.name == "java.lang.Object")
+            objDesc = &c;
+          else if (c.name == "java.lang.Long")
+            longDesc = &c;
+          else if (c.name == "clojure.lang.Numbers")
+            numbersDesc = &c;
+          else if (c.name == "java.lang.String")
+            stringDesc = &c;
+        }
+
+        // Verify java.lang.Object
+        assert_non_null(objDesc);
+        assert_true(objDesc->type.isDynamic()); // :any becomes dynamic type
+
+        // Verify java.lang.Long
+        assert_non_null(longDesc);
+        assert_int_equal(1, (int)longDesc->type.determinedType());
+        assert_true(longDesc->type.contains(integerType));
+        // Verify ALL static fields in java.lang.Long
+        assert_int_equal(4, longDesc->staticFields.size());
+        assert_int_equal(4, RT_unboxInt32(longDesc->staticFields.at("BYTES")));
+        assert_int_equal(2147483647,
+                         RT_unboxInt32(longDesc->staticFields.at("MAX_VALUE")));
+        assert_int_equal(-2147483647,
+                         RT_unboxInt32(longDesc->staticFields.at("MIN_VALUE")));
+        assert_int_equal(32, RT_unboxInt32(longDesc->staticFields.at("SIZE")));
+
+        // Verify clojure.lang.Numbers
+        assert_non_null(numbersDesc);
+        auto addIt = numbersDesc->staticFns.find("add");
+        assert_true(addIt != numbersDesc->staticFns.end());
+        auto &addOverloads = addIt->second;
+        assert_int_equal(3, addOverloads.size());
+
+        // Overload 0: [:double :double] -> :double (intrinsic)
+        assert_int_equal(2, addOverloads[0].argTypes.size());
+        assert_true(addOverloads[0].argTypes[0].contains(doubleType));
+        assert_true(addOverloads[0].argTypes[1].contains(doubleType));
+        assert_true(addOverloads[0].returnType.contains(doubleType));
+        assert_int_equal((int)rt::CallType::Intrinsic,
+                         (int)addOverloads[0].type);
+        assert_string_equal("FAdd", addOverloads[0].symbol.c_str());
+
+        // Overload 1: [:int :int] -> :int (intrinsic)
+        assert_int_equal(2, addOverloads[1].argTypes.size());
+        assert_true(addOverloads[1].argTypes[0].contains(integerType));
+        assert_true(addOverloads[1].argTypes[1].contains(integerType));
+        assert_true(addOverloads[1].returnType.contains(integerType));
+        assert_int_equal((int)rt::CallType::Intrinsic,
+                         (int)addOverloads[1].type);
+
+        // Overload 2: [:any :any] -> :any (call)
+        assert_int_equal(2, addOverloads[2].argTypes.size());
+        assert_true(addOverloads[2].argTypes[0].isDynamic());
+        assert_true(addOverloads[2].argTypes[1].isDynamic());
+        assert_true(addOverloads[2].returnType.isDynamic());
+        assert_int_equal((int)rt::CallType::Call, (int)addOverloads[2].type);
+
+        // Verify clojure.lang.Numbers/gte (dynamic alias :bool)
+        auto gteIt = numbersDesc->staticFns.find("gte");
+        assert_true(gteIt != numbersDesc->staticFns.end());
+        assert_int_equal(3, gteIt->second.size());
+        // Verify return type of first overload is booleanType (via :bool alias)
+        assert_true(gteIt->second[0].returnType.contains(booleanType));
+
+        // Verify java.lang.String
+        assert_non_null(stringDesc);
+        assert_int_equal(7, (int)stringDesc->type.determinedType());
+        // Verify instance fns
+        auto containsIt = stringDesc->instanceFns.find("contains");
+        assert_true(containsIt != stringDesc->instanceFns.end());
+        assert_int_equal(1, containsIt->second.size());
+        assert_string_equal("String_contains",
+                            containsIt->second[0].symbol.c_str());
+        assert_true(containsIt->second[0].returnType.contains(booleanType));
+
+        auto replaceIt = stringDesc->instanceFns.find("replace");
+        assert_true(replaceIt != stringDesc->instanceFns.end());
+        assert_int_equal(1, replaceIt->second.size());
+        // Verify full symbol "java.lang.String" resolution
+        assert_true(replaceIt->second[0].argTypes[0].contains(stringType));
+        assert_true(replaceIt->second[0].returnType.contains(stringType));
+
+        auto indexOfIt = stringDesc->instanceFns.find("indexOf");
+        assert_true(indexOfIt != stringDesc->instanceFns.end());
+        assert_int_equal(2, indexOfIt->second.size()); // Two overloads
+
+        // indexOf(String)
+        assert_int_equal(1, indexOfIt->second[0].argTypes.size());
+        assert_true(indexOfIt->second[0].argTypes[0].contains(stringType));
+
+        // indexOf(String, int)
+        assert_int_equal(2, indexOfIt->second[1].argTypes.size());
+        assert_true(indexOfIt->second[1].argTypes[0].contains(stringType));
+        assert_true(indexOfIt->second[1].argTypes[1].contains(integerType));
+
+        // Verify java.lang.Object/toString returns java.lang.String (full
+        // symbol)
+        assert_non_null(objDesc);
+        auto toStringIt = objDesc->instanceFns.find("toString");
+        assert_true(toStringIt != objDesc->instanceFns.end());
+        assert_true(toStringIt->second[0].returnType.contains(stringType));
+
       } catch (const rt::LanguageException &e) {
         cout << rt::getExceptionString(e) << endl;
         assert_true(false);
@@ -105,10 +216,6 @@ static void test_edn_parser_class_parsing_memory(void **state) {
         assert_true(false);
       }
     }
-    // classes was NOT consumed if we didn't use buildClasses?
-    // Wait, buildClasses DOES consume. So it's fine.
-    // If buildClasses is NOT called, it should be released.
-    // In this test it is called.
   });
 }
 

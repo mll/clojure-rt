@@ -108,15 +108,41 @@ ClassDescription::ClassDescription(RTValue from,
       (PersistentArrayMap *)RT_unboxPtr(root.get());
 
   retain(root.get());
-  ConsumedValue typeWrapper(PersistentArrayMap_get(
-      description, Keyword_create(String_create("object-type"))));
+  ConsumedValue aliasWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("alias"))));
 
-  if (getType(typeWrapper.get()) == integerType) {
-    this->type = (objectType)RT_unboxInt32(typeWrapper.get());
-  } else if (getType(typeWrapper.get()) == nilType) {
-    this->type = classType;
+  if (getType(aliasWrapper.get()) == keywordType) {
+    String *s = String_compactify(toString(aliasWrapper.take()));
+    string sAlias = String_c_str(s);
+    Ptr_release(s);
+
+    if (sAlias == ":any") {
+      this->type = ObjectTypeSet::all();
+    } else if (sAlias == ":nil") {
+      this->type = nilType;
+    } else {
+      // Fallback to integerType if it has one, or classType
+      retain(root.get());
+      ConsumedValue typeWrapper(PersistentArrayMap_get(
+          description, Keyword_create(String_create("object-type"))));
+      if (getType(typeWrapper.get()) == integerType) {
+        this->type = (objectType)RT_unboxInt32(typeWrapper.get());
+      } else {
+        this->type = classType;
+      }
+    }
   } else {
-    throwInternalInconsistencyException("Object-type is not an integer");
+    retain(root.get());
+    ConsumedValue typeWrapper(PersistentArrayMap_get(
+        description, Keyword_create(String_create("object-type"))));
+
+    if (getType(typeWrapper.get()) == integerType) {
+      this->type = (objectType)RT_unboxInt32(typeWrapper.get());
+    } else if (getType(typeWrapper.get()) == nilType) {
+      this->type = classType;
+    } else {
+      throwInternalInconsistencyException("Object-type is not an integer");
+    }
   }
 
   retain(root.get());
@@ -437,7 +463,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
       if (sArgKey == ":this") {
         this->argTypes.push_back(ObjectTypeSet(classType));
       } else if (sArgKey == ":any") {
-        this->argTypes.push_back(ObjectTypeSet::dynamicType());
+        this->argTypes.push_back(ObjectTypeSet::all());
       } else if (sArgKey == ":nil") {
         this->argTypes.push_back(ObjectTypeSet(nilType));
       } else {
@@ -476,7 +502,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
     Ptr_release(retStr);
 
     if (sRetKey == ":any") {
-      this->returnType = ObjectTypeSet::dynamicType();
+      this->returnType = ObjectTypeSet::all();
     } else if (sRetKey == ":nil") {
       this->returnType = ObjectTypeSet(nilType);
     } else if (classData.classesByName.find(sRetKey) !=

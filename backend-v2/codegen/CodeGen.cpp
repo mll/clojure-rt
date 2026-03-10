@@ -44,7 +44,9 @@ TypedValue CodeGen::codegen(const Node &node,
     return codegen(node, node.subnode().map(), typeRestrictions);
   case opVector:
     return codegen(node, node.subnode().vector(), typeRestrictions);
-
+  case opStaticCall:
+    return codegen(node, node.subnode().staticcall(), typeRestrictions);
+ 
   // case opBinding:
   //   return codegen(node, node.subnode().binding(), typeRestrictions);
   // case opCase:
@@ -109,8 +111,6 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().set(), typeRestrictions);
   // case opMutateSet:
   //   return codegen(node, node.subnode().mutateset(), typeRestrictions);
-  // case opStaticCall:
-  //   return codegen(node, node.subnode().staticcall(), typeRestrictions);
   // case opStaticField:
   //   return codegen(node, node.subnode().staticfield(), typeRestrictions);
   // case opTheVar:
@@ -144,7 +144,9 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().vector(), typeRestrictions);
   case opMap:
     return getType(node, node.subnode().map(), typeRestrictions);
-
+  case opStaticCall:
+    return getType(node, node.subnode().staticcall(), typeRestrictions);
+ 
   // case opBinding:
   //   return getType(node, node.subnode().binding(), typeRestrictions);
   // case opCase:
@@ -209,8 +211,6 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().set(), typeRestrictions);
   // case opMutateSet:
   //   return getType(node, node.subnode().mutateset(), typeRestrictions);
-  // case opStaticCall:
-  //   return getType(node, node.subnode().staticcall(), typeRestrictions);
   // case opStaticField:
   //   return getType(node, node.subnode().staticfield(), typeRestrictions);
   // case opTheVar:

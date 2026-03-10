@@ -76,6 +76,10 @@ public:
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const VectorNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const StaticCallNode &subnode, 
+		     const ObjectTypeSet &typeRestrictions); 
+
+
 
   // TypedValue codegen(const Node &node, const BindingNode &subnode, const
   // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
@@ -126,8 +130,8 @@ public:
   // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
   // const SetNode &subnode, const ObjectTypeSet &typeRestrictions); TypedValue
   // codegen(const Node &node, const MutateSetNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); TypedValue codegen(const Node &node, const
-  // StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions); TypedValue
+  // &typeRestrictions); 
+   //TypedValue
   // codegen(const Node &node, const StaticFieldNode &subnode, const
   // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
   // const TheVarNode &subnode, const ObjectTypeSet &typeRestrictions);
@@ -149,6 +153,11 @@ public:
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const MapNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const StaticCallNode &subnode, 
+                        const ObjectTypeSet &typeRestrictions);
+  
+
+                    
   // ObjectTypeSet getType(const Node &node, const BindingNode &subnode, const
   // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
   // const CaseNode &subnode, const ObjectTypeSet &typeRestrictions);
@@ -200,8 +209,7 @@ public:
   // &typeRestrictions); ObjectTypeSet getType(const Node &node, const SetNode
   // &subnode, const ObjectTypeSet &typeRestrictions); ObjectTypeSet
   // getType(const Node &node, const MutateSetNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); ObjectTypeSet getType(const Node &node, const
-  // StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions);
+  // &typeRestrictions); 
   // ObjectTypeSet getType(const Node &node, const StaticFieldNode &subnode,
   // const ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node
   // &node, const TheVarNode &subnode, const ObjectTypeSet &typeRestrictions);

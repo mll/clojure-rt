@@ -89,22 +89,21 @@ int main(int argc, char *argv[]) {
 
     state.storeInternalClasses(classes);
 
-    //    release(intrinsics);
+    auto f = engine.compileAST(astRoot.nodes(0), "__root",
+                               llvm::OptimizationLevel::O0, true);
+    cout << "Compiling!!!" << endl;
+    printReferenceCounts();
 
-    // auto f = engine.compileAST(astRoot.nodes(0), "__root",
-    // llvm::OptimizationLevel::O0); cout << "Compiling!!!" << endl;
-    // printReferenceCounts();
+    RTValue whaat = f.get().toPtr<RTValue (*)()>()();
+    printReferenceCounts();
+    String *s = toString(whaat);
+    s = String_compactify(s);
 
-    // RTValue whaat = res();
-    // printReferenceCounts();
-    // String *s = toString(whaat);
-    // s = String_compactify(s);
-
-    //  cout << "Result" << endl;
-    //  cout << std::string(String_c_str(s)) << endl;
-    //  cout << "!!!Result" << endl;
-    // Ptr_release(s);
-    // printReferenceCounts();
+    cout << "========== Result ==========" << endl;
+    cout << std::string(String_c_str(s)) << endl;
+    cout << "========== /Result ==========" << endl;
+    Ptr_release(s);
+    printReferenceCounts();
   } catch (rt::LanguageException e) {
     cout << rt::getExceptionString(e) << endl;
   }

@@ -26,6 +26,30 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
   }
 }
 
+LanguageException::LanguageException(const LanguageException &other) {
+  this->name = other.name;
+  this->message = other.message;
+  this->payload = other.payload;
+  this->stackAddresses = other.stackAddresses;
+  retain(this->message);
+  retain(this->payload);
+}
+
+LanguageException &
+LanguageException::operator=(const LanguageException &other) {
+  if (this != &other) {
+    release(this->message);
+    release(this->payload);
+    this->name = other.name;
+    this->message = other.message;
+    this->payload = other.payload;
+    this->stackAddresses = other.stackAddresses;
+    retain(this->message);
+    retain(this->payload);
+  }
+  return *this;
+}
+
 LanguageException::~LanguageException() noexcept {
   release(message);
   release(payload);
@@ -66,7 +90,10 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
     if (resOrErr) {
       auto &info = resOrErr.get();
       if (!found &&
-          info.FunctionName == "throwInternalInconsistencyException") {
+          (info.FunctionName.find("throwInternalInconsistencyException") !=
+               std::string::npos ||
+           info.FunctionName.find("throwCodeGenerationException") !=
+               std::string::npos)) {
         found = true;
         continue;
       }

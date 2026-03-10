@@ -1,108 +1,45 @@
 #include "ThreadsafeCompilerState.h"
 #include "../bridge/Exceptions.h"
-#include "../RuntimeHeaders.h"
+#include "../tools/EdnParser.h"
+#include "../tools/RTValueWrapper.h"
 
 namespace rt {
 
+extern "C" void delete_class_description(void *ptr);
+
 void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
-  if (getType(from) != persistentArrayMapType)
-    throwInternalInconsistencyException("Class definitions are not a map");
-  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(from);
-  for (uword_t i = 0; i < map->count; i++) {
-    RTValue key = map->keys[i];
-    RTValue value = map->values[i];
-    if (getType(key) != symbolType)
-      throwInternalInconsistencyException(
-          "Class definition key is not a symbol.");
-    if (getType(value) != persistentArrayMapType)
-      throwInternalInconsistencyException(
-          "Class definition value is not a map.");
+  // Directly build ClassDescriptions from EDN
+  std::vector<ClassDescription> descriptions = buildClasses(from);
 
-    retain(key);
-    retain(value);
+  for (auto &desc : descriptions) {
+    String *name = String_createDynamicStr(desc.name.c_str());
+    String *className = String_createDynamicStr(desc.name.c_str());
 
-    value = RT_boxPtr(
-        PersistentArrayMap_assoc((PersistentArrayMap *)RT_unboxPtr(value),
-                                 Keyword_create(String_create("name")), key));        
-                                     
-    retain(value);
-    RTValue classId =
-        PersistentArrayMap_get((PersistentArrayMap *)RT_unboxPtr(value),
-                               Keyword_create(String_create("object-type")));
-    
-    if (getType(classId) == integerType) {
-      retain(value);
-      internalClassRegistry.registerObject((PersistentArrayMap *)RT_unboxPtr(value), RT_unboxInt32(classId));
-    } else {
-      if (getType(classId) != nilType) {
-        release(classId);
-        release(key);
-        release(value);
-        throwInternalInconsistencyException(":object-type must be an integer.");
-      }
+    Class *c = Class_create(name, className, 0, NULL);
+
+    // Register by name
+    classRegistry.registerObject(desc.name.c_str(), c);
+
+    // Attach the Compiler Metadata
+    c->compilerExtension = new ClassDescription(std::move(desc));
+    c->compilerExtensionDestructor = delete_class_description;
+
+    // Register by ID if it's a built-in type
+    auto *ext = static_cast<ClassDescription *>(c->compilerExtension);
+    if (ext->type.isDetermined() && ext->type.determinedType() != classType) {
+      Ptr_retain(c);
+      classRegistry.registerObject(c, (int32_t)ext->type.determinedType());
     }
+  }
+}
 
-    release(classId);
-
-    retain(value);
-    RTValue alias =
-        PersistentArrayMap_get((PersistentArrayMap *)RT_unboxPtr(value),
-                               Keyword_create(String_create("alias")));
-
-    /* Aliases are stored in the same way as classes themselves - we abuse
-       alias string representation that starts with a colon */
-    
-    if (getType(alias) == keywordType) {
-     String *ss = String_compactify(toString(alias));
-     retain(value);
-     internalClassRegistry.registerObject(String_c_str(ss), (PersistentArrayMap *)RT_unboxPtr(value));
-     Ptr_release(ss);
-    } else {
-      if (getType(alias) != nilType) {
-        release(alias);
-        release(key);
-        release(value);
-        throwInternalInconsistencyException(":alias must be a keyword.");
-      }
-    }
-    
-    retain(key);
-    String *s = String_compactify(toString(key));
-
-    retain(value);
-    internalClassRegistry.registerObject(String_c_str(s), (PersistentArrayMap *)RT_unboxPtr(value));
-    Ptr_release(s);
-  }    
-  release(from);
+void ThreadsafeCompilerState::refineClasses() {
+  // No longer needed
 }
 
 void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {
-  if (getType(from) != persistentArrayMapType)
-    throwInternalInconsistencyException("Protocol definitions are not a map");
-
-  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(from);
-  for (uword_t i = 0; i < map->count; i++) {
-    RTValue key = map->keys[i];
-    RTValue value = map->values[i];
-    if (getType(key) != symbolType)
-      throwInternalInconsistencyException(
-          "Protocol definition key is not a symbol.");
-    if (getType(value) != persistentArrayMapType)
-      throwInternalInconsistencyException(
-          "Protocol definition value is not a map.");
-   
-    retain(key);
-    String *s = String_compactify(toString(key));
-
-    retain(value);
-    internalProtocolRegistry.registerObject(String_c_str(s), (PersistentArrayMap *)RT_unboxPtr(value));
-    Ptr_release(s);
-  }    
+  // Protocols can be handled similarly if needed
   release(from);
 }
 
-
-
 } // namespace rt
-    
-    

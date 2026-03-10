@@ -16,8 +16,9 @@ using namespace clojure::rt::protobuf::bytecode;
 using IntrinsicCall = std::function<llvm::Value *(llvm::IRBuilder<> &,
                                                   std::vector<llvm::Value *>)>;
 
-namespace rt {
+#include "../../tools/EdnParser.h"
 
+namespace rt {
 class InvokeManager {
 private:
   llvm::IRBuilder<> &builder;
@@ -25,7 +26,6 @@ private:
   ValueEncoder &valueEncoder;
   LLVMTypes &types;
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
-  ThreadsafeCompilerState &state;
 
 public:
   explicit InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m, ValueEncoder &v,
@@ -37,11 +37,8 @@ public:
                            const std::vector<TypedValue> &args,
                            const bool isVariadic = false);
 
-  TypedValue generateIntrinsic(RTValue intrinsicDescription,
+  TypedValue generateIntrinsic(const IntrinsicDescription &id,
                                const std::vector<TypedValue> &args);
-  bool checkIntrinsicArgs(PersistentArrayMap *description,
-                          const std::vector<ObjectTypeSet> &args);
-  ObjectTypeSet returnValueType(PersistentArrayMap *description);
 };
 
 } // namespace rt

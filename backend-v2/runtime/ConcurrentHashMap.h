@@ -19,6 +19,10 @@ using std::memory_order_seq_cst;
 #else
 #include <stdatomic.h>
 #endif
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "RTValue.h"
 #include "String.h"
 #include "defines.h"
@@ -61,5 +65,9 @@ bool ConcurrentHashMap_equals(ConcurrentHashMap *self,
 uword_t ConcurrentHashMap_hash(ConcurrentHashMap *self);
 String *ConcurrentHashMap_toString(ConcurrentHashMap *self);
 void ConcurrentHashMap_destroy(ConcurrentHashMap *self);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

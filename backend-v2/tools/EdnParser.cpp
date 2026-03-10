@@ -2,6 +2,11 @@
 #include "RTValueWrapper.h"
 
 namespace rt {
+
+extern "C" void delete_class_description(void *ptr) {
+  delete static_cast<ClassDescription *>(ptr);
+}
+
 ClassDescription::~ClassDescription() {
   for (auto const &s : staticFields) {
     release(s.second);
@@ -136,8 +141,41 @@ ClassDescription::ClassDescription(RTValue from,
 
   if (getType(sfWrapper.get()) == persistentArrayMapType) {
     this->staticFields = parseStaticFields(sfWrapper.take());
+    // Create stable indexing
+    for (auto const &[key, val] : this->staticFields) {
+      staticFieldIndices[key] = (int32_t)staticFieldValues.size();
+      staticFieldValues.push_back(val);
+    }
   } else if (getType(sfWrapper.get()) != nilType) {
     throwInternalInconsistencyException(":static-fields must be a map.");
+  }
+
+  retain(root.get());
+  ConsumedValue ifieldsWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("instance-fields"))));
+
+  if (getType(ifieldsWrapper.get()) == persistentVectorType) {
+    PersistentVector *vec =
+        (PersistentVector *)RT_unboxPtr(ifieldsWrapper.get());
+    for (uword_t i = 0; i < vec->count; i++) {
+      retain(RT_boxPtr(vec)); // PersistentVector_nth consumes self
+      ConsumedValue fieldName(PersistentVector_nth(vec, i));
+      // toString consumes.
+      String *ss = String_compactify(toString(fieldName.take()));
+      this->instanceFields[String_c_str(ss)] = (int32_t)i;
+      Ptr_release(ss);
+    }
+  }
+
+  retain(root.get());
+  ConsumedValue interfacesWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("interfaces"))));
+
+  if (getType(interfacesWrapper.get()) == persistentVectorType) {
+    // These will be resolved later or stored as names.
+    // For now, let's assume classData can help or we store them as symbols.
+    // Actually, the previous implementation had ImplementedInterface**
+    // implementedInterfaces; which were resolved Classes.
   }
 
   retain(root.get());
@@ -162,6 +200,85 @@ ClassDescription::ClassDescription(RTValue from,
   }
 }
 
+extern "C" {
+int32_t ClassExtension_fieldIndex(void *ext, RTValue field) {
+  ClassDescription *description = (ClassDescription *)ext;
+  String *s = String_compactify(toString(field));
+  string key = String_c_str(s);
+  Ptr_release(s);
+
+  auto it = description->instanceFields.find(key);
+  if (it != description->instanceFields.end()) {
+    return it->second;
+  }
+  return -1;
+}
+
+int32_t ClassExtension_staticFieldIndex(void *ext, RTValue staticField) {
+  ClassDescription *description = (ClassDescription *)ext;
+  String *s = String_compactify(toString(staticField));
+  string key = String_c_str(s);
+  Ptr_release(s);
+
+  auto it = description->staticFieldIndices.find(key);
+  if (it != description->staticFieldIndices.end()) {
+    return it->second;
+  }
+  return -1;
+}
+
+RTValue ClassExtension_getIndexedStaticField(void *ext, int32_t i) {
+  ClassDescription *description = (ClassDescription *)ext;
+  if (i >= 0 && i < (int32_t)description->staticFieldValues.size()) {
+    RTValue val = description->staticFieldValues[i];
+    retain(val);
+    return val;
+  }
+  return RT_boxNil();
+}
+
+RTValue ClassExtension_setIndexedStaticField(void *ext, int32_t i,
+                                             RTValue value) {
+  ClassDescription *description = (ClassDescription *)ext;
+  if (i >= 0 && i < (int32_t)description->staticFieldValues.size()) {
+    RTValue old = description->staticFieldValues[i];
+    description->staticFieldValues[i] = value;
+    // Value is retained by the caller or we should retain it here?
+    // Class_setIndexedStaticField in C code did NOT retain 'value' but released
+    // 'oldValue'. RTValue oldValue = self->staticFields[i];
+    // self->staticFields[i] = value;
+    // release(oldValue);
+    // return value;
+    release(old);
+    return value;
+  }
+  return value;
+}
+
+ClojureFunction *ClassExtension_resolveInstanceCall(void *ext, RTValue name,
+                                                    int32_t argCount) {
+  ClassDescription *description = (ClassDescription *)ext;
+  String *s = String_compactify(toString(name));
+  string key = String_c_str(s);
+  Ptr_release(s);
+
+  auto it = description->instanceFns.find(key);
+  if (it != description->instanceFns.end()) {
+    // FIXME: We need to resolve these to ClojureFunction* objects.
+    /*
+    for (auto const& intrinsic : it->second) {
+      // We need an actual ClojureFunction object here.
+      // This refactoring assumes that compile-time metadata can resolve to
+      // runtime functions. For now, if it's a :call type, we return the
+      // function. Wait, IntrinsicDescription only has the symbol name. The
+      // actual ClojureFunction should be built or cached.
+    }
+    */
+  }
+  return nullptr;
+}
+}
+
 unordered_map<string, RTValue>
 ClassDescription::parseStaticFields(RTValue from) {
   ConsumedValue root(from);
@@ -176,7 +293,7 @@ ClassDescription::parseStaticFields(RTValue from) {
     if (getType(key) != symbolType)
       throwInternalInconsistencyException("Static fields key is not a symbol.");
 
-    // toString consumes. Protect key for the map.
+    // toString consumes. Protect borrowed key.
     retain(key);
     String *ss = String_compactify(toString(key));
     string sKey = String_c_str(ss);
@@ -232,7 +349,7 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData) {
       PersistentVector_iteratorNext(&it);
     }
 
-    // toString(key) consumes. Protect borrowed key for the map.
+    // toString consumes. Protect borrowed key for the map.
     retain(key);
     String *ss = String_compactify(toString(key));
     string sKey = String_c_str(ss);

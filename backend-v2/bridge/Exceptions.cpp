@@ -138,7 +138,6 @@ std::string getExceptionString(const LanguageException &e) {
 
 } // namespace rt
 
-extern "C" {
 void throwInternalInconsistencyException(const std::string &errorMessage) {
   throw rt::LanguageException(
       "InternalInconsistencyException",
@@ -156,5 +155,4 @@ void throwCodeGenerationException(const std::string &errorMessage,
   throw rt::LanguageException(
       "CodeGenerationException",
       RT_boxPtr(String_createDynamicStr(retval.str().c_str())), RT_boxNil());
-}
 }

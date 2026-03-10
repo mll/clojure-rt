@@ -105,6 +105,10 @@ static void test_edn_parser_class_parsing_memory(void **state) {
         assert_true(false);
       }
     }
+    // classes was NOT consumed if we didn't use buildClasses?
+    // Wait, buildClasses DOES consume. So it's fine.
+    // If buildClasses is NOT called, it should be released.
+    // In this test it is called.
   });
 }
 
@@ -175,6 +179,9 @@ static void test_class_aliasing_impl(void **state) {
     rootMap = PersistentArrayMap_assoc(
         rootMap, Symbol_create(String_create("com.foo/B")),
         RT_boxPtr(classBMap));
+
+    // After assoc, rootMap owns a reference, but we must release our local
+    // ones.
 
     vector<ClassDescription> classes = buildClasses(RT_boxPtr(rootMap));
 
@@ -308,6 +315,91 @@ static void test_special_types_impl(void **state) {
     assert_true(intrinsic.argTypes[2].contains(nilType));
     assert_true(intrinsic.returnType.contains(nilType));
   });
+}
+
+static void test_bridge_functions_impl(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    // {com.foo/Test {:instance-fields ["a" "b"], :static-fields {S1 10, S2
+    // 20}}}
+    PersistentVector *ifields = PersistentVector_create();
+    ifields = PersistentVector_conj(ifields, RT_boxPtr(String_create("a")));
+    ifields = PersistentVector_conj(ifields, RT_boxPtr(String_create("b")));
+
+    PersistentArrayMap *sfields = PersistentArrayMap_empty();
+    sfields = PersistentArrayMap_assoc(
+        sfields, Symbol_create(String_create("S1")), RT_boxInt32(10));
+    sfields = PersistentArrayMap_assoc(
+        sfields, Symbol_create(String_create("S2")), RT_boxInt32(20));
+
+    PersistentArrayMap *classMap = PersistentArrayMap_empty();
+    classMap = PersistentArrayMap_assoc(
+        classMap, Keyword_create(String_create("instance-fields")),
+        RT_boxPtr(ifields));
+    classMap = PersistentArrayMap_assoc(
+        classMap, Keyword_create(String_create("static-fields")),
+        RT_boxPtr(sfields));
+
+    PersistentArrayMap *rootMap = PersistentArrayMap_empty();
+    rootMap = PersistentArrayMap_assoc(
+        rootMap, Symbol_create(String_create("com.foo/Test")),
+        RT_boxPtr(classMap));
+
+    vector<ClassDescription> classes = buildClasses(RT_boxPtr(rootMap));
+    assert_int_equal(1, classes.size());
+
+    ClassDescription &desc = classes[0];
+    void *ext = &desc;
+
+    // Test instance field indices
+    RTValue fieldA = Symbol_create(String_create("a"));
+    RTValue fieldB = Symbol_create(String_create("b"));
+    RTValue fieldC = Symbol_create(String_create("c"));
+
+    assert_int_equal(0, ClassExtension_fieldIndex(ext, fieldA));
+    assert_int_equal(1, ClassExtension_fieldIndex(ext, fieldB));
+    assert_int_equal(-1, ClassExtension_fieldIndex(ext, fieldC));
+
+    release(fieldA);
+    release(fieldB);
+    release(fieldC);
+
+    // Test static field indices
+    RTValue sfield1 = Symbol_create(String_create("S1"));
+    RTValue sfield2 = Symbol_create(String_create("S2"));
+
+    int32_t idx1 = ClassExtension_staticFieldIndex(ext, sfield1);
+    int32_t idx2 = ClassExtension_staticFieldIndex(ext, sfield2);
+
+    assert_true(idx1 != -1);
+    assert_true(idx2 != -1);
+    assert_true(idx1 != idx2);
+
+    // Test static field values
+    RTValue val1 = ClassExtension_getIndexedStaticField(ext, idx1);
+    RTValue val2 = ClassExtension_getIndexedStaticField(ext, idx2);
+
+    // Values are retained by getIndexedStaticField
+    assert_int_equal(10, RT_unboxInt32(val1));
+    assert_int_equal(20, RT_unboxInt32(val2));
+
+    release(val1);
+    release(val2);
+
+    // Test setting static field
+    RTValue newVal = RT_boxInt32(100);
+    ClassExtension_setIndexedStaticField(ext, idx1, newVal);
+    RTValue checkVal = ClassExtension_getIndexedStaticField(ext, idx1);
+    assert_int_equal(100, RT_unboxInt32(checkVal));
+    release(checkVal);
+
+    release(sfield1);
+    release(sfield2);
+  });
+}
+
+static void test_bridge_functions(void **state) {
+  execute_test(test_bridge_functions_impl, state, "test_bridge_functions");
 }
 
 static void test_special_types(void **state) {
@@ -757,6 +849,7 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_edn_parser_class_parsing_memory),
       cmocka_unit_test(test_class_aliasing),
       cmocka_unit_test(test_static_fields),
+      cmocka_unit_test(test_bridge_functions),
       cmocka_unit_test(test_special_types),
       cmocka_unit_test(test_root_not_map),
       cmocka_unit_test(test_class_key_not_symbol),

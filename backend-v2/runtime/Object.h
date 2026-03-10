@@ -56,11 +56,19 @@ typedef struct String String;
 
 #define MEMORY_BANK_SIZE_MAX 10
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void logBacktrace();
 void printReferenceCounts();
 
 extern _Atomic(uword_t) allocationCount[256];
 extern _Atomic(uword_t) objectCount[256];
+
+#ifdef __cplusplus
+}
+#endif
 
 // bank 0 - 32 bytes 2^5
 // bank 1 - 64 bytes
@@ -74,7 +82,15 @@ extern _Atomic(uword_t) objectCount[256];
 extern _Thread_local void *memoryBank[8];
 extern _Thread_local int memoryBankSize[8];
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void initialise_memory();
+
+#ifdef __cplusplus
+}
+#endif
 
 inline void *allocate(size_t size) {
 #ifndef USE_MEMORY_BANKS
@@ -444,24 +460,6 @@ inline String *Object_toString(Object *restrict self) {
   }
 }
 
-inline String *toString(RTValue self) {
-  if (RT_isInt32(self))
-    return Integer_toString(self);
-  if (RT_isDouble(self))
-    return Double_toString(self);
-  if (RT_isBool(self))
-    return Boolean_toString(self);
-  if (RT_isNil(self))
-    return Nil_toString();
-  if (RT_isKeyword(self))
-    return Keyword_toString(self);
-  if (RT_isSymbol(self))
-    return Symbol_toString(self);
-
-  assert(RT_isPtr(self) && "Internal error: Not a pointer");
-  return Object_toString((Object *)RT_unboxPtr(self));
-}
-
 inline bool Object_release(Object *restrict self) {
   return Object_release_internal(self, true);
 }
@@ -532,6 +530,26 @@ inline bool Ptr_equals(void *self, void *other) {
   if (self == other)
     return true;
   return Object_equals((Object *)self, (Object *)other);
+}
+
+inline String *toString(RTValue self) {
+  if (RT_isInt32(self))
+    return Integer_toString(self);
+  if (RT_isDouble(self))
+    return Double_toString(self);
+  if (RT_isBool(self))
+    return Boolean_toString(self);
+  if (RT_isNil(self)) {
+    release(self);
+    return Nil_toString();
+  }
+  if (RT_isKeyword(self))
+    return Keyword_toString(self);
+  if (RT_isSymbol(self))
+    return Symbol_toString(self);
+
+  assert(RT_isPtr(self) && "Internal error: Not a pointer");
+  return Object_toString((Object *)RT_unboxPtr(self));
 }
 
 #pragma clang diagnostic pop

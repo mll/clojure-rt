@@ -37,10 +37,10 @@ std::string getExceptionString(const LanguageException &e);
 
 } // namespace rt
 
-extern "C" {
-void throwInternalInconsistencyException(const std::string &errorMessage);
-void throwCodeGenerationException(const std::string &errorMessage,
-                                  const Node &node);
-}
+// C++-only functions (no extern "C" needed/possible due to std::string/Node)
+[[noreturn]] void
+throwInternalInconsistencyException(const std::string &errorMessage);
+[[noreturn]] void throwCodeGenerationException(const std::string &errorMessage,
+                                               const Node &node);
 
 #endif

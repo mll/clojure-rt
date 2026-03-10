@@ -1,10 +1,19 @@
 #ifndef RT_RUNTIME_INTERFACE
 #define RT_RUNTIME_INTERFACE
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "Object.h"
 #include "RTValue.h"
 
 void RuntimeInterface_initialise();
 void RuntimeInterface_cleanup();
+
+#ifdef __cplusplus
+}
+#endif
 
 inline bool logicalValue(RTValue self) {
   if (RT_isNil(self))
@@ -13,6 +22,14 @@ inline bool logicalValue(RTValue self) {
     return RT_unboxBool(self);
   return true;
 }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+void logBacktrace();
+#ifdef __cplusplus
+}
+#endif
 
 inline void logException(const char *description) {
   printf("%s\n", description);
@@ -42,9 +59,17 @@ inline bool unboxedEqualsBoolean(RTValue left, bool right) {
   return RT_unboxBool(left) == right;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void printReferenceCounts();
 
 void **packPointerArgs(uword_t count, ...);
 RTValue *packValueArgs(uword_t count, ...);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

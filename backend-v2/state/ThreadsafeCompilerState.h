@@ -1,13 +1,15 @@
 #ifndef THREADSAFE_COMPILER_STATE_H
 #define THREADSAFE_COMPILER_STATE_H
 
-#include "ThreadsafeRegistry.h"
+#include "../RuntimeHeaders.h"
 #include "ThreadsafeInlineCacheManager.h"
+#include "ThreadsafeRegistry.h"
+#include "bytecode.pb.h"
 
 extern "C" {
-#include "runtime/ObjectProto.h"
-#include "runtime/Object.h"
 #include "runtime/Class.h"
+#include "runtime/Object.h"
+#include "runtime/ObjectProto.h"
 #include "runtime/PersistentArrayMap.h"
 /* #include "runtime/Var.h" */
 }
@@ -15,27 +17,21 @@ extern "C" {
 using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
-  class ThreadsafeCompilerState {
-  public:
-    
-    ThreadsafeInlineCacheManager objectFieldIndexAccessInlineCache;
-    ThreadsafeInlineCacheManager methodCallInlineCache;
+class ThreadsafeCompilerState {
+public:
+  ThreadsafeInlineCacheManager objectFieldIndexAccessInlineCache;
+  ThreadsafeInlineCacheManager methodCallInlineCache;
 
-    ThreadsafeRegistry<Class> classRegistry;
-    ThreadsafeRegistry<const Node> functionAstRegistry;
-    ThreadsafeRegistry<PersistentArrayMap> internalClassRegistry;
-    ThreadsafeRegistry<PersistentArrayMap> internalProtocolRegistry;    
-    /* ThreadsafeRegistry<Var> varRegistry; */
+  ThreadsafeRegistry<Class> classRegistry;
+  ThreadsafeRegistry<const Node> functionAstRegistry;
+  /* ThreadsafeRegistry<Var> varRegistry; */
 
+  ThreadsafeCompilerState() : classRegistry(true), functionAstRegistry(false) {}
 
-    ThreadsafeCompilerState()
-        : classRegistry(true), functionAstRegistry(false),
-          internalClassRegistry(true),
-          internalProtocolRegistry(true) /*, varRegistry(true)*/ {}
-
-    void storeInternalClasses(RTValue from);
-    void storeInternalProtocols(RTValue from);        
-  };  
-}
+  void storeInternalClasses(RTValue from);
+  void storeInternalProtocols(RTValue from);
+  void refineClasses();
+};
+} // namespace rt
 
 #endif

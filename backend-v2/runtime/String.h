@@ -1,6 +1,10 @@
 #ifndef RT_STRING
 #define RT_STRING
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "PersistentVectorIterator.h"
 #include "RTValue.h"
 #include "defines.h"
@@ -65,5 +69,9 @@ word_t String_indexOf(String *self, String *other);
 word_t String_indexOfFrom(String *self, String *other, word_t fromIndex);
 
 String *String_replace(String *self, String *target, String *replacement);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

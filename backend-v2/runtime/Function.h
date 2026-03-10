@@ -1,19 +1,24 @@
 #ifndef RT_FUNCTION
 #define RT_FUNCTION
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "RTValue.h"
 #include "String.h"
 #include "defines.h"
-#include "RTValue.h"
 
 #define INVOKATION_CACHE_SIZE 3
 
 typedef struct InvokationCache InvokationCache;
 
-struct FunctionMethod  {
+struct FunctionMethod {
   unsigned char index;
   uword_t fixedArity;
   uword_t isVariadic;
   void *baselineImplementation;
-  char *loopId;  
+  char *loopId;
   uword_t closedOversCount;
   RTValue *closedOvers;
 };
@@ -34,15 +39,22 @@ struct ClojureFunction {
 
 typedef struct ClojureFunction ClojureFunction;
 
-struct ClojureFunction* Function_create(uword_t methodCount, uword_t uniqueId, uword_t maxArity, bool once);
+struct ClojureFunction *Function_create(uword_t methodCount, uword_t uniqueId,
+                                        uword_t maxArity, bool once);
 
-void Function_fillMethod(struct ClojureFunction *self, uword_t position, uword_t index, uword_t fixedArity,  bool isVariadic, char *loopId, word_t closedOversCount, ...);
+void Function_fillMethod(struct ClojureFunction *self, uword_t position,
+                         uword_t index, uword_t fixedArity, bool isVariadic,
+                         char *loopId, word_t closedOversCount, ...);
 
 bool Function_validCallWithArgCount(ClojureFunction *self, uword_t argCount);
 bool Function_equals(ClojureFunction *self, ClojureFunction *other);
 uword_t Function_hash(ClojureFunction *self);
-String *Function_toString(ClojureFunction *self); 
+String *Function_toString(ClojureFunction *self);
 void Function_destroy(ClojureFunction *self);
 void Function_cleanupOnce(ClojureFunction *self);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

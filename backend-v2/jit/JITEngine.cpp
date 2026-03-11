@@ -83,6 +83,10 @@ JITEngine::compileAST(const Node &AST, const std::string &moduleName,
         auto Sym = jit->lookup(fName);
         if (!Sym)
           throwInternalInconsistencyException("Symbol Lookup Failed: " + fName);
+
+        // Register for stack trace resolution (approximate size)
+        registerJitFunction_C(Sym->getValue(), 4096, fName.c_str());
+
         return *Sym;
       });
 }

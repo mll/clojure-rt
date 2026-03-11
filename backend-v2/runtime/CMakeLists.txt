@@ -6,11 +6,11 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter")
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fexceptions")
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fexceptions")
 
-set(CMAKE_C_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter")
-set(CMAKE_C_FLAGS_RELEASE "-Ofast")
+set(CMAKE_C_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fexceptions")
+set(CMAKE_C_FLAGS_RELEASE "-Ofast -fexceptions")
 
 set(SOURCES
     Transient.c
@@ -50,6 +50,7 @@ include_directories(${CMOCKA_INCLUDE_DIRS})
 
 set(COMMON_TEST_SOURCES 
     tests/TestTools.c
+    tests/ExceptionsMock.c
 )
 
 set(TEST_MODULES

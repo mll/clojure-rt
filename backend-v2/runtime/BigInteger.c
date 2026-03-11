@@ -1,4 +1,5 @@
 #include "BigInteger.h"
+#include "Exceptions.h"
 #include "Object.h"
 #include "String.h"
 
@@ -137,8 +138,7 @@ RTValue BigInteger_div(BigInteger *self, BigInteger *other) {
   if (!mpz_cmp_si(other->value, 0)) {
     Ptr_release(self);
     Ptr_release(other);
-    assert(false && "Divide by zero");
-    return RT_boxNil(); // Exception: divide by zero
+    throwArithmeticException_C("Divide by zero");
   }
 
   if (mpz_divisible_p(self->value, other->value)) {

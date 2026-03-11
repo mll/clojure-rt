@@ -1,17 +1,39 @@
 #include "Exceptions.h"
+#include "../runtime/Exceptions.h"
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <stdio.h>
 
 #ifdef __APPLE__
+#include <dlfcn.h>
 #include <mach-o/dyld.h>
 #elif defined(__linux__)
+#include <dlfcn.h>
 #include <limits.h>
 #include <unistd.h>
 #endif
 
+#include <map>
+#include <mutex>
+
 namespace rt {
+
+struct JitInfo {
+  std::string name;
+  size_t size;
+};
+
+static std::mutex gJitMapMutex;
+static std::map<uword_t, JitInfo> gJitFunctions;
+
+extern "C" void registerJitFunction_C(uword_t addr, size_t size,
+                                      const char *name) {
+  std::lock_guard<std::mutex> lock(gJitMapMutex);
+  gJitFunctions[addr] = {name, size};
+}
+
+// Removing redundant namespace rt {
 
 LanguageException::LanguageException(const std::string &name, RTValue message,
                                      RTValue payload) {
@@ -63,8 +85,8 @@ void LanguageException::printRawTrace() const {
 
 std::string
 LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
-                            const std::string &moduleName,
-                            const intptr_t slide) const {
+                            const std::string &defaultModuleName,
+                            const intptr_t defaultSlide) const {
   std::stringstream ss;
 
   ss << "Exception: " << name << "\n";
@@ -81,39 +103,139 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
   ss << "Stack Trace:\n";
   bool found = false;
   for (uword_t addr : stackAddresses) {
+    std::string currentModule = "";
+    uword_t lookupAddr = addr;
+    std::string dlSymbolName = "";
 
-    uword_t lookupAddr = addr - slide;
+    Dl_info dlinfo;
+    bool hasDlInfo = dladdr(reinterpret_cast<void *>(addr), &dlinfo);
+    if (hasDlInfo) {
+      if (dlinfo.dli_sname) {
+        dlSymbolName = dlinfo.dli_sname;
+      }
 
-    auto resOrErr = symbolizer.symbolizeCode(
-        moduleName, {lookupAddr, llvm::object::SectionedAddress::UndefSection});
-
-    if (resOrErr) {
-      auto &info = resOrErr.get();
-      if (!found &&
-          (info.FunctionName.find("throwInternalInconsistencyException") !=
-               std::string::npos ||
-           info.FunctionName.find("throwCodeGenerationException") !=
-               std::string::npos)) {
+      // 1. Check if we should start the trace (Found logic)
+      if (!found && !dlSymbolName.empty() &&
+          dlSymbolName.find("throw") != std::string::npos &&
+          dlSymbolName.find("Exception") != std::string::npos) {
         found = true;
         continue;
       }
+
+#ifdef __APPLE__
+      // 2. Identify module and offset
+      if (dlinfo.dli_fbase == _dyld_get_image_header(0)) {
+        // Main executable - must use dSYM and slide
+        currentModule = defaultModuleName;
+        lookupAddr = addr - defaultSlide;
+      } else if (dlinfo.dli_fname) {
+        currentModule = dlinfo.dli_fname;
+        lookupAddr = addr - reinterpret_cast<uword_t>(dlinfo.dli_fbase);
+      }
+#else
+      if (dlinfo.dli_fname) {
+        currentModule = dlinfo.dli_fname;
+        lookupAddr = addr - reinterpret_cast<uword_t>(dlinfo.dli_fbase);
+      }
+#endif
+    } else {
+      // Check JIT map
+      std::lock_guard<std::mutex> lock(gJitMapMutex);
+      auto it = gJitFunctions.lower_bound(addr);
+      if (it != gJitFunctions.begin()) {
+        auto prev = std::prev(it);
+        if (addr >= prev->first && addr < prev->first + prev->second.size) {
+          if (found) {
+            ss << "  at " << prev->second.name
+               << " [JIT:" << (void *)prev->first << "]\n";
+          }
+          continue;
+        }
+      }
+    }
+
+    if (!found)
+      continue;
+
+    // Adjust address back to get the call site line instead of return site.
+    // On ARM64 (macOS), instructions are exactly 4 bytes. PC-4 is the call
+    // site.
+    uword_t symbolizeAddr = lookupAddr;
+#if defined(__aarch64__) || defined(__arm64__)
+    if (symbolizeAddr >= 4)
+      symbolizeAddr -= 4;
+#else
+    if (symbolizeAddr > 0)
+      symbolizeAddr -= 1;
+#endif
+
+    if (currentModule.empty()) {
+      currentModule = defaultModuleName;
+#if defined(__aarch64__) || defined(__arm64__)
+      symbolizeAddr = (addr - defaultSlide) - 4;
+#else
+      symbolizeAddr = (addr - defaultSlide) - 1;
+#endif
+    }
+
+    auto resOrErr = symbolizer.symbolizeCode(
+        currentModule,
+        {symbolizeAddr, llvm::object::SectionedAddress::UndefSection});
+
+    if (resOrErr) {
+      auto &info = resOrErr.get();
+      // Second chance for found (if dladdr failed somehow)
+      if (!found &&
+          (info.FunctionName.find("throw") != std::string::npos &&
+           info.FunctionName.find("Exception") != std::string::npos)) {
+        found = true;
+        continue;
+      }
+
       if (found) {
         ss << "  at ";
 
         if (info.FunctionName != "<invalid>") {
           ss << info.FunctionName;
+        } else if (!dlSymbolName.empty()) {
+          ss << dlSymbolName;
+        } else if (!currentModule.empty()) {
+          size_t lastSlash = currentModule.find_last_of('/');
+          std::string base = (lastSlash != std::string::npos)
+                                 ? currentModule.substr(lastSlash + 1)
+                                 : currentModule;
+          ss << base << " + 0x" << std::hex << lookupAddr << std::dec;
         } else {
           ss << "0x" << std::hex << std::setw(sizeof(uword_t) * 2)
              << std::setfill('0') << addr << std::dec;
         }
+
         if (info.FileName != "<invalid>") {
           ss << " [" << info.FileName << ":" << info.Line << "]";
+        } else if (!currentModule.empty() && info.FunctionName == "<invalid>") {
+          // If we have a module but no function/file, it might be a missing
+          // dSYM or similar.
+          size_t lastSlash = currentModule.find_last_of('/');
+          std::string base = (lastSlash != std::string::npos)
+                                 ? currentModule.substr(lastSlash + 1)
+                                 : currentModule;
+          if (dlSymbolName.empty()) {
+            ss << " " << base << " + 0x" << std::hex << lookupAddr << std::dec;
+          }
         }
       }
     } else {
       if (found) {
         ss << "  at ";
-        ss << "?? [0x" << std::hex << addr << std::dec << "]";
+        if (!dlSymbolName.empty()) {
+          ss << dlSymbolName;
+        } else if (!currentModule.empty()) {
+          size_t lastSlash = currentModule.find_last_of('/');
+          ss << currentModule.substr(lastSlash + 1) << " + 0x" << std::hex
+             << lookupAddr << std::dec;
+        } else {
+          ss << "?? [0x" << std::hex << addr << std::dec << "]";
+        }
         llvm::consumeError(resOrErr.takeError());
       }
     }
@@ -175,6 +297,43 @@ extern "C" void
 throwInternalInconsistencyException_C(const char *errorMessage) {
   throw rt::LanguageException("InternalInconsistencyException",
                               RT_boxPtr(String_createDynamicStr(errorMessage)),
+                              RT_boxNil());
+}
+
+extern "C" void throwLanguageException_C(const char *name, RTValue message,
+                                         RTValue payload) {
+  throw rt::LanguageException(name, message, payload);
+}
+
+extern "C" void throwArityException_C(int expected, int actual) {
+  std::stringstream ss;
+  ss << "Wrong number of args (" << actual << ") passed to function";
+  throw rt::LanguageException(
+      "ArityException", RT_boxPtr(String_createDynamicStr(ss.str().c_str())),
+      RT_boxNil());
+}
+
+extern "C" void throwIllegalArgumentException_C(const char *message) {
+  throw rt::LanguageException("IllegalArgumentException",
+                              RT_boxPtr(String_createDynamicStr(message)),
+                              RT_boxNil());
+}
+
+extern "C" void throwIllegalStateException_C(const char *message) {
+  throw rt::LanguageException("IllegalStateException",
+                              RT_boxPtr(String_createDynamicStr(message)),
+                              RT_boxNil());
+}
+
+extern "C" void throwUnsupportedOperationException_C(const char *message) {
+  throw rt::LanguageException("UnsupportedOperationException",
+                              RT_boxPtr(String_createDynamicStr(message)),
+                              RT_boxNil());
+}
+
+extern "C" void throwArithmeticException_C(const char *message) {
+  throw rt::LanguageException("ArithmeticException",
+                              RT_boxPtr(String_createDynamicStr(message)),
                               RT_boxNil());
 }
 

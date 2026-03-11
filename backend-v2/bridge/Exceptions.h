@@ -45,6 +45,9 @@ throwInternalInconsistencyException(const std::string &errorMessage);
 [[noreturn]] void throwCodeGenerationException(const std::string &errorMessage,
                                                const Node &node);
 
+extern "C" void registerJitFunction_C(uword_t addr, size_t size,
+                                      const char *name);
+
 extern "C" [[noreturn]] void
 throwInternalInconsistencyException_C(const char *errorMessage);
 

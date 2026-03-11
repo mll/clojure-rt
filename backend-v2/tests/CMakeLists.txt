@@ -5,6 +5,7 @@ set(COMMON_TEST_SOURCES
 set(TEST_MODULES
     tools/EdnParser_test
     codegen/StaticCallNode_test
+    codegen/Overflow_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

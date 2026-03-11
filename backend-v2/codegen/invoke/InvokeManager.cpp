@@ -2,6 +2,7 @@
 #include "../../bridge/Exceptions.h"
 #include "../../tools/EdnParser.h"
 #include "types/ObjectTypeSet.h"
+#include "llvm/IR/MDBuilder.h"
 #include <vector>
 
 using namespace llvm;
@@ -17,14 +18,48 @@ InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
   intrinsics["FAdd"] = [](auto &b, auto args) {
     return b.CreateFAdd(args[0], args[1]);
   };
-  intrinsics["Add"] = [](auto &b, auto args) {
-    return b.CreateAdd(args[0], args[1]);
+  auto createCheckedOp = [this](const std::string &llvmIntrinsic,
+                               const std::string &errorMessage) {
+    return [this, llvmIntrinsic, errorMessage](llvm::IRBuilder<> &b,
+                                               std::vector<llvm::Value *> args) {
+      Function *fn = Intrinsic::getDeclaration(&theModule, 
+          llvmIntrinsic == "sadd" ? Intrinsic::sadd_with_overflow : Intrinsic::ssub_with_overflow, 
+          {b.getInt32Ty()});
+      
+      Value *resStruct = b.CreateCall(fn, args);
+      Value *res = b.CreateExtractValue(resStruct, {0});
+      Value *overflow = b.CreateExtractValue(resStruct, {1});
+
+      BasicBlock *insertBB = b.GetInsertBlock();
+      Function *currentFn = insertBB->getParent();
+
+      BasicBlock *overflowBB = BasicBlock::Create(theModule.getContext(), "overflow", currentFn);
+      BasicBlock *continueBB = BasicBlock::Create(theModule.getContext(), "no_overflow", currentFn);
+
+      // Branch weights: heavily bias towards no overflow (happy path)
+      MDBuilder MDB(theModule.getContext());
+      MDNode *Weights = MDB.createBranchWeights(1, 1000000); // 1 = overflow, 1000000 = no overflow
+      b.CreateCondBr(overflow, overflowBB, continueBB, Weights);
+
+      b.SetInsertPoint(overflowBB);
+      
+      // throwArithmeticException_C("Integer overflow")
+      FunctionType *throwFnTy = FunctionType::get(types.voidTy, {types.ptrTy}, false);
+      FunctionCallee throwFn = theModule.getOrInsertFunction("throwArithmeticException_C", throwFnTy);
+      
+      Value *msg = b.CreateGlobalString(errorMessage);
+      b.CreateCall(throwFn, {msg});
+      b.CreateUnreachable();
+
+      b.SetInsertPoint(continueBB);
+      return res;
+    };
   };
+
+  intrinsics["Add"] = createCheckedOp("sadd", "Integer overflow");
+  intrinsics["Sub"] = createCheckedOp("ssub", "Integer overflow");
   intrinsics["FSub"] = [](auto &b, auto args) {
     return b.CreateFSub(args[0], args[1]);
-  };
-  intrinsics["Sub"] = [](auto &b, auto args) {
-    return b.CreateSub(args[0], args[1]);
   };
   intrinsics["FMul"] = [](auto &b, auto args) {
     return b.CreateFMul(args[0], args[1]);

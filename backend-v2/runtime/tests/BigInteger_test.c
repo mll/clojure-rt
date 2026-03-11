@@ -95,11 +95,21 @@ static void test_bigint_comparison(void **state) {
   });
 }
 
+static void test_bigint_division_by_zero(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    BigInteger *a = BigInteger_createFromInt(10);
+    BigInteger *b = BigInteger_createFromInt(0);
+    ASSERT_THROWS("ArithmeticException", { BigInteger_div(a, b); });
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_bigint_creation),
       cmocka_unit_test(test_bigint_arithmetic),
       cmocka_unit_test(test_bigint_comparison),
+      cmocka_unit_test(test_bigint_division_by_zero),
   };
   initialise_memory();
   return cmocka_run_group_tests(tests, NULL, NULL);

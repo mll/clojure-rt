@@ -12,6 +12,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fexceptions")
 set(CMAKE_C_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fexceptions")
 set(CMAKE_C_FLAGS_RELEASE "-Ofast -fexceptions")
 
+add_compile_definitions(BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+
 set(SOURCES
     Transient.c
     Object.c 

@@ -107,4 +107,23 @@ void assertMemoryDifference(MemoryState *before, MemoryState *after, int type,
     assertMemoryBalance(&__before, &__after);                                  \
   } while (0)
 
+extern jmp_buf exception_env;
+extern char *last_exception_name;
+extern bool exception_catchable;
+
+void reset_exception_state();
+
+#define ASSERT_THROWS(expected_name, block)                                    \
+  do {                                                                         \
+    reset_exception_state();                                                   \
+    exception_catchable = true;                                                \
+    if (setjmp(exception_env) == 0) {                                          \
+      {block} exception_catchable = false;                                     \
+      fail_msg("Expected exception '%s' was not thrown", expected_name);       \
+    } else {                                                                   \
+      exception_catchable = false;                                             \
+      assert_string_equal(last_exception_name, expected_name);                 \
+    }                                                                          \
+  } while (0)
+
 #endif

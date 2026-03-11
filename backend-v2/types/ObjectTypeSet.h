@@ -319,12 +319,67 @@ public:
     return name + "_" + typeStringForArgs(args);
   }
 
+  static std::string toHumanReadableName(objectType type) {
+    switch (type) {
+    case integerType:
+      return "Int";
+    case stringType:
+      return "String";
+    case persistentListType:
+      return "List";
+    case persistentVectorType:
+      return "Vector";
+    case doubleType:
+      return "Double";
+    case nilType:
+      return "Nil";
+    case booleanType:
+      return "Boolean";
+    case symbolType:
+      return "Symbol";
+    case keywordType:
+      return "Keyword";
+    case functionType:
+      return "Function";
+    case bigIntegerType:
+      return "BigInt";
+    case ratioType:
+      return "Ratio";
+    case classType:
+      return "Class";
+    case persistentArrayMapType:
+      return "Map";
+    case persistentVectorNodeType:
+      return "VectorNode";
+    case concurrentHashMapType:
+      return "CHM";
+    default:
+      return "Unknown";
+    }
+  }
+
   std::string toString() const {
-    std::string retVal = typeStringForArg(*this);
-    if (constant)
-      retVal += " constant value: " + constant->toString() + " of " +
-                std::to_string(constant->constantType);
-    return retVal;
+    std::stringstream ss;
+    if (isBoxed)
+      ss << "Boxed(";
+    if (internal.empty()) {
+      ss << "Empty";
+    } else if (internal.size() == 1) {
+      ss << toHumanReadableName(*internal.begin());
+      if (constant) {
+        ss << "=" << constant->toString();
+      }
+    } else {
+      ss << "(";
+      for (auto it = internal.begin(); it != internal.end(); ++it) {
+        ss << toHumanReadableName(*it)
+           << (std::next(it) == internal.end() ? "" : "|");
+      }
+      ss << ")";
+    }
+    if (isBoxed)
+      ss << ")";
+    return ss.str();
   }
 };
 

@@ -81,6 +81,16 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
         this->invokeManager.generateIntrinsic(*bestMatch, unboxedArgs);
     return result;
   }
+  if (allDetermined) {
+    std::ostringstream oss;
+    oss << "No matching overload found for " << name << "/" << m
+        << " with arguments: [";
+    for (size_t i = 0; i < argTypes.size(); i++) {
+      oss << argTypes[i].toString() << (i == argTypes.size() - 1 ? "" : ", ");
+    }
+    oss << "]";
+    throwCodeGenerationException(oss.str(), node);
+  }
 
   throwCodeGenerationException(
       "Dynamic dispatch for static calls is not yet supported.", node);

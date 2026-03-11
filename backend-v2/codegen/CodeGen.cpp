@@ -274,45 +274,5 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   return ObjectTypeSet::all();
 }
 
-llvm::Value *CodeGen::dynamicCond(llvm::Value *boxedVal) {
-  TypedValue boxed(ObjectTypeSet::all().boxed(), boxedVal);
-  llvm::Value *isNil = valueEncoder.isNil(boxed).value;
-
-  llvm::Function *currentFn = Builder.GetInsertBlock()->getParent();
-  BasicBlock *notNilBB = BasicBlock::Create(TheContext, "cond_not_nil", currentFn);
-  BasicBlock *mergeBB = BasicBlock::Create(TheContext, "cond_merge", currentFn);
-
-  Builder.CreateCondBr(isNil, mergeBB, notNilBB);
-  BasicBlock *nilBB = Builder.GetInsertBlock();
-
-  Builder.SetInsertPoint(notNilBB);
-  llvm::Value *isBool = valueEncoder.isBool(boxed).value;
-  BasicBlock *checkTrueBB =
-      BasicBlock::Create(TheContext, "cond_check_true", currentFn);
-
-  Builder.CreateCondBr(isBool, checkTrueBB, mergeBB);
-  BasicBlock *notBoolBB = Builder.GetInsertBlock();
-
-  Builder.SetInsertPoint(checkTrueBB);
-  llvm::Value *boolVal = valueEncoder.unboxBool(boxed).value;
-  Builder.CreateBr(mergeBB);
-  BasicBlock *boolBB = Builder.GetInsertBlock();
-
-  Builder.SetInsertPoint(mergeBB);
-  PHINode *phi = Builder.CreatePHI(Builder.getInt1Ty(), 3, "truthy_phi");
-  phi->addIncoming(Builder.getFalse(), nilBB);
-  phi->addIncoming(Builder.getTrue(), notBoolBB);
-  phi->addIncoming(boolVal, boolBB);
-
-  return phi;
-}
-
-void CodeGen::runtimeException(const CodeGenerationException &e) {
-  TypedValue msg = dynamicConstructor.createString(e.what());
-  TypedValue rawPtr = valueEncoder.unboxPointer(msg);
-  invokeManager.invokeRuntime("throwInternalInconsistencyException_C", nullptr,
-                              {ObjectTypeSet::all()}, {rawPtr});
-  Builder.CreateUnreachable();
-}
 
 } // namespace rt

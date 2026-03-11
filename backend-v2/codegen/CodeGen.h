@@ -110,11 +110,6 @@ public:
   ObjectTypeSet getType(const Node &node, const IfNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
 
-  // Helpers for IfNode and legacy code
-  TypedValue box(TypedValue val) { return valueEncoder.box(val); }
-  llvm::Value *dynamicNil() { return valueEncoder.boxNil().value; }
-  llvm::Value *dynamicCond(llvm::Value *boxedVal);
-  void runtimeException(const class CodeGenerationException &e);
 
   ObjectTypeSet getType(const Node &node,
                         const ObjectTypeSet &typeRestrictions);

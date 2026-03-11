@@ -124,7 +124,8 @@ set(BACKEND_SOURCES
       codegen/ops/QuoteNode.cpp
       codegen/ops/VectorNode.cpp       
       codegen/ops/MapNode.cpp
-      codegen/ops/StaticCallNode.cpp)
+      codegen/ops/StaticCallNode.cpp
+      codegen/ops/IfNode.cpp)
 
 
 # 2. Protobuf Detection

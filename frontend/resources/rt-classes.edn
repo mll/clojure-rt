@@ -139,6 +139,8 @@
           {:args [:bigint :bigint] :type :call      :symbol "BigInteger_gte" :returns :bool}
           {:args [:ratio :ratio]   :type :call      :symbol "Ratio_gte"      :returns :bool}
           {:args [:any :any]       :type :call      :symbol "gte"           :returns :bool}]
+
+
     gt   [{:args [:double :double] :type :intrinsic :symbol "FCmpOGT"       :returns :bool}
           {:args [:int :int]       :type :intrinsic :symbol "ICmpSGT"       :returns :bool}
           {:args [:int :double]    :type :intrinsic :symbol "ICmpSGT_ID"    :returns :bool}
@@ -185,6 +187,8 @@
           {:args [:ratio :ratio]   :type :call      :symbol "Ratio_lte"      :returns :bool}
           {:args [:any :any]       :type :call      :symbol "lte"           :returns :bool}]}}
 
+
+
   java.lang.Math
   {:static-fns
    {sin   [{:args [:double] :type :call :symbol "sin"   :returns :double}]
@@ -229,7 +233,11 @@
             {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOEQ_DR"     :returns :bool}
             {:args [:int :double]    :type :intrinsic :symbol "FCmpOEQ_ID"     :returns :bool}
             {:args [:double :int]    :type :intrinsic :symbol "FCmpOEQ_DI"     :returns :bool}
+            {:args [:bigint :bigint] :type :call      :symbol "BigInteger_equiv" :returns :bool}
+            {:args [:ratio :ratio]   :type :call      :symbol "Ratio_equiv"      :returns :bool}
             {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}]}}
+
+
 
   clojure.lang.PersistentVector
   {:object-type 9

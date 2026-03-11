@@ -4,6 +4,9 @@
 #include "../../types/ConstantBool.h"
 #include "../../types/ConstantDouble.h"
 #include "../../types/ConstantInteger.h"
+#include "../../types/ConstantBigInteger.h"
+#include "../../types/ConstantRatio.h"
+
 // Redundant include removed
 #include "llvm/IR/MDBuilder.h"
 #include <llvm/IR/Module.h>
@@ -19,7 +22,48 @@ InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
                              ValueEncoder &v, LLVMTypes &t,
                              ThreadsafeCompilerState &s)
     : builder(b), theModule(m), valueEncoder(v), types(t) {
+  
+  auto getZ = [](const ObjectTypeSet &s, mpz_t &res) -> bool {
+    auto *c = s.getConstant();
+    if (!c) return false;
+    if (auto *i = dynamic_cast<ConstantInteger *>(c)) { mpz_init_set_si(res, i->value); return true; }
+    if (auto *b = dynamic_cast<ConstantBigInteger *>(c)) { mpz_init_set(res, b->value); return true; }
+    return false;
+  };
+  auto getQ = [](const ObjectTypeSet &s, mpq_t &res) -> bool {
+    auto *c = s.getConstant();
+    if (!c) return false;
+    if (auto *i = dynamic_cast<ConstantInteger *>(c)) { mpq_init(res); mpq_set_si(res, i->value, 1); mpq_canonicalize(res); return true; }
+    if (auto *b = dynamic_cast<ConstantBigInteger *>(c)) { mpq_init(res); mpq_set_z(res, b->value); mpq_canonicalize(res); return true; }
+    if (auto *r = dynamic_cast<ConstantRatio *>(c)) { mpq_init(res); mpq_set(res, r->value); return true; }
+    return false;
+  };
+  auto getD = [](const ObjectTypeSet &s, double &res) -> bool {
+    auto *c = s.getConstant();
+    if (!c) return false;
+    if (auto *d = dynamic_cast<ConstantDouble *>(c)) { res = d->value; return true; }
+    if (auto *i = dynamic_cast<ConstantInteger *>(c)) { res = (double)i->value; return true; }
+    if (auto *b = dynamic_cast<ConstantBigInteger *>(c)) { res = mpz_get_d(b->value); return true; }
+    if (auto *r = dynamic_cast<ConstantRatio *>(c)) { res = mpq_get_d(r->value); return true; }
+    return false;
+  };
+
+  auto createZ = [](mpz_t res) -> ObjectTypeSet {
+    if (mpz_fits_slong_p(res)) {
+      return ObjectTypeSet(integerType, false, new ConstantInteger(mpz_get_si(res)));
+    }
+    return ObjectTypeSet(bigIntegerType, false, new ConstantBigInteger(res));
+  };
+  auto createQ = [&createZ](mpq_t res) -> ObjectTypeSet {
+    mpq_canonicalize(res);
+    if (mpz_cmp_si(mpq_denref(res), 1) == 0) {
+      return createZ(mpq_numref(res));
+    }
+    return ObjectTypeSet(ratioType, false, new ConstantRatio(res));
+  };
+
   // Basic Arithmetic
+
   typeIntrinsics["Add"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
     if (args.size() != 2) return ObjectTypeSet::dynamicType();
     auto *c1 = args[0].getConstant();
@@ -186,6 +230,255 @@ InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
     return ObjectTypeSet(booleanType, false);
   };
 
+  // BigInt pure math folding
+  auto regZMath = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getZ, createZ, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      if (args.size() != 2) return ObjectTypeSet(bigIntegerType, false);
+      mpz_t v1, v2, res;
+      if (getZ(args[0], v1) && getZ(args[1], v2)) {
+        mpz_init(res);
+        op(res, v1, v2);
+        auto ret = createZ(res);
+        mpz_clear(v1); mpz_clear(v2); mpz_clear(res);
+        return ret;
+      }
+      return ObjectTypeSet(bigIntegerType, false);
+    };
+  };
+  regZMath("BigInteger_add", mpz_add);
+  regZMath("BigInteger_sub", mpz_sub);
+  regZMath("BigInteger_mul", mpz_mul);
+  
+  typeIntrinsics["BigInteger_div"] = [getQ, createQ](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    mpq_t v1, v2, res;
+    if (getQ(args[0], v1) && getQ(args[1], v2)) {
+      if (mpq_sgn(v2) == 0) { mpq_clear(v1); mpq_clear(v2); return ObjectTypeSet::dynamicType(); }
+      mpq_init(res);
+      mpq_div(res, v1, v2);
+      auto ret = createQ(res);
+      mpq_clear(v1); mpq_clear(v2); mpq_clear(res);
+      return ret;
+    }
+    return ObjectTypeSet::dynamicType();
+  };
+  typeIntrinsics["Integer_div"] = typeIntrinsics["BigInteger_div"];
+
+
+  // Ratio pure math folding
+  auto regQMath = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getQ, createQ, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      if (args.size() != 2) return ObjectTypeSet(ratioType, false);
+      mpq_t v1, v2, res;
+      if (getQ(args[0], v1) && getQ(args[1], v2)) {
+        mpq_init(res);
+        op(res, v1, v2);
+        auto ret = createQ(res);
+        mpq_clear(v1); mpq_clear(v2); mpq_clear(res);
+        return ret;
+      }
+      return ObjectTypeSet(ratioType, false);
+    };
+  };
+  regQMath("Ratio_add", mpq_add);
+  regQMath("Ratio_sub", mpq_sub);
+  regQMath("Ratio_mul", mpq_mul);
+  regQMath("Ratio_div", [](mpq_t r, mpq_t a, mpq_t b) {
+    if (mpq_sgn(b) != 0) mpq_div(r, a, b);
+  });
+
+  // Mixed type folding helpers
+  auto regMixZ = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getZ, createZ, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      mpz_t v1, v2, res;
+      if (args.size() == 2 && getZ(args[0], v1) && getZ(args[1], v2)) {
+        mpz_init(res);
+        op(res, v1, v2);
+        auto ret = createZ(res);
+        mpz_clear(v1); mpz_clear(v2); mpz_clear(res);
+        return ret;
+      }
+      return ObjectTypeSet(bigIntegerType, false);
+    };
+  };
+  regMixZ("Add_IB", mpz_add); regMixZ("Add_BI", mpz_add);
+  regMixZ("Sub_IB", mpz_sub); regMixZ("Sub_BI", mpz_sub);
+  regMixZ("Mul_IB", mpz_mul); regMixZ("Mul_BI", mpz_mul);
+  regMixZ("Div_IB", [](mpz_t r, mpz_t a, mpz_t b) { if (mpz_sgn(b) != 0) mpz_tdiv_q(r, a, b); });
+  regMixZ("Div_BI", [](mpz_t r, mpz_t a, mpz_t b) { if (mpz_sgn(b) != 0) mpz_tdiv_q(r, a, b); });
+
+  auto regMixD = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getD, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      double d1, d2;
+      if (args.size() == 2 && getD(args[0], d1) && getD(args[1], d2)) {
+        return ObjectTypeSet(doubleType, false, new ConstantDouble(op(d1, d2)));
+      }
+      return ObjectTypeSet(doubleType, false);
+    };
+  };
+  regMixD("Add_ID", [](double a, double b) { return a + b; });
+  regMixD("Add_DI", [](double a, double b) { return a + b; });
+  regMixD("Sub_ID", [](double a, double b) { return a - b; });
+  regMixD("Sub_DI", [](double a, double b) { return a - b; });
+  regMixD("Mul_ID", [](double a, double b) { return a * b; });
+  regMixD("Mul_DI", [](double a, double b) { return a * b; });
+  regMixD("Div_ID", [](double a, double b) { return a / b; });
+  regMixD("Div_DI", [](double a, double b) { return a / b; });
+  regMixD("Add_BD", [](double a, double b) { return a + b; });
+  regMixD("Add_DB", [](double a, double b) { return a + b; });
+  regMixD("Sub_BD", [](double a, double b) { return a - b; });
+  regMixD("Sub_DB", [](double a, double b) { return a - b; });
+  regMixD("Mul_BD", [](double a, double b) { return a * b; });
+  regMixD("Mul_DB", [](double a, double b) { return a * b; });
+  regMixD("Div_BD", [](double a, double b) { return a / b; });
+  regMixD("Div_DB", [](double a, double b) { return a / b; });
+  regMixD("Add_RD", [](double a, double b) { return a + b; });
+  regMixD("Add_DR", [](double a, double b) { return a + b; });
+  regMixD("Sub_RD", [](double a, double b) { return a - b; });
+  regMixD("Sub_DR", [](double a, double b) { return a - b; });
+  regMixD("Mul_RD", [](double a, double b) { return a * b; });
+  regMixD("Mul_DR", [](double a, double b) { return a * b; });
+  regMixD("Div_RD", [](double a, double b) { return a / b; });
+  regMixD("Div_DR", [](double a, double b) { return a / b; });
+
+  auto regMixQ = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getQ, createQ, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      mpq_t v1, v2, res;
+      if (args.size() == 2 && getQ(args[0], v1) && getQ(args[1], v2)) {
+        mpq_init(res);
+        op(res, v1, v2);
+        auto ret = createQ(res);
+        mpq_clear(v1); mpq_clear(v2); mpq_clear(res);
+        return ret;
+      }
+      return ObjectTypeSet(ratioType, false);
+    };
+  };
+  regMixQ("Add_BR", mpq_add); regMixQ("Add_RB", mpq_add);
+  regMixQ("Sub_BR", mpq_sub); regMixQ("Sub_RB", mpq_sub);
+  regMixQ("Mul_BR", mpq_mul); regMixQ("Mul_RB", mpq_mul);
+  regMixQ("Div_BR", [](mpq_t r, mpq_t a, mpq_t b) { if (mpq_sgn(b) != 0) mpq_div(r, a, b); });
+  regMixQ("Div_RB", [](mpq_t r, mpq_t a, mpq_t b) { if (mpq_sgn(b) != 0) mpq_div(r, a, b); });
+  regMixQ("Add_IR", mpq_add); regMixQ("Add_RI", mpq_add);
+  regMixQ("Sub_IR", mpq_sub); regMixQ("Sub_RI", mpq_sub);
+  regMixQ("Mul_IR", mpq_mul); regMixQ("Mul_RI", mpq_mul);
+  regMixQ("Div_IR", [](mpq_t r, mpq_t a, mpq_t b) { if (mpq_sgn(b) != 0) mpq_div(r, a, b); });
+  regMixQ("Div_RI", [](mpq_t r, mpq_t a, mpq_t b) { if (mpq_sgn(b) != 0) mpq_div(r, a, b); });
+
+  // Comparisons
+  auto regZCmp = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getZ, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      mpz_t v1, v2;
+      if (args.size() == 2 && getZ(args[0], v1) && getZ(args[1], v2)) {
+        bool res = op(v1, v2);
+        mpz_clear(v1); mpz_clear(v2);
+        return ObjectTypeSet(booleanType, false, new ConstantBoolean(res));
+      }
+      return ObjectTypeSet(booleanType, false);
+    };
+  };
+  regZCmp("BigInteger_gte", [](mpz_t a, mpz_t b) { return mpz_cmp(a, b) >= 0; });
+  regZCmp("BigInteger_gt", [](mpz_t a, mpz_t b) { return mpz_cmp(a, b) > 0; });
+  regZCmp("BigInteger_lt", [](mpz_t a, mpz_t b) { return mpz_cmp(a, b) < 0; });
+  regZCmp("BigInteger_lte", [](mpz_t a, mpz_t b) { return mpz_cmp(a, b) <= 0; });
+  regZCmp("BigInteger_equiv", [](mpz_t a, mpz_t b) { return mpz_cmp(a, b) == 0; });
+
+  auto regQCmp = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getQ, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      mpq_t v1, v2;
+      if (args.size() == 2 && getQ(args[0], v1) && getQ(args[1], v2)) {
+        bool res = op(v1, v2);
+        mpq_clear(v1); mpq_clear(v2);
+        return ObjectTypeSet(booleanType, false, new ConstantBoolean(res));
+      }
+      return ObjectTypeSet(booleanType, false);
+    };
+  };
+  regQCmp("Ratio_gte", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) >= 0; });
+  regQCmp("Ratio_gt", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) > 0; });
+  regQCmp("Ratio_lt", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) < 0; });
+  regQCmp("Ratio_lte", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) <= 0; });
+  regQCmp("Ratio_equiv", [](mpq_t a, mpq_t b) { return mpq_equal(a, b); });
+
+  auto regMixDCmp = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getD, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      double d1, d2;
+      if (args.size() == 2 && getD(args[0], d1) && getD(args[1], d2)) {
+        return ObjectTypeSet(booleanType, false, new ConstantBoolean(op(d1, d2)));
+      }
+      return ObjectTypeSet(booleanType, false);
+    };
+  };
+  regMixDCmp("ICmpSGE_ID", [](double a, double b) { return a >= b; });
+  regMixDCmp("ICmpSGE_DI", [](double a, double b) { return a >= b; });
+  regMixDCmp("ICmpSGT_ID", [](double a, double b) { return a > b; });
+  regMixDCmp("ICmpSGT_DI", [](double a, double b) { return a > b; });
+  regMixDCmp("ICmpSLT_ID", [](double a, double b) { return a < b; });
+  regMixDCmp("ICmpSLT_DI", [](double a, double b) { return a < b; });
+  regMixDCmp("ICmpSLE_ID", [](double a, double b) { return a <= b; });
+  regMixDCmp("ICmpSLE_DI", [](double a, double b) { return a <= b; });
+  regMixDCmp("FCmpOEQ_ID", [](double a, double b) { return a == b; });
+  regMixDCmp("FCmpOEQ_DI", [](double a, double b) { return a == b; });
+  regMixDCmp("FCmpOGE_BD", [](double a, double b) { return a >= b; });
+  regMixDCmp("FCmpOGE_DB", [](double a, double b) { return a >= b; });
+  regMixDCmp("FCmpOGT_BD", [](double a, double b) { return a > b; });
+  regMixDCmp("FCmpOGT_DB", [](double a, double b) { return a > b; });
+  regMixDCmp("FCmpOLT_BD", [](double a, double b) { return a < b; });
+  regMixDCmp("FCmpOLT_DB", [](double a, double b) { return a < b; });
+  regMixDCmp("FCmpOLE_BD", [](double a, double b) { return a <= b; });
+  regMixDCmp("FCmpOLE_DB", [](double a, double b) { return a <= b; });
+  regMixDCmp("FCmpOEQ_BD", [](double a, double b) { return a == b; });
+  regMixDCmp("FCmpOEQ_DB", [](double a, double b) { return a == b; });
+
+  auto regRD_Cmp = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getD, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      double d1, d2;
+      if (args.size() == 2 && getD(args[0], d1) && getD(args[1], d2)) {
+        return ObjectTypeSet(booleanType, false, new ConstantBoolean(op(d1, d2)));
+      }
+      return ObjectTypeSet(booleanType, false);
+    };
+  };
+  regRD_Cmp("FCmpOGE_RD", [](double a, double b) { return a >= b; });
+  regRD_Cmp("FCmpOGE_DR", [](double a, double b) { return a >= b; });
+  regRD_Cmp("FCmpOGT_RD", [](double a, double b) { return a > b; });
+  regRD_Cmp("FCmpOGT_DR", [](double a, double b) { return a > b; });
+  regRD_Cmp("FCmpOLT_RD", [](double a, double b) { return a < b; });
+  regRD_Cmp("FCmpOLT_DR", [](double a, double b) { return a < b; });
+  regRD_Cmp("FCmpOLE_RD", [](double a, double b) { return a <= b; });
+  regRD_Cmp("FCmpOLE_DR", [](double a, double b) { return a <= b; });
+  regRD_Cmp("FCmpOEQ_RD", [](double a, double b) { return a == b; });
+  regRD_Cmp("FCmpOEQ_DR", [](double a, double b) { return a == b; });
+
+  auto regMixQCmp_Z = [&](const string &symbol, auto op) {
+    typeIntrinsics[symbol] = [getQ, op](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+      mpq_t v1, v2;
+      if (args.size() == 2 && getQ(args[0], v1) && getQ(args[1], v2)) {
+        bool res = op(v1, v2);
+        mpq_clear(v1); mpq_clear(v2);
+        return ObjectTypeSet(booleanType, false, new ConstantBoolean(res));
+      }
+      return ObjectTypeSet(booleanType, false);
+    };
+  };
+  regMixQCmp_Z("FCmpOGE_BR", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) >= 0; });
+  regMixQCmp_Z("FCmpOGE_RB", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) >= 0; });
+  regMixQCmp_Z("FCmpOGT_BR", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) > 0; });
+  regMixQCmp_Z("FCmpOGT_RB", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) > 0; });
+  regMixQCmp_Z("FCmpOLT_BR", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) < 0; });
+  regMixQCmp_Z("FCmpOLT_RB", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) < 0; });
+  regMixQCmp_Z("FCmpOLE_BR", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) <= 0; });
+  regMixQCmp_Z("FCmpOLE_RB", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) <= 0; });
+  regMixQCmp_Z("FCmpOGE_IR", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) >= 0; });
+  regMixQCmp_Z("FCmpOGE_RI", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) >= 0; });
+  regMixQCmp_Z("FCmpOGT_IR", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) > 0; });
+  regMixQCmp_Z("FCmpOGT_RI", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) > 0; });
+  regMixQCmp_Z("FCmpOLT_IR", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) < 0; });
+  regMixQCmp_Z("FCmpOLT_RI", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) < 0; });
+  regMixQCmp_Z("FCmpOLE_IR", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) <= 0; });
+  regMixQCmp_Z("FCmpOLE_RI", [](mpq_t a, mpq_t b) { return mpq_cmp(a, b) <= 0; });
+
+
   intrinsics["FAdd"] = [](auto &b, auto args) {
     return b.CreateFAdd(args[0], args[1]);
   };
@@ -276,7 +569,67 @@ InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
     return b.CreateFCmpOEQ(args[0], args[1]);
   };
 
+  // Intrinsic codegen for BigInt/Ratio (to support them as :intrinsic in rt-classes.edn)
+  auto regZCodegen = [&](const string &symbol, const string &fnName) {
+    intrinsics[symbol] = [this, fnName](auto &b, auto args) {
+      ObjectTypeSet z(bigIntegerType);
+      return invokeRuntime(fnName, &z, {z, z}, {TypedValue(z, args[0]), TypedValue(z, args[1])}).value;
+    };
+  };
+  regZCodegen("BigInteger_add", "BigInteger_add");
+  regZCodegen("BigInteger_sub", "BigInteger_sub");
+  regZCodegen("BigInteger_mul", "BigInteger_mul");
+  intrinsics["BigInteger_div"] = [this](auto &b, auto args) {
+    ObjectTypeSet z(bigIntegerType);
+    ObjectTypeSet anyT = ObjectTypeSet::all();
+    return invokeRuntime("BigInteger_div", &anyT, {z, z}, {TypedValue(z, args[0]), TypedValue(z, args[1])}).value;
+  };
+  intrinsics["Integer_div"] = [this](auto &b, auto args) {
+    ObjectTypeSet i(integerType);
+    ObjectTypeSet anyT = ObjectTypeSet::all();
+    return invokeRuntime("Integer_div", &anyT, {i, i}, {TypedValue(i, args[0]), TypedValue(i, args[1])}).value;
+  };
+
+  auto regQCodegen = [&](const string &symbol, const string &fnName) {
+    intrinsics[symbol] = [this, fnName](auto &b, auto args) {
+      ObjectTypeSet q(ratioType);
+      ObjectTypeSet anyT = ObjectTypeSet::all();
+      return invokeRuntime(fnName, &anyT, {q, q}, {TypedValue(q, args[0]), TypedValue(q, args[1])}).value;
+    };
+  };
+  regQCodegen("Ratio_add", "Ratio_add");
+  regQCodegen("Ratio_sub", "Ratio_sub");
+  regQCodegen("Ratio_mul", "Ratio_mul");
+  regQCodegen("Ratio_div", "Ratio_div");
+
+  auto regZCmpCodegen = [&](const string &symbol, const string &fnName) {
+    intrinsics[symbol] = [this, fnName](auto &b, auto args) {
+      ObjectTypeSet z(bigIntegerType);
+      ObjectTypeSet boolT(booleanType);
+      return invokeRuntime(fnName, &boolT, {z, z}, {TypedValue(z, args[0]), TypedValue(z, args[1])}).value;
+    };
+  };
+  regZCmpCodegen("BigInteger_gte", "BigInteger_gte");
+  regZCmpCodegen("BigInteger_gt", "BigInteger_gt");
+  regZCmpCodegen("BigInteger_lt", "BigInteger_lt");
+  regZCmpCodegen("BigInteger_lte", "BigInteger_lte");
+  regZCmpCodegen("BigInteger_equiv", "BigInteger_equiv");
+
+  auto regQCmpCodegen = [&](const string &symbol, const string &fnName) {
+    intrinsics[symbol] = [this, fnName](auto &b, auto args) {
+      ObjectTypeSet q(ratioType);
+      ObjectTypeSet boolT(booleanType);
+      return invokeRuntime(fnName, &boolT, {q, q}, {TypedValue(q, args[0]), TypedValue(q, args[1])}).value;
+    };
+  };
+  regQCmpCodegen("Ratio_gte", "Ratio_gte");
+  regQCmpCodegen("Ratio_gt", "Ratio_gt");
+  regQCmpCodegen("Ratio_lt", "Ratio_lt");
+  regQCmpCodegen("Ratio_lte", "Ratio_lte");
+  regQCmpCodegen("Ratio_equiv", "Ratio_equiv");
+  
   // Mixed-type Arithmetic (Composite Intrinsics)
+
   intrinsics["Add_ID"] = [this](auto &b, auto args) {
     Value *v1 = b.CreateSIToFP(args[0], types.doubleTy, "conv");
     return b.CreateFAdd(v1, args[1]);
@@ -596,10 +949,14 @@ ObjectTypeSet InvokeManager::foldIntrinsic(const IntrinsicDescription &id,
                                            const vector<ObjectTypeSet> &args) {
   auto it = typeIntrinsics.find(id.symbol);
   if (it != typeIntrinsics.end()) {
-    return it->second(args);
+    ObjectTypeSet folded = it->second(args);
+    if (folded.isDetermined() && folded.getConstant()) {
+      return folded;
+    }
   }
   return id.returnType;
 }
+
 
 TypedValue InvokeManager::invokeRuntime(
     const std::string &fname, const ObjectTypeSet *retValType,

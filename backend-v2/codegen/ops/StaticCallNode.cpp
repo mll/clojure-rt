@@ -1,12 +1,12 @@
-#include "../../tools/RTValueWrapper.h"
-#include "../CodeGen.h"
-#include "bridge/Exceptions.h"
-#include "codegen/TypedValue.h"
 #include "../../tools/EdnParser.h"
-#include "bytecode.pb.h"
+#include "../../tools/RTValueWrapper.h"
 #include "../../types/ConstantBool.h"
 #include "../../types/ConstantDouble.h"
 #include "../../types/ConstantInteger.h"
+#include "../CodeGen.h"
+#include "bridge/Exceptions.h"
+#include "bytecode.pb.h"
+#include "codegen/TypedValue.h"
 #include <sstream>
 
 using namespace std;
@@ -64,8 +64,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
       if (id.argTypes.size() == args.size()) {
         bool match = true;
         for (size_t i = 0; i < args.size(); i++) {
-          if (argTypes[i].restriction(id.argTypes[i]).isEmpty() ||
-              !id.argTypes[i].isDetermined()) {
+          if (argTypes[i].restriction(id.argTypes[i]).isEmpty()) {
             match = false;
             break;
           }
@@ -264,18 +263,19 @@ ObjectTypeSet CodeGen::getType(const Node &node, const StaticCallNode &subnode,
       if (id.argTypes.size() == argTypes.size()) {
         bool match = true;
         for (size_t i = 0; i < argTypes.size(); i++) {
-          if (argTypes[i].restriction(id.argTypes[i]).isEmpty() ||
-              !id.argTypes[i].isDetermined()) {
+          if (argTypes[i].restriction(id.argTypes[i]).isEmpty()) {
             match = false;
             break;
           }
         }
         if (match) {
-          if (id.type == CallType::Intrinsic) {
-            return invokeManager.foldIntrinsic(id, argTypes);
+          ObjectTypeSet folded = invokeManager.foldIntrinsic(id, argTypes);
+          if (folded.isDetermined() && folded.getConstant()) {
+            return folded;
           }
           return id.returnType;
         }
+
       }
     }
   }

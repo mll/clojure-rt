@@ -70,10 +70,20 @@
              {:args [:any :any]       :type :call      :symbol "div"        :returns :any}]
     gte  [{:args [:double :double] :type :intrinsic :symbol "FCmpOGE"       :returns :bool}
           {:args [:int :int]       :type :intrinsic :symbol "ICmpSGE"       :returns :bool}
+          {:args [:bigint :bigint] :type :call      :symbol "BigInteger_gte" :returns :bool}
           {:args [:any :any]       :type :call      :symbol "gte"           :returns :bool}]
+    add   [{:args [:double :double] :type :intrinsic :symbol "FAdd"         :returns :double}
+           {:args [:int :int]       :type :intrinsic :symbol "Add"          :returns :int}
+           {:args [:int :bigint]    :type :intrinsic :symbol "Add_IB"       :returns :bigint}
+           {:args [:bigint :int]    :type :intrinsic :symbol "Add_BI"       :returns :bigint}
+           {:args [:bigint :bigint] :type :call      :symbol "BigInteger_add" :returns :bigint}
+           {:args [:any :any]       :type :call      :symbol "add"          :returns :any}]
+
+    divide [{:args [:int :int]       :type :intrinsic :symbol "Integer_div"  :returns :any}]
     lt  [{:args [:double :double] :type :intrinsic :symbol "FCmpOLT"        :returns :bool}
          {:args [:int :int]       :type :intrinsic :symbol "ICmpOLT"        :returns :bool}
          {:args [:any :any]       :type :call      :symbol "lt"             :returns :bool}]}}
+
 
   java.lang.Math
   {:static-fns

@@ -64,6 +64,7 @@ set(TEST_MODULES
     Symbol_test
     PersistentArrayMap_test
     BigInteger_test
+    Integer_test
     Ratio_test
     Boolean_test
 )

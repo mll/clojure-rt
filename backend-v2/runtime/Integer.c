@@ -1,11 +1,11 @@
 #include "Integer.h"
-#include "Hash.h"
+#include "Exceptions.h"
+#include "word.h"
 #include "Object.h"
 #include "RTValue.h"
 #include "Ratio.h"
 #include "String.h"
 #include <stdio.h>
-#include <stdlib.h>
 
 /* mem done */
 String *Integer_toString(RTValue self) {
@@ -28,7 +28,9 @@ int64_t gcd(int64_t a, int64_t b) {
 
 // Integer or Ratio
 RTValue Integer_div(int32_t num, int32_t den) {
-  assert(den != 0 && "Internal error: Divide by zero.");
+  if (den == 0) {
+    throwArithmeticException_C("Divide by zero");
+  }
   if (!num)
     return RT_boxInt32(0);
   int32_t g = gcd(num, den);

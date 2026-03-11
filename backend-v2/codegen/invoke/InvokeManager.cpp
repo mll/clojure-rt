@@ -354,6 +354,14 @@ InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
     Value *v2 = b.CreateSIToFP(args[1], types.doubleTy, "conv");
     return b.CreateFCmpOLE(args[0], v2);
   };
+  intrinsics["FCmpOEQ_ID"] = [this](auto &b, auto args) {
+    Value *v1 = b.CreateSIToFP(args[0], types.doubleTy, "conv");
+    return b.CreateFCmpOEQ(v1, args[1]);
+  };
+  intrinsics["FCmpOEQ_DI"] = [this](auto &b, auto args) {
+    Value *v2 = b.CreateSIToFP(args[1], types.doubleTy, "conv");
+    return b.CreateFCmpOEQ(args[0], v2);
+  };
 }
 
 TypedValue

@@ -221,13 +221,15 @@
 
   clojure.lang.Util
   {:static-fns
-    {equiv [{:args [:int :int] :type :intrinsic :symbol "ICmpEQ" :returns :bool}
-            {:args [:double :double] :type :intrinsic :symbol "FCmpOEQ" :returns :bool}
-            {:args [:bigint :double] :type :intrinsic :symbol "FCmpOEQ_BD" :returns :bool}
-            {:args [:double :bigint] :type :intrinsic :symbol "FCmpOEQ_DB" :returns :bool}
-            {:args [:ratio :double]  :type :intrinsic :symbol "FCmpOEQ_RD" :returns :bool}
-            {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOEQ_DR" :returns :bool}
-            {:args [:any :any] :type :call :symbol "equals" :returns :bool}]}}
+    {equiv [{:args [:int :int] :type :intrinsic :symbol "ICmpEQ"               :returns :bool}
+            {:args [:double :double] :type :intrinsic :symbol "FCmpOEQ"        :returns :bool}
+            {:args [:bigint :double] :type :intrinsic :symbol "FCmpOEQ_BD"     :returns :bool}
+            {:args [:double :bigint] :type :intrinsic :symbol "FCmpOEQ_DB"     :returns :bool}
+            {:args [:ratio :double]  :type :intrinsic :symbol "FCmpOEQ_RD"     :returns :bool}
+            {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOEQ_DR"     :returns :bool}
+            {:args [:int :double]    :type :intrinsic :symbol "FCmpOEQ_ID"     :returns :bool}
+            {:args [:double :int]    :type :intrinsic :symbol "FCmpOEQ_DI"     :returns :bool}
+            {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}]}}
 
   clojure.lang.PersistentVector
   {:object-type 9

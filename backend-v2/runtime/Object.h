@@ -56,11 +56,19 @@ typedef struct String String;
 
 #define MEMORY_BANK_SIZE_MAX 10
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void logBacktrace();
 void printReferenceCounts();
 
 extern _Atomic(uword_t) allocationCount[256];
 extern _Atomic(uword_t) objectCount[256];
+
+#ifdef __cplusplus
+}
+#endif
 
 // bank 0 - 32 bytes 2^5
 // bank 1 - 64 bytes
@@ -74,7 +82,15 @@ extern _Atomic(uword_t) objectCount[256];
 extern _Thread_local void *memoryBank[8];
 extern _Thread_local int memoryBankSize[8];
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void initialise_memory();
+
+#ifdef __cplusplus
+}
+#endif
 
 inline void *allocate(size_t size) {
 #ifndef USE_MEMORY_BANKS
@@ -315,6 +331,8 @@ inline uword_t Object_hash(Object *restrict self) {
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
   }
+  // To silence the compiler warning, this code should never be reached.
+  return 0;
 }
 
 /* Outside of refcount system */
@@ -389,6 +407,8 @@ inline bool Object_equals(Object *self, Object *other) {
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
   }
+  // To silence the compiler warning, this code should never be reached.
+  return false;
 }
 
 /* Outside of refcount system - should it be like this? It probably shouldnt */
@@ -442,24 +462,8 @@ inline String *Object_toString(Object *restrict self) {
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }
-}
-
-inline String *toString(RTValue self) {
-  if (RT_isInt32(self))
-    return Integer_toString(self);
-  if (RT_isDouble(self))
-    return Double_toString(self);
-  if (RT_isBool(self))
-    return Boolean_toString(self);
-  if (RT_isNil(self))
-    return Nil_toString();
-  if (RT_isKeyword(self))
-    return Keyword_toString(self);
-  if (RT_isSymbol(self))
-    return Symbol_toString(self);
-
-  assert(RT_isPtr(self) && "Internal error: Not a pointer");
-  return Object_toString((Object *)RT_unboxPtr(self));
+  // To silence the compiler warning, this code should never be reached.
+  return NULL;
 }
 
 inline bool Object_release(Object *restrict self) {
@@ -532,6 +536,33 @@ inline bool Ptr_equals(void *self, void *other) {
   if (self == other)
     return true;
   return Object_equals((Object *)self, (Object *)other);
+}
+
+inline String *toString(RTValue self) {
+  if (RT_isInt32(self))
+    return Integer_toString(self);
+  if (RT_isDouble(self))
+    return Double_toString(self);
+  if (RT_isBool(self))
+    return Boolean_toString(self);
+  if (RT_isNil(self)) {
+    release(self);
+    return Nil_toString();
+  }
+  if (RT_isKeyword(self))
+    return Keyword_toString(self);
+  if (RT_isSymbol(self))
+    return Symbol_toString(self);
+
+  assert(RT_isPtr(self) && "Internal error: Not a pointer");
+  return Object_toString((Object *)RT_unboxPtr(self));
+}
+
+inline bool equals_managed(RTValue self, RTValue other) {
+  bool result = equals(self, other);
+  release(self);
+  release(other);
+  return result;
 }
 
 #pragma clang diagnostic pop

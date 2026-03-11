@@ -48,6 +48,45 @@ public:
   operator RTValue() const { return value; }
 };
 
+/**
+ * RAII wrapper for Ptr (Object*) that ensures Ptr_release is called on
+ * destruction unless ownership is taken.
+ */
+template <typename T> class PtrWrapper {
+  T *ptr;
+  bool consumed;
+
+public:
+  explicit PtrWrapper(T *p) : ptr(p), consumed(false) {}
+
+  // Non-copyable
+  PtrWrapper(const PtrWrapper &) = delete;
+  PtrWrapper &operator=(const PtrWrapper &) = delete;
+
+  // Moveable
+  PtrWrapper(PtrWrapper &&other) noexcept
+      : ptr(other.ptr), consumed(other.consumed) {
+    other.consumed = true;
+  }
+
+  ~PtrWrapper() {
+    if (!consumed && ptr) {
+      Ptr_release(ptr);
+    }
+  }
+
+  T *get() const { return ptr; }
+
+  T *take() {
+    consumed = true;
+    return ptr;
+  }
+
+  T *operator->() const { return ptr; }
+  operator T *() const { return ptr; }
+  operator bool() const { return ptr != nullptr; }
+};
+
 } // namespace rt
 
 #endif

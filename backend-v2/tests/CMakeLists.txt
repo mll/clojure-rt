@@ -1,9 +1,13 @@
 set(COMMON_TEST_SOURCES 
     ../runtime/tests/TestTools.c
+    codegen/runtime_helpers.c
 )
 
 set(TEST_MODULES
     tools/EdnParser_test
+    codegen/Overflow_test
+    codegen/IfNode_test
+    codegen/StaticCallType_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

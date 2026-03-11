@@ -61,9 +61,9 @@ static void test_bigint_arithmetic(void **state) {
     // Test division (exact)
     BigInteger *d1 = BigInteger_createFromInt(100);
     BigInteger *d2 = BigInteger_createFromInt(10);
-    void *res = BigInteger_div(d1, d2);
+    RTValue res = BigInteger_div(d1, d2);
     assert_non_null(res);
-    BigInteger *d3 = (BigInteger *)res;
+    BigInteger *d3 = RT_unboxPtr(res);
     Ptr_retain(d3);
     assert_double_equal(10.0, BigInteger_toDouble(d3), 0.0001);
     Ptr_release(d3);
@@ -95,11 +95,21 @@ static void test_bigint_comparison(void **state) {
   });
 }
 
+static void test_bigint_division_by_zero(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    BigInteger *a = BigInteger_createFromInt(10);
+    BigInteger *b = BigInteger_createFromInt(0);
+    ASSERT_THROWS("ArithmeticException", { BigInteger_div(a, b); });
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_bigint_creation),
       cmocka_unit_test(test_bigint_arithmetic),
       cmocka_unit_test(test_bigint_comparison),
+      cmocka_unit_test(test_bigint_division_by_zero),
   };
   initialise_memory();
   return cmocka_run_group_tests(tests, NULL, NULL);

@@ -2,6 +2,7 @@
 #define CONSTANT_RATIO_H
 
 #include <gmp.h>
+#include <cassert>
 #include "ObjectTypeConstant.h"
 
 namespace rt {
@@ -38,7 +39,12 @@ class ConstantRatio: public ObjectTypeConstant {
     mpq_clear(value);
   }
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantRatio(value)); }
-  virtual std::string toString() { return std::string(mpq_get_str(NULL, 10, value)); }
+  virtual std::string toString() {
+    char *str = mpq_get_str(NULL, 10, value);
+    std::string s(str);
+    free(str);
+    return s;
+  }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantRatio *i = dynamic_cast<ConstantRatio *>(other)) {
       return mpq_equal(i->value, value);

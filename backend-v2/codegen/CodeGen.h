@@ -11,6 +11,7 @@
 #include "bytecode.pb.h"
 #include "invoke/InvokeManager.h"
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
+#include <llvm/IR/DIBuilder.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
@@ -18,14 +19,26 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
 #include <memory>
+#include <stdexcept>
+#include <string>
 
 using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
+
 struct CodeGenResult {
   std::unique_ptr<llvm::orc::ThreadSafeContext> context;
   std::unique_ptr<llvm::Module> module;
   std::vector<RTValue> constants;
+};
+
+class CodeGenerationException : public std::runtime_error {
+  const Node *node;
+
+public:
+  CodeGenerationException(const std::string &msg, const Node &n)
+      : std::runtime_error(msg), node(&n) {}
+  const Node &getNode() const { return *node; }
 };
 
 class CodeGen {
@@ -46,6 +59,9 @@ class CodeGen {
   MemoryManagement memoryManagement;
 
   ThreadsafeCompilerState &compilerState;
+  std::unique_ptr<llvm::DIBuilder> DIB;
+  llvm::DICompileUnit *CU;
+  std::vector<llvm::DIScope *> LexicalBlocks;
 
 public:
   CodeGen(std::string_view ModuleName, ThreadsafeCompilerState &state)
@@ -60,7 +76,17 @@ public:
         memoryManagement(TheContext, Builder, valueEncoder, types,
                          variableBindingStack, invokeManager,
                          dynamicConstructor),
-        compilerState(state) {}
+        compilerState(state) {
+    TheModule->addModuleFlag(llvm::Module::Warning, "Debug Info Version",
+                             llvm::DEBUG_METADATA_VERSION);
+#ifdef __APPLE__
+    TheModule->addModuleFlag(llvm::Module::Warning, "Dwarf Version", 4);
+#endif
+    DIB = std::make_unique<llvm::DIBuilder>(*TheModule);
+    CU = DIB->createCompileUnit(llvm::dwarf::DW_LANG_C,
+                                DIB->createFile(ModuleName, "."), "clojure-rt",
+                                false, "", 0);
+  }
 
   CodeGenResult release() &&;
 
@@ -76,67 +102,14 @@ public:
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const VectorNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const StaticCallNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
 
-  // TypedValue codegen(const Node &node, const BindingNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const CaseNode &subnode, const ObjectTypeSet &typeRestrictions); TypedValue
-  // codegen(const Node &node, const CaseTestNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); TypedValue codegen(const Node &node, const CaseThenNode
-  // &subnode, const ObjectTypeSet &typeRestrictions); TypedValue codegen(const
-  // Node &node, const CatchNode &subnode, const ObjectTypeSet
-  // &typeRestrictions);
+  TypedValue codegen(const Node &node, const IfNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const IfNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
 
-  // TypedValue codegen(const Node &node, const DefNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const DeftypeNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const DoNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const FnNode &subnode, const ObjectTypeSet &typeRestrictions); TypedValue
-  // codegen(const Node &node, const FnMethodNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); TypedValue codegen(const Node &node, const
-  // HostInteropNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const IfNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const ImportNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const InstanceCallNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const InstanceFieldNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const IsInstanceNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const InvokeNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const KeywordInvokeNode &subnode,
-  // const ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node
-  // &node, const LetNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const LetfnNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const LocalNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const LoopNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const MethodNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const MonitorEnterNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const MonitorExitNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const NewNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const PrimInvokeNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const ProtocolInvokeNode &subnode,
-  // const ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node
-  // &node, const RecurNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const ReifyNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const SetNode &subnode, const ObjectTypeSet &typeRestrictions); TypedValue
-  // codegen(const Node &node, const MutateSetNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); TypedValue codegen(const Node &node, const
-  // StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions); TypedValue
-  // codegen(const Node &node, const StaticFieldNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const TheVarNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // TypedValue codegen(const Node &node, const ThrowNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); TypedValue codegen(const Node &node,
-  // const TryNode &subnode, const ObjectTypeSet &typeRestrictions); TypedValue
-  // codegen(const Node &node, const VarNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); TypedValue codegen(const Node &node, const WithMetaNode
-  // &subnode, const ObjectTypeSet &typeRestrictions);
 
   ObjectTypeSet getType(const Node &node,
                         const ObjectTypeSet &typeRestrictions);
@@ -149,70 +122,8 @@ public:
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const MapNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const BindingNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const CaseNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const CaseTestNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const CaseThenNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const CatchNode &subnode, const
-  // ObjectTypeSet &typeRestrictions);
-
-  // ObjectTypeSet getType(const Node &node, const DefNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const DeftypeNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const DoNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const FnNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const FnMethodNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const HostInteropNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const IfNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const ImportNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const InstanceCallNode &subnode,
-  // const ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node
-  // &node, const InstanceFieldNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); ObjectTypeSet getType(const Node &node, const
-  // IsInstanceNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const InvokeNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const KeywordInvokeNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const LetNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const LetfnNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const LocalNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const LoopNode &subnode, const ObjectTypeSet &typeRestrictions);
-
-  // ObjectTypeSet getType(const Node &node, const MethodNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const MonitorEnterNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const MonitorExitNode &subnode,
-  // const ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node
-  // &node, const NewNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const PrimInvokeNode &subnode,
-  // const ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node
-  // &node, const ProtocolInvokeNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); ObjectTypeSet getType(const Node &node, const RecurNode
-  // &subnode, const ObjectTypeSet &typeRestrictions); ObjectTypeSet
-  // getType(const Node &node, const ReifyNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); ObjectTypeSet getType(const Node &node, const SetNode
-  // &subnode, const ObjectTypeSet &typeRestrictions); ObjectTypeSet
-  // getType(const Node &node, const MutateSetNode &subnode, const ObjectTypeSet
-  // &typeRestrictions); ObjectTypeSet getType(const Node &node, const
-  // StaticCallNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const StaticFieldNode &subnode,
-  // const ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node
-  // &node, const TheVarNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const ThrowNode &subnode, const
-  // ObjectTypeSet &typeRestrictions); ObjectTypeSet getType(const Node &node,
-  // const TryNode &subnode, const ObjectTypeSet &typeRestrictions);
-  // ObjectTypeSet getType(const Node &node, const VarNode &subnode, const
-  // ObjectTypeSet &typeRestrictions);
-
-  // ObjectTypeSet getType(const Node &node, const WithMetaNode &subnode, const
-  // ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const StaticCallNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
 };
 } // namespace rt
 

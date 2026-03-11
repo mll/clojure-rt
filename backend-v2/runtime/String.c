@@ -4,6 +4,7 @@
 #include "PersistentVector.h"
 #include "RTValue.h"
 #include <string.h>
+#include "Exceptions.h"
 
 /* outside refcount system */
 uword_t String_computeHash(const char *str) {
@@ -317,7 +318,13 @@ String *String_replace(String *self, String *target, String *replacement) {
   // TODO: Only the most basic version implemented: target and replacement are
   // both one-character strings
 
-  assert(target->count == 1 && replacement->count == 1);
+  if (target->count != 1 || replacement->count != 1) {
+    Ptr_release(self);
+    Ptr_release(target);
+    Ptr_release(replacement);
+    throwUnsupportedOperationException_C(
+        "replace is currently only supported for single-character strings");
+  }
 
   String *compactified = String_compactify(self);
   String *retVal = String_createDynamic(compactified->count);
@@ -340,4 +347,47 @@ String *String_replace(String *self, String *target, String *replacement) {
     retValChar = String_iteratorNext(&retValIterator);
   }
   return retVal;
+}
+
+char String_charAt(String *self, uword_t index) {
+  if (index >= self->count) {
+    uword_t cnt = self->count;
+    Ptr_release(self);
+    throwIndexOutOfBoundsException_C(index, cnt);
+  }
+
+  StringIterator it = String_iterator(self);
+  for (uword_t i = 0; i < index; i++) {
+    String_iteratorNext(&it);
+  }
+  char result = *String_iteratorGet(&it);
+  Ptr_release(self);
+  return result;
+}
+
+String *String_subs(String *self, uword_t start, uword_t end) {
+  if (start > end || end > self->count) {
+    uword_t cnt = self->count;
+    Ptr_release(self);
+    throwIndexOutOfBoundsException_C(end, cnt);
+  }
+
+  uword_t len = end - start;
+  String *res = String_createDynamic(len);
+  char *dest = getDyn(res);
+
+  StringIterator it = String_iterator(self);
+  for (uword_t i = 0; i < start; i++) {
+    String_iteratorNext(&it);
+  }
+
+  for (uword_t i = 0; i < len; i++) {
+    dest[i] = *String_iteratorGet(&it);
+    String_iteratorNext(&it);
+  }
+  dest[len] = '\0';
+  res->hash = String_computeHash(dest);
+
+  Ptr_release(self);
+  return res;
 }

@@ -7,6 +7,7 @@
 #include "RTValue.h"
 #include "word.h"
 #include <math.h>
+#include "Exceptions.h"
 
 extern uword_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, RTValue key, RTValue value, uword_t keyHash);
 extern bool tryReplacingEntry(ConcurrentHashMapEntry *entry, RTValue key, RTValue value, uword_t keyHash, uword_t encounteredHash);
@@ -167,11 +168,10 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, RTValue key, RTValue value
       lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
     }
   }
-  /* The loop failed - the table is overcrowded and needs a migration - TODO + releases */
-  printf("keyHash: %lu, startindex: %lu endChainIndex: %lu lastIndex: %lu\n", keyHash, startIndex, lastChainEntryIndex, index); 
+  /* The loop failed - the table is overcrowded and needs a migration */
   release(key);
   release(value);
-  assert(false && "Overcrowded - resizing not yet supported");  
+  throwIllegalStateException_C("ConcurrentHashMap is overcrowded - resizing not yet supported");
 }
 
 /* outside refcount system */

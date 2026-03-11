@@ -1,6 +1,10 @@
 #ifndef RT_KEYWORD
 #define RT_KEYWORD
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ObjectProto.h"
 #include "RTValue.h"
 #include "defines.h"
@@ -15,5 +19,9 @@ typedef struct String String;
 RTValue Keyword_create(String *string);
 String *Keyword_toString(RTValue self);
 uint32_t Keyword_getInternCount();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

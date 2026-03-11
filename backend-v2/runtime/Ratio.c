@@ -1,4 +1,5 @@
 #include "Ratio.h"
+#include "Exceptions.h"
 #include "Object.h"
 #include "String.h"
 
@@ -33,7 +34,7 @@ Ratio *Ratio_createFromMpq(mpq_t value) {
 /* mem done */
 Ratio *Ratio_createFromInts(word_t numerator, word_t denominator) {
   if (!denominator)
-    return NULL; // Exception: divide by zero
+    throwArithmeticException_C("Divide by zero");
   Ratio *self = Ratio_createUnassigned();
   mpq_set_si(self->value, numerator, denominator);
   mpq_canonicalize(self->value);
@@ -62,15 +63,15 @@ bool mpq_isInteger(Ratio *ratio) {
 }
 
 /* mem done */
-void *Ratio_simplify(Ratio *self) {
+RTValue Ratio_simplify(Ratio *self) {
   // If Ratio is integer, create BigInteger from Ratio, otherwise return self
   if (mpq_isInteger(self)) {
     BigInteger *num = BigInteger_createUnassigned();
     mpq_get_num(num->value, self->value);
     Ptr_release(self);
-    return num;
+    return RT_boxPtr(num);
   } else {
-    return self;
+    return RT_boxPtr(self);
   }
 }
 
@@ -105,7 +106,7 @@ double Ratio_toDouble(Ratio *self) {
   return retVal;
 }
 
-void *Ratio_add(Ratio *self, Ratio *other) {
+RTValue Ratio_add(Ratio *self, Ratio *other) {
   bool selfReusable = Ptr_isReusable(self);
   bool otherReusable = Ptr_isReusable(other);
   Ratio *retVal;
@@ -127,7 +128,7 @@ void *Ratio_add(Ratio *self, Ratio *other) {
   return Ratio_simplify(retVal);
 }
 
-void *Ratio_sub(Ratio *self, Ratio *other) {
+RTValue Ratio_sub(Ratio *self, Ratio *other) {
   bool selfReusable = Ptr_isReusable(self);
   bool otherReusable = Ptr_isReusable(other);
   Ratio *retVal;
@@ -149,7 +150,7 @@ void *Ratio_sub(Ratio *self, Ratio *other) {
   return Ratio_simplify(retVal);
 }
 
-void *Ratio_mul(Ratio *self, Ratio *other) {
+RTValue Ratio_mul(Ratio *self, Ratio *other) {
   bool selfReusable = Ptr_isReusable(self);
   bool otherReusable = Ptr_isReusable(other);
   Ratio *retVal;
@@ -171,11 +172,11 @@ void *Ratio_mul(Ratio *self, Ratio *other) {
   return Ratio_simplify(retVal);
 }
 
-void *Ratio_div(Ratio *self, Ratio *other) {
+RTValue Ratio_div(Ratio *self, Ratio *other) {
   if (!mpq_cmp_si(other->value, 0, 1)) {
     Ptr_release(self);
     Ptr_release(other);
-    return NULL; // Exception: divide by zero
+    throwArithmeticException_C("Divide by zero");
   }
   bool selfReusable = Ptr_isReusable(self);
   bool otherReusable = Ptr_isReusable(other);
@@ -205,9 +206,23 @@ bool Ratio_gte(Ratio *self, Ratio *other) {
   return cmp >= 0;
 }
 
+bool Ratio_gt(Ratio *self, Ratio *other) {
+  int cmp = mpq_cmp(self->value, other->value);
+  Ptr_release(self);
+  Ptr_release(other);
+  return cmp > 0;
+}
+
 bool Ratio_lt(Ratio *self, Ratio *other) {
   int cmp = mpq_cmp(self->value, other->value);
   Ptr_release(self);
   Ptr_release(other);
   return cmp < 0;
+}
+
+bool Ratio_lte(Ratio *self, Ratio *other) {
+  int cmp = mpq_cmp(self->value, other->value);
+  Ptr_release(self);
+  Ptr_release(other);
+  return cmp <= 0;
 }

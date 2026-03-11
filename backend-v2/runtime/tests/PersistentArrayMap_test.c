@@ -229,6 +229,32 @@ static void test_get_ownership_race(void **state) {
   });
 }
 
+static void test_array_map_exceptions(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    // 1. dynamic_get with non-map
+    ASSERT_THROWS("IllegalArgumentException", {
+      PersistentArrayMap_dynamic_get(RT_boxInt32(1), RT_boxInt32(2));
+    });
+
+    // 2. createMany with too many pairs
+    // Using a large number to exceed HASHTABLE_THRESHOLD (128)
+    ASSERT_THROWS("UnsupportedOperationException", {
+      PersistentArrayMap_createMany(200, RT_boxInt32(1), RT_boxInt32(1));
+    });
+
+    // 3. assoc exceeding threshold
+    PersistentArrayMap *m = PersistentArrayMap_empty();
+    // Fill up to threshold
+    for (int i = 0; i < HASHTABLE_THRESHOLD; i++) {
+        m = PersistentArrayMap_assoc(m, RT_boxInt32(i), RT_boxInt32(i));
+    }
+    ASSERT_THROWS("UnsupportedOperationException", {
+        PersistentArrayMap_assoc(m, RT_boxInt32(HASHTABLE_THRESHOLD), RT_boxInt32(0));
+    });
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_basic_operations),
@@ -240,6 +266,7 @@ int main(void) {
       cmocka_unit_test(test_to_string),
       cmocka_unit_test(test_duplicate_keys),
       cmocka_unit_test(test_get_ownership_race),
+      cmocka_unit_test(test_array_map_exceptions),
   };
   initialise_memory();
   PersistentArrayMap *warmup = PersistentArrayMap_empty();

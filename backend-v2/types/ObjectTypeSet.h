@@ -1,79 +1,78 @@
 #ifndef RT_OBJECT_TYPE_SET
 #define RT_OBJECT_TYPE_SET
 
+#include "../runtime/ObjectProto.h"
+#include "../runtime/defines.h"
+#include <algorithm>
 #include <set>
 #include <vector>
-#include <algorithm>
-#include "../runtime/defines.h"
-#include "../runtime/ObjectProto.h"
 
-#include <string>
+#include <cassert>
 #include <iostream>
 #include <sstream>
-#include <cassert>
+#include <string>
 
 #include "ConstantBigInteger.h"
-#include "ConstantInteger.h"
 #include "ConstantBool.h"
+#include "ConstantClass.h"
 #include "ConstantDouble.h"
 #include "ConstantFunction.h"
+#include "ConstantInteger.h"
 #include "ConstantKeyword.h"
 #include "ConstantNil.h"
 #include "ConstantRatio.h"
 #include "ConstantString.h"
 #include "ConstantSymbol.h"
-#include "ConstantClass.h"
+#include "bridge/Exceptions.h"
 
 namespace rt {
 
 class ObjectTypeSet {
-  private:
+private:
   std::set<objectType> internal;
   ObjectTypeConstant *constant = nullptr;
   bool isBoxed;
-  public:
 
-  ObjectTypeConstant * getConstant() const {
-    return constant;
-  }
+public:
+  ObjectTypeConstant *getConstant() const { return constant; }
 
-  ObjectTypeSet(objectType type, bool isBoxed = false, ObjectTypeConstant *cons = nullptr) : constant(cons), isBoxed(isBoxed) {
+  ObjectTypeSet(objectType type, bool isBoxed = false,
+                ObjectTypeConstant *cons = nullptr)
+      : constant(cons), isBoxed(isBoxed) {
     internal.insert(type);
-    if(!constant && type == nilType) { 
-      constant = static_cast<ObjectTypeConstant *>(new ConstantNil()); 
-    } 
+    if (!constant && type == nilType) {
+      constant = static_cast<ObjectTypeConstant *>(new ConstantNil());
+    }
   }
-  
+
   ObjectTypeSet() {}
   ~ObjectTypeSet() {
-    if(constant) delete constant;
+    if (constant)
+      delete constant;
     constant = nullptr;
   }
 
-  ObjectTypeSet(const ObjectTypeSet &other) : internal(other.internal), isBoxed(other.isBoxed) {
-    if(other.constant) constant = other.constant->copy();
-    else constant = nullptr;
+  ObjectTypeSet(const ObjectTypeSet &other)
+      : internal(other.internal), isBoxed(other.isBoxed) {
+    if (other.constant)
+      constant = other.constant->copy();
+    else
+      constant = nullptr;
   }
-  
+
   std::set<objectType>::const_iterator internalBegin() const {
     return internal.begin();
   }
-  
+
   std::set<objectType>::const_iterator internalEnd() const {
     return internal.end();
   }
-      
-  void insert(objectType type) {
-    internal.emplace(type);
-  }
-    
-  bool isEmpty() const {
-    return internal.size() == 0;
-  }
 
-  int size() const {
-    return internal.size();
-  }
+  void insert(objectType type) { internal.emplace(type); }
+
+  bool isEmpty() const { return internal.size() == 0; }
+
+  int size() const { return internal.size(); }
 
   bool contains(objectType type) const {
     return internal.find(type) != internal.end();
@@ -87,24 +86,21 @@ class ObjectTypeSet {
     return contains(type) && internal.size() == 1 && !isBoxed;
   }
 
-  bool isDetermined() const {
-    return internal.size() == 1;
-  }
-  
+  bool isDetermined() const { return internal.size() == 1; }
+
   bool isDynamic() const {
-    if(internal.size() > 1) {
+    if (internal.size() > 1) {
       return true;
     }
     return false;
   }
-  
-  bool isBoxedType() const {
-    return isBoxed;
-  }
+
+  bool isBoxedType() const { return isBoxed; }
 
   ObjectTypeSet unboxed() const {
     ObjectTypeSet retVal = *this;
-    if(retVal.isDetermined()) retVal.isBoxed = false;
+    if (retVal.isDetermined())
+      retVal.isBoxed = false;
     return retVal;
   }
 
@@ -114,64 +110,72 @@ class ObjectTypeSet {
     return retVal;
   }
 
-
   bool isUnboxedPointer() const {
     return !isScalar() && !isBoxedScalar() && !isBoxed;
   }
 
   bool isBoxedPointer() const {
     return isDetermined() && !isScalar() && !isBoxedScalar() && isBoxed;
-  }  
-  
+  }
+
   bool isScalar() const {
-    if(isBoxed) return false;
-    if(!isDetermined()) return false;
-    switch(determinedType()) {
-      case integerType:
-      case booleanType:
-      case doubleType:
-      case nilType:
-      case keywordType:
-      case symbolType:      
-        return true;
+    if (isBoxed)
+      return false;
+    if (!isDetermined())
+      return false;
+    switch (determinedType()) {
+    case integerType:
+    case booleanType:
+    case doubleType:
+    case nilType:
+    case keywordType:
+    case symbolType:
+      return true;
     default:
       return false;
     }
   }
 
   bool isBoxedScalar() const {
-    if(!isBoxed) return false;
-    if(!isDetermined()) return false;
-    switch(determinedType()) {
-      case integerType:
-      case booleanType:
-      case doubleType:
-      case nilType:
-      case keywordType:
-      case symbolType:
-        return true;
+    if (!isBoxed)
+      return false;
+    if (!isDetermined())
+      return false;
+    switch (determinedType()) {
+    case integerType:
+    case booleanType:
+    case doubleType:
+    case nilType:
+    case keywordType:
+    case symbolType:
+      return true;
     default:
       return false;
     }
   }
 
   objectType determinedType() const {
-    assert(isDetermined() && "Type not determined");
+    if (!isDetermined()) {
+      throwInternalInconsistencyException("Type not determined");
+    }
     return *(internal.begin());
   }
 
   void remove(objectType type) {
     auto pos = internal.find(type);
-    if (pos == internal.end()) return;
+    if (pos == internal.end())
+      return;
     internal.erase(pos);
   }
-    
+
   ObjectTypeSet expansion(const ObjectTypeSet &other) const {
     /* Expansion removes all constants */
     auto retVal = ObjectTypeSet(*this);
     retVal.internal.insert(other.internal.begin(), other.internal.end());
-    retVal.isBoxed = (isBoxed && !isEmpty()) || (other.isBoxed && !other.isEmpty()) || retVal.size() > 1;
-    if(retVal.constant) delete retVal.constant;
+    retVal.isBoxed = (isBoxed && !isEmpty()) ||
+                     (other.isBoxed && !other.isEmpty()) || retVal.size() > 1;
+    if (retVal.constant)
+      delete retVal.constant;
     retVal.constant = nullptr;
     return retVal;
   }
@@ -180,17 +184,17 @@ class ObjectTypeSet {
     /* Expansion removes all constants */
     auto retVal = ObjectTypeSet();
     retVal.internal = internal;
-    retVal.isBoxed = isBoxed; 
+    retVal.isBoxed = isBoxed;
     return retVal;
   }
-  
 
   ObjectTypeSet restriction(const ObjectTypeSet &other) const {
     /* Restriction preserves constant type for this */
     auto retVal = ObjectTypeSet();
-    std::set_intersection(internal.begin(), internal.end(),
-                          other.internal.begin(), other.internal.end(),                  
-                          std::inserter(retVal.internal, retVal.internal.begin()));
+    std::set_intersection(
+        internal.begin(), internal.end(), other.internal.begin(),
+        other.internal.end(),
+        std::inserter(retVal.internal, retVal.internal.begin()));
     retVal.isBoxed = isBoxed;
     if (constant != nullptr && retVal.contains(constant->constantType)) {
       retVal.constant = constant->copy();
@@ -200,27 +204,29 @@ class ObjectTypeSet {
     return retVal;
   }
 
-  ObjectTypeSet& operator=(const ObjectTypeSet &other) {
+  ObjectTypeSet &operator=(const ObjectTypeSet &other) {
     isBoxed = other.isBoxed;
     internal = other.internal;
-    if(constant) delete constant;
+    if (constant)
+      delete constant;
     constant = nullptr;
-    if(other.constant) constant = other.constant->copy();
+    if (other.constant)
+      constant = other.constant->copy();
     return *this;
   }
 
-  friend bool operator==(const ObjectTypeSet &first, const ObjectTypeSet &second);
-  friend bool operator<(const ObjectTypeSet &first, const ObjectTypeSet &second);
+  friend bool operator==(const ObjectTypeSet &first,
+                         const ObjectTypeSet &second);
+  friend bool operator<(const ObjectTypeSet &first,
+                        const ObjectTypeSet &second);
 
   static ObjectTypeSet dynamicType() {
     auto all = ObjectTypeSet::all();
     all.isBoxed = true;
     return all;
   }
-  
-  static ObjectTypeSet empty() {
-    return ObjectTypeSet();
-  }
+
+  static ObjectTypeSet empty() { return ObjectTypeSet(); }
 
   static ObjectTypeSet all() {
     ObjectTypeSet retVal;
@@ -241,18 +247,22 @@ class ObjectTypeSet {
     retVal.isBoxed = true;
     return retVal;
   }
-  
+
   static ObjectTypeSet fromVector(std::vector<objectType> types) {
-    assert((types.size() > 1) && "ObjectTypeSet::fromVector requires vector of length at least 2");
+    assert((types.size() > 1) &&
+           "ObjectTypeSet::fromVector requires vector of length at least 2");
     ObjectTypeSet retVal;
-    for (auto t: types) retVal.insert(t);
+    for (auto t : types)
+      retVal.insert(t);
     retVal.isBoxed = true;
     return retVal;
   }
-  
+
   static std::string typeStringForArg(const ObjectTypeSet &arg) {
-    if(!arg.isDetermined()) return "LO";
-    else switch (arg.determinedType()) {
+    if (!arg.isDetermined())
+      return "LO";
+    else
+      switch (arg.determinedType()) {
       case integerType:
         return (arg.isBoxed ? "LJ" : "J");
       case stringType:
@@ -287,25 +297,89 @@ class ObjectTypeSet {
         return "LA";
       }
   }
-  
+
   static std::string typeStringForArgs(const std::vector<ObjectTypeSet> &args) {
     std::stringstream retval;
-    for (auto i: args) retval << typeStringForArg(i);    
+    for (auto i : args)
+      retval << typeStringForArg(i);
     return retval.str();
   }
 
-  static std::string fullyQualifiedMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args, const ObjectTypeSet &retVal) {
-    return name + "_" + typeStringForArgs(args) + "_" + typeStringForArg(retVal);
+  static std::string
+  fullyQualifiedMethodKey(const std::string &name,
+                          const std::vector<ObjectTypeSet> &args,
+                          const ObjectTypeSet &retVal) {
+    return name + "_" + typeStringForArgs(args) + "_" +
+           typeStringForArg(retVal);
   }
 
-  static std::string recursiveMethodKey(const std::string &name, const std::vector<ObjectTypeSet> &args) {
+  static std::string
+  recursiveMethodKey(const std::string &name,
+                     const std::vector<ObjectTypeSet> &args) {
     return name + "_" + typeStringForArgs(args);
-  }  
+  }
+
+  static std::string toHumanReadableName(objectType type) {
+    switch (type) {
+    case integerType:
+      return "Int";
+    case stringType:
+      return "String";
+    case persistentListType:
+      return "List";
+    case persistentVectorType:
+      return "Vector";
+    case doubleType:
+      return "Double";
+    case nilType:
+      return "Nil";
+    case booleanType:
+      return "Boolean";
+    case symbolType:
+      return "Symbol";
+    case keywordType:
+      return "Keyword";
+    case functionType:
+      return "Function";
+    case bigIntegerType:
+      return "BigInt";
+    case ratioType:
+      return "Ratio";
+    case classType:
+      return "Class";
+    case persistentArrayMapType:
+      return "Map";
+    case persistentVectorNodeType:
+      return "VectorNode";
+    case concurrentHashMapType:
+      return "CHM";
+    default:
+      return "Unknown";
+    }
+  }
 
   std::string toString() const {
-    std::string retVal = typeStringForArg(*this);    
-    if(constant) retVal += " constant value: " + constant->toString() + " of " + std::to_string(constant->constantType);
-    return retVal;
+    std::stringstream ss;
+    if (isBoxed)
+      ss << "Boxed(";
+    if (internal.empty()) {
+      ss << "Empty";
+    } else if (internal.size() == 1) {
+      ss << toHumanReadableName(*internal.begin());
+      if (constant) {
+        ss << "=" << constant->toString();
+      }
+    } else {
+      ss << "(";
+      for (auto it = internal.begin(); it != internal.end(); ++it) {
+        ss << toHumanReadableName(*it)
+           << (std::next(it) == internal.end() ? "" : "|");
+      }
+      ss << ")";
+    }
+    if (isBoxed)
+      ss << ")";
+    return ss.str();
   }
 };
 

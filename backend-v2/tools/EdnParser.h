@@ -4,8 +4,11 @@
 #include "../RuntimeHeaders.h"
 #include "../bridge/Exceptions.h"
 #include "../types/ObjectTypeSet.h"
+#include <memory>
 #include <unordered_map>
 using namespace std;
+
+struct Class;
 
 namespace rt {
 
@@ -17,7 +20,7 @@ public:
   ~TemporaryClassData();
 };
 
-enum class CallType { Call, Intrinsic };
+enum class CallType { Call, Intrinsic, ClojureFn };
 
 class IntrinsicDescription {
 public:
@@ -25,6 +28,7 @@ public:
   CallType type;
   string symbol;
   ObjectTypeSet returnType;
+  IntrinsicDescription() = default;
   IntrinsicDescription(RTValue from, TemporaryClassData &classData);
 };
 
@@ -35,19 +39,41 @@ class ClassDescription {
 
 public:
   ObjectTypeSet type;
-  ClassDescription *extends;
+  ::Class *extends;
   string name;
+  string parentName;
   unordered_map<string, RTValue> staticFields;
+  vector<RTValue> staticFieldValues;
+  unordered_map<string, int32_t> staticFieldIndices;
+
+  unordered_map<string, int32_t> instanceFields;
+
   unordered_map<string, vector<IntrinsicDescription>> staticFns;
   unordered_map<string, vector<IntrinsicDescription>> instanceFns;
 
+  vector<Class *> interfaces;
+
+  ClassDescription() = default;
   ClassDescription(RTValue from, TemporaryClassData &classData);
-  ClassDescription(ClassDescription &&other) = default;
-  ClassDescription &operator=(ClassDescription &&other) = default;
+  ClassDescription(const ClassDescription &) = delete;
+  ClassDescription &operator=(const ClassDescription &) = delete;
+  ClassDescription(ClassDescription &&other) noexcept = default;
+  ClassDescription &operator=(ClassDescription &&other) noexcept = default;
   ~ClassDescription();
 };
 
-vector<ClassDescription> buildClasses(RTValue from);
+extern "C" {
+void delete_class_description(void *p);
+int32_t ClassExtension_fieldIndex(void *ext, RTValue field);
+int32_t ClassExtension_staticFieldIndex(void *ext, RTValue staticField);
+RTValue ClassExtension_getIndexedStaticField(void *ext, int32_t i);
+RTValue ClassExtension_setIndexedStaticField(void *ext, int32_t i,
+                                             RTValue value);
+ClojureFunction *ClassExtension_resolveInstanceCall(void *ext, RTValue name,
+                                                    int32_t argCount);
+}
+
+vector<unique_ptr<ClassDescription>> buildClasses(RTValue from);
 } // namespace rt
 
 #endif

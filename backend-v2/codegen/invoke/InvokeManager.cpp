@@ -1,254 +1,164 @@
 #include "InvokeManager.h"
 #include "../../bridge/Exceptions.h"
+#include "../../tools/EdnParser.h"
+#include "../../types/ConstantBool.h"
+#include "../../types/ConstantDouble.h"
+#include "../../types/ConstantInteger.h"
+#include "../../types/ConstantBigInteger.h"
+#include "../../types/ConstantRatio.h"
+
+#include "llvm/IR/MDBuilder.h"
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Function.h>
 #include <vector>
+#include <sstream>
 
 using namespace llvm;
 using namespace std;
 
 namespace rt {
 
+// External registration functions
+void registerMathIntrinsics(InvokeManager &mgr);
+void registerCmpIntrinsics(InvokeManager &mgr);
+
 InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
                              ValueEncoder &v, LLVMTypes &t,
                              ThreadsafeCompilerState &s)
-    : builder(b), theModule(m), valueEncoder(v), types(t), state(s) {
-  intrinsics = {
-      // Arithmetic
-      {"FAdd",
-       [](auto &b, auto args) { return b.CreateFAdd(args[0], args[1]); }},
-      {"Add", [](auto &b, auto args) { return b.CreateAdd(args[0], args[1]); }},
-      {"FSub",
-       [](auto &b, auto args) { return b.CreateFSub(args[0], args[1]); }},
-      {"Sub", [](auto &b, auto args) { return b.CreateSub(args[0], args[1]); }},
-      {"FMul",
-       [](auto &b, auto args) { return b.CreateFMul(args[0], args[1]); }},
-      {"Mul", [](auto &b, auto args) { return b.CreateMul(args[0], args[1]); }},
-      {"FDiv",
-       [](auto &b, auto args) { return b.CreateFDiv(args[0], args[1]); }},
-      {"Div",
-       [](auto &b, auto args) { return b.CreateSDiv(args[0], args[1]); }},
-
-      // Comparisons
-      {"FCmpOGE",
-       [](auto &b, auto args) { return b.CreateFCmpOGE(args[0], args[1]); }},
-      {"ICmpSGE",
-       [](auto &b, auto args) { return b.CreateICmpSGE(args[0], args[1]); }},
-      {"FCmpOLT",
-       [](auto &b, auto args) { return b.CreateFCmpOLT(args[0], args[1]); }},
-      {"ICmpSLT",
-       [](auto &b, auto args) { return b.CreateICmpSLT(args[0], args[1]); }}};
+    : builder(b), theModule(m), valueEncoder(v), types(t) {
+  
+  // Register domain intrinsics
+  registerMathIntrinsics(*this);
+  registerCmpIntrinsics(*this);
 }
 
-ObjectTypeSet InvokeManager::returnValueType(PersistentArrayMap *description) {
-  RTValue returnValueTypeIndicator = PersistentArrayMap_get(
-      description, Keyword_create(String_create("returns")));
+// Folding Helpers Implementation
 
-  objectType returnValueTypeIndicatorType = getType(returnValueTypeIndicator);
-  if (returnValueTypeIndicatorType != keywordType &&
-      returnValueTypeIndicatorType != symbolType) {
-    release(returnValueTypeIndicator);
-    throwInternalInconsistencyException(
-        "Return type must be an alias or a symbol");
+mpz_ptr InvokeManager::getZ(const ObjectTypeSet &s) {
+  auto *c = s.getConstant();
+  if (!c) return nullptr;
+  if (auto *i = dynamic_cast<ConstantInteger *>(c)) {
+    mpz_ptr res = (mpz_ptr)malloc(sizeof(__mpz_struct));
+    mpz_init_set_si(res, i->value);
+    return res;
   }
-
-  String *compactifiedReturnTypeIndicatorString =
-      String_compactify(toString(returnValueTypeIndicator));
-
-  PersistentArrayMap *returnValueType = state.internalClassRegistry.getCurrent(
-      String_c_str(compactifiedReturnTypeIndicatorString));
-  Ptr_release(compactifiedReturnTypeIndicatorString);
-
-  RTValue returnValueTypeEnum = PersistentArrayMap_get(
-      returnValueType, Keyword_create(String_create("object-type")));
-
-  if (getType(returnValueTypeEnum) != integerType) {
-    release(returnValueTypeEnum);
-    throwInternalInconsistencyException(
-        "Return value type must be an internal type");
+  if (auto *b = dynamic_cast<ConstantBigInteger *>(c)) {
+    mpz_ptr res = (mpz_ptr)malloc(sizeof(__mpz_struct));
+    mpz_init_set(res, b->value);
+    return res;
   }
-
-  ObjectTypeSet returnValueTypeSet(
-      (objectType)RT_unboxInt32(returnValueTypeEnum));
-  /* Only a formality, integers are not memory managed */
-  release(returnValueTypeEnum);
-  return returnValueTypeSet;
+  return nullptr;
 }
 
-bool InvokeManager::checkIntrinsicArgs(PersistentArrayMap *description,
-                                       const std::vector<ObjectTypeSet> &args) {
-  ThreadsafeRegistry<PersistentArrayMap> &internalClassRegistry =
-      state.internalClassRegistry;
-
-  RTValue argsVecRaw = PersistentArrayMap_get(
-      description, Keyword_create(String_create("args")));
-
-  if (getType(argsVecRaw) != persistentVectorType) {
-    release(argsVecRaw);
-    throwInternalInconsistencyException(
-        "Intrinsic call: :args is not a vector");
+mpq_ptr InvokeManager::getQ(const ObjectTypeSet &s) {
+  auto *c = s.getConstant();
+  if (!c) return nullptr;
+  if (auto *i = dynamic_cast<ConstantInteger *>(c)) {
+    mpq_ptr res = (mpq_ptr)malloc(sizeof(__mpq_struct));
+    mpq_init(res);
+    mpq_set_si(res, i->value, 1);
+    mpq_canonicalize(res);
+    return res;
   }
-
-  PersistentVector *argsVec = (PersistentVector *)RT_unboxPtr(argsVecRaw);
-
-  if (PersistentVector_count(argsVec) != args.size()) {
-    release(argsVecRaw);
-    return false;
+  if (auto *b = dynamic_cast<ConstantBigInteger *>(c)) {
+    mpq_ptr res = (mpq_ptr)malloc(sizeof(__mpq_struct));
+    mpq_init(res);
+    mpq_set_z(res, b->value);
+    mpq_canonicalize(res);
+    return res;
   }
-
-  PersistentVectorIterator it = PersistentVector_iterator(argsVec);
-
-  for (size_t i = 0; i < args.size(); i++) {
-    RTValue argRaw = PersistentVector_iteratorGet(&it);
-    auto &arg = args[i];
-    objectType argType = getType(argRaw);
-    if (argType != keywordType && argType != symbolType) {
-      release(argsVecRaw);
-      return false;
-    }
-
-    if (!arg.isDetermined()) {
-      RTValue anyKeyword = Keyword_create(String_create("any"));
-      if (equals(argRaw, anyKeyword)) {
-        release(anyKeyword);
-        PersistentVector_iteratorNext(&it);
-        continue;
-      }
-      release(anyKeyword);
-      release(argsVecRaw);
-      return false;
-    }
-
-    PersistentArrayMap *argClass =
-        internalClassRegistry.getCurrent((int32_t)arg.determinedType());
-    /* Intrinsics are supported only for built-in objects (represented by
-     * ObjectTypeSet) */
-    if (!argClass) {
-      release(argsVecRaw);
-      throwInternalInconsistencyException(
-          "Intrinsic call: only basic types can be used in the intrinsics");
-    }
-    Ptr_retain(argClass);
-    RTValue className =
-        PersistentArrayMap_get(argClass, Keyword_create(String_create("name")));
-    RTValue classAlias = PersistentArrayMap_get(
-        argClass, Keyword_create(String_create("alias")));
-
-    if (!equals(className, argRaw) && !equals(classAlias, argRaw)) {
-      release(classAlias);
-      release(className);
-      release(argsVecRaw);
-      return false;
-    }
-    release(classAlias);
-    release(className);
-    PersistentVector_iteratorNext(&it);
+  if (auto *r = dynamic_cast<ConstantRatio *>(c)) {
+    mpq_ptr res = (mpq_ptr)malloc(sizeof(__mpq_struct));
+    mpq_init(res);
+    mpq_set(res, r->value);
+    return res;
   }
-  release(argsVecRaw);
-  return true;
+  return nullptr;
 }
 
-TypedValue
-InvokeManager::generateIntrinsic(RTValue intrinsicDescription,
-                                 const std::vector<TypedValue> &args) {
-  std::vector<ObjectTypeSet> argTypes;
-  for (auto arg : args) {
-    argTypes.push_back(arg.type.unboxed());
-  }
-
-  if (getType(intrinsicDescription) != persistentArrayMapType) {
-    release(intrinsicDescription);
-    throwInternalInconsistencyException(
-        "Intrinsic call: description is not a map");
-  }
-  PersistentArrayMap *description =
-      (PersistentArrayMap *)RT_unboxPtr(intrinsicDescription);
-  Ptr_retain(description);
-
-  try {
-    /* TODO: Ultimately we will assume that arg count and types match at the
-     * moment of generation. For now check stays here for debugging. */
-    Ptr_retain(description);
-    if (!checkIntrinsicArgs(description, argTypes)) {
-      throwInternalInconsistencyException("Args do not match");
-    }
-
-    Ptr_retain(description);
-    ObjectTypeSet returnValueTypeSet = returnValueType(description);
-
-    RTValue intrinsicName = PersistentArrayMap_get(
-        description, Keyword_create(String_create("symbol")));
-    if (getType(intrinsicName) != stringType) {
-      release(intrinsicName);
-      throwInternalInconsistencyException("Symbol is not a string");
-    }
-    String *compactifiedIntrinsicName =
-        String_compactify((String *)RT_unboxPtr(intrinsicName));
-    std::string stringIntrinsicName(String_c_str(compactifiedIntrinsicName));
-    Ptr_release(compactifiedIntrinsicName);
-
-    Ptr_retain(description);
-    RTValue callType = PersistentArrayMap_get(
-        description, Keyword_create(String_create("type")));
-    RTValue intriniscKeyword = Keyword_create(String_create("intrinsic"));
-    RTValue callKeyword = Keyword_create(String_create("call"));
-
-    if (equals(callType, intriniscKeyword)) {
-      auto block = intrinsics.find(stringIntrinsicName);
-      if (block == intrinsics.end()) {
-        release(intriniscKeyword);
-        release(callKeyword);
-        throwInternalInconsistencyException(
-            "Intrinsic '" + stringIntrinsicName + "' does not exist.");
-      }
-      std::vector<llvm::Value *> argVals;
-      for (auto arg : args) {
-        argVals.push_back(valueEncoder.unbox(arg).value);
-      }
-
-      release(intriniscKeyword);
-      release(callKeyword);
-      Ptr_release(description);
-      return TypedValue(returnValueTypeSet, block->second(builder, argVals));
-
-    } else if (equals(callType, callKeyword)) {
-      release(intriniscKeyword);
-      release(callKeyword);
-      Ptr_release(description);
-      return invokeRuntime(stringIntrinsicName, &returnValueTypeSet, argTypes,
-                           args);
-    } else {
-      release(intriniscKeyword);
-      release(callType);
-      throwInternalInconsistencyException("Unknown intrinsic type.");
-    }
-  } catch (...) {
-    Ptr_release(description);
-    throw;
-  }
+double InvokeManager::getD(const ObjectTypeSet &s) {
+  auto *c = s.getConstant();
+  if (!c) return 0.0;
+  if (auto *d = dynamic_cast<ConstantDouble *>(c)) return d->value;
+  if (auto *i = dynamic_cast<ConstantInteger *>(c)) return (double)i->value;
+  if (auto *b = dynamic_cast<ConstantBigInteger *>(c)) return mpz_get_d(b->value);
+  if (auto *r = dynamic_cast<ConstantRatio *>(c)) return mpq_get_d(r->value);
+  return 0.0;
 }
 
-TypedValue InvokeManager::invokeRuntime(
-    const std::string &fname, const ObjectTypeSet *retValType,
-    const std::vector<ObjectTypeSet> &argTypes,
-    const std::vector<TypedValue> &args, const bool isVariadic) {
-  if (argTypes.size() > args.size())
-    throwInternalInconsistencyException(
-        "Internal error: To litle arguments passed");
+ObjectTypeSet InvokeManager::createZ(mpz_ptr val) {
+  if (mpz_fits_slong_p(val)) {
+    return ObjectTypeSet(integerType, false, new ConstantInteger(mpz_get_si(val)));
+  }
+  return ObjectTypeSet(bigIntegerType, false, new ConstantBigInteger(val));
+}
+
+ObjectTypeSet InvokeManager::createQ(mpq_ptr val) {
+  mpq_canonicalize(val);
+  if (mpz_cmp_si(mpq_denref(val), 1) == 0) {
+    return createZ(mpq_numref(val));
+  }
+  return ObjectTypeSet(ratioType, false, new ConstantRatio(val));
+}
+
+
+TypedValue InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
+                                             const vector<TypedValue> &args) {
+  if (id.type == CallType::Intrinsic) {
+    auto it = intrinsics.find(id.symbol);
+    if (it == intrinsics.end()) {
+      throwInternalInconsistencyException("Intrinsic '" + id.symbol +
+                                          "' does not exist.");
+    }
+    std::vector<llvm::Value *> argVals;
+    for (auto &arg : args)
+      argVals.push_back(valueEncoder.unbox(arg).value);
+    return TypedValue(id.returnType, it->second(builder, argVals));
+  } else if (id.type == CallType::Call) {
+    return invokeRuntime(id.symbol, &id.returnType, id.argTypes, args);
+  }
+
+  throwInternalInconsistencyException("Unsupported call type");
+}
+
+
+ObjectTypeSet InvokeManager::foldIntrinsic(const IntrinsicDescription &id,
+                                           const vector<ObjectTypeSet> &args) {
+  auto it = typeIntrinsics.find(id.symbol);
+  if (it != typeIntrinsics.end()) {
+    ObjectTypeSet folded = it->second(args);
+    if (folded.isDetermined() && folded.getConstant()) {
+      return folded;
+    }
+  }
+  return id.returnType;
+}
+
+TypedValue InvokeManager::invokeRuntime(const std::string &fname,
+                                         const ObjectTypeSet *retValType,
+                                         const std::vector<ObjectTypeSet> &argTypes,
+                                         const std::vector<TypedValue> &args,
+                                         const bool isVariadic) {
   std::vector<llvm::Type *> llvmTypes;
-  for (auto &t : argTypes) {
-    llvmTypes.push_back(types.typeForType(t));
+  for (auto &at : argTypes) {
+    if (at.isBoxedType())
+      llvmTypes.push_back(types.RT_valueTy);
+    else
+      llvmTypes.push_back(types.typeForType(ObjectTypeSet(at.determinedType())));
   }
-
-  if (!isVariadic && argTypes.size() != args.size())
-    throwInternalInconsistencyException("Internal error: Wrong arg count");
 
   FunctionType *functionType = FunctionType::get(
-      retValType ? types.typeForType(*retValType) : types.voidTy, llvmTypes,
-      isVariadic);
+      retValType && !retValType->isBoxedType()
+          ? types.typeForType(ObjectTypeSet(retValType->determinedType()))
+          : types.RT_valueTy,
+      llvmTypes, isVariadic);
 
-  Function *toCall =
-      theModule.getFunction(fname)
-          ?: Function::Create(functionType, Function::ExternalLinkage, fname,
+
+  Function *toCall = theModule.getFunction(fname);
+  if (!toCall) {
+    toCall = Function::Create(functionType, Function::ExternalLinkage, fname,
                               theModule);
+  }
 
   vector<llvm::Value *> argVals;
   for (size_t i = 0; i < args.size(); i++) {
@@ -274,8 +184,10 @@ TypedValue InvokeManager::invokeRuntime(
       argVals.push_back(valueEncoder.box(arg).value);
     }
   }
+
   return TypedValue(
       retValType ? *retValType : ObjectTypeSet::all(),
       builder.CreateCall(toCall, argVals, std::string("call_") + fname));
 }
+
 } // namespace rt

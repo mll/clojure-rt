@@ -45,6 +45,9 @@ backend-v2/Testing*
 backend-v2/build_cov/*
 backend-v2/libbackend_lib.a
 backend-v2/.cache*
+backend-v2/compile_commands.json
+backend-v2/clojure-rt.dSYM
+backend-v2/CMakeUserPresets.json
 
 
 /.clj-kondo/babashka

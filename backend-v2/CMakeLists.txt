@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.26)
 project(clojure-rt)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
+if(APPLE)
+    if(NOT CMAKE_OSX_ARCHITECTURES)
+        set(CMAKE_OSX_ARCHITECTURES "arm64")
+    endif()
+    set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+endif()
 
 
 message(STATUS "CMAKE_OSX_ARCHITECTURES: ${CMAKE_OSX_ARCHITECTURES}")
@@ -21,13 +30,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 set(CMAKE_CXX_STANDARD 20)
 add_compile_definitions(BUILD_TYPE="${CMAKE_BUILD_TYPE}")
-
-if(APPLE)
-    if(NOT CMAKE_OSX_ARCHITECTURES)
-        set(CMAKE_OSX_ARCHITECTURES "arm64")
-    endif()
-    set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
-endif()
 
 add_subdirectory(runtime)
 
@@ -117,11 +119,16 @@ set(BACKEND_SOURCES
       codegen/LLVMTypes.cpp
       codegen/DynamicConstructor.cpp
       codegen/invoke/InvokeManager.cpp
+      codegen/invoke/InvokeManager_Math.cpp
+      codegen/invoke/InvokeManager_Cmp.cpp
+
       codegen/MemoryManagement.cpp
       codegen/ops/ConstNode.cpp
       codegen/ops/QuoteNode.cpp
       codegen/ops/VectorNode.cpp       
-      codegen/ops/MapNode.cpp)
+      codegen/ops/MapNode.cpp
+      codegen/ops/StaticCallNode.cpp
+      codegen/ops/IfNode.cpp)
 
 
 # 2. Protobuf Detection

@@ -77,3 +77,4 @@ extern bool Ptr_release(void *self);
 extern uword_t Ptr_hash(void *self);
 extern bool Ptr_equals(void *self, void *other);
 extern bool Ptr_isReusable(void *self);
+extern bool equals_managed(RTValue self, RTValue other);

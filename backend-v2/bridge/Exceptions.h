@@ -26,6 +26,8 @@ class LanguageException : public std::exception {
 
 public:
   LanguageException(const std::string &name, RTValue message, RTValue payload);
+  LanguageException(const LanguageException &other);
+  LanguageException &operator=(const LanguageException &other);
   ~LanguageException() noexcept override;
   void printRawTrace() const;
   std::string toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
@@ -37,10 +39,17 @@ std::string getExceptionString(const LanguageException &e);
 
 } // namespace rt
 
-extern "C" {
-void throwInternalInconsistencyException(const std::string &errorMessage);
-void throwCodeGenerationException(const std::string &errorMessage,
-                                  const Node &node);
-}
+// C++-only functions (no extern "C" needed/possible due to std::string/Node)
+[[noreturn]] void
+throwInternalInconsistencyException(const std::string &errorMessage);
+[[noreturn]] void throwCodeGenerationException(const std::string &errorMessage,
+                                               const Node &node);
+
+extern "C" void registerJitFunction_C(uword_t addr, size_t size,
+                                      const char *name,
+                                      const void *objData, size_t objSize);
+
+extern "C" [[noreturn]] void
+throwInternalInconsistencyException_C(const char *errorMessage);
 
 #endif

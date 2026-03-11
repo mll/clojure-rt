@@ -71,6 +71,7 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
   //                                node);
   //   break;
   case keywordType:
+
     retVal = dynamicConstructor.createKeyword(
         (name[0] == ':' ? name.substr(1) : name).c_str());
     memoryManagement.dynamicRetain(retVal);
@@ -95,6 +96,7 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
   //     APInt(64, (uint64_t) var, false)), ptrT); dynamicRetain(retVal); break;
   //   }
   case persistentListType:
+
   case persistentVectorType:
   case persistentVectorNodeType:
   case concurrentHashMapType:
@@ -114,6 +116,11 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
 
   switch (subnode.type()) {
   case ConstNode_ConstType_constTypeNumber:
+    if (subnode.val().find('/') != string::npos) {
+      return ObjectTypeSet(ratioType, true, new ConstantRatio(subnode.val()))
+          .restriction(typeRestrictions);
+    }
+
     if (node.tag() == "clojure.lang.Ratio" ||
         node.otag() == "clojure.lang.Ratio" ||
         node.tag() == "class clojure.lang.Ratio" ||
@@ -132,17 +139,35 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
     }
 
     if (node.tag() == "double" || node.otag() == "double" ||
-        node.tag() == "class java.lang.Double") {
+        node.tag() == "class java.lang.Double" || subnode.val().find('.') != string::npos) {
       return ObjectTypeSet(doubleType, false,
                            new ConstantDouble(stod(subnode.val())))
           .restriction(typeRestrictions);
     }
 
     if (node.tag() == "long" || node.otag() == "long" ||
-        node.tag() == "class java.lang.Long") {
-      return ObjectTypeSet(integerType, false,
-                           new ConstantInteger(stoi(subnode.val())))
-          .restriction(typeRestrictions);
+        node.tag() == "class java.lang.Long" || node.tag() == "") {
+      try {
+        size_t end;
+        long long val = stoll(subnode.val(), &end);
+        if (end == subnode.val().size()) {
+          if (val >= INT32_MIN && val <= INT32_MAX) {
+            return ObjectTypeSet(integerType, false,
+                                 new ConstantInteger((int32_t)val))
+                .restriction(typeRestrictions);
+          } else {
+            return ObjectTypeSet(bigIntegerType, true,
+                                 new ConstantBigInteger(subnode.val()))
+                .restriction(typeRestrictions);
+          }
+        }
+      } catch (...) {
+        if (!subnode.val().empty() && (isdigit(subnode.val()[0]) || subnode.val()[0] == '-')) {
+             return ObjectTypeSet(bigIntegerType, true,
+                                new ConstantBigInteger(subnode.val()))
+                 .restriction(typeRestrictions);
+        }
+      }
     }
 
     throwCodeGenerationException(
@@ -170,6 +195,7 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
   // case ConstNode_ConstType_constTypeVar:
   //   return ObjectTypeSet(varType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeType:
+
   case ConstNode_ConstType_constTypeRecord:
   case ConstNode_ConstType_constTypeMap:
   case ConstNode_ConstType_constTypeVector:

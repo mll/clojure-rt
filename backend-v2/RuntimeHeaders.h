@@ -3,12 +3,8 @@
 
 #include <gmp.h>
 
-#ifdef __cplusplus
-#include <atomic>
-#include <memory>
-extern "C" {
-#endif
-#ifdef __cplusplus
+// For C++ to understand C's 'restrict' keyword
+#if defined(__cplusplus)
 #if defined(__GNUC__) || defined(__clang__)
 #define restrict __restrict__
 #elif defined(_MSC_VER)
@@ -18,21 +14,29 @@ extern "C" {
 #endif
 #endif
 
-#include "runtime/BigInteger.h"
-#include "runtime/Keyword.h"
-#include "runtime/Object.h"
 #include "runtime/ObjectProto.h"
-#include "runtime/PersistentArrayMap.h"
-#include "runtime/PersistentList.h"
-#include "runtime/PersistentVector.h"
 #include "runtime/RTValue.h"
-#include "runtime/Ratio.h"
-#include "runtime/String.h"
-#include "runtime/Symbol.h"
 #include "runtime/defines.h"
 #include "runtime/word.h"
 
-#ifdef __cplusplus
-}
-#endif
+#include "runtime/BigInteger.h"
+#include "runtime/Boolean.h"
+#include "runtime/Class.h"
+#include "runtime/ConcurrentHashMap.h"
+#include "runtime/Double.h"
+#include "runtime/Function.h"
+#include "runtime/Integer.h"
+#include "runtime/Keyword.h"
+#include "runtime/Nil.h"
+#include "runtime/Object.h"
+#include "runtime/PersistentArrayMap.h"
+#include "runtime/PersistentList.h"
+#include "runtime/PersistentVector.h"
+#include "runtime/PersistentVectorIterator.h"
+#include "runtime/PersistentVectorNode.h"
+#include "runtime/Ratio.h"
+#include "runtime/RuntimeInterface.h"
+#include "runtime/String.h"
+#include "runtime/Symbol.h"
+
 #endif

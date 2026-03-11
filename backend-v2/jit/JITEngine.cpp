@@ -1,4 +1,10 @@
 #include "JITEngine.h"
+#include "bridge/Exceptions.h"
+#include <llvm/ExecutionEngine/Orc/DebugObjectManagerPlugin.h>
+#include <llvm/ExecutionEngine/Orc/EPCDebugObjectRegistrar.h>
+#include <llvm/ExecutionEngine/Orc/ObjectTransformLayer.h>
+#include <llvm/ExecutionEngine/SectionMemoryManager.h>
+#include <llvm/Support/MemoryBuffer.h>
 
 namespace rt {
 
@@ -10,10 +16,39 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
 
-  auto JITExp = llvm::orc::LLJITBuilder().create();
+  auto JITExp = llvm::orc::LLJITBuilder()
+                    .setObjectLinkingLayerCreator(
+                        [&](llvm::orc::ExecutionSession &ES,
+                            const llvm::Triple &TT) {
+                          auto ObjLinkingLayer =
+                              std::make_unique<llvm::orc::ObjectLinkingLayer>(ES);
+
+                          // Add debug info support
+                          auto Registrar = llvm::orc::createJITLoaderGDBRegistrar(ES);
+                          if (Registrar) {
+                            ObjLinkingLayer->addPlugin(
+                                std::make_unique<llvm::orc::DebugObjectManagerPlugin>(
+                                    ES, std::move(*Registrar)));
+                          }
+
+                          return ObjLinkingLayer;
+                        })
+                    .create();
   if (!JITExp)
     throw std::runtime_error("Failed to init LLJIT");
   jit = std::move(*JITExp);
+
+  // Set up object transform to capture compiled objects
+  jit->getObjTransformLayer().setTransform(
+      [this](std::unique_ptr<llvm::MemoryBuffer> Obj)
+          -> llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> {
+        std::lock_guard<std::mutex> lock(this->engineMutex);
+        std::string id = Obj->getBufferIdentifier().str();
+        // Store a copy of the buffer content
+        this->capturedObjectBuffers[id] = llvm::MemoryBuffer::getMemBufferCopy(
+            Obj->getBuffer(), id);
+        return std::move(Obj);
+      });
 
   // Expose symbols from the current process to the JIT.
   // This is required on Linux to find runtime functions.
@@ -27,52 +62,95 @@ std::future<llvm::orc::ExecutorAddr>
 JITEngine::compileAST(const Node &AST, const std::string &moduleName,
                       llvm::OptimizationLevel level, bool printModule) {
   // Wrap logic in a task for the pool
-  return pool.enqueue([this, AST, moduleName,
-                       printModule]() -> llvm::orc::ExecutorAddr {
-    auto codeGenerator = CodeGen(moduleName, threadsafeState);
-    auto fName = codeGenerator.codegenTopLevel(AST);
+  return pool.enqueue(
+      [this, AST, moduleName, printModule]() -> llvm::orc::ExecutorAddr {
+        auto codeGenerator = CodeGen(moduleName, threadsafeState);
 
-    auto result = std::move(codeGenerator).release();
-    auto context = std::move(result.context);
-    auto module = std::move(result.module);
-    auto constants = std::move(result.constants);
+        std::string fName;
+        try {
+          fName = codeGenerator.codegenTopLevel(AST);
+        } catch (...) {
+          auto result = std::move(codeGenerator).release();
+          for (auto c : result.constants) {
+            release(c);
+          }
+          throw;
+        }
 
-    // 4. Optimize WITHOUT LOCK
-    // if (level != llvm::OptimizationLevel::O0) {
-    //   this->optimize(*mod, Level);
-    // }
+        auto result = std::move(codeGenerator).release();
+        auto context = std::move(result.context);
+        auto module = std::move(result.module);
+        auto constants = std::move(result.constants);
 
-    // --- TUTAJ WYPISUJEMY IR ---
-    if (module && printModule) {
-      llvm::outs() << "\n--- Generated LLVM IR for: " << moduleName << " ---\n";
-      module->print(llvm::outs(),
-                    nullptr); // Wypisuje IR do standardowego wyjścia LLVM
-      llvm::outs() << "------------------------------------------\n";
-      llvm::outs().flush(); // Wymuszamy opróżnienie bufora, żeby tekst nie
-                            // zniknął przy błędzie
-    }
-    // ---------------------------
+        // 4. Optimize WITHOUT LOCK
+        // if (level != llvm::OptimizationLevel::O0) {
+        //   this->optimize(*mod, Level);
+        // }
 
-    llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
+        // --- TUTAJ WYPISUJEMY IR ---
+        if (module && printModule) {
+          llvm::outs() << "\n=== Generated LLVM IR for: '" << moduleName
+                       << "' ===\n";
+          module->print(llvm::outs(),
+                        nullptr); // Wypisuje IR do standardowego wyjścia LLVM
+          llvm::outs() << "=============================================\n";
+          llvm::outs().flush(); // Wymuszamy opróżnienie bufora, żeby tekst nie
+                                // zniknął przy błędzie
+        }
+        // ---------------------------
 
-    {
-      std::lock_guard<std::mutex> lock(engineMutex);
-      auto RT = jit->getMainJITDylib().createResourceTracker();
+        llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
 
-      // ORC takes ownership of TSM and the Context inside it
-      if (auto Err = jit->addIRModule(RT, std::move(TSM)))
-        throw std::runtime_error("JIT Link Error");
+        {
+          std::lock_guard<std::mutex> lock(engineMutex);
+          auto RT = jit->getMainJITDylib().createResourceTracker();
 
-      functionTrackers[moduleName] = RT;
-      moduleConstants[moduleName] = std::move(constants);
-    }
+          // ORC takes ownership of TSM and the Context inside it
+          if (auto Err = jit->addIRModule(RT, std::move(TSM)))
+            throwInternalInconsistencyException("JIT Link Error");
 
-    // 6. Return executable address
-    auto Sym = jit->lookup(fName);
-    if (!Sym)
-      throw std::runtime_error("Symbol Lookup Failed");
-    return *Sym;
-  });
+          functionTrackers[moduleName] = RT;
+          moduleConstants[moduleName] = std::move(constants);
+        }
+
+        // 6. Return executable address
+        auto Sym = jit->lookup(fName);
+        if (!Sym)
+          throwInternalInconsistencyException("Symbol Lookup Failed: " + fName);
+
+        // Register for stack trace resolution
+        {
+          std::lock_guard<std::mutex> lock(this->engineMutex);
+          
+          // Try to find the captured object buffer. ORC might append suffixes.
+          auto it = this->capturedObjectBuffers.find(moduleName);
+          if (it == this->capturedObjectBuffers.end()) {
+             // Try common ORC suffixes if exact match fails
+             it = this->capturedObjectBuffers.find(moduleName + "-jitted-objectbuffer");
+          }
+          if (it == this->capturedObjectBuffers.end()) {
+             // Fallback: search for any key containing moduleName
+             for (auto searchIt = this->capturedObjectBuffers.begin(); searchIt != this->capturedObjectBuffers.end(); ++searchIt) {
+                 if (searchIt->first.find(moduleName) != std::string::npos) {
+                     it = searchIt;
+                     break;
+                 }
+             }
+          }
+
+          if (it != this->capturedObjectBuffers.end()) {
+            registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(),
+                                  it->second->getBufferStart(),
+                                  it->second->getBufferSize());
+            this->capturedObjectBuffers.erase(it);
+          } else {
+            registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(), nullptr,
+                                  0);
+          }
+        }
+
+        return *Sym;
+      });
 }
 
 void JITEngine::invalidate(const std::string &name) {

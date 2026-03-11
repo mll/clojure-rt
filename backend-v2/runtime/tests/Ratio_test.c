@@ -31,9 +31,9 @@ static void test_ratio_arithmetic(void **state) {
     Ratio *r2 = Ratio_createFromInts(1, 4);
 
     // 1/4 + 1/4 = 1/2
-    void *res = Ratio_add(r1, r2);
+    RTValue res = Ratio_add(r1, r2);
     assert_non_null(res);
-    Ratio *r3 = (Ratio *)res;
+    Ratio *r3 = RT_unboxPtr(res);
     assert_int_equal(ratioType, getType(RT_boxPtr(r3)));
 
     Ptr_retain(r3);
@@ -41,11 +41,11 @@ static void test_ratio_arithmetic(void **state) {
 
     // 1/2 * 2 = 1 (BigInteger)
     Ratio *two = Ratio_createFromInt(2);
-    void *res2 = Ratio_mul(r3, two);
+    RTValue res2 = Ratio_mul(r3, two);
     assert_non_null(res2);
-    assert_int_equal(bigIntegerType, getType(RT_boxPtr(res2)));
+    assert_int_equal(bigIntegerType, getType(res2));
 
-    Ptr_release(res2);
+    release(res2);
   });
 }
 
@@ -54,9 +54,9 @@ static void test_ratio_simplify(void **state) {
   ASSERT_MEMORY_ALL_BALANCED({
     Ratio *r = Ratio_createFromInts(4, 2);
 
-    void *simplified = Ratio_simplify(r);
-    assert_int_equal(bigIntegerType, getType(RT_boxPtr(simplified)));
-    Ptr_release(simplified);
+    RTValue simplified = Ratio_simplify(r);
+    assert_int_equal(bigIntegerType, getType(simplified));
+    release(simplified);
   });
 }
 

@@ -2,6 +2,7 @@
 #define CONSTANT_BIG_INTEGER_H
 
 #include <gmp.h>
+#include <cassert>
 #include "ObjectTypeConstant.h"
 
 namespace rt {
@@ -23,7 +24,12 @@ class ConstantBigInteger: public ObjectTypeConstant {
     mpz_clear(value);
   }
   virtual ObjectTypeConstant *copy() { return static_cast<ObjectTypeConstant *> (new ConstantBigInteger(value)); }
-  virtual std::string toString() { return std::string(mpz_get_str(NULL, 10, value)); }
+  virtual std::string toString() {
+    char *str = mpz_get_str(NULL, 10, value);
+    std::string s(str);
+    free(str);
+    return s;
+  }
   virtual bool equals(ObjectTypeConstant *other) {   
     if(ConstantBigInteger *i = dynamic_cast<ConstantBigInteger *>(other)) {
       return mpz_cmp(i->value, value) == 0;

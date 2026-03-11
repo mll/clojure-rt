@@ -2,9 +2,16 @@
 #include "RTValueWrapper.h"
 
 namespace rt {
+
+extern "C" void delete_class_description(void *ptr) {
+  delete static_cast<ClassDescription *>(ptr);
+}
+
 ClassDescription::~ClassDescription() {
-  for (auto const &s : staticFields) {
-    release(s.second);
+  if (extends)
+    Ptr_release(extends);
+  for (auto v : staticFieldValues) {
+    release(v);
   }
 }
 
@@ -94,6 +101,7 @@ TemporaryClassData::TemporaryClassData(RTValue from) {
 ClassDescription::ClassDescription(RTValue from,
                                    TemporaryClassData &classData) {
   ConsumedValue root(from);
+  this->extends = nullptr;
 
   if (getType(root.get()) != persistentArrayMapType) {
     throwInternalInconsistencyException(
@@ -103,15 +111,51 @@ ClassDescription::ClassDescription(RTValue from,
       (PersistentArrayMap *)RT_unboxPtr(root.get());
 
   retain(root.get());
-  ConsumedValue typeWrapper(PersistentArrayMap_get(
-      description, Keyword_create(String_create("object-type"))));
+  ConsumedValue aliasWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("alias"))));
 
-  if (getType(typeWrapper.get()) == integerType) {
-    this->type = (objectType)RT_unboxInt32(typeWrapper.get());
-  } else if (getType(typeWrapper.get()) == nilType) {
-    this->type = classType;
+  if (getType(aliasWrapper.get()) == keywordType) {
+    String *s = String_compactify(toString(aliasWrapper.take()));
+    string sAlias = String_c_str(s);
+    Ptr_release(s);
+
+    if (sAlias == ":any") {
+      this->type = ObjectTypeSet::all();
+    } else if (sAlias == ":nil") {
+      this->type = nilType;
+    } else {
+      // Fallback to integerType if it has one, or classType
+      retain(root.get());
+      ConsumedValue typeWrapper(PersistentArrayMap_get(
+          description, Keyword_create(String_create("object-type"))));
+      if (getType(typeWrapper.get()) == integerType) {
+        this->type = (objectType)RT_unboxInt32(typeWrapper.get());
+      } else {
+        this->type = classType;
+      }
+    }
   } else {
-    throwInternalInconsistencyException("Object-type is not an integer");
+    retain(root.get());
+    ConsumedValue typeWrapper(PersistentArrayMap_get(
+        description, Keyword_create(String_create("object-type"))));
+
+    if (getType(typeWrapper.get()) == integerType) {
+      this->type = (objectType)RT_unboxInt32(typeWrapper.get());
+    } else if (getType(typeWrapper.get()) == nilType) {
+      this->type = classType;
+    } else {
+      throwInternalInconsistencyException("Object-type is not an integer");
+    }
+  }
+
+  retain(root.get());
+  ConsumedValue extendsWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("extends"))));
+  if (getType(extendsWrapper.get()) == symbolType ||
+      getType(extendsWrapper.get()) == stringType) {
+    String *sParent = String_compactify(toString(extendsWrapper.take()));
+    this->parentName = String_c_str(sParent);
+    Ptr_release(sParent);
   }
 
   retain(root.get());
@@ -128,16 +172,47 @@ ClassDescription::ClassDescription(RTValue from,
   this->name = String_c_str(compactifiedName);
   Ptr_release(compactifiedName);
 
-  extends = nullptr;
-
   retain(root.get());
   ConsumedValue sfWrapper(PersistentArrayMap_get(
       description, Keyword_create(String_create("static-fields"))));
 
   if (getType(sfWrapper.get()) == persistentArrayMapType) {
     this->staticFields = parseStaticFields(sfWrapper.take());
+    // Create stable indexing
+    for (auto const &[key, val] : this->staticFields) {
+      staticFieldIndices[key] = (int32_t)staticFieldValues.size();
+      staticFieldValues.push_back(val);
+    }
   } else if (getType(sfWrapper.get()) != nilType) {
     throwInternalInconsistencyException(":static-fields must be a map.");
+  }
+
+  retain(root.get());
+  ConsumedValue ifieldsWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("instance-fields"))));
+
+  if (getType(ifieldsWrapper.get()) == persistentVectorType) {
+    PersistentVector *vec =
+        (PersistentVector *)RT_unboxPtr(ifieldsWrapper.get());
+    for (uword_t i = 0; i < vec->count; i++) {
+      retain(RT_boxPtr(vec)); // PersistentVector_nth consumes self
+      ConsumedValue fieldName(PersistentVector_nth(vec, i));
+      // toString consumes.
+      String *ss = String_compactify(toString(fieldName.take()));
+      this->instanceFields[String_c_str(ss)] = (int32_t)i;
+      Ptr_release(ss);
+    }
+  }
+
+  retain(root.get());
+  ConsumedValue interfacesWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("interfaces"))));
+
+  if (getType(interfacesWrapper.get()) == persistentVectorType) {
+    // These will be resolved later or stored as names.
+    // For now, let's assume classData can help or we store them as symbols.
+    // Actually, the previous implementation had ImplementedInterface**
+    // implementedInterfaces; which were resolved Classes.
   }
 
   retain(root.get());
@@ -162,6 +237,85 @@ ClassDescription::ClassDescription(RTValue from,
   }
 }
 
+extern "C" {
+int32_t ClassExtension_fieldIndex(void *ext, RTValue field) {
+  ClassDescription *description = (ClassDescription *)ext;
+  String *s = String_compactify(toString(field));
+  string key = String_c_str(s);
+  Ptr_release(s);
+
+  auto it = description->instanceFields.find(key);
+  if (it != description->instanceFields.end()) {
+    return it->second;
+  }
+  return -1;
+}
+
+int32_t ClassExtension_staticFieldIndex(void *ext, RTValue staticField) {
+  ClassDescription *description = (ClassDescription *)ext;
+  String *s = String_compactify(toString(staticField));
+  string key = String_c_str(s);
+  Ptr_release(s);
+
+  auto it = description->staticFieldIndices.find(key);
+  if (it != description->staticFieldIndices.end()) {
+    return it->second;
+  }
+  return -1;
+}
+
+RTValue ClassExtension_getIndexedStaticField(void *ext, int32_t i) {
+  ClassDescription *description = (ClassDescription *)ext;
+  if (i >= 0 && i < (int32_t)description->staticFieldValues.size()) {
+    RTValue val = description->staticFieldValues[i];
+    retain(val);
+    return val;
+  }
+  return RT_boxNil();
+}
+
+RTValue ClassExtension_setIndexedStaticField(void *ext, int32_t i,
+                                             RTValue value) {
+  ClassDescription *description = (ClassDescription *)ext;
+  if (i >= 0 && i < (int32_t)description->staticFieldValues.size()) {
+    RTValue old = description->staticFieldValues[i];
+    description->staticFieldValues[i] = value;
+    // Value is retained by the caller or we should retain it here?
+    // Class_setIndexedStaticField in C code did NOT retain 'value' but released
+    // 'oldValue'. RTValue oldValue = self->staticFields[i];
+    // self->staticFields[i] = value;
+    // release(oldValue);
+    // return value;
+    release(old);
+    return value;
+  }
+  return value;
+}
+
+ClojureFunction *ClassExtension_resolveInstanceCall(void *ext, RTValue name,
+                                                    int32_t argCount) {
+  ClassDescription *description = (ClassDescription *)ext;
+  String *s = String_compactify(toString(name));
+  string key = String_c_str(s);
+  Ptr_release(s);
+
+  auto it = description->instanceFns.find(key);
+  if (it != description->instanceFns.end()) {
+    // FIXME: We need to resolve these to ClojureFunction* objects.
+    /*
+    for (auto const& intrinsic : it->second) {
+      // We need an actual ClojureFunction object here.
+      // This refactoring assumes that compile-time metadata can resolve to
+      // runtime functions. For now, if it's a :call type, we return the
+      // function. Wait, IntrinsicDescription only has the symbol name. The
+      // actual ClojureFunction should be built or cached.
+    }
+    */
+  }
+  return nullptr;
+}
+}
+
 unordered_map<string, RTValue>
 ClassDescription::parseStaticFields(RTValue from) {
   ConsumedValue root(from);
@@ -176,7 +330,7 @@ ClassDescription::parseStaticFields(RTValue from) {
     if (getType(key) != symbolType)
       throwInternalInconsistencyException("Static fields key is not a symbol.");
 
-    // toString consumes. Protect key for the map.
+    // toString consumes. Protect borrowed key.
     retain(key);
     String *ss = String_compactify(toString(key));
     string sKey = String_c_str(ss);
@@ -232,7 +386,7 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData) {
       PersistentVector_iteratorNext(&it);
     }
 
-    // toString(key) consumes. Protect borrowed key for the map.
+    // toString consumes. Protect borrowed key for the map.
     retain(key);
     String *ss = String_compactify(toString(key));
     string sKey = String_c_str(ss);
@@ -320,7 +474,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
       if (sArgKey == ":this") {
         this->argTypes.push_back(ObjectTypeSet(classType));
       } else if (sArgKey == ":any") {
-        this->argTypes.push_back(ObjectTypeSet::dynamicType());
+        this->argTypes.push_back(ObjectTypeSet::all());
       } else if (sArgKey == ":nil") {
         this->argTypes.push_back(ObjectTypeSet(nilType));
       } else {
@@ -359,7 +513,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
     Ptr_release(retStr);
 
     if (sRetKey == ":any") {
-      this->returnType = ObjectTypeSet::dynamicType();
+      this->returnType = ObjectTypeSet::all();
     } else if (sRetKey == ":nil") {
       this->returnType = ObjectTypeSet(nilType);
     } else if (classData.classesByName.find(sRetKey) !=
@@ -386,10 +540,10 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
 }
 
 #include <unordered_set>
-vector<ClassDescription> buildClasses(RTValue from) {
+vector<unique_ptr<ClassDescription>> buildClasses(RTValue from) {
   // from is consumed by TemporaryClassData
   TemporaryClassData classData(from);
-  vector<ClassDescription> retVal;
+  vector<unique_ptr<ClassDescription>> retVal;
 
   unordered_set<PersistentArrayMap *> processed;
 
@@ -399,7 +553,8 @@ vector<ClassDescription> buildClasses(RTValue from) {
       processed.insert(map);
       Ptr_retain(map);
       RTValue mapVal = RT_boxPtr(map);
-      retVal.push_back(ClassDescription(mapVal, classData));
+      auto desc = make_unique<ClassDescription>(mapVal, classData);
+      retVal.push_back(std::move(desc));
     }
   }
 

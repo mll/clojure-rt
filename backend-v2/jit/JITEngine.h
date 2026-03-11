@@ -11,6 +11,7 @@
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#include "llvm/ExecutionEngine/Orc/ObjectTransformLayer.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 
 // LLVM Optimization (New Pass Manager)
@@ -42,6 +43,7 @@ class JITEngine {
   std::mutex engineMutex;
   std::map<std::string, llvm::orc::ResourceTrackerSP> functionTrackers;
   std::map<std::string, std::vector<RTValue>> moduleConstants;
+  std::map<std::string, std::unique_ptr<llvm::MemoryBuffer>> capturedObjectBuffers;
   ThreadsafeCompilerState &threadsafeState;
 
 public:

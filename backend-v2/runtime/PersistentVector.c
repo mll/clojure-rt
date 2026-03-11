@@ -4,6 +4,7 @@
 #include "RTValue.h"
 #include "Transient.h"
 #include <stdarg.h>
+#include "Exceptions.h"
 
 PersistentVector *EMPTY_VECTOR = NULL;
 
@@ -57,6 +58,13 @@ void PersistentVector_initialise() {
   EMPTY_VECTOR->tail->count = 0;
 }
 
+void PersistentVector_cleanup() {
+  if (EMPTY_VECTOR) {
+    Ptr_release(EMPTY_VECTOR);
+    EMPTY_VECTOR = NULL;
+  }
+}
+
 bool PersistentVector_equals(PersistentVector *restrict self,
                              PersistentVector *restrict other) {
   if (self->count != other->count)
@@ -105,10 +113,10 @@ PersistentVector *
 PersistentVector_assoc_internal(PersistentVector *restrict self, uword_t index,
                                 RTValue other) {
   if (index > self->count) {
-    // TODO - Should throw
+    uword_t cnt = self->count;
     Ptr_release(self);
     release(other);
-    return NULL;
+    throwIndexOutOfBoundsException_C(index, cnt);
   }
   if (index == self->count)
     return PersistentVector_conj_internal(self, other);
@@ -325,10 +333,10 @@ PersistentVectorNode *PersistentVector_nthBlock(PersistentVector *self,
 
 /* mem done */
 RTValue PersistentVector_nth(PersistentVector *restrict self, uword_t index) {
-  /* TODO - should throw */
   if (index >= self->count) {
+    uword_t cnt = self->count;
     Ptr_release(self);
-    return RT_boxNil();
+    throwIndexOutOfBoundsException_C(index, cnt);
   }
   uword_t tailOffset = self->count - self->tail->count;
   if (index >= tailOffset) {
@@ -352,10 +360,11 @@ RTValue PersistentVector_nth(PersistentVector *restrict self, uword_t index) {
 /* mem done */
 RTValue PersistentVector_dynamic_nth(PersistentVector *restrict self,
                                      RTValue indexObject) {
-  /* TODO: should throw */
-  /* we should support big integers here as well */
-  if (!RT_isInt32(indexObject))
-    return RT_boxNil();
+  if (!RT_isInt32(indexObject)) {
+    Ptr_release(self);
+    release(indexObject);
+    throwIllegalArgumentException_C("Index must be an integer");
+  }
   uword_t index = RT_unboxInt32(indexObject);
   return PersistentVector_nth(self, index);
 }
@@ -406,7 +415,7 @@ PersistentVector *
 PersistentVector_pop_internal(PersistentVector *restrict self) {
   if (!self->count) {
     Ptr_release(self);
-    return NULL; // TODO: Pop on empty vector throws exception
+    throwIllegalStateException_C("Can't pop empty vector");
   }
 
   PersistentVector *new;

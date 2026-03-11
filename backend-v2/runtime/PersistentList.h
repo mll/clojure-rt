@@ -1,8 +1,12 @@
 #ifndef RT_PERSISTENT_LIST
 #define RT_PERSISTENT_LIST
 
-#include "String.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "RTValue.h"
+#include "String.h"
 
 typedef struct Object Object;
 typedef struct PersistentList PersistentList;
@@ -14,7 +18,7 @@ struct PersistentList {
   uint64_t count;
 };
 
-PersistentList* PersistentList_empty();
+PersistentList *PersistentList_empty();
 
 bool PersistentList_equals(PersistentList *self, PersistentList *other);
 uint64_t PersistentList_hash(PersistentList *self);
@@ -25,5 +29,8 @@ PersistentList *PersistentList_create(RTValue first, PersistentList *rest);
 PersistentList *PersistentList_conj(PersistentList *self, RTValue other);
 PersistentList *PersistentList_createMany(int32_t argCount, ...);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

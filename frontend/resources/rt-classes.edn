@@ -109,8 +109,8 @@
               {:args [:bigint :bigint] :type :call      :symbol "BigInteger_mul" :returns :bigint}
               {:args [:ratio :ratio]   :type :call      :symbol "Ratio_mul"      :returns :any}
               {:args [:any :any]       :type :call      :symbol "mul"       :returns :any}]
-    divide  [{:args [:double :double] :type :intrinsic :symbol "FDiv"       :returns :double}
-             {:args [:int :int]       :type :intrinsic :symbol "Div"        :returns :int}
+    divide  [{:args [:double :double] :type :intrinsic :symbol "FDiv"        :returns :double}
+             {:args [:int :int]       :type :call :symbol      "Integer_div" :returns :any}
              {:args [:int :double]    :type :intrinsic :symbol "Div_ID"     :returns :double}
              {:args [:double :int]    :type :intrinsic :symbol "Div_DI"     :returns :double}
              {:args [:bigint :double] :type :intrinsic :symbol "Div_BD"     :returns :double}

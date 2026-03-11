@@ -69,6 +69,8 @@ word_t String_indexOf(String *self, String *other);
 word_t String_indexOfFrom(String *self, String *other, word_t fromIndex);
 
 String *String_replace(String *self, String *target, String *replacement);
+char String_charAt(String *self, uword_t index);
+String *String_subs(String *self, uword_t start, uword_t end);
 
 #ifdef __cplusplus
 }

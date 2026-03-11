@@ -185,6 +185,65 @@ static void testStringMemoryManagement(void **state) {
   assertMemoryBalance(&before, &after);
 }
 
+static void test_string_char_at_subs(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    String *s = String_createStatic("clojure");
+    
+    Ptr_retain(s);
+    assert_int_equal(String_charAt(s, 0), 'c');
+    Ptr_retain(s);
+    assert_int_equal(String_charAt(s, 6), 'e');
+
+    Ptr_retain(s);
+    String *sub = String_subs(s, 0, 3); // "clo"
+    assert_string_equal("clo", String_c_str(sub));
+    Ptr_release(sub);
+
+    Ptr_retain(s);
+    String *sub2 = String_subs(s, 3, 7); // "jure"
+    assert_string_equal("jure", String_c_str(sub2));
+    Ptr_release(sub2);
+
+    Ptr_release(s);
+  });
+}
+
+static void test_string_exceptions(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    String *s = String_createStatic("abc");
+
+    // 1. charAt out of bounds
+    ASSERT_THROWS("IndexOutOfBoundsException", {
+      Ptr_retain(s);
+      String_charAt(s, 3);
+    });
+
+    // 2. subs out of bounds
+    ASSERT_THROWS("IndexOutOfBoundsException", {
+      Ptr_retain(s);
+      String_subs(s, 0, 4);
+    });
+
+    // 3. subs invalid range
+    ASSERT_THROWS("IndexOutOfBoundsException", {
+      Ptr_retain(s);
+      String_subs(s, 2, 1);
+    });
+
+    // 4. replace multi-character (unsupported)
+    ASSERT_THROWS("UnsupportedOperationException", {
+      Ptr_retain(s);
+      String *target = String_createStatic("ab");
+      String *replacement = String_createStatic("x");
+      String_replace(s, target, replacement);
+    });
+
+    Ptr_release(s);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(testStaticStringMemory),
@@ -195,6 +254,8 @@ int main(void) {
       cmocka_unit_test(testStringHashUpdate),
       cmocka_unit_test(testStringEdgeCases),
       cmocka_unit_test(testStringMemoryManagement),
+      cmocka_unit_test(test_string_char_at_subs),
+      cmocka_unit_test(test_string_exceptions),
   };
   initialise_memory();
   srand(0);

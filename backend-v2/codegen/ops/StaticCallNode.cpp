@@ -59,7 +59,8 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
       if (id.argTypes.size() == args.size()) {
         bool match = true;
         for (size_t i = 0; i < args.size(); i++) {
-          if (argTypes[i].restriction(id.argTypes[i]).isEmpty()) {
+          if (argTypes[i].restriction(id.argTypes[i]).isEmpty() ||
+              !id.argTypes[i].isDetermined()) {
             match = false;
             break;
           }
@@ -258,13 +259,12 @@ ObjectTypeSet CodeGen::getType(const Node &node, const StaticCallNode &subnode,
       if (id.argTypes.size() == argTypes.size()) {
         bool match = true;
         for (size_t i = 0; i < argTypes.size(); i++) {
-          if (argTypes[i].restriction(id.argTypes[i]).isEmpty()) {
+          if (argTypes[i].restriction(id.argTypes[i]).isEmpty() ||
+              !id.argTypes[i].isDetermined()) {
             match = false;
             break;
           }
         }
-        if (match)
-          cout << "!!!!!!!!!!!! " << id.returnType.toString() << endl;
         if (match)
           return id.returnType;
       }

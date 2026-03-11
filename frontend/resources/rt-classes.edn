@@ -74,7 +74,7 @@
             {:args [:ratio :int]     :type :intrinsic :symbol "Add_RI"       :returns :any}
             {:args [:bigint :bigint] :type :call      :symbol "BigInteger_add" :returns :bigint}
             {:args [:ratio :ratio]   :type :call      :symbol "Ratio_add"      :returns :any}
-            {:args [:any :any]       :type :call      :symbol "add"          :returns :any}]
+            {:args [:any :any]       :type :call      :symbol "Numbers_add"  :returns :any}]
     minus [{:args [:double :double] :type :intrinsic :symbol "FSub"         :returns :double}
            {:args [:int :int]       :type :intrinsic :symbol "Sub"          :returns :int}
            {:args [:int :double]    :type :intrinsic :symbol "Sub_ID"       :returns :double}
@@ -91,7 +91,7 @@
             {:args [:ratio :int]     :type :intrinsic :symbol "Sub_RI"       :returns :any}
             {:args [:bigint :bigint] :type :call      :symbol "BigInteger_sub" :returns :bigint}
             {:args [:ratio :ratio]   :type :call      :symbol "Ratio_sub"      :returns :any}
-            {:args [:any :any]       :type :call      :symbol "sub"          :returns :any}]
+            {:args [:any :any]       :type :call      :symbol "Numbers_sub"    :returns :any}]
     multiply [{:args [:double :double] :type :intrinsic :symbol "FMul"      :returns :double}
               {:args [:int :int]       :type :intrinsic :symbol "Mul"       :returns :int}
               {:args [:int :double]    :type :intrinsic :symbol "Mul_ID"    :returns :double}
@@ -108,9 +108,9 @@
               {:args [:ratio :int]     :type :intrinsic :symbol "Mul_RI"    :returns :any}
               {:args [:bigint :bigint] :type :call      :symbol "BigInteger_mul" :returns :bigint}
               {:args [:ratio :ratio]   :type :call      :symbol "Ratio_mul"      :returns :any}
-              {:args [:any :any]       :type :call      :symbol "mul"       :returns :any}]
-    divide  [{:args [:double :double] :type :intrinsic :symbol "FDiv"        :returns :double}
-             {:args [:int :int]       :type :call :symbol      "Integer_div" :returns :any}
+              {:args [:any :any]       :type :call      :symbol "Numbers_mul"       :returns :any}]
+    divide  [{:args [:double :double] :type :intrinsic  :symbol "FDiv"        :returns :double}
+             {:args [:int :int]       :type :call       :symbol "Integer_div" :returns :any}
              {:args [:int :double]    :type :intrinsic :symbol "Div_ID"     :returns :double}
              {:args [:double :int]    :type :intrinsic :symbol "Div_DI"     :returns :double}
              {:args [:bigint :double] :type :intrinsic :symbol "Div_BD"     :returns :double}
@@ -123,7 +123,7 @@
              {:args [:ratio :int]     :type :intrinsic :symbol "Div_RI"     :returns :any}
              {:args [:bigint :bigint] :type :call      :symbol "BigInteger_div" :returns :any}
              {:args [:ratio :ratio]   :type :call      :symbol "Ratio_div"      :returns :any}
-             {:args [:any :any]       :type :call      :symbol "div"        :returns :any}]
+             {:args [:any :any]       :type :call      :symbol "Numbers_div"        :returns :any}]
     gte  [{:args [:double :double] :type :intrinsic :symbol "FCmpOGE"       :returns :bool}
           {:args [:int :int]       :type :intrinsic :symbol "ICmpSGE"       :returns :bool}
           {:args [:int :double]    :type :intrinsic :symbol "ICmpSGE_ID"    :returns :bool}

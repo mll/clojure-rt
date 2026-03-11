@@ -43,11 +43,13 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JIT
   RTValue classes = resClasses.toPtr<RTValue (*)()>()();
   auto classesList = rt::buildClasses(classes);
   for (auto &desc : classesList) {
-    String *className = String_create(desc->name.c_str());
+    auto &nameStr = desc->name;
+    String *className = String_create(nameStr.c_str());
+    Ptr_retain(className); // Retain for the second use in Class_create
     Class *cls = Class_create(className, className, 0, nullptr);
     cls->compilerExtension = desc.release();
     cls->compilerExtensionDestructor = delete_class_description;
-    compState.classRegistry.registerObject(desc->name.c_str(), cls);
+    compState.classRegistry.registerObject(nameStr.c_str(), cls);
   }
 }
 

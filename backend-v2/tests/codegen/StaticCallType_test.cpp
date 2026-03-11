@@ -23,6 +23,10 @@ Class *test_Class_create(String *name, String *simpleName, int flags, void *ext)
 void test_delete_class_description(void *p);
 void test_release(RTValue v);
 
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <stdint.h>
 #include <cmocka.h>
 }
 

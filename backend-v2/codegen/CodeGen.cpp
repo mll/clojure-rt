@@ -18,6 +18,10 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   FunctionType *FT = FunctionType::get(types.i64Ty, {}, false);
   Function *F =
       Function::Create(FT, Function::ExternalLinkage, fname, *TheModule);
+
+  // Enforce frame pointers for reliable stack traces
+  F->addFnAttr("frame-pointer", "all");
+
   BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
   Builder.SetInsertPoint(BB);
   Builder.CreateRet(
@@ -46,7 +50,7 @@ TypedValue CodeGen::codegen(const Node &node,
     return codegen(node, node.subnode().vector(), typeRestrictions);
   case opStaticCall:
     return codegen(node, node.subnode().staticcall(), typeRestrictions);
- 
+
   // case opBinding:
   //   return codegen(node, node.subnode().binding(), typeRestrictions);
   // case opCase:
@@ -146,7 +150,7 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().map(), typeRestrictions);
   case opStaticCall:
     return getType(node, node.subnode().staticcall(), typeRestrictions);
- 
+
   // case opBinding:
   //   return getType(node, node.subnode().binding(), typeRestrictions);
   // case opCase:

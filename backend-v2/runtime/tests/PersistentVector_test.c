@@ -281,12 +281,12 @@ static void vectorNthOutOfBoundsTest(void **state) {
     PersistentVector *v1 = PersistentVector_create();
 
     // Bounds check on empty vector
-    Ptr_retain(v1); // nth consumes
-    RTValue out1 = PersistentVector_nth(v1, 0);
-    assert_true(RT_isNil(out1));
+    ASSERT_THROWS("IndexOutOfBoundsException", {
+      PersistentVector_nth(v1, 0); // consumes v1
+    });
 
     PersistentVector *v2 =
-        PersistentVector_conj(v1, RT_boxInt32(99)); // v1 consumed
+        PersistentVector_createMany(1, RT_boxInt32(99));
 
     // Valid access
     Ptr_retain(v2); // nth consumes
@@ -294,11 +294,31 @@ static void vectorNthOutOfBoundsTest(void **state) {
     assert_int_equal(RT_unboxInt32(valid), 99);
 
     // Bounds check on size 1 vector (index 1 is out of bounds)
-    // Here we let nth consume v2 for the last time
-    RTValue out2 = PersistentVector_nth(v2, 1);
-    assert_true(RT_isNil(out2));
+    ASSERT_THROWS("IndexOutOfBoundsException", {
+      PersistentVector_nth(v2, 1); // consumes v2
+    });
+  });
+}
 
-    // Ptr_release(v2) is no longer needed since the second nth consumed it
+static void test_vector_bounds_exceptions(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    // 1. assoc out of bounds
+    PersistentVector *v1 = PersistentVector_create();
+    ASSERT_THROWS("IndexOutOfBoundsException", {
+      PersistentVector_assoc(v1, 1, RT_boxInt32(42));
+    });
+
+    // 2. dynamic_nth with non-integer
+    PersistentVector *v2 = PersistentVector_createMany(1, RT_boxInt32(10));
+    ASSERT_THROWS("IllegalArgumentException", {
+      PersistentVector_dynamic_nth(v2, RT_boxDouble(1.2));
+    });
+
+    // 3. pop on empty vector
+    PersistentVector *v3 = PersistentVector_create();
+    ASSERT_THROWS("IllegalStateException", {
+      PersistentVector_pop(v3);
+    });
   });
 }
 
@@ -485,6 +505,7 @@ int main(void) {
       cmocka_unit_test(vectorStructuralConjTest),
       cmocka_unit_test(vectorAssocTest),
       cmocka_unit_test(vectorTransientTest),
+      cmocka_unit_test(test_vector_bounds_exceptions),
       cmocka_unit_test(test_vector_hashing),
       cmocka_unit_test(test_vector_to_string),
       cmocka_unit_test(test_vector_pop_bang),

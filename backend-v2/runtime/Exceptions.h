@@ -2,6 +2,7 @@
 #define RT_RUNTIME_EXCEPTIONS_H
 
 #include "RTValue.h"
+#include "word.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +18,8 @@ extern "C" {
 [[noreturn]] void throwIllegalStateException_C(const char *message);
 [[noreturn]] void throwUnsupportedOperationException_C(const char *message);
 [[noreturn]] void throwArithmeticException_C(const char *message);
+[[noreturn]] void throwIndexOutOfBoundsException_C(uword_t index,
+                                                   uword_t count);
 [[noreturn]] void
 throwInternalInconsistencyException_C(const char *errorMessage);
 

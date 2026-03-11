@@ -53,6 +53,13 @@ void throwArithmeticException_C(const char *message) {
   abort();
 }
 
+void throwIndexOutOfBoundsException_C(uword_t index, uword_t count) {
+  handle_exception("IndexOutOfBoundsException");
+  fprintf(stderr, "IndexOutOfBoundsException: index %lu, count %lu\n", index,
+          count);
+  abort();
+}
+
 void throwInternalInconsistencyException_C(const char *errorMessage) {
   handle_exception("InternalInconsistencyException");
   fprintf(stderr, "InternalInconsistencyException: %s\n", errorMessage);

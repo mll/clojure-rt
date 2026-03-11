@@ -94,6 +94,27 @@ static void concurrentMapThreadingAndPerformance(void **state) {
   pd();
 }
 
+static void test_concurrent_hash_map_overcrowded(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    // Create a very small map to ensure it gets overcrowded quickly
+    // initialSizeExponent = 2 -> size 4
+    ConcurrentHashMap *m = ConcurrentHashMap_create(2);
+    
+    // Filling it should eventually trigger the overcrowded exception
+    // resizingThreshold = MIN(round(pow(4, 0.33)), 128) = MIN(1.58, 128) = 1 (approx)
+    // It's very small, so a few assocs should trigger it.
+    
+    ASSERT_THROWS("IllegalStateException", {
+      for (int i = 0; i < 100; i++) {
+        ConcurrentHashMap_assoc(m, RT_boxInt32(i), RT_boxInt32(i));
+      }
+    });
+    
+    Ptr_release(m);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       // There are problems with the map - bad performance all around and
@@ -102,6 +123,7 @@ int main(void) {
       // Needs to be re-implemented? or at least checked with emini
       cmocka_unit_test_prestate(testScalingBehavior,
                                 concurrentMapThreadingAndPerformance),
+      cmocka_unit_test(test_concurrent_hash_map_overcrowded),
   };
   initialise_memory();
   srand(0);

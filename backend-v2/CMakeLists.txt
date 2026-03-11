@@ -119,6 +119,9 @@ set(BACKEND_SOURCES
       codegen/LLVMTypes.cpp
       codegen/DynamicConstructor.cpp
       codegen/invoke/InvokeManager.cpp
+      codegen/invoke/InvokeManager_Math.cpp
+      codegen/invoke/InvokeManager_Cmp.cpp
+
       codegen/MemoryManagement.cpp
       codegen/ops/ConstNode.cpp
       codegen/ops/QuoteNode.cpp

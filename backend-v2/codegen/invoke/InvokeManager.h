@@ -26,6 +26,9 @@ using TypeIntrinsicCall =
     std::function<ObjectTypeSet(const std::vector<ObjectTypeSet> &)>;
 
 class InvokeManager {
+  friend void registerMathIntrinsics(InvokeManager &mgr);
+  friend void registerCmpIntrinsics(InvokeManager &mgr);
+
 private:
   llvm::IRBuilder<> &builder;
   llvm::Module &theModule;
@@ -33,6 +36,14 @@ private:
   LLVMTypes &types;
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
+
+  // Folding Helpers
+  mpz_ptr getZ(const ObjectTypeSet &t);
+  mpq_ptr getQ(const ObjectTypeSet &t);
+  double getD(const ObjectTypeSet &t);
+  ObjectTypeSet createZ(mpz_ptr val);
+  ObjectTypeSet createQ(mpq_ptr val);
+
 
 public:
   explicit InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m, ValueEncoder &v,
@@ -50,6 +61,7 @@ public:
   ObjectTypeSet foldIntrinsic(const IntrinsicDescription &id,
                               const std::vector<ObjectTypeSet> &args);
 };
+
 
 } // namespace rt
 

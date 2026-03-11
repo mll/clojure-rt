@@ -43,6 +43,13 @@ bool BigInteger_equals(BigInteger *self, BigInteger *other) {
   return cmp == 0;
 }
 
+bool BigInteger_equiv(BigInteger *self, BigInteger *other) {
+  bool retVal = BigInteger_equals(self, other);
+  Ptr_release(self);
+  Ptr_release(other);
+  return retVal;
+}
+
 /* outside refcount system */
 uword_t BigInteger_hash(BigInteger *self) {
   return combineHash(5381, mpz_get_ui(self->value) + 5381);

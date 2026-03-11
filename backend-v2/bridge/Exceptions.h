@@ -45,4 +45,7 @@ throwInternalInconsistencyException(const std::string &errorMessage);
 [[noreturn]] void throwCodeGenerationException(const std::string &errorMessage,
                                                const Node &node);
 
+extern "C" [[noreturn]] void
+throwInternalInconsistencyException_C(const char *errorMessage);
+
 #endif

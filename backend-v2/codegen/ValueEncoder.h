@@ -45,6 +45,8 @@ public:
   TypedValue isNil(TypedValue boxedVal);
   TypedValue isPointer(TypedValue boxedVal);
   TypedValue isKeyword(TypedValue boxedVal);
+  TypedValue isBigInt(TypedValue boxedVal);
+  TypedValue isRatio(TypedValue boxedVal);
   TypedValue isSymbol(TypedValue boxedVal);
 
   // Unboxing (Returns raw type)

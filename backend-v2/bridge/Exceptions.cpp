@@ -171,6 +171,13 @@ void throwInternalInconsistencyException(const std::string &errorMessage) {
       RT_boxPtr(String_createDynamicStr(errorMessage.c_str())), RT_boxNil());
 }
 
+extern "C" void
+throwInternalInconsistencyException_C(const char *errorMessage) {
+  throw rt::LanguageException("InternalInconsistencyException",
+                              RT_boxPtr(String_createDynamicStr(errorMessage)),
+                              RT_boxNil());
+}
+
 void throwCodeGenerationException(const std::string &errorMessage,
                                   const Node &node) {
   std::stringstream retval;

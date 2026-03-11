@@ -1,4 +1,5 @@
 #include "JITEngine.h"
+#include "bridge/Exceptions.h"
 
 namespace rt {
 
@@ -27,52 +28,63 @@ std::future<llvm::orc::ExecutorAddr>
 JITEngine::compileAST(const Node &AST, const std::string &moduleName,
                       llvm::OptimizationLevel level, bool printModule) {
   // Wrap logic in a task for the pool
-  return pool.enqueue([this, AST, moduleName,
-                       printModule]() -> llvm::orc::ExecutorAddr {
-    auto codeGenerator = CodeGen(moduleName, threadsafeState);
-    auto fName = codeGenerator.codegenTopLevel(AST);
+  return pool.enqueue(
+      [this, AST, moduleName, printModule]() -> llvm::orc::ExecutorAddr {
+        auto codeGenerator = CodeGen(moduleName, threadsafeState);
 
-    auto result = std::move(codeGenerator).release();
-    auto context = std::move(result.context);
-    auto module = std::move(result.module);
-    auto constants = std::move(result.constants);
+        string fName;
+        try {
+          fName = codeGenerator.codegenTopLevel(AST);
+        } catch (...) {
+          auto result = std::move(codeGenerator).release();
+          for (auto c : result.constants) {
+            release(c);
+          }
+          throw;
+        }
 
-    // 4. Optimize WITHOUT LOCK
-    // if (level != llvm::OptimizationLevel::O0) {
-    //   this->optimize(*mod, Level);
-    // }
+        auto result = std::move(codeGenerator).release();
+        auto context = std::move(result.context);
+        auto module = std::move(result.module);
+        auto constants = std::move(result.constants);
 
-    // --- TUTAJ WYPISUJEMY IR ---
-    if (module && printModule) {
-      llvm::outs() << "\n--- Generated LLVM IR for: " << moduleName << " ---\n";
-      module->print(llvm::outs(),
-                    nullptr); // Wypisuje IR do standardowego wyjścia LLVM
-      llvm::outs() << "------------------------------------------\n";
-      llvm::outs().flush(); // Wymuszamy opróżnienie bufora, żeby tekst nie
-                            // zniknął przy błędzie
-    }
-    // ---------------------------
+        // 4. Optimize WITHOUT LOCK
+        // if (level != llvm::OptimizationLevel::O0) {
+        //   this->optimize(*mod, Level);
+        // }
 
-    llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
+        // --- TUTAJ WYPISUJEMY IR ---
+        if (module && printModule) {
+          llvm::outs() << "\n=== Generated LLVM IR for: '" << moduleName
+                       << "' ===\n";
+          module->print(llvm::outs(),
+                        nullptr); // Wypisuje IR do standardowego wyjścia LLVM
+          llvm::outs() << "=============================================\n";
+          llvm::outs().flush(); // Wymuszamy opróżnienie bufora, żeby tekst nie
+                                // zniknął przy błędzie
+        }
+        // ---------------------------
 
-    {
-      std::lock_guard<std::mutex> lock(engineMutex);
-      auto RT = jit->getMainJITDylib().createResourceTracker();
+        llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
 
-      // ORC takes ownership of TSM and the Context inside it
-      if (auto Err = jit->addIRModule(RT, std::move(TSM)))
-        throw std::runtime_error("JIT Link Error");
+        {
+          std::lock_guard<std::mutex> lock(engineMutex);
+          auto RT = jit->getMainJITDylib().createResourceTracker();
 
-      functionTrackers[moduleName] = RT;
-      moduleConstants[moduleName] = std::move(constants);
-    }
+          // ORC takes ownership of TSM and the Context inside it
+          if (auto Err = jit->addIRModule(RT, std::move(TSM)))
+            throwInternalInconsistencyException("JIT Link Error");
 
-    // 6. Return executable address
-    auto Sym = jit->lookup(fName);
-    if (!Sym)
-      throw std::runtime_error("Symbol Lookup Failed");
-    return *Sym;
-  });
+          functionTrackers[moduleName] = RT;
+          moduleConstants[moduleName] = std::move(constants);
+        }
+
+        // 6. Return executable address
+        auto Sym = jit->lookup(fName);
+        if (!Sym)
+          throwInternalInconsistencyException("Symbol Lookup Failed: " + fName);
+        return *Sym;
+      });
 }
 
 void JITEngine::invalidate(const std::string &name) {

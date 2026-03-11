@@ -31,9 +31,11 @@ double BigInteger_toDouble(BigInteger *self);
 BigInteger *BigInteger_add(BigInteger *self, BigInteger *other);
 BigInteger *BigInteger_sub(BigInteger *self, BigInteger *other);
 BigInteger *BigInteger_mul(BigInteger *self, BigInteger *other);
-void *BigInteger_div(BigInteger *self, BigInteger *other);
+RTValue BigInteger_div(BigInteger *self, BigInteger *other);
 bool BigInteger_gte(BigInteger *self, BigInteger *other);
+bool BigInteger_gt(BigInteger *self, BigInteger *other);
 bool BigInteger_lt(BigInteger *self, BigInteger *other);
+bool BigInteger_lte(BigInteger *self, BigInteger *other);
 
 #ifdef __cplusplus
 }

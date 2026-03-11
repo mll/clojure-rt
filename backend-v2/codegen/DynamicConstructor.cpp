@@ -101,7 +101,7 @@ TypedValue DynamicConstructor::createRatio(const char *s) {
   generatedConstants.push_back(RT_boxPtr(retVal));
   uintptr_t address = reinterpret_cast<uintptr_t>(retVal);
   return TypedValue(
-      ObjectTypeSet(bigIntegerType, false, new ConstantRatio(std::string(s))),
+      ObjectTypeSet(ratioType, false, new ConstantRatio(std::string(s))),
       ConstantExpr::getIntToPtr(ConstantInt::get(types.i64Ty, address),
                                 types.ptrTy));
 }

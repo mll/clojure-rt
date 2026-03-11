@@ -133,11 +133,12 @@ BigInteger *BigInteger_mul(BigInteger *self, BigInteger *other) {
   return retVal;
 }
 
-void *BigInteger_div(BigInteger *self, BigInteger *other) {
+RTValue BigInteger_div(BigInteger *self, BigInteger *other) {
   if (!mpz_cmp_si(other->value, 0)) {
     Ptr_release(self);
     Ptr_release(other);
-    return NULL; // Exception: divide by zero
+    assert(false && "Divide by zero");
+    return RT_boxNil(); // Exception: divide by zero
   }
 
   if (mpz_divisible_p(self->value, other->value)) {
@@ -159,7 +160,7 @@ void *BigInteger_div(BigInteger *self, BigInteger *other) {
       Ptr_release(self);
       Ptr_release(other);
     }
-    return retVal;
+    return RT_boxPtr(retVal);
   } else {
     Ratio *ratio = Ratio_createUnassigned();
     mpq_set_num(ratio->value, self->value);
@@ -167,7 +168,7 @@ void *BigInteger_div(BigInteger *self, BigInteger *other) {
     mpq_canonicalize(ratio->value);
     Ptr_release(self);
     Ptr_release(other);
-    return ratio;
+    return RT_boxPtr(ratio);
   }
 }
 
@@ -178,9 +179,23 @@ bool BigInteger_gte(BigInteger *self, BigInteger *other) {
   return cmp >= 0;
 }
 
+bool BigInteger_gt(BigInteger *self, BigInteger *other) {
+  int cmp = mpz_cmp(self->value, other->value);
+  Ptr_release(self);
+  Ptr_release(other);
+  return cmp > 0;
+}
+
 bool BigInteger_lt(BigInteger *self, BigInteger *other) {
   int cmp = mpz_cmp(self->value, other->value);
   Ptr_release(self);
   Ptr_release(other);
   return cmp < 0;
+}
+
+bool BigInteger_lte(BigInteger *self, BigInteger *other) {
+  int cmp = mpz_cmp(self->value, other->value);
+  Ptr_release(self);
+  Ptr_release(other);
+  return cmp <= 0;
 }

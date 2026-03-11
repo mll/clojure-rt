@@ -11,6 +11,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <unordered_map>
 
 using namespace clojure::rt::protobuf::bytecode;
 using IntrinsicCall = std::function<llvm::Value *(llvm::IRBuilder<> &,

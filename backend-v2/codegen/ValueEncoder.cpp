@@ -196,6 +196,90 @@ TypedValue ValueEncoder::isKeyword(TypedValue boxedVal) {
                     builder.CreateICmpEQ(masked, u64(RT_TAG_KEYWORD), "is_kw"));
 }
 
+TypedValue ValueEncoder::isBigInt(TypedValue boxedVal) {
+  CLJ_ASSERT(boxedVal.type.isBoxedType(),
+             "Unboxed value passed to ValueEncoder");
+  if (boxedVal.type.isBoxedType(bigIntegerType))
+    return TypedValue(ObjectTypeSet(booleanType, false), builder.getInt1(true));
+
+  Value *isPtr = isPointer(boxedVal).value;
+
+  // We need to check the type field in the header.
+  // For simplicity and to avoid complex branching here, we can do it with a
+  // select if we are careful, but a branch is safer to avoid illegal memory
+  // access on non-pointers. However, LLVM handles AND + ICMP fine. The type
+  // check itself needs a valid pointer.
+
+  Function *currentFn = builder.GetInsertBlock()->getParent();
+  BasicBlock *checkTypeBB =
+      BasicBlock::Create(context, "check_obj_type", currentFn);
+  BasicBlock *mergeBB =
+      BasicBlock::Create(context, "obj_type_merge", currentFn);
+
+  Value *earlyResult = builder.getFalse();
+  BasicBlock *earlyBB = builder.GetInsertBlock();
+  builder.CreateCondBr(isPtr, checkTypeBB, mergeBB);
+
+  builder.SetInsertPoint(checkTypeBB);
+  Value *rawPtr =
+      builder.CreateAnd(boxedVal.value, u64(~RT_TAG_MASK), "raw_ptr");
+  Value *ptr = builder.CreateIntToPtr(rawPtr, types.ptrTy);
+
+  // Type is at offset: wordTy (atomicRefCount)
+  Value *typePtr =
+      builder.CreateStructGEP(types.RT_objectTy, ptr, 1, "type_ptr");
+  Value *typeVal = builder.CreateLoad(types.i32Ty, typePtr, "obj_type");
+  Value *isBigInt = builder.CreateICmpEQ(
+      typeVal, ConstantInt::get(types.i32Ty, bigIntegerType), "is_bigint");
+  BasicBlock *finalCheckBB = builder.GetInsertBlock();
+  builder.CreateBr(mergeBB);
+
+  builder.SetInsertPoint(mergeBB);
+  PHINode *phi = builder.CreatePHI(types.i1Ty, 2, "is_bigint_phi");
+  phi->addIncoming(earlyResult, earlyBB);
+  phi->addIncoming(isBigInt, finalCheckBB);
+
+  return TypedValue(ObjectTypeSet(booleanType, false), phi);
+}
+
+TypedValue ValueEncoder::isRatio(TypedValue boxedVal) {
+  CLJ_ASSERT(boxedVal.type.isBoxedType(),
+             "Unboxed value passed to ValueEncoder");
+  if (boxedVal.type.isBoxedType(ratioType))
+    return TypedValue(ObjectTypeSet(booleanType, false), builder.getInt1(true));
+
+  Value *isPtr = isPointer(boxedVal).value;
+  Function *currentFn = builder.GetInsertBlock()->getParent();
+  BasicBlock *checkTypeBB =
+      BasicBlock::Create(context, "check_ratio_type", currentFn);
+  BasicBlock *mergeBB =
+      BasicBlock::Create(context, "ratio_type_merge", currentFn);
+
+  Value *earlyResult = builder.getFalse();
+  BasicBlock *earlyBB = builder.GetInsertBlock();
+  builder.CreateCondBr(isPtr, checkTypeBB, mergeBB);
+
+  builder.SetInsertPoint(checkTypeBB);
+  Value *rawPtr =
+      builder.CreateAnd(boxedVal.value, u64(~RT_TAG_MASK), "raw_ptr_ratio");
+  Value *ptr = builder.CreateIntToPtr(rawPtr, types.ptrTy);
+
+  Value *typePtr =
+      builder.CreateStructGEP(types.RT_objectTy, ptr, 1, "type_ptr_ratio");
+  Value *typeVal = builder.CreateLoad(types.i32Ty, typePtr, "obj_type_ratio");
+  Value *isRatio = builder.CreateICmpEQ(
+      typeVal, ConstantInt::get(types.i32Ty, ratioType), "is_ratio");
+  BasicBlock *finalCheckBB = builder.GetInsertBlock();
+  builder.CreateBr(mergeBB);
+
+  builder.SetInsertPoint(mergeBB);
+  PHINode *phi = builder.CreatePHI(types.i1Ty, 2, "is_ratio_phi");
+  phi->addIncoming(earlyResult, earlyBB);
+  phi->addIncoming(isRatio, finalCheckBB);
+
+  return TypedValue(ObjectTypeSet(booleanType, false), phi);
+}
+
 TypedValue ValueEncoder::isSymbol(TypedValue boxedVal) {
   CLJ_ASSERT(boxedVal.type.isBoxedType(),
              "Unboxed value passed to ValueEncoder");

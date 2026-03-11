@@ -28,10 +28,12 @@
 
   clojure.lang.BigInt
   {:extends java.lang.Object
+   :alias :bigint
    :object-type 13}
 
   clojure.lang.Ratio
   {:extends java.lang.Object
+   :alias :ratio
    :object-type 14}
 
   clojure.lang.Boolean
@@ -58,28 +60,130 @@
   {:static-fns
    {add   [{:args [:double :double] :type :intrinsic :symbol "FAdd"         :returns :double}
            {:args [:int :int]       :type :intrinsic :symbol "Add"          :returns :int}
-           {:args [:any :any]       :type :call      :symbol "add"          :returns :any}]
+           {:args [:int :double]    :type :intrinsic :symbol "Add_ID"       :returns :double}
+           {:args [:double :int]    :type :intrinsic :symbol "Add_DI"       :returns :double}
+           {:args [:int :bigint]    :type :intrinsic :symbol "Add_IB"       :returns :bigint}
+            {:args [:bigint :int]    :type :intrinsic :symbol "Add_BI"       :returns :bigint}
+            {:args [:bigint :double] :type :intrinsic :symbol "Add_BD"       :returns :double}
+            {:args [:double :bigint] :type :intrinsic :symbol "Add_DB"       :returns :double}
+            {:args [:ratio :double]  :type :intrinsic :symbol "Add_RD"       :returns :double}
+            {:args [:double :ratio]  :type :intrinsic :symbol "Add_DR"       :returns :double}
+            {:args [:bigint :ratio]  :type :intrinsic :symbol "Add_BR"       :returns :any}
+            {:args [:ratio :bigint]  :type :intrinsic :symbol "Add_RB"       :returns :any}
+            {:args [:int :ratio]     :type :intrinsic :symbol "Add_IR"       :returns :any}
+            {:args [:ratio :int]     :type :intrinsic :symbol "Add_RI"       :returns :any}
+            {:args [:bigint :bigint] :type :call      :symbol "BigInteger_add" :returns :bigint}
+            {:args [:ratio :ratio]   :type :call      :symbol "Ratio_add"      :returns :any}
+            {:args [:any :any]       :type :call      :symbol "add"          :returns :any}]
     minus [{:args [:double :double] :type :intrinsic :symbol "FSub"         :returns :double}
            {:args [:int :int]       :type :intrinsic :symbol "Sub"          :returns :int}
-           {:args [:any :any]       :type :call      :symbol "sub"          :returns :any}]
+           {:args [:int :double]    :type :intrinsic :symbol "Sub_ID"       :returns :double}
+           {:args [:double :int]    :type :intrinsic :symbol "Sub_DI"       :returns :double}
+           {:args [:int :bigint]    :type :intrinsic :symbol "Sub_IB"       :returns :bigint}
+            {:args [:bigint :int]    :type :intrinsic :symbol "Sub_BI"       :returns :bigint}
+            {:args [:bigint :double] :type :intrinsic :symbol "Sub_BD"       :returns :double}
+            {:args [:double :bigint] :type :intrinsic :symbol "Sub_DB"       :returns :double}
+            {:args [:ratio :double]  :type :intrinsic :symbol "Sub_RD"       :returns :double}
+            {:args [:double :ratio]  :type :intrinsic :symbol "Sub_DR"       :returns :double}
+            {:args [:bigint :ratio]  :type :intrinsic :symbol "Sub_BR"       :returns :any}
+            {:args [:ratio :bigint]  :type :intrinsic :symbol "Sub_RB"       :returns :any}
+            {:args [:int :ratio]     :type :intrinsic :symbol "Sub_IR"       :returns :any}
+            {:args [:ratio :int]     :type :intrinsic :symbol "Sub_RI"       :returns :any}
+            {:args [:bigint :bigint] :type :call      :symbol "BigInteger_sub" :returns :bigint}
+            {:args [:ratio :ratio]   :type :call      :symbol "Ratio_sub"      :returns :any}
+            {:args [:any :any]       :type :call      :symbol "sub"          :returns :any}]
     multiply [{:args [:double :double] :type :intrinsic :symbol "FMul"      :returns :double}
               {:args [:int :int]       :type :intrinsic :symbol "Mul"       :returns :int}
+              {:args [:int :double]    :type :intrinsic :symbol "Mul_ID"    :returns :double}
+              {:args [:double :int]    :type :intrinsic :symbol "Mul_DI"    :returns :double}
+              {:args [:int :bigint]    :type :intrinsic :symbol "Mul_IB"    :returns :bigint}
+              {:args [:bigint :int]    :type :intrinsic :symbol "Mul_BI"    :returns :bigint}
+              {:args [:bigint :double] :type :intrinsic :symbol "Mul_BD"    :returns :double}
+              {:args [:double :bigint] :type :intrinsic :symbol "Mul_DB"    :returns :double}
+              {:args [:ratio :double]  :type :intrinsic :symbol "Mul_RD"    :returns :double}
+              {:args [:double :ratio]  :type :intrinsic :symbol "Mul_DR"    :returns :double}
+              {:args [:bigint :ratio]  :type :intrinsic :symbol "Mul_BR"    :returns :any}
+              {:args [:ratio :bigint]  :type :intrinsic :symbol "Mul_RB"    :returns :any}
+              {:args [:int :ratio]     :type :intrinsic :symbol "Mul_IR"    :returns :any}
+              {:args [:ratio :int]     :type :intrinsic :symbol "Mul_RI"    :returns :any}
+              {:args [:bigint :bigint] :type :call      :symbol "BigInteger_mul" :returns :bigint}
+              {:args [:ratio :ratio]   :type :call      :symbol "Ratio_mul"      :returns :any}
               {:args [:any :any]       :type :call      :symbol "mul"       :returns :any}]
     divide  [{:args [:double :double] :type :intrinsic :symbol "FDiv"       :returns :double}
              {:args [:int :int]       :type :intrinsic :symbol "Div"        :returns :int}
+             {:args [:int :double]    :type :intrinsic :symbol "Div_ID"     :returns :double}
+             {:args [:double :int]    :type :intrinsic :symbol "Div_DI"     :returns :double}
+             {:args [:bigint :double] :type :intrinsic :symbol "Div_BD"     :returns :double}
+             {:args [:double :bigint] :type :intrinsic :symbol "Div_DB"     :returns :double}
+             {:args [:ratio :double]  :type :intrinsic :symbol "Div_RD"     :returns :double}
+             {:args [:double :ratio]  :type :intrinsic :symbol "Div_DR"     :returns :double}
+             {:args [:bigint :ratio]  :type :intrinsic :symbol "Div_BR"     :returns :any}
+             {:args [:ratio :bigint]  :type :intrinsic :symbol "Div_RB"     :returns :any}
+             {:args [:int :ratio]     :type :intrinsic :symbol "Div_IR"     :returns :any}
+             {:args [:ratio :int]     :type :intrinsic :symbol "Div_RI"     :returns :any}
+             {:args [:bigint :bigint] :type :call      :symbol "BigInteger_div" :returns :any}
+             {:args [:ratio :ratio]   :type :call      :symbol "Ratio_div"      :returns :any}
              {:args [:any :any]       :type :call      :symbol "div"        :returns :any}]
-    gt  [{:args [:double :double] :type :intrinsic :symbol "FCmpOGT"       :returns :bool}
-         {:args [:int :int]       :type :intrinsic :symbol "ICmpSGT"       :returns :bool}
-         {:args [:any :any]       :type :call      :symbol "gt"           :returns :bool}]
     gte  [{:args [:double :double] :type :intrinsic :symbol "FCmpOGE"       :returns :bool}
           {:args [:int :int]       :type :intrinsic :symbol "ICmpSGE"       :returns :bool}
+          {:args [:int :double]    :type :intrinsic :symbol "ICmpSGE_ID"    :returns :bool}
+          {:args [:double :int]    :type :intrinsic :symbol "ICmpSGE_DI"    :returns :bool}
+          {:args [:bigint :double] :type :intrinsic :symbol "FCmpOGE_BD"    :returns :bool}
+          {:args [:double :bigint] :type :intrinsic :symbol "FCmpOGE_DB"    :returns :bool}
+          {:args [:ratio :double]  :type :intrinsic :symbol "FCmpOGE_RD"    :returns :bool}
+          {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOGE_DR"    :returns :bool}
+          {:args [:bigint :ratio]  :type :intrinsic :symbol "FCmpOGE_BR"    :returns :bool}
+          {:args [:ratio :bigint]  :type :intrinsic :symbol "FCmpOGE_RB"    :returns :bool}
+          {:args [:int :ratio]     :type :intrinsic :symbol "FCmpOGE_IR"    :returns :bool}
+          {:args [:ratio :int]     :type :intrinsic :symbol "FCmpOGE_RI"    :returns :bool}
+          {:args [:bigint :bigint] :type :call      :symbol "BigInteger_gte" :returns :bool}
+          {:args [:ratio :ratio]   :type :call      :symbol "Ratio_gte"      :returns :bool}
           {:args [:any :any]       :type :call      :symbol "gte"           :returns :bool}]
-    lt  [{:args [:double :double] :type :intrinsic :symbol "FCmpOLT"        :returns :bool}
-         {:args [:int :int]       :type :intrinsic :symbol "ICmpSLT"        :returns :bool}
-         {:args [:any :any]       :type :call      :symbol "lt"             :returns :bool}]
-    lte [{:args [:double :double] :type :intrinsic :symbol "FCmpOLE"        :returns :bool}
-         {:args [:int :int]       :type :intrinsic :symbol "ICmpSLE"        :returns :bool}
-         {:args [:any :any]       :type :call      :symbol "lte"            :returns :bool}]}}
+    gt   [{:args [:double :double] :type :intrinsic :symbol "FCmpOGT"       :returns :bool}
+          {:args [:int :int]       :type :intrinsic :symbol "ICmpSGT"       :returns :bool}
+          {:args [:int :double]    :type :intrinsic :symbol "ICmpSGT_ID"    :returns :bool}
+          {:args [:double :int]    :type :intrinsic :symbol "ICmpSGT_DI"    :returns :bool}
+          {:args [:bigint :double] :type :intrinsic :symbol "FCmpOGT_BD"    :returns :bool}
+          {:args [:double :bigint] :type :intrinsic :symbol "FCmpOGT_DB"    :returns :bool}
+          {:args [:ratio :double]  :type :intrinsic :symbol "FCmpOGT_RD"    :returns :bool}
+          {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOGT_DR"    :returns :bool}
+          {:args [:bigint :ratio]  :type :intrinsic :symbol "FCmpOGT_BR"    :returns :bool}
+          {:args [:ratio :bigint]  :type :intrinsic :symbol "FCmpOGT_RB"    :returns :bool}
+          {:args [:int :ratio]     :type :intrinsic :symbol "FCmpOGT_IR"    :returns :bool}
+          {:args [:ratio :int]     :type :intrinsic :symbol "FCmpOGT_RI"    :returns :bool}
+          {:args [:bigint :bigint] :type :call      :symbol "BigInteger_gt" :returns :bool}
+          {:args [:ratio :ratio]   :type :call      :symbol "Ratio_gt"      :returns :bool}
+          {:args [:any :any]       :type :call      :symbol "gt"            :returns :bool}]
+    lt   [{:args [:double :double] :type :intrinsic :symbol "FCmpOLT"        :returns :bool}
+          {:args [:int :int]       :type :intrinsic :symbol "ICmpSLT"        :returns :bool}
+          {:args [:int :double]    :type :intrinsic :symbol "ICmpSLT_ID"     :returns :bool}
+          {:args [:double :int]    :type :intrinsic :symbol "ICmpSLT_DI"     :returns :bool}
+          {:args [:bigint :double] :type :intrinsic :symbol "FCmpOLT_BD"     :returns :bool}
+          {:args [:double :bigint] :type :intrinsic :symbol "FCmpOLT_DB"     :returns :bool}
+          {:args [:ratio :double]  :type :intrinsic :symbol "FCmpOLT_RD"     :returns :bool}
+          {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOLT_DR"     :returns :bool}
+          {:args [:bigint :ratio]  :type :intrinsic :symbol "FCmpOLT_BR"     :returns :bool}
+          {:args [:ratio :bigint]  :type :intrinsic :symbol "FCmpOLT_RB"     :returns :bool}
+          {:args [:int :ratio]     :type :intrinsic :symbol "FCmpOLT_IR"     :returns :bool}
+          {:args [:ratio :int]     :type :intrinsic :symbol "FCmpOLT_RI"     :returns :bool}
+          {:args [:bigint :bigint] :type :call      :symbol "BigInteger_lt"  :returns :bool}
+          {:args [:ratio :ratio]   :type :call      :symbol "Ratio_lt"       :returns :bool}
+          {:args [:any :any]       :type :call      :symbol "lt"             :returns :bool}]
+    lte  [{:args [:double :double] :type :intrinsic :symbol "FCmpOLE"       :returns :bool}
+          {:args [:int :int]       :type :intrinsic :symbol "ICmpSLE"       :returns :bool}
+          {:args [:int :double]    :type :intrinsic :symbol "ICmpSLE_ID"    :returns :bool}
+          {:args [:double :int]    :type :intrinsic :symbol "ICmpSLE_DI"    :returns :bool}
+          {:args [:bigint :double] :type :intrinsic :symbol "FCmpOLE_BD"    :returns :bool}
+          {:args [:double :bigint] :type :intrinsic :symbol "FCmpOLE_DB"    :returns :bool}
+          {:args [:ratio :double]  :type :intrinsic :symbol "FCmpOLE_RD"    :returns :bool}
+          {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOLE_DR"    :returns :bool}
+          {:args [:bigint :ratio]  :type :intrinsic :symbol "FCmpOLE_BR"    :returns :bool}
+          {:args [:ratio :bigint]  :type :intrinsic :symbol "FCmpOLE_RB"    :returns :bool}
+          {:args [:int :ratio]     :type :intrinsic :symbol "FCmpOLE_IR"    :returns :bool}
+          {:args [:ratio :int]     :type :intrinsic :symbol "FCmpOLE_RI"    :returns :bool}
+          {:args [:bigint :bigint] :type :call      :symbol "BigInteger_lte" :returns :bool}
+          {:args [:ratio :ratio]   :type :call      :symbol "Ratio_lte"      :returns :bool}
+          {:args [:any :any]       :type :call      :symbol "lte"           :returns :bool}]}}
 
   java.lang.Math
   {:static-fns
@@ -117,9 +221,13 @@
 
   clojure.lang.Util
   {:static-fns
-   {equiv [{:args [:int :int] :type :intrinsic :symbol "ICmpEQ" :returns :bool}
-           {:args [:double :double] :type :intrinsic :symbol "FCmpOEQ" :returns :bool}
-           {:args [:any :any] :type :call :symbol "equals" :returns :bool}]}}
+    {equiv [{:args [:int :int] :type :intrinsic :symbol "ICmpEQ"               :returns :bool}
+            {:args [:double :double] :type :intrinsic :symbol "FCmpOEQ"        :returns :bool}
+            {:args [:bigint :double] :type :intrinsic :symbol "FCmpOEQ_BD"     :returns :bool}
+            {:args [:double :bigint] :type :intrinsic :symbol "FCmpOEQ_DB"     :returns :bool}
+            {:args [:ratio :double]  :type :intrinsic :symbol "FCmpOEQ_RD"     :returns :bool}
+            {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOEQ_DR"     :returns :bool}
+            {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}]}}
 
   clojure.lang.PersistentVector
   {:object-type 9

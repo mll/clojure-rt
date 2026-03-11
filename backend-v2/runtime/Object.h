@@ -558,6 +558,13 @@ inline String *toString(RTValue self) {
   return Object_toString((Object *)RT_unboxPtr(self));
 }
 
+inline bool equals_managed(RTValue self, RTValue other) {
+  bool result = equals(self, other);
+  release(self);
+  release(other);
+  return result;
+}
+
 #pragma clang diagnostic pop
 
 #endif

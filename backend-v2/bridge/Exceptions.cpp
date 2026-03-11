@@ -360,6 +360,14 @@ extern "C" void throwArithmeticException_C(const char *message) {
                               RT_boxNil());
 }
 
+extern "C" void throwIndexOutOfBoundsException_C(uword_t index, uword_t count) {
+  std::stringstream ss;
+  ss << "Index out of bounds: " << index << " (count: " << count << ")";
+  throw rt::LanguageException(
+      "IndexOutOfBoundsException",
+      RT_boxPtr(String_createDynamicStr(ss.str().c_str())), RT_boxNil());
+}
+
 void throwCodeGenerationException(const std::string &errorMessage,
                                   const Node &node) {
   std::stringstream retval;

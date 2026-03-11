@@ -4,6 +4,7 @@
 #include "RTValue.h"
 #include "defines.h"
 #include <stdarg.h>
+#include "Exceptions.h"
 
 static PersistentArrayMap *EMPTY = NULL;
 
@@ -37,8 +38,12 @@ PersistentArrayMap *PersistentArrayMap_copy(PersistentArrayMap *other) {
 
 /* mem done */
 PersistentArrayMap *PersistentArrayMap_createMany(int32_t pairCount, ...) {
-  assert(pairCount < HASHTABLE_THRESHOLD + 1 &&
-         "Maps of size > 8 not supported yet");
+  if (pairCount > HASHTABLE_THRESHOLD) {
+    char buf[64];
+    snprintf(buf, sizeof(buf), "Maps of size > %d not supported yet",
+             HASHTABLE_THRESHOLD);
+    throwUnsupportedOperationException_C(buf);
+  }
   va_list args;
   va_start(args, pairCount);
 
@@ -149,8 +154,15 @@ PersistentArrayMap *PersistentArrayMap_assoc(PersistentArrayMap *self,
   word_t found = PersistentArrayMap_indexOf(self, key);
   bool reusable = Ptr_isReusable(self);
   if (found == -1) {
-    assert(self->count < HASHTABLE_THRESHOLD &&
-           "Maps of size > 8 not supported yet");
+    if (self->count >= HASHTABLE_THRESHOLD) {
+      Ptr_release(self);
+      release(key);
+      release(value);
+      char buf[64];
+      snprintf(buf, sizeof(buf), "Maps of size > %d not supported yet",
+               HASHTABLE_THRESHOLD);
+      throwUnsupportedOperationException_C(buf);
+    }
     PersistentArrayMap *retVal =
         reusable ? self : PersistentArrayMap_copy(self);
     retVal->keys[retVal->count] = key;
@@ -243,7 +255,7 @@ RTValue PersistentArrayMap_dynamic_get(RTValue self, RTValue key) {
   if (getType(self) != persistentArrayMapType) {
     release(self);
     release(key);
-    return RT_boxNil();
+    throwIllegalArgumentException_C("Argument must be a PersistentArrayMap");
   }
   return PersistentArrayMap_get(RT_unboxPtr(self), key);
 }

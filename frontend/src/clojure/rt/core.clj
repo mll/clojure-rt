@@ -113,7 +113,8 @@
 (defn analyze
   ([s filename] (analyze s filename false false))
   ([s filename trivial-tree? simple-tree?]
-   (with-bindings {#'a/run-passes run-passes}
+   (with-bindings {#'a/run-passes run-passes
+                   #'*file* filename}
      (with-redefs [ana/parse-quote quote/parse-quote
                    a/parse-deftype* deftype/parse-deftype*
                    annotate-host-info deftype/annotate-host-info
@@ -121,7 +122,7 @@
                    validate-interfaces (fn [_])]
        (let [reader (t/source-logging-push-back-reader s 1 filename)]
          (loop [form (r/read {:eof :eof} reader) 
-                current-env (a/empty-env) 
+                current-env (assoc (a/empty-env) :file filename) 
                 ret-val []]
            (if (= :eof form)
              (do
@@ -158,8 +159,8 @@
 
 (defn -main
   ([infile] (let [parts (split infile #"\.")]
-              (compile (slurp "resources/rt-protocols.edn") "../backend-v2/rt-protocols.cljb" infile)
-              (compile (slurp "resources/rt-classes.edn") "../backend-v2/rt-classes.cljb" infile)
+              (compile (slurp "resources/rt-protocols.edn") "../backend-v2/rt-protocols.cljb" "rt-protocols.edn")
+              (compile (slurp "resources/rt-classes.edn") "../backend-v2/rt-classes.cljb" "rt-classes.edn")
               (compile (slurp infile) (str (join "." (butlast parts)) ".cljb") infile
                        false false)
               ))

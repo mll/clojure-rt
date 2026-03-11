@@ -46,7 +46,8 @@ throwInternalInconsistencyException(const std::string &errorMessage);
                                                const Node &node);
 
 extern "C" void registerJitFunction_C(uword_t addr, size_t size,
-                                      const char *name);
+                                      const char *name,
+                                      const void *objData, size_t objSize);
 
 extern "C" [[noreturn]] void
 throwInternalInconsistencyException_C(const char *errorMessage);

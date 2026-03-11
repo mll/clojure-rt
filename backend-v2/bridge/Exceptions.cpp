@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <iostream>
 #include <stdio.h>
+#include <llvm/Object/ObjectFile.h>
+#include <llvm/Support/MemoryBuffer.h>
 
 #ifdef __APPLE__
 #include <dlfcn.h>
@@ -22,15 +24,20 @@ namespace rt {
 struct JitInfo {
   std::string name;
   size_t size;
+  std::unique_ptr<llvm::MemoryBuffer> objectBuffer;
 };
 
 static std::mutex gJitMapMutex;
 static std::map<uword_t, JitInfo> gJitFunctions;
 
 extern "C" void registerJitFunction_C(uword_t addr, size_t size,
-                                      const char *name) {
+                                      const char *name,
+                                      const void *objData, size_t objSize) {
   std::lock_guard<std::mutex> lock(gJitMapMutex);
-  gJitFunctions[addr] = {name, size};
+  auto buffer = llvm::MemoryBuffer::getMemBufferCopy(
+      llvm::StringRef(static_cast<const char *>(objData), objSize),
+      name ? name : "jit_object");
+  gJitFunctions[addr] = {name ? name : "", size, std::move(buffer)};
 }
 
 // Removing redundant namespace rt {
@@ -105,6 +112,7 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
   for (uword_t addr : stackAddresses) {
     std::string currentModule = "";
     uword_t lookupAddr = addr;
+    uword_t symbolizeAddr = 0;
     std::string dlSymbolName = "";
 
     Dl_info dlinfo;
@@ -145,9 +153,41 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
       if (it != gJitFunctions.begin()) {
         auto prev = std::prev(it);
         if (addr >= prev->first && addr < prev->first + prev->second.size) {
+          if (prev->second.objectBuffer) {
+            uword_t jitSymbolizeAddr = addr - prev->first;
+#if defined(__aarch64__) || defined(__arm64__)
+            if (jitSymbolizeAddr >= 4)
+              jitSymbolizeAddr -= 4;
+#else
+            if (jitSymbolizeAddr > 0)
+              jitSymbolizeAddr -= 1;
+#endif
+            auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
+                prev->second.objectBuffer->getMemBufferRef());
+            if (ObjOrErr) {
+              auto &Obj = *ObjOrErr.get();
+              auto resOrErrJit = symbolizer.symbolizeCode(
+                  Obj, {jitSymbolizeAddr,
+                        llvm::object::SectionedAddress::UndefSection});
+              if (resOrErrJit) {
+                auto &info = resOrErrJit.get();
+                if (info.FileName != "<invalid>") {
+                  ss << "  at " << info.FunctionName << " [" << info.FileName
+                     << ":" << info.Line << "]\n";
+                  found = true;
+                  continue;
+                }
+              } else {
+                llvm::consumeError(resOrErrJit.takeError());
+              }
+            } else {
+              llvm::consumeError(ObjOrErr.takeError());
+            }
+          }
+
           if (found) {
-            ss << "  at " << prev->second.name
-               << " [JIT:" << (void *)prev->first << "]\n";
+            ss << "  at " << prev->second.name << " [JIT:0x" << std::hex
+               << prev->first << std::dec << "]\n";
           }
           continue;
         }
@@ -158,9 +198,7 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
       continue;
 
     // Adjust address back to get the call site line instead of return site.
-    // On ARM64 (macOS), instructions are exactly 4 bytes. PC-4 is the call
-    // site.
-    uword_t symbolizeAddr = lookupAddr;
+    symbolizeAddr = lookupAddr;
 #if defined(__aarch64__) || defined(__arm64__)
     if (symbolizeAddr >= 4)
       symbolizeAddr -= 4;
@@ -212,35 +250,20 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
 
         if (info.FileName != "<invalid>") {
           ss << " [" << info.FileName << ":" << info.Line << "]";
-        } else if (!currentModule.empty() && info.FunctionName == "<invalid>") {
-          // If we have a module but no function/file, it might be a missing
-          // dSYM or similar.
-          size_t lastSlash = currentModule.find_last_of('/');
-          std::string base = (lastSlash != std::string::npos)
-                                 ? currentModule.substr(lastSlash + 1)
-                                 : currentModule;
-          if (dlSymbolName.empty()) {
-            ss << " " << base << " + 0x" << std::hex << lookupAddr << std::dec;
-          }
         }
+        ss << "\n";
       }
     } else {
+      llvm::consumeError(resOrErr.takeError());
       if (found) {
-        ss << "  at ";
         if (!dlSymbolName.empty()) {
-          ss << dlSymbolName;
-        } else if (!currentModule.empty()) {
-          size_t lastSlash = currentModule.find_last_of('/');
-          ss << currentModule.substr(lastSlash + 1) << " + 0x" << std::hex
-             << lookupAddr << std::dec;
+          ss << "  at " << dlSymbolName << " [" << currentModule << "]\n";
         } else {
-          ss << "?? [0x" << std::hex << addr << std::dec << "]";
+          ss << "  at 0x" << std::hex << addr << std::dec << " ["
+             << currentModule << "]\n";
         }
-        llvm::consumeError(resOrErr.takeError());
       }
     }
-    if (found)
-      ss << "\n";
   }
 
   return ss.str();

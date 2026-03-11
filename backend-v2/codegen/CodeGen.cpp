@@ -7,6 +7,7 @@ using namespace llvm;
 
 namespace rt {
 CodeGenResult CodeGen::release() && {
+  DIB->finalize();
   return {std::move(TSContext), std::move(TheModule),
           std::move(generatedConstants)};
 }
@@ -14,7 +15,7 @@ CodeGenResult CodeGen::release() && {
 std::string CodeGen::codegenTopLevel(const Node &node) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
   uword_t i = compilerState.functionAstRegistry.registerObject(&node);
-  std::string fname = std::string("__anon__") + std::to_string(i);
+  std::string fname = std::string("__repl__") + std::to_string(i);
   FunctionType *FT = FunctionType::get(types.i64Ty, {}, false);
   Function *F =
       Function::Create(FT, Function::ExternalLinkage, fname, *TheModule);
@@ -22,10 +23,41 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   // Enforce frame pointers for reliable stack traces
   F->addFnAttr("frame-pointer", "all");
 
+  // Create debug info for the function
+  auto env = node.env();
+  std::string fileName = env.file();
+  std::string dir = ".";
+  if (fileName.empty()) {
+    fileName = CU->getFilename().str();
+    dir = CU->getDirectory().str();
+  } else {
+    size_t lastSlash = fileName.find_last_of('/');
+    if (lastSlash != std::string::npos) {
+      dir = fileName.substr(0, lastSlash);
+      fileName = fileName.substr(lastSlash + 1);
+    }
+  }
+
+  llvm::DIFile *Unit = DIB->createFile(fileName, dir);
+  llvm::DISubroutineType *AsmSignature =
+      DIB->createSubroutineType(DIB->getOrCreateTypeArray({}));
+  llvm::DISubprogram *SP = DIB->createFunction(
+      Unit, fname, fname, Unit, env.line(), AsmSignature, env.line(),
+      llvm::DINode::FlagPrototyped, llvm::DISubprogram::SPFlagDefinition);
+  F->setSubprogram(SP);
+  LexicalBlocks.push_back(SP);
+
   BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
   Builder.SetInsertPoint(BB);
+
+  // Set initial debug location
+  Builder.SetCurrentDebugLocation(
+      llvm::DILocation::get(TheContext, env.line(), env.column(), SP));
+
   Builder.CreateRet(
       valueEncoder.box(codegen(node, ObjectTypeSet::all())).value);
+
+  LexicalBlocks.pop_back();
   verifyFunction(*F);
   return fname;
 }
@@ -33,6 +65,12 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
 TypedValue CodeGen::codegen(const Node &node,
                             const ObjectTypeSet &typeRestrictions) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
+
+  auto env = node.env();
+  if (!LexicalBlocks.empty()) {
+    Builder.SetCurrentDebugLocation(llvm::DILocation::get(
+        TheContext, env.line(), env.column(), LexicalBlocks.back()));
+  }
 
   for (int i = 0; i < node.dropmemory_size(); i++) {
     auto guidance = node.dropmemory(i);

@@ -11,6 +11,7 @@
 #include "bytecode.pb.h"
 #include "invoke/InvokeManager.h"
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
+#include <llvm/IR/DIBuilder.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
@@ -46,6 +47,9 @@ class CodeGen {
   MemoryManagement memoryManagement;
 
   ThreadsafeCompilerState &compilerState;
+  std::unique_ptr<llvm::DIBuilder> DIB;
+  llvm::DICompileUnit *CU;
+  std::vector<llvm::DIScope *> LexicalBlocks;
 
 public:
   CodeGen(std::string_view ModuleName, ThreadsafeCompilerState &state)
@@ -60,7 +64,17 @@ public:
         memoryManagement(TheContext, Builder, valueEncoder, types,
                          variableBindingStack, invokeManager,
                          dynamicConstructor),
-        compilerState(state) {}
+        compilerState(state) {
+    TheModule->addModuleFlag(llvm::Module::Warning, "Debug Info Version",
+                             llvm::DEBUG_METADATA_VERSION);
+#ifdef __APPLE__
+    TheModule->addModuleFlag(llvm::Module::Warning, "Dwarf Version", 4);
+#endif
+    DIB = std::make_unique<llvm::DIBuilder>(*TheModule);
+    CU = DIB->createCompileUnit(llvm::dwarf::DW_LANG_C,
+                                DIB->createFile(ModuleName, "."),
+                                "clojure-rt", false, "", 0);
+  }
 
   CodeGenResult release() &&;
 

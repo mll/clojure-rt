@@ -1,5 +1,10 @@
 #include "JITEngine.h"
 #include "bridge/Exceptions.h"
+#include <llvm/ExecutionEngine/Orc/DebugObjectManagerPlugin.h>
+#include <llvm/ExecutionEngine/Orc/EPCDebugObjectRegistrar.h>
+#include <llvm/ExecutionEngine/Orc/ObjectTransformLayer.h>
+#include <llvm/ExecutionEngine/SectionMemoryManager.h>
+#include <llvm/Support/MemoryBuffer.h>
 
 namespace rt {
 
@@ -11,10 +16,39 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
 
-  auto JITExp = llvm::orc::LLJITBuilder().create();
+  auto JITExp = llvm::orc::LLJITBuilder()
+                    .setObjectLinkingLayerCreator(
+                        [&](llvm::orc::ExecutionSession &ES,
+                            const llvm::Triple &TT) {
+                          auto ObjLinkingLayer =
+                              std::make_unique<llvm::orc::ObjectLinkingLayer>(ES);
+
+                          // Add debug info support
+                          auto Registrar = llvm::orc::createJITLoaderGDBRegistrar(ES);
+                          if (Registrar) {
+                            ObjLinkingLayer->addPlugin(
+                                std::make_unique<llvm::orc::DebugObjectManagerPlugin>(
+                                    ES, std::move(*Registrar)));
+                          }
+
+                          return ObjLinkingLayer;
+                        })
+                    .create();
   if (!JITExp)
     throw std::runtime_error("Failed to init LLJIT");
   jit = std::move(*JITExp);
+
+  // Set up object transform to capture compiled objects
+  jit->getObjTransformLayer().setTransform(
+      [this](std::unique_ptr<llvm::MemoryBuffer> Obj)
+          -> llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> {
+        std::lock_guard<std::mutex> lock(this->engineMutex);
+        std::string id = Obj->getBufferIdentifier().str();
+        // Store a copy of the buffer content
+        this->capturedObjectBuffers[id] = llvm::MemoryBuffer::getMemBufferCopy(
+            Obj->getBuffer(), id);
+        return std::move(Obj);
+      });
 
   // Expose symbols from the current process to the JIT.
   // This is required on Linux to find runtime functions.
@@ -84,8 +118,36 @@ JITEngine::compileAST(const Node &AST, const std::string &moduleName,
         if (!Sym)
           throwInternalInconsistencyException("Symbol Lookup Failed: " + fName);
 
-        // Register for stack trace resolution (approximate size)
-        registerJitFunction_C(Sym->getValue(), 4096, fName.c_str());
+        // Register for stack trace resolution
+        {
+          std::lock_guard<std::mutex> lock(this->engineMutex);
+          
+          // Try to find the captured object buffer. ORC might append suffixes.
+          auto it = this->capturedObjectBuffers.find(moduleName);
+          if (it == this->capturedObjectBuffers.end()) {
+             // Try common ORC suffixes if exact match fails
+             it = this->capturedObjectBuffers.find(moduleName + "-jitted-objectbuffer");
+          }
+          if (it == this->capturedObjectBuffers.end()) {
+             // Fallback: search for any key containing moduleName
+             for (auto searchIt = this->capturedObjectBuffers.begin(); searchIt != this->capturedObjectBuffers.end(); ++searchIt) {
+                 if (searchIt->first.find(moduleName) != std::string::npos) {
+                     it = searchIt;
+                     break;
+                 }
+             }
+          }
+
+          if (it != this->capturedObjectBuffers.end()) {
+            registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(),
+                                  it->second->getBufferStart(),
+                                  it->second->getBufferSize());
+            this->capturedObjectBuffers.erase(it);
+          } else {
+            registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(), nullptr,
+                                  0);
+          }
+        }
 
         return *Sym;
       });

@@ -43,6 +43,18 @@ bool BigInteger_equals(BigInteger *self, BigInteger *other) {
   return cmp == 0;
 }
 
+bool BigInteger_intEquals(int32_t other, BigInteger *self) {
+  int cmp = mpz_cmp_si(self->value, other);
+  Ptr_release(self);
+  return cmp == 0;
+}
+
+bool BigInteger_equalsInt(BigInteger *self, int32_t other) {
+  int cmp = mpz_cmp_si(self->value, other);
+  Ptr_release(self);
+  return cmp == 0;
+}
+
 bool BigInteger_equiv(BigInteger *self, BigInteger *other) {
   bool retVal = BigInteger_equals(self, other);
   Ptr_release(self);

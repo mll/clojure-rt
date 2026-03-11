@@ -23,6 +23,10 @@ BigInteger *BigInteger_createFromStr(const char *value);
 BigInteger *BigInteger_createFromMpz(mpz_t value);
 BigInteger *BigInteger_createFromInt(word_t value);
 bool BigInteger_equals(BigInteger *self, BigInteger *other);
+bool BigInteger_equiv(BigInteger *self, BigInteger *other);
+bool BigInteger_intEquals(int32_t other, BigInteger *self);
+bool BigInteger_equalsInt(BigInteger *self, int32_t other);
+
 uword_t BigInteger_hash(BigInteger *self);
 String *BigInteger_toString(BigInteger *self);
 void BigInteger_destroy(BigInteger *self);

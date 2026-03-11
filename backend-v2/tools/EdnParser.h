@@ -28,6 +28,7 @@ public:
   CallType type;
   string symbol;
   ObjectTypeSet returnType;
+  IntrinsicDescription() = default;
   IntrinsicDescription(RTValue from, TemporaryClassData &classData);
 };
 
@@ -52,6 +53,7 @@ public:
 
   vector<Class *> interfaces;
 
+  ClassDescription() = default;
   ClassDescription(RTValue from, TemporaryClassData &classData);
   ClassDescription(const ClassDescription &) = delete;
   ClassDescription &operator=(const ClassDescription &) = delete;

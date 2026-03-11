@@ -66,7 +66,7 @@ JITEngine::compileAST(const Node &AST, const std::string &moduleName,
       [this, AST, moduleName, printModule]() -> llvm::orc::ExecutorAddr {
         auto codeGenerator = CodeGen(moduleName, threadsafeState);
 
-        string fName;
+        std::string fName;
         try {
           fName = codeGenerator.codegenTopLevel(AST);
         } catch (...) {

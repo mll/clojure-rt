@@ -2,6 +2,11 @@
 #include "../CodeGen.h"
 #include "bridge/Exceptions.h"
 #include "codegen/TypedValue.h"
+#include "../../tools/EdnParser.h"
+#include "bytecode.pb.h"
+#include "../../types/ConstantBool.h"
+#include "../../types/ConstantDouble.h"
+#include "../../types/ConstantInteger.h"
 #include <sstream>
 
 using namespace std;
@@ -265,8 +270,12 @@ ObjectTypeSet CodeGen::getType(const Node &node, const StaticCallNode &subnode,
             break;
           }
         }
-        if (match)
+        if (match) {
+          if (id.type == CallType::Intrinsic) {
+            return invokeManager.foldIntrinsic(id, argTypes);
+          }
           return id.returnType;
+        }
       }
     }
   }

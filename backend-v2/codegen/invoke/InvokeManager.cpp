@@ -1,8 +1,13 @@
 #include "InvokeManager.h"
 #include "../../bridge/Exceptions.h"
 #include "../../tools/EdnParser.h"
-#include "types/ObjectTypeSet.h"
+#include "../../types/ConstantBool.h"
+#include "../../types/ConstantDouble.h"
+#include "../../types/ConstantInteger.h"
+// Redundant include removed
 #include "llvm/IR/MDBuilder.h"
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Function.h>
 #include <vector>
 
 using namespace llvm;
@@ -15,6 +20,172 @@ InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
                              ThreadsafeCompilerState &s)
     : builder(b), theModule(m), valueEncoder(v), types(t) {
   // Basic Arithmetic
+  typeIntrinsics["Add"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *i1 = dynamic_cast<ConstantInteger *>(c1);
+    auto *i2 = dynamic_cast<ConstantInteger *>(c2);
+    if (i1 && i2) return ObjectTypeSet(integerType, false, new ConstantInteger(i1->value + i2->value));
+    return ObjectTypeSet(integerType, false);
+  };
+  typeIntrinsics["Sub"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *i1 = dynamic_cast<ConstantInteger *>(c1);
+    auto *i2 = dynamic_cast<ConstantInteger *>(c2);
+    if (i1 && i2) return ObjectTypeSet(integerType, false, new ConstantInteger(i1->value - i2->value));
+    return ObjectTypeSet(integerType, false);
+  };
+  typeIntrinsics["Mul"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *i1 = dynamic_cast<ConstantInteger *>(c1);
+    auto *i2 = dynamic_cast<ConstantInteger *>(c2);
+    if (i1 && i2) return ObjectTypeSet(integerType, false, new ConstantInteger(i1->value * i2->value));
+    return ObjectTypeSet(integerType, false);
+  };
+  typeIntrinsics["Div"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *i1 = dynamic_cast<ConstantInteger *>(c1);
+    auto *i2 = dynamic_cast<ConstantInteger *>(c2);
+    if (i1 && i2 && i2->value != 0) return ObjectTypeSet(integerType, false, new ConstantInteger(i1->value / i2->value));
+    return ObjectTypeSet(integerType, false);
+  };
+
+  typeIntrinsics["FAdd"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *d1 = dynamic_cast<ConstantDouble *>(c1);
+    auto *d2 = dynamic_cast<ConstantDouble *>(c2);
+    if (d1 && d2) return ObjectTypeSet(doubleType, false, new ConstantDouble(d1->value + d2->value));
+    return ObjectTypeSet(doubleType, false);
+  };
+  typeIntrinsics["FSub"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *d1 = dynamic_cast<ConstantDouble *>(c1);
+    auto *d2 = dynamic_cast<ConstantDouble *>(c2);
+    if (d1 && d2) return ObjectTypeSet(doubleType, false, new ConstantDouble(d1->value - d2->value));
+    return ObjectTypeSet(doubleType, false);
+  };
+  typeIntrinsics["FMul"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *d1 = dynamic_cast<ConstantDouble *>(c1);
+    auto *d2 = dynamic_cast<ConstantDouble *>(c2);
+    if (d1 && d2) return ObjectTypeSet(doubleType, false, new ConstantDouble(d1->value * d2->value));
+    return ObjectTypeSet(doubleType, false);
+  };
+  typeIntrinsics["FDiv"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *d1 = dynamic_cast<ConstantDouble *>(c1);
+    auto *d2 = dynamic_cast<ConstantDouble *>(c2);
+    if (d1 && d2 && d2->value != 0.0) return ObjectTypeSet(doubleType, false, new ConstantDouble(d1->value / d2->value));
+    return ObjectTypeSet(doubleType, false);
+  };
+
+  typeIntrinsics["ICmpSGE"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *i1 = dynamic_cast<ConstantInteger *>(c1);
+    auto *i2 = dynamic_cast<ConstantInteger *>(c2);
+    if (i1 && i2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(i1->value >= i2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+  typeIntrinsics["ICmpSGT"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *i1 = dynamic_cast<ConstantInteger *>(c1);
+    auto *i2 = dynamic_cast<ConstantInteger *>(c2);
+    if (i1 && i2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(i1->value > i2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+  typeIntrinsics["ICmpSLT"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *i1 = dynamic_cast<ConstantInteger *>(c1);
+    auto *i2 = dynamic_cast<ConstantInteger *>(c2);
+    if (i1 && i2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(i1->value < i2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+  typeIntrinsics["ICmpSLE"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *i1 = dynamic_cast<ConstantInteger *>(c1);
+    auto *i2 = dynamic_cast<ConstantInteger *>(c2);
+    if (i1 && i2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(i1->value <= i2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+  typeIntrinsics["ICmpEQ"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *i1 = dynamic_cast<ConstantInteger *>(c1);
+    auto *i2 = dynamic_cast<ConstantInteger *>(c2);
+    if (i1 && i2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(i1->value == i2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+
+  typeIntrinsics["FCmpOGE"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *d1 = dynamic_cast<ConstantDouble *>(c1);
+    auto *d2 = dynamic_cast<ConstantDouble *>(c2);
+    if (d1 && d2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(d1->value >= d2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+  typeIntrinsics["FCmpOGT"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *d1 = dynamic_cast<ConstantDouble *>(c1);
+    auto *d2 = dynamic_cast<ConstantDouble *>(c2);
+    if (d1 && d2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(d1->value > d2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+  typeIntrinsics["FCmpOLT"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *d1 = dynamic_cast<ConstantDouble *>(c1);
+    auto *d2 = dynamic_cast<ConstantDouble *>(c2);
+    if (d1 && d2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(d1->value < d2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+  typeIntrinsics["FCmpOLE"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *d1 = dynamic_cast<ConstantDouble *>(c1);
+    auto *d2 = dynamic_cast<ConstantDouble *>(c2);
+    if (d1 && d2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(d1->value <= d2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+  typeIntrinsics["FCmpOEQ"] = [](const vector<ObjectTypeSet> &args) -> ObjectTypeSet {
+    if (args.size() != 2) return ObjectTypeSet::dynamicType();
+    auto *c1 = args[0].getConstant();
+    auto *c2 = args[1].getConstant();
+    auto *d1 = dynamic_cast<ConstantDouble *>(c1);
+    auto *d2 = dynamic_cast<ConstantDouble *>(c2);
+    if (d1 && d2) return ObjectTypeSet(booleanType, false, new ConstantBoolean(d1->value == d2->value));
+    return ObjectTypeSet(booleanType, false);
+  };
+
   intrinsics["FAdd"] = [](auto &b, auto args) {
     return b.CreateFAdd(args[0], args[1]);
   };
@@ -25,7 +196,6 @@ InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
       Function *fn = Intrinsic::getDeclaration(&theModule, 
           llvmIntrinsic == "sadd" ? Intrinsic::sadd_with_overflow : Intrinsic::ssub_with_overflow, 
           {b.getInt32Ty()});
-      
       Value *resStruct = b.CreateCall(fn, args);
       Value *res = b.CreateExtractValue(resStruct, {0});
       Value *overflow = b.CreateExtractValue(resStruct, {1});
@@ -420,6 +590,15 @@ InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
   }
 
   throwInternalInconsistencyException("Unsupported call type");
+}
+
+ObjectTypeSet InvokeManager::foldIntrinsic(const IntrinsicDescription &id,
+                                           const vector<ObjectTypeSet> &args) {
+  auto it = typeIntrinsics.find(id.symbol);
+  if (it != typeIntrinsics.end()) {
+    return it->second(args);
+  }
+  return id.returnType;
 }
 
 TypedValue InvokeManager::invokeRuntime(

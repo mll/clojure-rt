@@ -287,9 +287,9 @@ ObjectTypeSet CodeGen::getType(const Node &node,
 
 Var *CodeGen::getOrCreateVar(std::string_view name) {
   return compilerState.varRegistry.getOrCreate(
-      std::string(name).c_str(), [this, name]() {
-        auto n = std::string(name);
-        return dynamicConstructor.createVarRaw(n.c_str());
+      std::string(name).c_str(), [name]() {
+        RTValue keyword = Keyword_create(String_createDynamicStr(std::string(name).c_str()));
+        return Var_create(keyword);
       });
 }
 

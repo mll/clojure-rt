@@ -85,7 +85,7 @@ static void test_var_peek(void **state) {
 
     Ptr_retain(v);
     Var_bindRoot(v, val);
-    // val is bound to Var root. val handle count = 2 (our handle + Var root)
+    // Var_bindRoot consumes val. val handle count = 1 (owned by Var root)
 
     Object *obj = (Object *)RT_unboxPtr(val);
 
@@ -93,26 +93,25 @@ static void test_var_peek(void **state) {
     Ptr_retain(v);
     RTValue peeked = Var_peek(v);
     assert_true(peeked == val);
-    // Peek should NOT increment refcount. Should still be 2.
+    // Peek should NOT increment refcount. Should still be 1.
     assert_int_equal(
-        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed), 2);
+        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed), 1);
 
     // Test Var_deref for contrast
     Ptr_retain(v);
     RTValue derefed = Var_deref(v);
     assert_true(derefed == val);
-    // Deref SHOULD increment refcount. Should be 3 (our handle, Var root,
-    // derefed handle)
-    assert_int_equal(
-        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed), 3);
-
-    release(derefed);
-    // Back to 2.
+    // Deref SHOULD increment refcount. Should be 2 (Var root, derefed handle)
     assert_int_equal(
         atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed), 2);
 
+    release(derefed);
+    // Back to 1.
+    assert_int_equal(
+        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed), 1);
+
     Ptr_release(v);
-    release(val);
+    // val is now released because v was destroyed.
     release(sym);
   });
 }

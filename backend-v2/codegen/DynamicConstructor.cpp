@@ -9,7 +9,6 @@
 #include "invoke/InvokeManager.h"
 #include "runtime/Keyword.h"
 #include "runtime/RTValue.h"
-#include "runtime/Var.h"
 #include "llvm/ADT/StringSwitch.h"
 #include <cstdint>
 #include <llvm/IR/Constants.h>
@@ -74,22 +73,10 @@ TypedValue DynamicConstructor::createString(const char *s) {
                                 types.ptrTy));
 }
 
-TypedValue DynamicConstructor::createVar(const char *name) {
-  Var *var = Var_create(Keyword_create(String_createDynamicStr(name)));
-  uintptr_t address = reinterpret_cast<uintptr_t>(var);
-  return TypedValue(ObjectTypeSet(varType),
-                    ConstantExpr::getIntToPtr(
-                        ConstantInt::get(types.i64Ty, address), types.ptrTy));
-}
-
-Var *DynamicConstructor::createVarRaw(const char *name) {
-  Var *var = Var_create(Keyword_create(String_createDynamicStr(name)));
-  return var;
-}
-
 TypedValue DynamicConstructor::createKeyword(const char *s) {
   String *str = String_createDynamicStr(s);
   RTValue kwVal = Keyword_create(str);
+  generatedConstants.push_back(kwVal);
   uint32_t retVal = RT_unboxKeyword(kwVal);
   return TypedValue(ObjectTypeSet(keywordType, false, new ConstantKeyword(s)),
                     ConstantInt::get(types.i32Ty, retVal));
@@ -97,6 +84,7 @@ TypedValue DynamicConstructor::createKeyword(const char *s) {
 TypedValue DynamicConstructor::createSymbol(const char *s) {
   String *str = String_createDynamicStr(s);
   RTValue symVal = Symbol_create(str);
+  generatedConstants.push_back(symVal);
   uint32_t retVal = RT_unboxSymbol(symVal);
   return TypedValue(ObjectTypeSet(symbolType, false, new ConstantSymbol(s)),
                     ConstantInt::get(types.i32Ty, retVal));

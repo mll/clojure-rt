@@ -140,7 +140,28 @@ String *Var_toString(Var *self) {
 };
 
 void Var_destroy(Var *self) {
-  release(self->root);
+  RTValue oldRoot = self->root;
+  if (oldRoot != RT_boxNull()) {
+    asymmetric_barrier();
+    HazardSlot *newHead = atomic_load(&hazardHead);
+    HazardSlot *curr;
+    HazardSlot *head;
+
+    do {
+      head = newHead;
+      curr = head;
+      while (curr) {
+        while (atomic_load_explicit(&curr->hazardPointer,
+                                    memory_order_seq_cst) == oldRoot) {
+          CPU_PAUSE();
+        }
+        curr = curr->next;
+      }
+      newHead = atomic_load(&hazardHead);
+    } while (newHead != head);
+  }
+
+  release(oldRoot);
   release(self->keyword);
 };
 

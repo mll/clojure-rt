@@ -34,12 +34,12 @@ typedef struct HazardSlot {
   struct HazardSlot *next;
 } HazardSlot;
 
-static _Atomic(HazardSlot *) hazardHead = NULL;
+_Atomic(HazardSlot *) hazardHead = NULL;
 static __thread HazardSlot *threadLocalHazardSlot = NULL;
 static pthread_key_t cleanup_gatekeeper;
 
 static void *dummy_page = NULL;
-static void asymmetric_barrier() {
+void asymmetric_barrier() {
   if (!dummy_page) {
     dummy_page = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE,
                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -76,7 +76,7 @@ void Var_cleanup() { /* to be run when all other threads are dead */
   }
 }
 
-static inline HazardSlot *getOrCreateSlot() {
+HazardSlot *getOrCreateSlot() {
   if (threadLocalHazardSlot)
     return threadLocalHazardSlot;
 
@@ -116,9 +116,6 @@ Var *Var_create(RTValue keyword) {
   self->keyword = keyword;
   atomic_init(&self->rev, 0);
   Object_create((Object *)self, varType);
-  String *kw = String_compactify(toString(self->keyword));
-  printf("Var_create: %s\n", String_c_str(kw));
-  Ptr_release(kw);
   return self;
 };
 
@@ -133,8 +130,8 @@ uword_t Var_hash(Var *self) {
 String *Var_toString(Var *self) {
   String *retVal = String_create("#");
   retVal = String_concat(retVal, String_replace(toString(self->keyword),
-                                                String_create(":"),
-                                                String_create("'")));
+                                                 String_create(":"),
+                                                 String_create("'")));
   Ptr_release(self);
   return retVal;
 };
@@ -201,7 +198,7 @@ RTValue Var_deref(Var *self) {
 
     // Stage 2: Verify (The "Double Check")
     // Acquire load is enough here because writer ensures its update is visible
-    // before we'd potentially use the old freed value.
+    // before we’d potentially use the old freed value.
     if (val == atomic_load_explicit(&self->root, memory_order_acquire)) {
       retain(val);
       atomic_store_explicit(&slot->hazardPointer, RT_boxNull(),

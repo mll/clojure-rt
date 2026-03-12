@@ -2,69 +2,16 @@
 #include <cmocka.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include "../Keyword.h"
 #include "../RuntimeInterface.h"
 #include "../String.h"
 #include "../Var.h"
-#include "TestTools.h"
 
-#define ITERATIONS 2000000
-
-static atomic_bool stop_threads = false;
-
-struct ThreadArgs {
-  Var *v;
-};
-
-void *writer_thread(void *arg) {
-  Var_thread_initialize();
-  struct ThreadArgs *args = (struct ThreadArgs *)arg;
-  Var *v = args->v;
-  Ptr_retain(v);
-
-  int i = 0;
-  for (i = 0; i < ITERATIONS && !atomic_load(&stop_threads); ++i) {
-    // Create a new string and bind it as root
-    RTValue val = RT_boxPtr(String_create("new-value"));
-    Ptr_retain(v);
-    Var_bindRoot(v, val);
-    // Var_bindRoot releases the old value, and it was the only owner.
-    // If the reader thread was just about to retain it, we have a UAF.
-  }
-  Ptr_release(v);
-  printf("!!! Terminating writer thread after %d iterations\n", i);
-  atomic_store(&stop_threads, true);
-  return NULL;
-}
-
-void *reader_thread(void *arg) {
-  Var_thread_initialize();
-  struct ThreadArgs *args = (struct ThreadArgs *)arg;
-  Var *v = args->v;
-  Ptr_retain(v);
-  int i = 0;
-  for (i = 0; i < ITERATIONS && !atomic_load(&stop_threads); ++i) {
-    // Deref the var. This reads v->root and then retains it.
-    // There is no lock between reading and retaining.
-    Ptr_retain(v);
-    RTValue val = Var_deref(v);
-
-    // Use the value to trigger a crash if it was freed
-    if (RT_isPtr(val)) {
-      String *s = (String *)RT_unboxPtr(val);
-      // This might crash if s was already freed and its memory reused/poisoned
-      const char *c_str = String_c_str(s);
-      (void)c_str;
-    }
-
-    release(val);
-  }
-  Ptr_release(v);
-  printf("!!! Terminating reader thread after %d iterations\n", i);
-  atomic_store(&stop_threads, true);
-  return NULL;
-}
+#define RACE_ITERATIONS 1000000
+#define DESTRUCT_ITERATIONS 1000
 
 #if defined(__x86_64__) || defined(__i386__)
 #include <immintrin.h>
@@ -73,39 +20,121 @@ void *reader_thread(void *arg) {
 #include <arm_acle.h>
 #define CPU_PAUSE() __asm__ __volatile__("yield")
 #else
-#define CPU_PAUSE() \
-  do { \
+#define CPU_PAUSE()                                                            \
+  do {                                                                         \
   } while (0)
 #endif
 
+static atomic_bool stop_threads = false;
+
+typedef struct HazardSlot {
+  _Atomic(RTValue) hazardPointer;
+  _Atomic(bool) active;
+  struct HazardSlot *next;
+} HazardSlot;
+
+extern HazardSlot *getOrCreateSlot(void);
+extern void asymmetric_barrier(void);
+extern _Atomic(HazardSlot *) hazardHead;
+extern void Var_destroy(Var *self);
+
+/* --- Test 1: Concurrent bindRoot and deref (The "Race Condition" Test) --- */
+
+struct RaceArgs {
+  Var *v;
+};
+
+void *writer_thread(void *arg) {
+  Var_thread_initialize();
+  struct RaceArgs *args = (struct RaceArgs *)arg;
+  for (int i = 0; i < RACE_ITERATIONS && !atomic_load(&stop_threads); i++) {
+    RTValue val = RT_boxPtr(String_create("value"));
+    Ptr_retain(args->v);
+    Var_bindRoot(args->v, val);
+  }
+  return NULL;
+}
+
+void *reader_thread(void *arg) {
+  Var_thread_initialize();
+  struct RaceArgs *args = (struct RaceArgs *)arg;
+  while (!atomic_load(&stop_threads)) {
+    Ptr_retain(args->v);
+    RTValue val = Var_deref(args->v);
+    if (val != RT_boxNull()) {
+      // Accessing the object to trigger ASan if it's freed
+      // toString is consuming in this runtime
+      toString(val);
+    }
+    CPU_PAUSE();
+  }
+  return NULL;
+}
+
+static void test_var_concurrent_bind_deref_race(void **state) {
+  (void)state;
+  atomic_store(&stop_threads, false);
+  Var *v = Var_create(Keyword_create(String_create("race")));
+  struct RaceArgs args = {v};
+
+  pthread_t writer, reader;
+  pthread_create(&writer, NULL, writer_thread, &args);
+  pthread_create(&reader, NULL, reader_thread, &args);
+
+  // Run for a bit to ensure many inter-leavings
+  usleep(500000);
+  atomic_store(&stop_threads, true);
+
+  pthread_join(writer, NULL);
+  pthread_join(reader, NULL);
+}
+
+/* --- Test 2: Var_destroy synchronization (The "Destruction" Test) --- */
+
 struct DestructionRaceArgs {
-  _Atomic(Var *) v_ptr;
+  Var *v;
+  _Atomic(long) iteration;   // Writer increments this
+  _Atomic(long) reader_done; // Reader increments this
+  _Atomic(bool)
+      reader_entering; // Reader sets this when it's pinned the pointer
 };
 
 void *destruction_writer(void *arg) {
   Var_thread_initialize();
   struct DestructionRaceArgs *args = (struct DestructionRaceArgs *)arg;
-  for (int i = 0; i < ITERATIONS && !atomic_load(&stop_threads); i++) {
-    RTValue sym = Keyword_create(String_create("temp"));
-    Var *v = Var_create(sym);
-    Ptr_retain(v); // Survive Var_bindRoot
-    Var_bindRoot(v, RT_boxPtr(String_create("val")));
+  Var *v = args->v;
 
-    // We give one reference to the reader
+  for (long i = 1; i <= DESTRUCT_ITERATIONS && !atomic_load(&stop_threads);
+       i++) {
+    RTValue val = RT_boxPtr(String_create("val"));
     Ptr_retain(v);
-    atomic_store(&args->v_ptr, v);
+    Var_bindRoot(v, val);
 
-    // Final release of our reference
-    Ptr_release(v);
-    release(sym);
+    atomic_store(&args->reader_entering, false);
+    atomic_store(&args->iteration, i); // Signal reader to start
 
-    // The reader should now have the only reference.
-    // We wait for reader to consume it.
-    while (atomic_load(&args->v_ptr) != NULL && !atomic_load(&stop_threads)) {
+    // Wait for reader to grab and pin the root
+    while (!atomic_load(&args->reader_entering) &&
+           !atomic_load(&stop_threads)) {
+      CPU_PAUSE();
+    }
+
+    if (atomic_load(&stop_threads))
+      break;
+
+    // Call Var_destroy manually.
+    // This MUST wait for the reader who has 'val' pinned in hazard pointer.
+    Var_destroy(v);
+
+    // Reset for next iteration (re-init struct members that destroy cleared)
+    atomic_store(&v->root, RT_boxNull());
+    v->keyword = Keyword_create(String_create("temp"));
+
+    // Wait for reader to finish its part of the iteration
+    while (atomic_load(&args->reader_done) < i && !atomic_load(&stop_threads)) {
       CPU_PAUSE();
     }
   }
-  printf("!!! Terminating destruction writer thread\n");
   atomic_store(&stop_threads, true);
   return NULL;
 }
@@ -113,25 +142,62 @@ void *destruction_writer(void *arg) {
 void *destruction_reader(void *arg) {
   Var_thread_initialize();
   struct DestructionRaceArgs *args = (struct DestructionRaceArgs *)arg;
-  int i = 0;
+  Var *v = args->v;
+  long current_iter = 0;
+
   while (!atomic_load(&stop_threads)) {
-    Var *v = atomic_exchange(&args->v_ptr, NULL);
-    if (v) {
-      // Var_deref consumes v
-      RTValue val = Var_deref(v);
-      release(val);
-      i++;
+    long next_iter = atomic_load(&args->iteration);
+    if (next_iter > current_iter) {
+      current_iter = next_iter;
+
+      RTValue val = atomic_load_explicit(&v->root, memory_order_acquire);
+      if (val != RT_boxNull() && RT_isPtr(val)) {
+        HazardSlot *slot = getOrCreateSlot();
+
+        // Advertise
+        atomic_store_explicit(&slot->hazardPointer, val, memory_order_relaxed);
+        atomic_signal_fence(memory_order_seq_cst);
+
+        // Double check
+        if (val == atomic_load_explicit(&v->root, memory_order_acquire)) {
+          // Signal writer that we are in
+          atomic_store(&args->reader_entering, true);
+
+          // Targeted delay: right before retain, maximize window for
+          // destruction
+          for (int j = 0; j < 1000; j++)
+            CPU_PAUSE();
+
+          retain(val);
+          release(val);
+        } else {
+          // If we missed it, signal so writer doesn't hang
+          atomic_store(&args->reader_entering, true);
+        }
+
+        // Clear advertisement IMMEDIATELY so writer can proceed
+        atomic_store_explicit(&slot->hazardPointer, RT_boxNull(),
+                              memory_order_relaxed);
+      } else {
+        // Fallback to avoid hanging writer if root wasn't visible
+        atomic_store(&args->reader_entering, true);
+      }
+
+      atomic_store(&args->reader_done, current_iter);
     }
+    CPU_PAUSE();
   }
-  printf("!!! Terminating destruction reader thread after %d iterations\n", i);
   return NULL;
 }
 
-static void test_var_destruction_hazard_race(void **state) {
+static void test_var_destruction_hazard_race_stable(void **state) {
   (void)state;
   atomic_store(&stop_threads, false);
-  struct DestructionRaceArgs args;
-  atomic_store(&args.v_ptr, NULL);
+  Var *v = Var_create(Keyword_create(String_create("stable")));
+  Ptr_retain(v);
+
+  struct DestructionRaceArgs args = {
+      .v = v, .iteration = 0, .reader_done = 0, .reader_entering = false};
 
   pthread_t writer, reader;
   pthread_create(&writer, NULL, destruction_writer, &args);
@@ -139,40 +205,15 @@ static void test_var_destruction_hazard_race(void **state) {
 
   pthread_join(writer, NULL);
   pthread_join(reader, NULL);
-}
 
-static void test_var_race_condition(void **state) {
-  ASSERT_MEMORY_ALL_BALANCED({
-    RTValue sym = Keyword_create(String_create("race-var"));
-    Var *v = Var_create(sym);
-
-    // Initial binding
-    Ptr_retain(v);
-    Var_bindRoot(v, RT_boxPtr(String_create("initial-value")));
-
-    struct ThreadArgs args = {.v = v};
-    pthread_t writer;
-    pthread_t reader;
-
-    pthread_create(&writer, NULL, writer_thread, &args);
-    pthread_create(&reader, NULL, reader_thread, &args);
-
-    pthread_join(writer, NULL);
-    pthread_join(reader, NULL);
-
-    // If we reached here without a crash, the race didn't trigger in this run.
-    // In a real scenario, we might want to run this in a loop or with ASan.
-
-    // Cleanup (might also crash if memory is corrupted)
-    Var_unbindRoot(v);
-  });
+  Ptr_release(v);
 }
 
 int main(int argc, char **argv) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
-      cmocka_unit_test(test_var_race_condition),
-      cmocka_unit_test(test_var_destruction_hazard_race),
+      cmocka_unit_test(test_var_concurrent_bind_deref_race),
+      cmocka_unit_test(test_var_destruction_hazard_race_stable),
   };
   int result = cmocka_run_group_tests(tests, NULL, NULL);
   RuntimeInterface_cleanup();

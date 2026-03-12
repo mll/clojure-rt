@@ -205,56 +205,52 @@ RTValue Var_bindRoot(Var *self, RTValue object) { // TODO: synchronized
     // and writer sees all reader advertisements.
     asymmetric_barrier();
 
-    // Scan phase: Wait until no Hazard Pointer matches old_val
-    HazardSlot *head = atomic_load(&hazardHead);
-    HazardSlot *curr = head;
-    while (curr) {
-      // If a thread is advertising this old value, we must wait for them to
-      // finish.
-      while (atomic_load_explicit(&curr->hazardPointer, memory_order_seq_cst) ==
-             oldRoot) {
-        // Busy wait or yield
-        CPU_PAUSE();
+    HazardSlot *newHead = atomic_load(&hazardHead);
+    HazardSlot *curr;
+    HazardSlot *head;
+
+    do {
+      head = newHead;
+      curr = head;
+      while (curr) {
+        while (atomic_load_explicit(&curr->hazardPointer,
+                                    memory_order_seq_cst) == oldRoot) {
+          CPU_PAUSE();
+        }
+        curr = curr->next;
       }
-      HazardSlot *newHead = atomic_load(&hazardHead);
-      if (newHead != head) {
-        head = newHead;
-        curr = newHead;
-        continue;
-      }
-      curr = curr->next;
-    }
+      newHead = atomic_load(&hazardHead);
+    } while (newHead != head);
   }
+
   release(oldRoot);
   Ptr_release(self);
   return RT_boxNil();
 }
 
-RTValue Var_unbindRoot(
-    Var *self) { // TODO: synchronized - Marek: What does it exactly mean?
+RTValue Var_unbindRoot(Var *self) {
   RTValue oldRoot =
       atomic_exchange_explicit(&self->root, RT_boxNull(), memory_order_seq_cst);
   atomic_fetch_add_explicit(&(self->rev), 1, memory_order_relaxed);
 
   if (oldRoot != RT_boxNull()) {
     asymmetric_barrier();
-    HazardSlot *head = atomic_load(&hazardHead);
-    HazardSlot *curr = head;
+    HazardSlot *newHead = atomic_load(&hazardHead);
+    HazardSlot *curr;
+    HazardSlot *head;
 
-    while (curr) {
-      while (atomic_load_explicit(&curr->hazardPointer, memory_order_seq_cst) ==
-             oldRoot) {
-        CPU_PAUSE();
+    do {
+      head = newHead;
+      curr = head;
+      while (curr) {
+        while (atomic_load_explicit(&curr->hazardPointer,
+                                    memory_order_seq_cst) == oldRoot) {
+          CPU_PAUSE();
+        }
+        curr = curr->next;
       }
-      HazardSlot *newHead = atomic_load(&hazardHead);
-      if (newHead != head) {
-        head = newHead;
-        curr = newHead;
-        continue;
-      }
-
-      curr = curr->next;
-    }
+      newHead = atomic_load(&hazardHead);
+    } while (newHead != head);
   }
 
   release(oldRoot);

@@ -1,4 +1,4 @@
-# Clojure Real Time
+# Clojure Real Time [![C++ CI Linux](https://github.com/mll/clojure-rt/actions/workflows/ci.yml/badge.svg)](https://github.com/mll/clojure-rt/actions/workflows/ci.yml)
 
 Clojuire Real Time (clojure-rt) is a compiler of Clojure programming language.
 

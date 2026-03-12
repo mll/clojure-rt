@@ -68,6 +68,7 @@ set(TEST_MODULES
     Integer_test
     Ratio_test
     Boolean_test
+    Var_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

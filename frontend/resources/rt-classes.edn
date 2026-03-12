@@ -225,7 +225,7 @@
 
   clojure.lang.Util
   {:static-fns
-    {equiv [{:args [:int :int] :type :intrinsic :symbol "ICmpEQ"               :returns :bool}
+    {equiv [{:args [:int :int]       :type :intrinsic :symbol "ICmpEQ"         :returns :bool}
             {:args [:double :double] :type :intrinsic :symbol "FCmpOEQ"        :returns :bool}
             {:args [:bigint :double] :type :intrinsic :symbol "FCmpOEQ_BD"     :returns :bool}
             {:args [:bigint :int]    :type :call      :symbol "BigInteger_equalsInt" :returns :bool}

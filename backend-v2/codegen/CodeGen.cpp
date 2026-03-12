@@ -161,8 +161,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().throw_(), typeRestrictions);
   // case opTry:
   //   return codegen(node, node.subnode().try_(), typeRestrictions);
-  // case opVar:
-  //   return codegen(node, node.subnode().var(), typeRestrictions);
+  case opVar:
+    return codegen(node, node.subnode().var(), typeRestrictions);
   // case opWithMeta:
   //   return codegen(node, node.subnode().withmeta(), typeRestrictions);
   default:
@@ -261,8 +261,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().throw_(), typeRestrictions);
   // case opTry:
   //   return getType(node, node.subnode().try_(), typeRestrictions);
-  // case opVar:
-  //   return getType(node, node.subnode().var(), typeRestrictions);
+  case opVar:
+    return getType(node, node.subnode().var(), typeRestrictions);
   // case opWithMeta:
   //   return getType(node, node.subnode().withmeta(), typeRestrictions);
   default:

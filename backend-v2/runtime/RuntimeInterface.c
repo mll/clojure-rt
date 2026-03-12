@@ -3,6 +3,7 @@
 #include "Keyword.h"
 #include "PersistentVector.h"
 #include "Symbol.h"
+#include "Var.h"
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -29,6 +30,7 @@ void RuntimeInterface_initialise() {
   vars = ConcurrentHashMap_create(10);             // 2^10
   symbols = ConcurrentHashMap_create(10);
   symbolsInverted = ConcurrentHashMap_create(10);
+  Var_initialize();
 }
 
 void RuntimeInterface_cleanup() {
@@ -53,11 +55,12 @@ void RuntimeInterface_cleanup() {
     vars = NULL;
   }
   PersistentVector_cleanup();
+  Var_cleanup();
 }
 
 void printReferenceCounts() {
   printf("Ref counters: ");
-  for (unsigned char i = integerType; i <= persistentArrayMapType; i++) {
+  for (unsigned char i = integerType; i <= varType; i++) {
     printf("%lu/%lu ", allocationCount[i - 1], objectCount[i - 1]);
   }
   printf("\n");

@@ -2,6 +2,7 @@
 #include "bytecode.pb.h"
 #include <fstream>
 #include <iostream>
+#include <string>
 
 #include "bridge/Exceptions.h"
 #include "llvm/ADT/APFloat.h"
@@ -24,6 +25,7 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 
 #include "jit/JITEngine.h"
+#include "runtime/String.h"
 #include "state/ThreadsafeCompilerState.h"
 
 using namespace std;
@@ -92,18 +94,23 @@ int main(int argc, char *argv[]) {
 
     state.storeInternalClasses(classes);
 
-    auto f = engine.compileAST(astRoot.nodes(0), "__root",
-                               llvm::OptimizationLevel::O0, true);
-    cout << "Compiling!!!" << endl;
+    for (int j = 0; j < astRoot.nodes_size(); j++) {
+      auto topLevelNode = astRoot.nodes(j);
+      cout << "=============================" << endl;
+      cout << "Compiling!!!" << endl;
+      std::string moduleName = "__repl__" + std::to_string(j);
+      auto f = engine.compileAST(topLevelNode, moduleName,
+                                 llvm::OptimizationLevel::O0, true);
 
-    RTValue whaat = f.get().toPtr<RTValue (*)()>()();
-    String *s = toString(whaat);
-    s = String_compactify(s);
+      RTValue whaat = f.get().toPtr<RTValue (*)()>()();
+      String *s = toString(whaat);
+      s = String_compactify(s);
 
-    cout << "========== Result ==========" << endl;
-    cout << std::string(String_c_str(s)) << endl;
-    cout << "========== /Result ==========" << endl;
-    Ptr_release(s);
+      cout << "========== Result ==========" << endl;
+      cout << std::string(String_c_str(s)) << endl;
+      cout << "========== /Result ==========" << endl;
+      Ptr_release(s);
+    }
     retVal = 0;
   } catch (rt::LanguageException e) {
     cout << rt::getExceptionString(e) << endl;

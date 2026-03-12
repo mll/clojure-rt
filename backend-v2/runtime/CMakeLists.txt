@@ -34,7 +34,8 @@ set(SOURCES
     Ratio.c
     Class.c
     RuntimeInterface.c
-    PersistentArrayMap.c)
+    PersistentArrayMap.c
+    Var.c)
 
 add_library(runtime STATIC ${SOURCES})
 
@@ -67,6 +68,8 @@ set(TEST_MODULES
     Integer_test
     Ratio_test
     Boolean_test
+    Var_test
+    Var_Race_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

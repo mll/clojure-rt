@@ -51,6 +51,7 @@ using std::memory_order_seq_cst;
 #include "Ratio.h"
 #include "String.h"
 #include "Symbol.h"
+#include "Var.h"
 
 typedef struct String String;
 
@@ -238,6 +239,10 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   case persistentArrayMapType:
     PersistentArrayMap_destroy((PersistentArrayMap *)self, deallocateChildren);
     break;
+  case varType:
+    Var_destroy((Var *)self);
+    break;
+ 
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -327,6 +332,8 @@ inline uword_t Object_hash(Object *restrict self) {
     return Ratio_hash((Ratio *)self);
   case persistentArrayMapType:
     return PersistentArrayMap_hash((PersistentArrayMap *)self);
+  case varType:
+    return Var_hash((Var *)self);    
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -403,6 +410,11 @@ inline bool Object_equals(Object *self, Object *other) {
     return PersistentArrayMap_equals((PersistentArrayMap *)self,
                                      (PersistentArrayMap *)other);
     break;
+  case varType:
+    return Var_equals((Var *)self,
+                      (Var *)other);
+    break;
+    
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -459,6 +471,8 @@ inline String *Object_toString(Object *restrict self) {
     return Ratio_toString((Ratio *)self);
   case persistentArrayMapType:
     return PersistentArrayMap_toString((PersistentArrayMap *)self);
+  case varType:
+    return Var_toString((Var *)self);    
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }

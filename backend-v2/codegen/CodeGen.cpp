@@ -2,14 +2,25 @@
 #include "../bridge/Exceptions.h"
 #include "../cljassert.h"
 #include "TypedValue.h"
+#include "runtime/RTValue.h"
+#include "runtime/String.h"
+#include "runtime/Object.h"
 
 using namespace llvm;
 
 namespace rt {
+
+CodeGen::~CodeGen() {
+  for (auto &val : generatedConstants) {
+    Ptr_release(RT_unboxPtr(val));
+  }
+}
+
 CodeGenResult CodeGen::release() && {
   DIB->finalize();
-  return {std::move(TSContext), std::move(TheModule),
-          std::move(generatedConstants)};
+  auto constants = std::move(generatedConstants);
+  generatedConstants.clear(); // Ensure destructor doesn't re-release
+  return {std::move(TSContext), std::move(TheModule), std::move(constants)};
 }
 
 std::string CodeGen::codegenTopLevel(const Node &node) {
@@ -99,8 +110,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().casethen(), typeRestrictions);
   // case opCatch:
   //   return codegen(node, node.subnode().catch_(), typeRestrictions);
-  // case opDef:
-  //   return codegen(node, node.subnode().def(), typeRestrictions);
+  case opDef:
+    return codegen(node, node.subnode().def(), typeRestrictions);
   // case opDeftype:
   //   return codegen(node, node.subnode().deftype(), typeRestrictions);
   // case opDo:
@@ -155,14 +166,14 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().mutateset(), typeRestrictions);
   // case opStaticField:
   //   return codegen(node, node.subnode().staticfield(), typeRestrictions);
-  // case opTheVar:
-  //   return codegen(node, node.subnode().thevar(), typeRestrictions);
+  case opTheVar:
+    return codegen(node, node.subnode().thevar(), typeRestrictions);
   // case opThrow:
   //   return codegen(node, node.subnode().throw_(), typeRestrictions);
   // case opTry:
   //   return codegen(node, node.subnode().try_(), typeRestrictions);
-  // case opVar:
-  //   return codegen(node, node.subnode().var(), typeRestrictions);
+  case opVar:
+    return codegen(node, node.subnode().var(), typeRestrictions);
   // case opWithMeta:
   //   return codegen(node, node.subnode().withmeta(), typeRestrictions);
   default:
@@ -199,8 +210,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().casethen(), typeRestrictions);
   // case opCatch:
   //   return getType(node, node.subnode().catch_(), typeRestrictions);
-  // case opDef:
-  //   return getType(node, node.subnode().def(), typeRestrictions);
+  case opDef:
+    return getType(node, node.subnode().def(), typeRestrictions);
   // case opDeftype:
   //   return getType(node, node.subnode().deftype(), typeRestrictions);
   // case opDo:
@@ -255,14 +266,14 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().mutateset(), typeRestrictions);
   // case opStaticField:
   //   return getType(node, node.subnode().staticfield(), typeRestrictions);
-  // case opTheVar:
-  //   return getType(node, node.subnode().thevar(), typeRestrictions);
+  case opTheVar:
+    return getType(node, node.subnode().thevar(), typeRestrictions);
   // case opThrow:
   //   return getType(node, node.subnode().throw_(), typeRestrictions);
   // case opTry:
   //   return getType(node, node.subnode().try_(), typeRestrictions);
-  // case opVar:
-  //   return getType(node, node.subnode().var(), typeRestrictions);
+  case opVar:
+    return getType(node, node.subnode().var(), typeRestrictions);
   // case opWithMeta:
   //   return getType(node, node.subnode().withmeta(), typeRestrictions);
   default:
@@ -274,5 +285,12 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   return ObjectTypeSet::all();
 }
 
+Var *CodeGen::getOrCreateVar(std::string_view name) {
+  return compilerState.varRegistry.getOrCreate(
+      std::string(name).c_str(), [this, name]() {
+        auto n = std::string(name);
+        return dynamicConstructor.createVarRaw(n.c_str());
+      });
+}
 
 } // namespace rt

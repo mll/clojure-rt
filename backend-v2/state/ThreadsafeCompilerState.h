@@ -11,7 +11,7 @@ extern "C" {
 #include "runtime/Object.h"
 #include "runtime/ObjectProto.h"
 #include "runtime/PersistentArrayMap.h"
-/* #include "runtime/Var.h" */
+#include "runtime/Var.h"
 }
 
 using namespace clojure::rt::protobuf::bytecode;
@@ -24,9 +24,10 @@ public:
 
   ThreadsafeRegistry<::Class> classRegistry;
   ThreadsafeRegistry<const Node> functionAstRegistry;
-  /* ThreadsafeRegistry<Var> varRegistry; */
+  ThreadsafeRegistry<::Var> varRegistry;
 
-  ThreadsafeCompilerState() : classRegistry(true), functionAstRegistry(false) {}
+  ThreadsafeCompilerState()
+      : classRegistry(true), functionAstRegistry(false), varRegistry(true) {}
 
   void storeInternalClasses(RTValue from);
   void storeInternalProtocols(RTValue from);

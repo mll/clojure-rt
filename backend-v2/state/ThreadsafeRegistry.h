@@ -3,6 +3,7 @@
 
 #include "../RuntimeHeaders.h"
 #include "../bridge/Exceptions.h"
+#include "runtime/Object.h"
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -48,6 +49,25 @@ public:
     }
 
     registry[name] = newDef;
+  }
+
+  template <typename F> T *getOrCreate(const char *name, F &&factory) {
+    std::lock_guard<std::mutex> lock(registryMutex);
+
+    std::string key(name);
+    auto it = registry.find(key);
+
+    if (it != registry.end()) {
+      if (manageRuntimeMemory)
+        Ptr_retain((void *)it->second);
+      return it->second;
+    }
+
+    T *newDef = factory();
+    registry[key] = newDef;
+    if (manageRuntimeMemory)
+      Ptr_retain(newDef);
+    return newDef;
   }
 
   T *getCurrent(const int32_t index) const {

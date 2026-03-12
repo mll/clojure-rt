@@ -30,7 +30,7 @@
 #include "Class.h"
 #include "Deftype.h"
 #include "Function.h"
-#include "Var.h"
+//#include "Var.h"
 #include "BigInteger.h"
 #include "Ratio.h"
 #include "PersistentArrayMap.h"

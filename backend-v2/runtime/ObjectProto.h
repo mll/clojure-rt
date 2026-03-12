@@ -38,6 +38,7 @@ enum objectType {
   ratioType,                // 14
   classType,                // 15
   persistentArrayMapType,   // 16
+  varType,                  // 17
 };
 
 typedef enum objectType objectType;

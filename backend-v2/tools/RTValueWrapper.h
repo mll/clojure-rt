@@ -87,6 +87,8 @@ public:
   operator bool() const { return ptr != nullptr; }
 };
 
+template <typename T> using ScopedRef = PtrWrapper<T>;
+
 } // namespace rt
 
 #endif

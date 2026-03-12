@@ -15,7 +15,7 @@
                                       n))))
 
 (def all-keys-types {:op :op
-                     :form :string
+                     :form :pr-str
                      :env :environment
                      :raw-forms [:string] 
                      :top-level :bool 
@@ -50,7 +50,8 @@
         node-type (op node-key-types)
         proto-symbol (comp keyword cl->pt)
 
-        converters {:string str
+        converters {:pr-str pr-str
+                    :string str
                     :int identity
                     :bool identity
                     :node (partial encode-node node-key-types)

@@ -244,6 +244,7 @@ public:
     retVal.insert(ratioType);
     retVal.insert(classType);
     retVal.insert(persistentArrayMapType);
+    retVal.insert(varType);    
     retVal.isBoxed = true;
     return retVal;
   }
@@ -295,6 +296,8 @@ public:
         return "LC";
       case persistentArrayMapType:
         return "LA";
+      case varType:
+        return "LQ";
       }
   }
 

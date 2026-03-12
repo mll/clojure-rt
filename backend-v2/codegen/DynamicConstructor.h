@@ -39,6 +39,8 @@ public:
   TypedValue createSymbol(const char *s);
   TypedValue createBigInteger(const char *s);
   TypedValue createRatio(const char *s);
+  TypedValue createVar(const char *name);
+  Var *createVarRaw(const char *name);
 
   /*
    * TODO:

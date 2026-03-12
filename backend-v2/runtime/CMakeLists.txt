@@ -34,7 +34,8 @@ set(SOURCES
     Ratio.c
     Class.c
     RuntimeInterface.c
-    PersistentArrayMap.c)
+    PersistentArrayMap.c
+    Var.c)
 
 add_library(runtime STATIC ${SOURCES})
 

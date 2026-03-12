@@ -32,15 +32,6 @@ struct CodeGenResult {
   std::vector<RTValue> constants;
 };
 
-class CodeGenerationException : public std::runtime_error {
-  const Node *node;
-
-public:
-  CodeGenerationException(const std::string &msg, const Node &n)
-      : std::runtime_error(msg), node(&n) {}
-  const Node &getNode() const { return *node; }
-};
-
 class CodeGen {
   std::unique_ptr<llvm::orc::ThreadSafeContext> TSContext;
 
@@ -104,16 +95,18 @@ public:
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const StaticCallNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
-
+  TypedValue codegen(const Node &node, const TheVarNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const IfNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
-  ObjectTypeSet getType(const Node &node, const IfNode &subnode,
-                        const ObjectTypeSet &typeRestrictions);
-
 
   ObjectTypeSet getType(const Node &node,
                         const ObjectTypeSet &typeRestrictions);
 
+  ObjectTypeSet getType(const Node &node, const TheVarNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const IfNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const ConstNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const QuoteNode &subnode,

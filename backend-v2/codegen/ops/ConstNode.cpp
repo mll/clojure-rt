@@ -1,5 +1,7 @@
 #include "../../bridge/Exceptions.h"
 #include "../CodeGen.h"
+#include "codegen/TypedValue.h"
+#include <string>
 
 using namespace std;
 using namespace llvm;
@@ -84,17 +86,20 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     retVal = dynamicConstructor.createRatio(subnode.val().c_str());
     memoryManagement.dynamicRetain(retVal);
     break;
-  // case varType:
-  //   {
-  //     Var *var = TheProgramme->getVarByName(subnode.val());
-  //     if (!var) {
-  //       throwCodeGenerationException("Unable to resolve var: " +
-  //       subnode.val() + " in this context", node);
-  //     }
-  //     retVal =
-  //     Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext),
-  //     APInt(64, (uint64_t) var, false)), ptrT); dynamicRetain(retVal); break;
-  //   }
+  case varType: {
+    const std::string name = subnode.val();
+    Var *var = compilerState.varRegistry.getCurrent(name.c_str());
+    if (!var) {
+      throwCodeGenerationException(
+          string("Unable to resolve var: ") + name + " in this context", node);
+    }
+    uintptr_t address = reinterpret_cast<uintptr_t>(var);
+    retVal = TypedValue(
+        ObjectTypeSet(varType),
+        ConstantExpr::getIntToPtr(ConstantInt::get(this->types.i64Ty, address),
+                                  this->types.ptrTy));
+    break;
+  }
   case persistentListType:
 
   case persistentVectorType:
@@ -139,7 +144,8 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
     }
 
     if (node.tag() == "double" || node.otag() == "double" ||
-        node.tag() == "class java.lang.Double" || subnode.val().find('.') != string::npos) {
+        node.tag() == "class java.lang.Double" ||
+        subnode.val().find('.') != string::npos) {
       return ObjectTypeSet(doubleType, false,
                            new ConstantDouble(stod(subnode.val())))
           .restriction(typeRestrictions);
@@ -162,10 +168,11 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
           }
         }
       } catch (...) {
-        if (!subnode.val().empty() && (isdigit(subnode.val()[0]) || subnode.val()[0] == '-')) {
-             return ObjectTypeSet(bigIntegerType, true,
-                                new ConstantBigInteger(subnode.val()))
-                 .restriction(typeRestrictions);
+        if (!subnode.val().empty() &&
+            (isdigit(subnode.val()[0]) || subnode.val()[0] == '-')) {
+          return ObjectTypeSet(bigIntegerType, true,
+                               new ConstantBigInteger(subnode.val()))
+              .restriction(typeRestrictions);
         }
       }
     }
@@ -192,10 +199,9 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
         .restriction(typeRestrictions);
   // case ConstNode_ConstType_constTypeClass:
   //   return ObjectTypeSet(classType).restriction(typeRestrictions);
-  // case ConstNode_ConstType_constTypeVar:
-  //   return ObjectTypeSet(varType).restriction(typeRestrictions);
+  case ConstNode_ConstType_constTypeVar:
+    return ObjectTypeSet(varType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeType:
-
   case ConstNode_ConstType_constTypeRecord:
   case ConstNode_ConstType_constTypeMap:
   case ConstNode_ConstType_constTypeVector:

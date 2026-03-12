@@ -155,8 +155,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().mutateset(), typeRestrictions);
   // case opStaticField:
   //   return codegen(node, node.subnode().staticfield(), typeRestrictions);
-  // case opTheVar:
-  //   return codegen(node, node.subnode().thevar(), typeRestrictions);
+  case opTheVar:
+    return codegen(node, node.subnode().thevar(), typeRestrictions);
   // case opThrow:
   //   return codegen(node, node.subnode().throw_(), typeRestrictions);
   // case opTry:
@@ -255,8 +255,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().mutateset(), typeRestrictions);
   // case opStaticField:
   //   return getType(node, node.subnode().staticfield(), typeRestrictions);
-  // case opTheVar:
-  //   return getType(node, node.subnode().thevar(), typeRestrictions);
+  case opTheVar:
+    return getType(node, node.subnode().thevar(), typeRestrictions);
   // case opThrow:
   //   return getType(node, node.subnode().throw_(), typeRestrictions);
   // case opTry:
@@ -273,6 +273,5 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   }
   return ObjectTypeSet::all();
 }
-
 
 } // namespace rt

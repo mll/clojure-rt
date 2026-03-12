@@ -2,6 +2,8 @@
 #include "../bridge/Exceptions.h"
 #include "../cljassert.h"
 #include "TypedValue.h"
+#include "runtime/RTValue.h"
+#include "runtime/String.h"
 
 using namespace llvm;
 
@@ -99,8 +101,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().casethen(), typeRestrictions);
   // case opCatch:
   //   return codegen(node, node.subnode().catch_(), typeRestrictions);
-  // case opDef:
-  //   return codegen(node, node.subnode().def(), typeRestrictions);
+  case opDef:
+    return codegen(node, node.subnode().def(), typeRestrictions);
   // case opDeftype:
   //   return codegen(node, node.subnode().deftype(), typeRestrictions);
   // case opDo:
@@ -199,8 +201,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().casethen(), typeRestrictions);
   // case opCatch:
   //   return getType(node, node.subnode().catch_(), typeRestrictions);
-  // case opDef:
-  //   return getType(node, node.subnode().def(), typeRestrictions);
+  case opDef:
+    return getType(node, node.subnode().def(), typeRestrictions);
   // case opDeftype:
   //   return getType(node, node.subnode().deftype(), typeRestrictions);
   // case opDo:
@@ -272,6 +274,14 @@ ObjectTypeSet CodeGen::getType(const Node &node,
         node);
   }
   return ObjectTypeSet::all();
+}
+
+Var *CodeGen::getOrCreateVar(std::string_view name) {
+  return compilerState.varRegistry.getOrCreate(
+      std::string(name).c_str(), [this, name]() {
+        auto n = std::string(name);
+        return dynamicConstructor.createVarRaw(n.c_str());
+      });
 }
 
 } // namespace rt

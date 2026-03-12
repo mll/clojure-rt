@@ -113,10 +113,12 @@ Var *Var_create(RTValue keyword) {
               RT_boxNull()); //(Object *)Deftype_create(UNIQUE_UnboundClass, 1,
                              // keyword);
   self->dynamic = false;
-  retain(keyword);
   self->keyword = keyword;
   atomic_init(&self->rev, 0);
   Object_create((Object *)self, varType);
+  String *kw = String_compactify(toString(self->keyword));
+  printf("Var_create: %s\n", String_c_str(kw));
+  Ptr_release(kw);
   return self;
 };
 
@@ -131,9 +133,8 @@ uword_t Var_hash(Var *self) {
 String *Var_toString(Var *self) {
   String *retVal = String_create("#");
   retVal = String_concat(retVal, String_replace(toString(self->keyword),
-                                                String_createStatic(":"),
-                                                String_createStatic("'")));
-
+                                                String_create(":"),
+                                                String_create("'")));
   Ptr_release(self);
   return retVal;
 };
@@ -195,7 +196,7 @@ RTValue Var_deref(Var *self) {
   // TODO: threadBound
 };
 
-RTValue Var_bindRoot(Var *self, RTValue object) { // TODO: synchronized
+RTValue Var_bindRoot(Var *self, RTValue object) {
   RTValue oldRoot =
       atomic_exchange_explicit(&self->root, object, memory_order_seq_cst);
   atomic_fetch_add_explicit(&(self->rev), 1, memory_order_relaxed);

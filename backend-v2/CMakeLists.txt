@@ -129,6 +129,7 @@ set(BACKEND_SOURCES
       codegen/ops/MapNode.cpp
       codegen/ops/StaticCallNode.cpp
       codegen/ops/IfNode.cpp
+      codegen/ops/DefNode.cpp
       codegen/ops/TheVarNode.cpp
       codegen/ops/VarNode.cpp)
 

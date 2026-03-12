@@ -1,5 +1,6 @@
 #include "../CodeGen.h"
 #include "bridge/Exceptions.h"
+#include "tools/RTValueWrapper.h"
 #include "types/ObjectTypeSet.h"
 
 using namespace std;
@@ -10,8 +11,8 @@ namespace rt {
 TypedValue CodeGen::codegen(const Node &node, const DefNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
   auto varName = subnode.var().substr(2);
-  Var *var = getOrCreateVar(varName);
-  uint64_t address = reinterpret_cast<uint64_t>(var);
+  ScopedRef<Var> var(getOrCreateVar(varName));
+  uint64_t address = reinterpret_cast<uint64_t>(var.get());
   TypedValue varPtr = TypedValue(
       ObjectTypeSet(varType),
       ConstantExpr::getIntToPtr(ConstantInt::get(this->types.i64Ty, address),

@@ -79,6 +79,8 @@ public:
                                 false, "", 0);
   }
 
+  ~CodeGen();
+
   CodeGenResult release() &&;
 
   std::string codegenTopLevel(const Node &node);

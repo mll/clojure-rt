@@ -4,14 +4,23 @@
 #include "TypedValue.h"
 #include "runtime/RTValue.h"
 #include "runtime/String.h"
+#include "runtime/Object.h"
 
 using namespace llvm;
 
 namespace rt {
+
+CodeGen::~CodeGen() {
+  for (auto &val : generatedConstants) {
+    Ptr_release(RT_unboxPtr(val));
+  }
+}
+
 CodeGenResult CodeGen::release() && {
   DIB->finalize();
-  return {std::move(TSContext), std::move(TheModule),
-          std::move(generatedConstants)};
+  auto constants = std::move(generatedConstants);
+  generatedConstants.clear(); // Ensure destructor doesn't re-release
+  return {std::move(TSContext), std::move(TheModule), std::move(constants)};
 }
 
 std::string CodeGen::codegenTopLevel(const Node &node) {

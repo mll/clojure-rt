@@ -76,7 +76,6 @@ TypedValue DynamicConstructor::createString(const char *s) {
 
 TypedValue DynamicConstructor::createVar(const char *name) {
   Var *var = Var_create(Keyword_create(String_createDynamicStr(name)));
-  generatedConstants.push_back(RT_boxPtr(var));
   uintptr_t address = reinterpret_cast<uintptr_t>(var);
   return TypedValue(ObjectTypeSet(varType),
                     ConstantExpr::getIntToPtr(
@@ -85,7 +84,6 @@ TypedValue DynamicConstructor::createVar(const char *name) {
 
 Var *DynamicConstructor::createVarRaw(const char *name) {
   Var *var = Var_create(Keyword_create(String_createDynamicStr(name)));
-  generatedConstants.push_back(RT_boxPtr(var));
   return var;
 }
 

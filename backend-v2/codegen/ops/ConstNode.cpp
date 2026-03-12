@@ -1,4 +1,5 @@
 #include "../../bridge/Exceptions.h"
+#include "../../tools/RTValueWrapper.h"
 #include "../CodeGen.h"
 #include "codegen/TypedValue.h"
 #include <string>
@@ -88,16 +89,17 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     break;
   case varType: {
     const std::string name = subnode.val();
-    Var *var = compilerState.varRegistry.getCurrent(name.c_str());
+    ScopedRef<Var> var(compilerState.varRegistry.getCurrent(name.c_str()));
     if (!var) {
       throwCodeGenerationException(
           string("Unable to resolve var: ") + name + " in this context", node);
     }
-    uintptr_t address = reinterpret_cast<uintptr_t>(var);
+    uint64_t address = reinterpret_cast<uint64_t>(var.get());
     retVal = TypedValue(
         ObjectTypeSet(varType),
         ConstantExpr::getIntToPtr(ConstantInt::get(this->types.i64Ty, address),
                                   this->types.ptrTy));
+    memoryManagement.dynamicRetain(retVal);
     break;
   }
   case persistentListType:

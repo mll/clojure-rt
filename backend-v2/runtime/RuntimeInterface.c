@@ -60,7 +60,7 @@ void RuntimeInterface_cleanup() {
 
 void printReferenceCounts() {
   printf("Ref counters: ");
-  for (unsigned char i = integerType; i <= persistentArrayMapType; i++) {
+  for (unsigned char i = integerType; i <= varType; i++) {
     printf("%lu/%lu ", allocationCount[i - 1], objectCount[i - 1]);
   }
   printf("\n");

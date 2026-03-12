@@ -64,7 +64,7 @@ void *reader_thread(void *arg) {
     if (val != RT_boxNull()) {
       // Accessing the object to trigger ASan if it's freed
       // toString is consuming in this runtime
-      toString(val);
+      Ptr_release(toString(val));
     }
     CPU_PAUSE();
   }
@@ -87,6 +87,8 @@ static void test_var_concurrent_bind_deref_race(void **state) {
 
   pthread_join(writer, NULL);
   pthread_join(reader, NULL);
+
+  Ptr_release(v);
 }
 
 /* --- Test 2: Var_destroy synchronization (The "Destruction" Test) --- */
@@ -194,7 +196,6 @@ static void test_var_destruction_hazard_race_stable(void **state) {
   (void)state;
   atomic_store(&stop_threads, false);
   Var *v = Var_create(Keyword_create(String_create("stable")));
-  Ptr_retain(v);
 
   struct DestructionRaceArgs args = {
       .v = v, .iteration = 0, .reader_done = 0, .reader_entering = false};

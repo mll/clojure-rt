@@ -258,3 +258,11 @@ RTValue Var_unbindRoot(Var *self) {
   Ptr_release(self);
   return RT_boxNil();
 }
+
+/* the returned reference is not retained and is not guaranteed to even
+   be valid after the call returns. */
+RTValue Var_peek(Var *self) {
+  RTValue val = atomic_load_explicit(&self->root, memory_order_relaxed);
+  Ptr_release(self);
+  return val;
+}

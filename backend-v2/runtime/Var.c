@@ -1,24 +1,121 @@
 #include "Var.h"
-#include "Exceptions.h"
 #include "Object.h"
 #include "RTValue.h"
 #include "String.h"
-#include "Hash.h"
 #include "word.h"
-#include <stdarg.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 // TODO: UnboundClass is printed in different way
-//Class *UNIQUE_UnboundClass;
+// Class *UNIQUE_UnboundClass;
+
+#if defined(__x86_64__) || defined(__i386__)
+/* Works for both Intel Macs and Linux on x86 */
+#include <immintrin.h>
+#define CPU_PAUSE() _mm_pause()
+#elif defined(__aarch64__) || defined(__arm__)
+/* Works for Apple Silicon (M1/M2/M3) and ARM Linux */
+#if defined(__GNUC__) || defined(__clang__)
+#define CPU_PAUSE() __asm__ __volatile__("yield")
+#else
+/* Fallback for other compilers on ARM */
+#define CPU_PAUSE() __builtin_arm_yield()
+#endif
+#else
+/* No-op for unknown architectures */
+#define CPU_PAUSE()                                                            \
+  do {                                                                         \
+  } while (0)
+#endif
+
+typedef struct HazardSlot {
+  _Atomic(RTValue) hazardPointer;
+  _Atomic(bool) active;
+  struct HazardSlot *next;
+} HazardSlot;
+
+static _Atomic(HazardSlot *) hazardHead = NULL;
+static __thread HazardSlot *threadLocalHazardSlot = NULL;
+static pthread_key_t cleanup_gatekeeper;
+
+static void *dummy_page = NULL;
+static void asymmetric_barrier() {
+  if (!dummy_page) {
+    dummy_page = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE,
+                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  }
+  // Toggle protection to force TLB shootdown / System-wide barrier on all cores
+  mprotect(dummy_page, getpagesize(), PROT_READ);
+  mprotect(dummy_page, getpagesize(), PROT_READ | PROT_WRITE);
+}
+
+void on_thread_exit(void *unused) {
+  if (threadLocalHazardSlot != NULL) {
+    bool expectedValue = true;
+    atomic_compare_exchange_weak(&(threadLocalHazardSlot->active),
+                                 &expectedValue, false);
+  }
+}
+
+void Var_initialize() {
+  pthread_key_create(&cleanup_gatekeeper, on_thread_exit);
+}
+
+void Var_thread_initialize() {
+  pthread_setspecific(cleanup_gatekeeper, (void *)0x1);
+}
+
+void Var_cleanup() { /* to be run when all other threads are dead */
+  HazardSlot *current_head;
+  while ((current_head = atomic_load(&hazardHead)) != NULL) {
+    HazardSlot *next_head = current_head->next;
+    if (!atomic_compare_exchange_weak(&hazardHead, &current_head, next_head)) {
+      continue;
+    }
+    free(current_head);
+  }
+}
+
+static inline HazardSlot *getOrCreateSlot() {
+  if (threadLocalHazardSlot)
+    return threadLocalHazardSlot;
+
+  // 1. Try to find an inactive slot to recycle
+  HazardSlot *curr = atomic_load(&hazardHead);
+  while (curr) {
+    bool expected = false;
+    if (atomic_compare_exchange_strong(&curr->active, &expected, true)) {
+      threadLocalHazardSlot = curr;
+      return curr;
+    }
+    curr = curr->next;
+  }
+
+  // 2. No free slots, allocate new
+  HazardSlot *new_node = calloc(1, sizeof(HazardSlot));
+  new_node->active = true;
+
+  // Lock-free push to the global list
+  HazardSlot *old_head;
+  do {
+    old_head = atomic_load(&hazardHead);
+    new_node->next = old_head;
+  } while (!atomic_compare_exchange_weak(&hazardHead, &old_head, new_node));
+
+  threadLocalHazardSlot = new_node;
+  return threadLocalHazardSlot;
+}
 
 Var *Var_create(RTValue keyword) {
   Var *self = (Var *)allocate(sizeof(Var));
-  self->unbound = true;
-  retain(keyword);
-//  retain(UNIQUE_UnboundClass);
-  self->root = RT_boxNull(); //(Object *)Deftype_create(UNIQUE_UnboundClass, 1, keyword);
+  //  retain(UNIQUE_UnboundClass);
+  atomic_init(&(self->root),
+              RT_boxNull()); //(Object *)Deftype_create(UNIQUE_UnboundClass, 1,
+                             // keyword);
   self->dynamic = false;
+  retain(keyword);
   self->keyword = keyword;
-  self->rev = 0;
+  atomic_init(&self->rev, 0);
   Object_create((Object *)self, varType);
   return self;
 };
@@ -36,7 +133,7 @@ String *Var_toString(Var *self) {
   retVal = String_concat(retVal, String_replace(toString(self->keyword),
                                                 String_createStatic(":"),
                                                 String_createStatic("'")));
-  
+
   Ptr_release(self);
   return retVal;
 };
@@ -58,36 +155,108 @@ bool Var_isDynamic(Var *self) {
 };
 
 bool Var_hasRoot(Var *self) {
-  bool retVal = !self->unbound;
+  bool retVal =
+      atomic_load_explicit(&self->root, memory_order_acquire) != RT_boxNull();
   Ptr_release(self);
   return retVal;
 };
 
-RTValue Var_deref(Var *self) { // TODO: synchronized
-  RTValue retVal = self->root;
+RTValue Var_deref(Var *self) {
+  HazardSlot *slot = getOrCreateSlot();
+
+  while (true) {
+    RTValue val = atomic_load_explicit(&self->root, memory_order_acquire);
+    if (val == RT_boxNull()) {
+      Ptr_release(self);
+      return val;
+    }
+    // Stage 1: Advertise
+    // Relaxed store: writer will force visibility with asymmetric_barrier()
+    atomic_store_explicit(&slot->hazardPointer, val, memory_order_relaxed);
+
+    // Prevent compiler from reordering the load of root before the slot store
+    atomic_signal_fence(memory_order_seq_cst);
+
+    // Stage 2: Verify (The "Double Check")
+    // Acquire load is enough here because writer ensures its update is visible
+    // before we'd potentially use the old freed value.
+    if (val == atomic_load_explicit(&self->root, memory_order_acquire)) {
+      retain(val);
+      atomic_store_explicit(&slot->hazardPointer, RT_boxNull(),
+                            memory_order_relaxed);
+      Ptr_release(self);
+      return val;
+    }
+
+    // Global changed, retry
+    atomic_store_explicit(&slot->hazardPointer, RT_boxNull(),
+                          memory_order_relaxed);
+  }
   // TODO: threadBound
-  retain(retVal);
-  Ptr_release(self);
-  return retVal;
 };
 
 RTValue Var_bindRoot(Var *self, RTValue object) { // TODO: synchronized
-  RTValue oldRoot = self->root;
-  ++self->rev;
-  self->unbound = false;
-  self->root = object;
+  RTValue oldRoot =
+      atomic_exchange_explicit(&self->root, object, memory_order_seq_cst);
+  atomic_fetch_add_explicit(&(self->rev), 1, memory_order_relaxed);
+
+  if (oldRoot != RT_boxNull()) {
+    // Heavy synchronization: ensure all readers see the update
+    // and writer sees all reader advertisements.
+    asymmetric_barrier();
+
+    // Scan phase: Wait until no Hazard Pointer matches old_val
+    HazardSlot *head = atomic_load(&hazardHead);
+    HazardSlot *curr = head;
+    while (curr) {
+      // If a thread is advertising this old value, we must wait for them to
+      // finish.
+      while (atomic_load_explicit(&curr->hazardPointer, memory_order_seq_cst) ==
+             oldRoot) {
+        // Busy wait or yield
+        CPU_PAUSE();
+      }
+      HazardSlot *newHead = atomic_load(&hazardHead);
+      if (newHead != head) {
+        head = newHead;
+        curr = newHead;
+        continue;
+      }
+      curr = curr->next;
+    }
+  }
   release(oldRoot);
   Ptr_release(self);
   return RT_boxNil();
 }
 
-RTValue Var_unbindRoot(Var *self) { // TODO: synchronized - Marek: What does it exactly mean?
-  RTValue oldRoot = self->root;
-  ++self->rev;
-  self->unbound = true;
-//  retain(self->keyword);
-//  retain(UNIQUE_UnboundClass);
-  self->root = RT_boxNull(); // Deftype_create(UNIQUE_UnboundClass, 1, self->keyword);
+RTValue Var_unbindRoot(
+    Var *self) { // TODO: synchronized - Marek: What does it exactly mean?
+  RTValue oldRoot =
+      atomic_exchange_explicit(&self->root, RT_boxNull(), memory_order_seq_cst);
+  atomic_fetch_add_explicit(&(self->rev), 1, memory_order_relaxed);
+
+  if (oldRoot != RT_boxNull()) {
+    asymmetric_barrier();
+    HazardSlot *head = atomic_load(&hazardHead);
+    HazardSlot *curr = head;
+
+    while (curr) {
+      while (atomic_load_explicit(&curr->hazardPointer, memory_order_seq_cst) ==
+             oldRoot) {
+        CPU_PAUSE();
+      }
+      HazardSlot *newHead = atomic_load(&hazardHead);
+      if (newHead != head) {
+        head = newHead;
+        curr = newHead;
+        continue;
+      }
+
+      curr = curr->next;
+    }
+  }
+
   release(oldRoot);
   Ptr_release(self);
   return RT_boxNil();

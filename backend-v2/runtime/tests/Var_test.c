@@ -8,7 +8,6 @@
 
 static void test_var_basic_lifecycle(void **state) {
   (void)state;
-
   ASSERT_MEMORY_ALL_BALANCED({
     RTValue sym = Keyword_create(String_create("my-var"));
     Var *v = Var_create(sym);
@@ -41,7 +40,6 @@ static void test_var_basic_lifecycle(void **state) {
 
 static void test_var_dynamic(void **state) {
   (void)state;
-
   ASSERT_MEMORY_ALL_BALANCED({
     RTValue sym = Keyword_create(String_create("dynamic-var"));
     Var *v = Var_create(sym);

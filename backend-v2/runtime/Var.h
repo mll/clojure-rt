@@ -7,19 +7,17 @@ extern "C" {
 #endif
 
 #include "Keyword.h"
+#include "Nil.h"
 #include "RTValue.h"
 #include "String.h"
-#include "Nil.h"
-
 
 typedef struct Object Object;
 
 struct Var {
   Object super;
-  bool unbound;
   bool dynamic;
-  uword_t rev;
-  RTValue root;
+  _Atomic(uword_t) rev;
+  _Atomic(RTValue) root;
   RTValue keyword; // TODO: split name and namespace - Marek - why?
 
   // TODO: threadBound
@@ -27,7 +25,7 @@ struct Var {
 
 typedef struct Var Var;
 
-//Class *UNIQUE_UnboundClass;
+// Class *UNIQUE_UnboundClass;
 
 Var *Var_create(RTValue keyword);
 bool Var_equals(Var *self, Var *other);
@@ -41,6 +39,10 @@ bool Var_hasRoot(Var *self);
 RTValue Var_deref(Var *self);
 RTValue Var_bindRoot(Var *self, RTValue object);
 RTValue Var_unbindRoot(Var *self);
+
+void Var_initialize();
+void Var_thread_initialize();
+void Var_cleanup();
 
 #ifdef __cplusplus
 }

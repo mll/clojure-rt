@@ -18,11 +18,13 @@ struct ThreadArgs {
 };
 
 void *writer_thread(void *arg) {
+  Var_thread_initialize();
   struct ThreadArgs *args = (struct ThreadArgs *)arg;
   Var *v = args->v;
   Ptr_retain(v);
 
-  for (int i = 0; i < ITERATIONS && !atomic_load(&stop_threads); ++i) {
+  int i = 0;
+  for (i = 0; i < ITERATIONS && !atomic_load(&stop_threads); ++i) {
     // Create a new string and bind it as root
     RTValue val = RT_boxPtr(String_create("new-value"));
     Ptr_retain(v);
@@ -31,15 +33,18 @@ void *writer_thread(void *arg) {
     // If the reader thread was just about to retain it, we have a UAF.
   }
   Ptr_release(v);
+  printf("!!! Terminating writer thread after %d iterations\n", i);
   atomic_store(&stop_threads, true);
   return NULL;
 }
 
 void *reader_thread(void *arg) {
+  Var_thread_initialize();
   struct ThreadArgs *args = (struct ThreadArgs *)arg;
   Var *v = args->v;
   Ptr_retain(v);
-  for (int i = 0; i < ITERATIONS && !atomic_load(&stop_threads); ++i) {
+  int i = 0;
+  for (i = 0; i < ITERATIONS && !atomic_load(&stop_threads); ++i) {
     // Deref the var. This reads v->root and then retains it.
     // There is no lock between reading and retaining.
     Ptr_retain(v);
@@ -56,6 +61,7 @@ void *reader_thread(void *arg) {
     release(val);
   }
   Ptr_release(v);
+  printf("!!! Terminating reader thread after %d iterations\n", i);
   atomic_store(&stop_threads, true);
   return NULL;
 }

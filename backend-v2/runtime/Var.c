@@ -140,7 +140,28 @@ String *Var_toString(Var *self) {
 };
 
 void Var_destroy(Var *self) {
-  release(self->root);
+  RTValue oldRoot = self->root;
+  if (oldRoot != RT_boxNull()) {
+    asymmetric_barrier();
+    HazardSlot *newHead = atomic_load(&hazardHead);
+    HazardSlot *curr;
+    HazardSlot *head;
+
+    do {
+      head = newHead;
+      curr = head;
+      while (curr) {
+        while (atomic_load_explicit(&curr->hazardPointer,
+                                    memory_order_seq_cst) == oldRoot) {
+          CPU_PAUSE();
+        }
+        curr = curr->next;
+      }
+      newHead = atomic_load(&hazardHead);
+    } while (newHead != head);
+  }
+
+  release(oldRoot);
   release(self->keyword);
 };
 
@@ -257,4 +278,12 @@ RTValue Var_unbindRoot(Var *self) {
   release(oldRoot);
   Ptr_release(self);
   return RT_boxNil();
+}
+
+/* the returned reference is not retained and is not guaranteed to even
+   be valid after the call returns. */
+RTValue Var_peek(Var *self) {
+  RTValue val = atomic_load_explicit(&self->root, memory_order_relaxed);
+  Ptr_release(self);
+  return val;
 }

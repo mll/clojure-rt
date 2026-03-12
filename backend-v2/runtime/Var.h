@@ -37,6 +37,9 @@ Var *Var_setDynamic(Var *self, bool dynamic); // modifies and returns self
 bool Var_isDynamic(Var *self);
 bool Var_hasRoot(Var *self);
 RTValue Var_deref(Var *self);
+/* the returned reference is not retained and is not guaranteed to even
+   be valid after the call returns. */
+RTValue Var_peek(Var *self);
 RTValue Var_bindRoot(Var *self, RTValue object);
 RTValue Var_unbindRoot(Var *self);
 

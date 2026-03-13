@@ -75,6 +75,7 @@ static void test_var_concurrent_bind_deref_race(void **state) {
   (void)state;
   atomic_store(&stop_threads, false);
   Var *v = Var_create(Keyword_create(String_create("race")));
+  Object_promoteToShared((Object *)v);
   struct RaceArgs args = {v};
 
   pthread_t writer, reader;
@@ -196,7 +197,7 @@ static void test_var_destruction_hazard_race_stable(void **state) {
   (void)state;
   atomic_store(&stop_threads, false);
   Var *v = Var_create(Keyword_create(String_create("stable")));
-
+  Object_promoteToShared((Object *)v);
   struct DestructionRaceArgs args = {
       .v = v, .iteration = 0, .reader_done = 0, .reader_entering = false};
 

@@ -95,7 +95,8 @@ static void test_var_peek(void **state) {
     assert_true(peeked == val);
     // Peek should NOT increment refcount. Should still be 1.
     assert_int_equal(
-        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed), 1);
+        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed) >> 1,
+        1);
 
     // Test Var_deref for contrast
     Ptr_retain(v);
@@ -103,12 +104,14 @@ static void test_var_peek(void **state) {
     assert_true(derefed == val);
     // Deref SHOULD increment refcount. Should be 2 (Var root, derefed handle)
     assert_int_equal(
-        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed), 2);
+        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed) >> 1,
+        2);
 
     release(derefed);
     // Back to 1.
     assert_int_equal(
-        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed), 1);
+        atomic_load_explicit(&obj->atomicRefCount, memory_order_relaxed) >> 1,
+        1);
 
     Ptr_release(v);
     // val is now released because v was destroyed.

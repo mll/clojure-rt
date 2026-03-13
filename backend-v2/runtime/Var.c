@@ -130,8 +130,8 @@ uword_t Var_hash(Var *self) {
 String *Var_toString(Var *self) {
   String *retVal = String_create("#");
   retVal = String_concat(retVal, String_replace(toString(self->keyword),
-                                                 String_create(":"),
-                                                 String_create("'")));
+                                                String_create(":"),
+                                                String_create("'")));
   Ptr_release(self);
   return retVal;
 };
@@ -215,6 +215,11 @@ RTValue Var_deref(Var *self) {
 };
 
 RTValue Var_bindRoot(Var *self, RTValue object) {
+  // An optimisation can be made here - instead of immediately scanning hazards,
+  // the pointer can be added to a retire list which is scanned once every
+  // N operations. This trades predictability for performance.
+
+  promoteToShared(object);
   RTValue oldRoot =
       atomic_exchange_explicit(&self->root, object, memory_order_seq_cst);
   atomic_fetch_add_explicit(&(self->rev), 1, memory_order_relaxed);

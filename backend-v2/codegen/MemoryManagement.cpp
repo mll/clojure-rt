@@ -59,22 +59,27 @@ void MemoryManagement::dynamicRetain(TypedValue &target) {
   Metadata *metaPtr = dyn_cast<Metadata>(MDString::get(context, "retain"));
   MDNode *meta = MDNode::get(context, metaPtr);
 
-#ifndef REFCOUNT_TRACING
-  if (target.type.isDetermined()) {
-    auto prepare =
-        target.type.isBoxedPointer() ? valueEncoder.unbox(target) : target;
-    Value *gepPtr = builder.CreateStructGEP(types.RT_objectTy, prepare.value, 0,
-                                            "get_refcount");
-    auto rmw = builder.CreateAtomicRMW(AtomicRMWInst::BinOp::Add, gepPtr,
-                                       // TODO - 32/64 bit alignment
-                                       builder.getInt32(1), MaybeAlign(),
-                                       AtomicOrdering::Monotonic);
-    if (auto *i = dyn_cast<Instruction>(rmw)) {
-      i->setMetadata("memory_management", meta);
-    }
-    return;
-  }
-#endif
+  /* With local/shared ref counting the commented code below is no longer
+   accurate. The runtime will handle the ref counting. It remains to be seen if
+   there is a significant speedup in inlining memory management. */
+
+  // #ifndef REFCOUNT_TRACING
+  //   if (target.type.isDetermined()) {
+  //     auto prepare =
+  //         target.type.isBoxedPointer() ? valueEncoder.unbox(target) : target;
+  //     Value *gepPtr = builder.CreateStructGEP(types.RT_objectTy,
+  //     prepare.value, 0,
+  //                                             "get_refcount");
+  //     auto rmw = builder.CreateAtomicRMW(AtomicRMWInst::BinOp::Add, gepPtr,
+  //                                        // TODO - 32/64 bit alignment
+  //                                        builder.getInt32(1), MaybeAlign(),
+  //                                        AtomicOrdering::Monotonic);
+  //     if (auto *i = dyn_cast<Instruction>(rmw)) {
+  //       i->setMetadata("memory_management", meta);
+  //     }
+  //     return;
+  //   }
+  // #endif
 
   TypedValue retain = invoke.invokeRuntime(
       "retain", nullptr, {ObjectTypeSet::all()}, {valueEncoder.box(target)});
@@ -90,54 +95,63 @@ TypedValue MemoryManagement::dynamicRelease(TypedValue &target) {
   Metadata *metaPtr = dyn_cast<Metadata>(MDString::get(context, "release"));
   MDNode *meta = MDNode::get(context, metaPtr);
 
-#ifndef REFCOUNT_TRACKING
-  if (target.type.isDetermined()) {
-    auto prepare =
-        target.type.isBoxedPointer() ? valueEncoder.unbox(target) : target;
-    Value *gepPtr = builder.CreateStructGEP(types.RT_objectTy, prepare.value, 0,
-                                            "get_refcount");
-    auto rmw = builder.CreateAtomicRMW(AtomicRMWInst::BinOp::Sub, gepPtr,
-                                       // TODO - 32/64 bit alignment
-                                       builder.getInt32(1), MaybeAlign(),
-                                       AtomicOrdering::Release);
-    if (auto *i = dyn_cast<Instruction>(rmw)) {
-      i->setMetadata("memory_management", meta);
-    }
+  /* With local/shared ref counting the commented code below is no longer
+   accurate. The runtime will handle the ref counting. It remains to be seen if
+   there is a significant speedup in inlining memory management. */
 
-    Value *condValue = builder.CreateICmpEQ(
-        rmw, dynamicConstructor.createBoolean(true).value, "cmp_jj");
-    Function *parentFunction = builder.GetInsertBlock()->getParent();
-    BasicBlock *destroyBB =
-        llvm::BasicBlock::Create(context, "destroy", parentFunction);
-    BasicBlock *ignoreBB = llvm::BasicBlock::Create(context, "ignore");
-    BasicBlock *mergeBB = llvm::BasicBlock::Create(context, "release_cont");
+  // #ifndef REFCOUNT_TRACKING
+  //   if (target.type.isDetermined()) {
+  //     auto prepare =
+  //         target.type.isBoxedPointer() ? valueEncoder.unbox(target) : target;
+  //     Value *gepPtr = builder.CreateStructGEP(types.RT_objectTy,
+  //     prepare.value, 0,
+  //                                             "get_refcount");
+  //     auto rmw = builder.CreateAtomicRMW(AtomicRMWInst::BinOp::Sub, gepPtr,
+  //                                        // TODO - 32/64 bit alignment
+  //                                        builder.getInt32(1), MaybeAlign(),
+  //                                        AtomicOrdering::Release);
+  //     if (auto *i = dyn_cast<Instruction>(rmw)) {
+  //       i->setMetadata("memory_management", meta);
+  //     }
 
-    builder.CreateCondBr(condValue, destroyBB, ignoreBB);
-    builder.SetInsertPoint(destroyBB);
-    builder.CreateFence(llvm::AtomicOrdering::Acquire, llvm::SyncScope::System);
+  //     Value *condValue = builder.CreateICmpEQ(
+  //         rmw, dynamicConstructor.createBoolean(true).value, "cmp_jj");
+  //     Function *parentFunction = builder.GetInsertBlock()->getParent();
+  //     BasicBlock *destroyBB =
+  //         llvm::BasicBlock::Create(context, "destroy", parentFunction);
+  //     BasicBlock *ignoreBB = llvm::BasicBlock::Create(context, "ignore");
+  //     BasicBlock *mergeBB = llvm::BasicBlock::Create(context,
+  //     "release_cont");
 
-    auto retValType = ObjectTypeSet(booleanType);
-    invoke.invokeRuntime("Object_destroy", nullptr,
-                         {ObjectTypeSet::all(), ObjectTypeSet(booleanType)},
-                         {prepare, dynamicConstructor.createBoolean(true)});
+  //     builder.CreateCondBr(condValue, destroyBB, ignoreBB);
+  //     builder.SetInsertPoint(destroyBB);
+  //     builder.CreateFence(llvm::AtomicOrdering::Acquire,
+  //     llvm::SyncScope::System);
 
-    builder.CreateBr(mergeBB);
+  //     auto retValType = ObjectTypeSet(booleanType);
+  //     invoke.invokeRuntime("Object_destroy", nullptr,
+  //                          {ObjectTypeSet::all(),
+  //                          ObjectTypeSet(booleanType)}, {prepare,
+  //                          dynamicConstructor.createBoolean(true)});
 
-    parentFunction->insert(parentFunction->end(), ignoreBB);
-    builder.SetInsertPoint(ignoreBB);
-    builder.CreateBr(mergeBB);
+  //     builder.CreateBr(mergeBB);
 
-    parentFunction->insert(parentFunction->end(), mergeBB);
-    builder.SetInsertPoint(mergeBB);
+  //     parentFunction->insert(parentFunction->end(), ignoreBB);
+  //     builder.SetInsertPoint(ignoreBB);
+  //     builder.CreateBr(mergeBB);
 
-    llvm::PHINode *phiNode = builder.CreatePHI(types.i1Ty, 2, "release_phi");
-    phiNode->addIncoming(dynamicConstructor.createBoolean(true).value,
-                         destroyBB);
-    phiNode->addIncoming(dynamicConstructor.createBoolean(false).value,
-                         ignoreBB);
-    return TypedValue(ObjectTypeSet(booleanType), phiNode);
-  }
-#endif
+  //     parentFunction->insert(parentFunction->end(), mergeBB);
+  //     builder.SetInsertPoint(mergeBB);
+
+  //     llvm::PHINode *phiNode = builder.CreatePHI(types.i1Ty, 2,
+  //     "release_phi");
+  //     phiNode->addIncoming(dynamicConstructor.createBoolean(true).value,
+  //                          destroyBB);
+  //     phiNode->addIncoming(dynamicConstructor.createBoolean(false).value,
+  //                          ignoreBB);
+  //     return TypedValue(ObjectTypeSet(booleanType), phiNode);
+  //   }
+  // #endif
 
   TypedValue release = invoke.invokeRuntime(
       "release", nullptr, {ObjectTypeSet::all()}, {valueEncoder.box(target)});

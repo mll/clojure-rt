@@ -11,11 +11,95 @@ using namespace std;
 
 namespace rt {
 
+static Value *coerceToDouble(InvokeManager &mgr, IRBuilder<> &b,
+                            LLVMTypes &types, ValueEncoder &valueEncoder,
+                            const TypedValue &tv) {
+  if (tv.type.isUnboxedType(doubleType))
+    return tv.value;
+  if (tv.type.isUnboxedType(integerType))
+    return b.CreateSIToFP(tv.value, types.doubleTy, "conv_d");
+  if (tv.type.isBoxedType(doubleType))
+    return valueEncoder.unboxDouble(tv).value;
+  if (tv.type.isBoxedType(integerType)) {
+    Value *i = valueEncoder.unboxInt32(tv).value;
+    return b.CreateSIToFP(i, types.doubleTy, "conv_d");
+  }
+
+  // Handle BigInt/Ratio which are usually unboxed pointers here
+  if (tv.type.isDetermined()) {
+    if (tv.type.determinedType() == bigIntegerType) {
+      ObjectTypeSet dT(doubleType);
+      return mgr
+          .invokeRuntime("BigInteger_toDouble", &dT,
+                         {ObjectTypeSet(bigIntegerType)}, {tv})
+          .value;
+    }
+    if (tv.type.determinedType() == ratioType) {
+      ObjectTypeSet dT(doubleType);
+      return mgr
+          .invokeRuntime("Ratio_toDouble", &dT, {ObjectTypeSet(ratioType)}, {tv})
+          .value;
+    }
+  }
+
+  // Fallback for undetermined or generic types: call runtime Numbers_toDouble
+  ObjectTypeSet dT(doubleType);
+  return mgr.invokeRuntime("Numbers_toDouble", &dT, {ObjectTypeSet::all()}, {tv}).value;
+}
+
 void registerMathIntrinsics(InvokeManager &mgr) {
   auto &typeIntrinsics = mgr.typeIntrinsics;
   auto &intrinsics = mgr.intrinsics;
+  auto &genericIntrinsics = mgr.genericIntrinsics;
   auto &types = mgr.types;
+  auto &valueEncoder = mgr.valueEncoder;
   auto &theModule = mgr.theModule;
+
+  auto regUnaryMath = [&](const string &intrinsicName, const string &stdName) {
+    genericIntrinsics[intrinsicName] = [&mgr, &types, &valueEncoder,
+                                        stdName](auto &b, auto &args) {
+      Value *val = coerceToDouble(mgr, b, types, valueEncoder, args[0]);
+      FunctionType *ft =
+          FunctionType::get(types.doubleTy, {types.doubleTy}, false);
+      FunctionCallee fn = mgr.theModule.getOrInsertFunction(stdName, ft);
+      return b.CreateCall(fn, {val});
+    };
+  };
+
+  auto regBinaryMath = [&](const string &intrinsicName, const string &stdName) {
+    genericIntrinsics[intrinsicName] = [&mgr, &types, &valueEncoder,
+                                        stdName](auto &b, auto &args) {
+      Value *v1 = coerceToDouble(mgr, b, types, valueEncoder, args[0]);
+      Value *v2 = coerceToDouble(mgr, b, types, valueEncoder, args[1]);
+      FunctionType *ft =
+          FunctionType::get(types.doubleTy, {types.doubleTy, types.doubleTy}, false);
+      FunctionCallee fn = mgr.theModule.getOrInsertFunction(stdName, ft);
+      return b.CreateCall(fn, {v1, v2});
+    };
+  };
+
+  regUnaryMath("Math_sin", "sin");
+  regUnaryMath("Math_cos", "cos");
+  regUnaryMath("Math_tan", "tan");
+  regUnaryMath("Math_asin", "asin");
+  regUnaryMath("Math_acos", "acos");
+  regUnaryMath("Math_atan", "atan");
+  regUnaryMath("Math_exp", "exp");
+  regUnaryMath("Math_exp2", "exp2");
+  regUnaryMath("Math_exp10", "exp10");
+  regUnaryMath("Math_log", "log");
+  regUnaryMath("Math_log10", "log10");
+  regUnaryMath("Math_logb", "logb");
+  regUnaryMath("Math_log2", "log2");
+  regUnaryMath("Math_sqrt", "sqrt");
+  regUnaryMath("Math_cbrt", "cbrt");
+  regUnaryMath("Math_exp1m", "exp1m");
+  regUnaryMath("Math_log1p", "log1p");
+  regUnaryMath("Math_abs", "fabs");
+
+  regBinaryMath("Math_atan2", "atan2");
+  regBinaryMath("Math_pow", "pow");
+  regBinaryMath("Math_hypot", "hypot");
 
   // --- Folding ---
 

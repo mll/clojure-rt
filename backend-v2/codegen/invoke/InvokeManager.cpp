@@ -105,6 +105,11 @@ ObjectTypeSet InvokeManager::createQ(mpq_ptr val) {
 TypedValue InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
                                              const vector<TypedValue> &args) {
   if (id.type == CallType::Intrinsic) {
+    auto git = genericIntrinsics.find(id.symbol);
+    if (git != genericIntrinsics.end()) {
+      return TypedValue(id.returnType, git->second(builder, args));
+    }
+
     auto it = intrinsics.find(id.symbol);
     if (it == intrinsics.end()) {
       throwInternalInconsistencyException("Intrinsic '" + id.symbol +

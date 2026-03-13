@@ -39,12 +39,16 @@ static BigInteger* toBigInt(RTValue v) {
     return NULL;
 }
 
-static double toDouble(RTValue v) {
+double Numbers_toDouble(RTValue v) {
     objectType t = getType(v);
     if (t == doubleType) return RT_unboxDouble(v);
     if (t == integerType) return (double)RT_unboxInt32(v);
     if (t == bigIntegerType) return BigInteger_toDouble((BigInteger*)RT_unboxPtr(v));
     if (t == ratioType) return Ratio_toDouble((Ratio*)RT_unboxPtr(v));
+    
+    // Non-numeric type
+    release(v);
+    throwIllegalArgumentException_C("Operation requires a numeric argument");
     return 0.0;
 }
 
@@ -61,8 +65,8 @@ RTValue Numbers_##NAME(RTValue a, RTValue b) { \
         throwIllegalArgumentException_C("Arithmetic operation requires numeric arguments"); \
     } \
     if (ta == doubleType || tb == doubleType) { \
-        double va = toDouble(a); \
-        double vb = toDouble(b); \
+        double va = Numbers_toDouble(a); \
+        double vb = Numbers_toDouble(b); \
         return RT_boxDouble(va OP_DOUBLE vb); \
     } \
     if (ta == ratioType || tb == ratioType) { \
@@ -98,7 +102,7 @@ RTValue Numbers_div(RTValue a, RTValue b) {
         throwIllegalArgumentException_C("Arithmetic operation requires numeric arguments");
     }
     if (ta == doubleType || tb == doubleType) {
-        double res = toDouble(a) / toDouble(b);
+        double res = Numbers_toDouble(a) / Numbers_toDouble(b);
         return RT_boxDouble(res);
     }
     // For division, we often go to Ratio even for Integers (if not divisible)
@@ -116,7 +120,7 @@ bool Numbers_##NAME(RTValue a, RTValue b) { \
         throwIllegalArgumentException_C("Comparison requires numeric arguments"); \
     } \
     if (ta == doubleType || tb == doubleType) { \
-        bool res = toDouble(a) OP_DOUBLE toDouble(b); \
+        bool res = Numbers_toDouble(a) OP_DOUBLE Numbers_toDouble(b); \
         return res; \
     } \
     if (ta == ratioType || tb == ratioType) { \
@@ -153,7 +157,7 @@ bool Numbers_equiv(RTValue a, RTValue b) {
     // Different types: use a comparison that handles cross-type equivalence
     // For now, let's use the same logic as comparisons but specifically for equality
     if (ta == doubleType || tb == doubleType) {
-        bool res = toDouble(a) == toDouble(b);
+        bool res = Numbers_toDouble(a) == Numbers_toDouble(b);
         return res;
     }
     // Ratio vs Int/BigInt etc.

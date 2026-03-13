@@ -24,6 +24,8 @@ using IntrinsicCall = std::function<llvm::Value *(llvm::IRBuilder<> &,
                                                   std::vector<llvm::Value *>)>;
 using TypeIntrinsicCall =
     std::function<ObjectTypeSet(const std::vector<ObjectTypeSet> &)>;
+using GenericIntrinsicCall = std::function<llvm::Value *(
+    llvm::IRBuilder<> &, const std::vector<TypedValue> &)>;
 
 class InvokeManager {
   friend void registerMathIntrinsics(InvokeManager &mgr);
@@ -35,6 +37,7 @@ private:
   ValueEncoder &valueEncoder;
   LLVMTypes &types;
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
+  std::unordered_map<std::string, GenericIntrinsicCall> genericIntrinsics;
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
 
   // Folding Helpers

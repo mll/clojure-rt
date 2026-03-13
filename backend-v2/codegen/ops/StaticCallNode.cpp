@@ -244,6 +244,10 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
         TypedValue(ObjectTypeSet::dynamicType(), clsName),
         TypedValue(ObjectTypeSet::dynamicType(), methName)};
 
+    for (auto &arg : args) {
+      this->memoryManagement.dynamicRelease(arg);
+    }
+
     this->invokeManager.invokeRuntime("throwNoMatchingOverloadException_C",
                                       nullptr, pArgTypes, pArgVals);
     this->Builder.CreateUnreachable();

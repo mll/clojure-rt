@@ -10,6 +10,7 @@ set(TEST_MODULES
     codegen/StaticCallType_test
     codegen/StaticCallNode_test
     codegen/JITArithmetic_test
+    codegen/MathIntrinsics_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

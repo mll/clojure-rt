@@ -1,5 +1,6 @@
 #include "JITEngine.h"
 #include "../RuntimeHeaders.h"
+#include "../runtime/Numbers.h"
 #include "bridge/Exceptions.h"
 #include <llvm/ExecutionEngine/Orc/DebugObjectManagerPlugin.h>
 #include <llvm/ExecutionEngine/Orc/EPCDebugObjectRegistrar.h>
@@ -198,6 +199,7 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(absoluteSymbol("Numbers_sub", (void *)Numbers_sub));
   runtimeSymbols.insert(absoluteSymbol("Numbers_mul", (void *)Numbers_mul));
   runtimeSymbols.insert(absoluteSymbol("Numbers_div", (void *)Numbers_div));
+  runtimeSymbols.insert(absoluteSymbol("Numbers_toDouble", (void *)Numbers_toDouble));
   runtimeSymbols.insert(absoluteSymbol("Numbers_lt", (void *)Numbers_lt));
   runtimeSymbols.insert(absoluteSymbol("Numbers_lte", (void *)Numbers_lte));
   runtimeSymbols.insert(absoluteSymbol("Numbers_gt", (void *)Numbers_gt));

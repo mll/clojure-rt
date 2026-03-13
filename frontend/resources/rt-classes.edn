@@ -54,7 +54,8 @@
   ;; character: clojure.lang.Character
 
   clojure.lang.Var
-  {:extends java.lang.Object}
+  {:extends java.lang.Object
+   :object-type 17}
 
   clojure.lang.Numbers
   {:static-fns

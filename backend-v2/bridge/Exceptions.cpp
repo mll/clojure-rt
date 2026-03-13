@@ -323,6 +323,15 @@ throwInternalInconsistencyException_C(const char *errorMessage) {
                               RT_boxNil());
 }
 
+extern "C" void
+throwNoMatchingOverloadException_C(const char *className, const char *methodName) {
+  std::stringstream ss;
+  ss << "No matching overload found for " << className << "/" << methodName;
+  throw rt::LanguageException("NoMatchingOverloadException",
+                              RT_boxPtr(String_createDynamicStr(ss.str().c_str())),
+                              RT_boxNil());
+}
+
 extern "C" void throwLanguageException_C(const char *name, RTValue message,
                                          RTValue payload) {
   throw rt::LanguageException(name, message, payload);

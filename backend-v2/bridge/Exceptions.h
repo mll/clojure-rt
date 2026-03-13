@@ -52,4 +52,7 @@ extern "C" void registerJitFunction_C(uword_t addr, size_t size,
 extern "C" [[noreturn]] void
 throwInternalInconsistencyException_C(const char *errorMessage);
 
+extern "C" [[noreturn]] void
+throwNoMatchingOverloadException_C(const char *className, const char *methodName);
+
 #endif

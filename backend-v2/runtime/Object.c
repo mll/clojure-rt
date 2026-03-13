@@ -79,4 +79,7 @@ extern bool Ptr_equals(void *self, void *other);
 extern bool Ptr_isReusable(void *self);
 extern bool equals_managed(RTValue self, RTValue other);
 extern void Object_promoteToShared(Object *restrict self);
+extern void Object_promoteToSharedShallow(Object *restrict self,
+                                          uword_t current);
+extern uword_t Object_getRawRefCount(Object *self);
 extern void promoteToShared(RTValue self);

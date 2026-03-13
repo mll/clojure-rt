@@ -1,14 +1,14 @@
-#include "Object.h"
 #include "PersistentList.h"
+#include "Object.h"
 #include "RTValue.h"
 #include <stdarg.h>
 
-
 static PersistentList *EMPTY = NULL;
-// How to mark 
+// How to mark
 /* mem done */
-PersistentList* PersistentList_empty() {
-  if (EMPTY == NULL) EMPTY = PersistentList_create(RT_boxNull(), NULL);
+PersistentList *PersistentList_empty() {
+  if (EMPTY == NULL)
+    EMPTY = PersistentList_create(RT_boxNull(), NULL);
   Ptr_retain(EMPTY);
   return EMPTY;
 }
@@ -18,72 +18,75 @@ struct ListPair {
   PersistentList *last;
 };
 
-
 /* outside refcount system, mutable */
 PersistentList *reverse(PersistentList *self) {
-  if (self == NULL) return NULL;
+  if (self == NULL)
+    return NULL;
 
   PersistentList *prev = NULL;
   PersistentList *current = self;
   PersistentList *next = NULL;
-  
+
   while (current != NULL) {
-    next = current->rest; 
+    next = current->rest;
     current->rest = prev;
     prev = current;
-    
-    current = next;       
+
+    current = next;
   }
 
   PersistentList *temp = prev;
   uword_t runningCount = 0;
-    
+
   while (temp != NULL) {
     temp->count = runningCount;
     runningCount++;
     temp = temp->rest;
   }
-  
+
   return prev;
 }
 
 PersistentList *PersistentList_createMany(int32_t argCount, ...) {
   PersistentList *retVal = PersistentList_empty();
 
-  va_list args;  
-  va_start(args, argCount);  
+  va_list args;
+  va_start(args, argCount);
 
   while (argCount > 0) {
     retVal = PersistentList_conj(retVal, va_arg(args, RTValue));
     argCount--;
   }
-  
-  va_end(args);  
-  return reverse(retVal);
-}  
 
+  va_end(args);
+  return reverse(retVal);
+}
 
 /* outside refcount system */
-PersistentList* PersistentList_create(RTValue first, PersistentList *rest) {
-  PersistentList *self = allocate(sizeof(PersistentList)); 
+PersistentList *PersistentList_create(RTValue first, PersistentList *rest) {
+  PersistentList *self = allocate(sizeof(PersistentList));
 
   self->first = first;
   self->rest = rest;
   self->count = (rest ? rest->count : 0) + (RT_isNull(first) ? 0 : 1);
-  
+
   Object_create((Object *)self, persistentListType);
   return self;
 }
 
 /* outside refcount system */
 bool PersistentList_equals(PersistentList *self, PersistentList *other) {
-  if (self->count != other->count) return false;
+  if (self->count != other->count)
+    return false;
 
-  PersistentList* selfPtr = self;
-  PersistentList* otherPtr = other;
+  PersistentList *selfPtr = self;
+  PersistentList *otherPtr = other;
 
-  while(selfPtr) {
-    if (!(selfPtr->first == otherPtr->first || (selfPtr->first && otherPtr->first && equals(selfPtr->first, otherPtr->first)))) return false;
+  while (selfPtr) {
+    if (!(selfPtr->first == otherPtr->first ||
+          (selfPtr->first && otherPtr->first &&
+           equals(selfPtr->first, otherPtr->first))))
+      return false;
     selfPtr = selfPtr->rest;
     otherPtr = otherPtr->rest;
   }
@@ -116,15 +119,15 @@ String *PersistentList_toString(PersistentList *self) {
       Ptr_retain(space);
       retVal = String_concat(retVal, space);
     }
-    if(!RT_isNull(current->first)) {
+    if (!RT_isNull(current->first)) {
       retain(current->first);
       String *s = toString(current->first);
       retVal = String_concat(retVal, s);
     }
     current = current->rest;
   }
-  retVal = String_concat(retVal, closing); 
-  Ptr_release(space);  
+  retVal = String_concat(retVal, closing);
+  Ptr_release(space);
   Ptr_release(self);
   return retVal;
 }
@@ -133,7 +136,7 @@ String *PersistentList_toString(PersistentList *self) {
 void PersistentList_destroy(PersistentList *self, bool deallocateChildren) {
   if (deallocateChildren) {
     PersistentList *child = self->rest;
-    while(child) {
+    while (child) {
       PersistentList *next = child->rest;
       if (!Object_release_internal((Object *)child, false)) {
         break;
@@ -142,10 +145,24 @@ void PersistentList_destroy(PersistentList *self, bool deallocateChildren) {
       child = next;
     }
   }
-  if(!RT_isNull(self->first)) release(self->first);  
+  if (!RT_isNull(self->first))
+    release(self->first);
+}
+
+void PersistentList_promoteToShared(PersistentList *self, uword_t current) {
+  PersistentList *iter = self;
+  while (iter != NULL && !(current & SHARED_BIT)) {
+    promoteToShared(iter->first);
+    Object_promoteToSharedShallow((Object *)iter, current);
+
+    iter = iter->rest;
+    if (iter != NULL) {
+      current = Object_getRawRefCount((Object *)iter);
+    }
+  }
 }
 
 /* mem done */
-PersistentList* PersistentList_conj(PersistentList *self, RTValue other) {
+PersistentList *PersistentList_conj(PersistentList *self, RTValue other) {
   return PersistentList_create(other, self);
 }

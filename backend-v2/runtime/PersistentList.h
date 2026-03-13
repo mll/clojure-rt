@@ -24,6 +24,7 @@ bool PersistentList_equals(PersistentList *self, PersistentList *other);
 uint64_t PersistentList_hash(PersistentList *self);
 String *PersistentList_toString(PersistentList *self);
 void PersistentList_destroy(PersistentList *self, bool deallocateChildren);
+void PersistentList_promoteToShared(PersistentList *self, uword_t current);
 
 PersistentList *PersistentList_create(RTValue first, PersistentList *rest);
 PersistentList *PersistentList_conj(PersistentList *self, RTValue other);

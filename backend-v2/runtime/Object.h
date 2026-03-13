@@ -1,6 +1,7 @@
 #ifndef RT_OBJECT
 #define RT_OBJECT
 
+#include "word.h"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
 #pragma clang diagnostic ignored "-Wexpansion-to-defined"
@@ -348,18 +349,45 @@ inline bool Object_release_internal(Object *restrict self,
   return false;
 }
 
-inline void Object_promoteToShared(Object *restrict self) {
+/* outside of refcount system */
+inline void Object_promoteToSharedShallow(Object *restrict self,
+                                          uword_t current) {
 #ifndef REFCOUNT_NONATOMIC
-  uword_t current =
-      atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
+  // Optimization: If we guarantee that only the 'owning' thread performs
+  // the initial promotion, we can use relaxed load/store.
+  // This is significantly faster than atomic RMW (fetch_or) in bulk operations.
   if (!(current & SHARED_BIT)) {
     atomic_store_explicit(&(self->atomicRefCount), current | SHARED_BIT,
-                          memory_order_release);
+                          memory_order_relaxed);
   }
 #else
   self->refCount |= SHARED_BIT;
 #endif
 }
+
+/* outside of refcount system */
+inline uword_t Object_getRawRefCount(Object *self) {
+  return atomic_load_explicit(&self->atomicRefCount, memory_order_relaxed);
+}
+
+/* outside of refcount system */
+inline void Object_promoteToShared(Object *restrict self) {
+  uword_t count = Object_getRawRefCount(self);
+  if ((count & SHARED_BIT) != 0) {
+    return;
+  }
+
+  switch ((objectType)self->type) {
+  case persistentListType:
+    PersistentList_promoteToShared((PersistentList *)self, count);
+    break;
+
+  default:
+    Object_promoteToSharedShallow(self, count);
+    break;
+  }
+}
+
 
 /* Outside of refcount system */
 inline uword_t Object_hash(Object *restrict self) {

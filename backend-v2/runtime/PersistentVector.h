@@ -45,6 +45,7 @@ uword_t PersistentVector_hash(PersistentVector *restrict self);
 String *PersistentVector_toString(PersistentVector *restrict self);
 void PersistentVector_destroy(PersistentVector *restrict self,
                               bool deallocateChildren);
+void PersistentVector_promoteToShared(PersistentVector *self, uword_t current);
 
 PersistentVector *
 PersistentVector_conj_internal(PersistentVector *restrict self, RTValue other);

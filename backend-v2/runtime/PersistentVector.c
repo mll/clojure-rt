@@ -108,6 +108,23 @@ void PersistentVector_destroy(PersistentVector *restrict self,
     Ptr_release(self->root);
 }
 
+void PersistentVector_promoteToShared(PersistentVector *self, uword_t current) {
+  if (current & SHARED_BIT)
+    return;
+
+  if (self->transientID != PERSISTENT) {
+    throwIllegalStateException_C("Cannot share a transient vector");
+  }
+
+  if (self->root) {
+    promoteToShared(RT_boxPtr(self->root));
+  }
+  if (self->tail) {
+    promoteToShared(RT_boxPtr(self->tail));
+  }
+  Object_promoteToSharedShallow((Object *)self, current);
+}
+
 /* mem done */
 PersistentVector *
 PersistentVector_assoc_internal(PersistentVector *restrict self, uword_t index,

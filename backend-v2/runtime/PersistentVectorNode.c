@@ -3,6 +3,7 @@
 #include "PersistentVector.h"
 #include "RTValue.h"
 #include "Transient.h"
+#include "Exceptions.h"
 
 /* mem done */
 PersistentVectorNode* PersistentVectorNode_allocate(uword_t count, NodeType type, uword_t transientID) { 
@@ -63,6 +64,27 @@ String *PersistentVectorNode_toString(PersistentVectorNode * restrict self) {
 /* outside refcount system */
 void PersistentVectorNode_destroy(PersistentVectorNode * restrict self, bool deallocateChildren) {
   for(uword_t i=0; i<self->count; i++) release(self->array[i]);
+}
+
+void PersistentVectorNode_promoteToShared(PersistentVectorNode *self,
+                                          uword_t current) {
+  if (current & SHARED_BIT)
+    return;
+
+  if (self->transientID != 0) {
+    throwIllegalStateException_C("Cannot share a transient vector node");
+  }
+
+  if (self->type == leafNode) {
+    for (uword_t i = 0; i < self->count; i++) {
+      promoteToShared(self->array[i]);
+    }
+  } else {
+    for (uword_t i = 0; i < self->count; i++) {
+      promoteToShared(self->array[i]);
+    }
+  }
+  Object_promoteToSharedShallow((Object *)self, current);
 }
 
 /* mem done */

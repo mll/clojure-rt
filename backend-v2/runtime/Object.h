@@ -275,15 +275,8 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
 inline bool Object_isReusable(Object *restrict self) {
   uword_t refCount =
       atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
-  // Multithreading - is it really safe to assume it is reusable if refcount is
-  // 1?
-  /*  The reasoning here is that passing object to another thread is an
-     operation that by itself increases its reference count. Therefore it is
-     assumed that if recount is 1 at a point in time this means other threads
-     have no knowledge of this object's existence at this particular moment.
-     Therefore, if only our thread knows of it, it can pass it to another but
-     only after it completes current operation.
-      */
+  if (refCount & SHARED_BIT)
+    return false;
   return refCount >> 1 == 1;
 }
 
@@ -384,6 +377,14 @@ inline void Object_promoteToShared(Object *restrict self) {
 
   case persistentArrayMapType:
     PersistentArrayMap_promoteToShared((PersistentArrayMap *)self, count);
+    break;
+
+  case persistentVectorType:
+    PersistentVector_promoteToShared((PersistentVector *)self, count);
+    break;
+
+  case persistentVectorNodeType:
+    PersistentVectorNode_promoteToShared((PersistentVectorNode *)self, count);
     break;
 
   default:
@@ -617,7 +618,7 @@ inline void Object_create(Object *restrict self, objectType type) {
 #ifdef REFCOUNT_NONATOMIC
   self->refCount = COUNT_INC;
 #else
-  atomic_init(&(self->atomicRefCount), COUNT_INC);
+  atomic_store_explicit(&(self->atomicRefCount), COUNT_INC, memory_order_relaxed);
 #endif
   self->type = type;
 #ifdef REFCOUNT_TRACING

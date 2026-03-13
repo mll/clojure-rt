@@ -109,12 +109,10 @@ HazardSlot *getOrCreateSlot() {
 Var *Var_create(RTValue keyword) {
   Var *self = (Var *)allocate(sizeof(Var));
   //  retain(UNIQUE_UnboundClass);
-  atomic_init(&(self->root),
-              RT_boxNull()); //(Object *)Deftype_create(UNIQUE_UnboundClass, 1,
-                             // keyword);
+  atomic_store_explicit(&(self->root), RT_boxNull(), memory_order_relaxed);
   self->dynamic = false;
   self->keyword = keyword;
-  atomic_init(&self->rev, 0);
+  atomic_store_explicit(&self->rev, 0, memory_order_relaxed);
   Object_create((Object *)self, varType);
   // Var is always shared
   atomic_store_explicit(&(((Object *)self)->atomicRefCount),

@@ -116,6 +116,9 @@ Var *Var_create(RTValue keyword) {
   self->keyword = keyword;
   atomic_init(&self->rev, 0);
   Object_create((Object *)self, varType);
+  // Var is always shared
+  atomic_store_explicit(&(((Object *)self)->atomicRefCount),
+                        COUNT_INC | SHARED_BIT, memory_order_release);
   return self;
 };
 
@@ -197,8 +200,8 @@ RTValue Var_deref(Var *self) {
     atomic_signal_fence(memory_order_seq_cst);
 
     // Stage 2: Verify (The "Double Check")
-    // Acquire load is enough here because writer ensures its update is visible
-    // before we’d potentially use the old freed value.
+    // Acquire load is enough here because writer ensures its update is
+    // visible before we’d potentially use the old freed value.
     if (val == atomic_load_explicit(&self->root, memory_order_acquire)) {
       retain(val);
       atomic_store_explicit(&slot->hazardPointer, RT_boxNull(),
@@ -215,9 +218,9 @@ RTValue Var_deref(Var *self) {
 };
 
 RTValue Var_bindRoot(Var *self, RTValue object) {
-  // An optimisation can be made here - instead of immediately scanning hazards,
-  // the pointer can be added to a retire list which is scanned once every
-  // N operations. This trades predictability for performance.
+  // An optimisation can be made here - instead of immediately scanning
+  // hazards, the pointer can be added to a retire list which is scanned once
+  // every N operations. This trades predictability for performance.
 
   promoteToShared(object);
   RTValue oldRoot =

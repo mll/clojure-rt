@@ -28,6 +28,7 @@
 #include "runtime/Integer.h"
 #include "runtime/Keyword.h"
 #include "runtime/Nil.h"
+#include "runtime/Numbers.h"
 #include "runtime/Object.h"
 #include "runtime/PersistentArrayMap.h"
 #include "runtime/PersistentList.h"

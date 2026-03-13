@@ -110,7 +110,8 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
           break;
         }
       }
-      if (!staticallyPossible) continue;
+      if (!staticallyPossible)
+        continue;
 
       bool isGeneric = true;
       for (const auto &at : id.argTypes) {
@@ -140,7 +141,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
 
   Function *currentFn = this->Builder.GetInsertBlock()->getParent();
   BasicBlock *mergeBB =
-      BasicBlock::Create(this->TheContext, "dispatch_merge", currentFn);
+      BasicBlock::Create(this->TheContext, "static_call_merge", currentFn);
 
   struct DispatchCase {
     BasicBlock *block;
@@ -152,27 +153,29 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   std::vector<Value *> argRuntimeTypes;
   for (size_t i = 0; i < args.size(); i++) {
     TypedValue boxed = this->valueEncoder.box(args[i]);
-    ObjectTypeSet retType(integerType, false); 
+    ObjectTypeSet retType(integerType, false);
     std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType()};
     std::vector<TypedValue> pArgVals = {boxed};
-    TypedValue typeVal = this->invokeManager.invokeRuntime(
-        "getType", &retType, pArgTypes, pArgVals);
+    TypedValue typeVal = this->invokeManager.invokeRuntime("getType", &retType,
+                                                           pArgTypes, pArgVals);
     argRuntimeTypes.push_back(typeVal.value);
   }
 
   for (const auto *fid : specialized) {
-    BasicBlock *thenBB =
-        BasicBlock::Create(this->TheContext, "dispatch_then", currentFn);
-    BasicBlock *nextBB =
-        BasicBlock::Create(this->TheContext, "dispatch_next", currentFn);
+    BasicBlock *thenBB = BasicBlock::Create(
+        this->TheContext, "static_call_specialised", currentFn);
+    BasicBlock *nextBB = BasicBlock::Create(
+        this->TheContext, "static_call_specialised_next", currentFn);
 
     Value *match = nullptr;
     for (size_t i = 0; i < args.size(); i++) {
       if (fid->argTypes[i].isDetermined()) {
         objectType target = fid->argTypes[i].determinedType();
-        Value *targetVal = ConstantInt::get(this->types.i32Ty, (uint32_t)target);
-        Value *isType = this->Builder.CreateICmpEQ(argRuntimeTypes[i], targetVal);
-        
+        Value *targetVal =
+            ConstantInt::get(this->types.i32Ty, (uint32_t)target);
+        Value *isType =
+            this->Builder.CreateICmpEQ(argRuntimeTypes[i], targetVal);
+
         if (match) {
           match = this->Builder.CreateAnd(match, isType);
         } else {
@@ -187,36 +190,37 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
 
     this->Builder.CreateCondBr(match, thenBB, nextBB);
     this->Builder.SetInsertPoint(thenBB);
-    
+
     std::vector<TypedValue> specializedArgs;
     for (size_t i = 0; i < args.size(); i++) {
-        if (fid->argTypes[i].isDetermined()) {
-            objectType target = fid->argTypes[i].determinedType();
-            llvm::Value *unboxedVal = nullptr;
-            if (target == integerType)
-                unboxedVal = this->valueEncoder.unboxInt32(args[i]).value;
-            else if (target == doubleType)
-                unboxedVal = this->valueEncoder.unboxDouble(args[i]).value;
-            else if (target == booleanType)
-                unboxedVal = this->valueEncoder.unboxBool(args[i]).value;
-            else if (target == stringType || target == persistentListType ||
-                     target == persistentVectorType || target == bigIntegerType ||
-                     target == ratioType || target == keywordType ||
-                     target == symbolType || target == functionType ||
-                     target == classType || target == persistentArrayMapType ||
-                     target == varType) {
-                unboxedVal = this->valueEncoder.unboxPointer(args[i]).value;
-            } else {
-                unboxedVal = this->valueEncoder.unbox(args[i]).value;
-            }
-            // CRITICAL: Set the verified type so InvokeManager doesn't complain
-            specializedArgs.push_back(TypedValue(fid->argTypes[i], unboxedVal));
+      if (fid->argTypes[i].isDetermined()) {
+        objectType target = fid->argTypes[i].determinedType();
+        llvm::Value *unboxedVal = nullptr;
+        if (target == integerType)
+          unboxedVal = this->valueEncoder.unboxInt32(args[i]).value;
+        else if (target == doubleType)
+          unboxedVal = this->valueEncoder.unboxDouble(args[i]).value;
+        else if (target == booleanType)
+          unboxedVal = this->valueEncoder.unboxBool(args[i]).value;
+        else if (target == stringType || target == persistentListType ||
+                 target == persistentVectorType || target == bigIntegerType ||
+                 target == ratioType || target == keywordType ||
+                 target == symbolType || target == functionType ||
+                 target == classType || target == persistentArrayMapType ||
+                 target == varType) {
+          unboxedVal = this->valueEncoder.unboxPointer(args[i]).value;
         } else {
-            specializedArgs.push_back(this->valueEncoder.box(args[i]));
+          unboxedVal = this->valueEncoder.unbox(args[i]).value;
         }
+        // CRITICAL: Set the verified type so InvokeManager doesn't complain
+        specializedArgs.push_back(TypedValue(fid->argTypes[i], unboxedVal));
+      } else {
+        specializedArgs.push_back(this->valueEncoder.box(args[i]));
+      }
     }
-    
-    TypedValue res = this->invokeManager.generateIntrinsic(*fid, specializedArgs);
+
+    TypedValue res =
+        this->invokeManager.generateIntrinsic(*fid, specializedArgs);
     TypedValue boxedRes = this->valueEncoder.box(res);
     cases.push_back({this->Builder.GetInsertBlock(), boxedRes});
     this->Builder.CreateBr(mergeBB);
@@ -230,20 +234,24 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     this->Builder.CreateBr(mergeBB);
   } else {
     // No match and no generic -> Runtime Exception
-    Value *clsName = this->Builder.CreateGlobalString(name, "dispatch_class");
-    Value *methName = this->Builder.CreateGlobalString(m, "dispatch_method");
-    
-    std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType(), ObjectTypeSet::dynamicType()};
-    std::vector<TypedValue> pArgVals = {TypedValue(ObjectTypeSet::dynamicType(), clsName),
-                                        TypedValue(ObjectTypeSet::dynamicType(), methName)};
-    
+    Value *clsName =
+        this->Builder.CreateGlobalString(name, "static_call_class");
+    Value *methName = this->Builder.CreateGlobalString(m, "static_call_method");
+
+    std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType(),
+                                            ObjectTypeSet::dynamicType()};
+    std::vector<TypedValue> pArgVals = {
+        TypedValue(ObjectTypeSet::dynamicType(), clsName),
+        TypedValue(ObjectTypeSet::dynamicType(), methName)};
+
     this->invokeManager.invokeRuntime("throwNoMatchingOverloadException_C",
-                                       nullptr, pArgTypes, pArgVals);
+                                      nullptr, pArgTypes, pArgVals);
     this->Builder.CreateUnreachable();
   }
 
   this->Builder.SetInsertPoint(mergeBB);
-  PHINode *phi = Builder.CreatePHI(types.RT_valueTy, cases.size(), "dispatch_phi");
+  PHINode *phi =
+      Builder.CreatePHI(types.RT_valueTy, cases.size(), "static_call_phi");
   for (auto &c : cases) {
     phi->addIncoming(c.value.value, c.block);
   }
@@ -298,7 +306,6 @@ ObjectTypeSet CodeGen::getType(const Node &node, const StaticCallNode &subnode,
           }
           return id.returnType;
         }
-
       }
     }
   }

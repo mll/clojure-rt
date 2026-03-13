@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
-#include <stdio.h>
 #include <llvm/Object/ObjectFile.h>
 #include <llvm/Support/MemoryBuffer.h>
+#include <stdio.h>
 
 #ifdef __APPLE__
 #include <dlfcn.h>
@@ -31,8 +31,8 @@ static std::mutex gJitMapMutex;
 static std::map<uword_t, JitInfo> gJitFunctions;
 
 extern "C" void registerJitFunction_C(uword_t addr, size_t size,
-                                      const char *name,
-                                      const void *objData, size_t objSize) {
+                                      const char *name, const void *objData,
+                                      size_t objSize) {
   std::lock_guard<std::mutex> lock(gJitMapMutex);
   auto buffer = llvm::MemoryBuffer::getMemBufferCopy(
       llvm::StringRef(static_cast<const char *>(objData), objSize),
@@ -323,13 +323,13 @@ throwInternalInconsistencyException_C(const char *errorMessage) {
                               RT_boxNil());
 }
 
-extern "C" void
-throwNoMatchingOverloadException_C(const char *className, const char *methodName) {
+extern "C" void throwNoMatchingOverloadException_C(const char *className,
+                                                   const char *methodName) {
   std::stringstream ss;
   ss << "No matching overload found for " << className << "/" << methodName;
-  throw rt::LanguageException("NoMatchingOverloadException",
-                              RT_boxPtr(String_createDynamicStr(ss.str().c_str())),
-                              RT_boxNil());
+  throw rt::LanguageException(
+      "NoMatchingOverloadException",
+      RT_boxPtr(String_createDynamicStr(ss.str().c_str())), RT_boxNil());
 }
 
 extern "C" void throwLanguageException_C(const char *name, RTValue message,

@@ -9,6 +9,7 @@ set(TEST_MODULES
     codegen/IfNode_test
     codegen/StaticCallType_test
     codegen/StaticCallNode_test
+    codegen/JITArithmetic_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

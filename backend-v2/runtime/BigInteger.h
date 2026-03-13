@@ -21,7 +21,7 @@ BigInteger *BigInteger_createUninitialized();
 BigInteger *BigInteger_createUnassigned();
 BigInteger *BigInteger_createFromStr(const char *value);
 BigInteger *BigInteger_createFromMpz(mpz_t value);
-BigInteger *BigInteger_createFromInt(word_t value);
+BigInteger *BigInteger_createFromInt(int32_t value);
 bool BigInteger_equals(BigInteger *self, BigInteger *other);
 bool BigInteger_equiv(BigInteger *self, BigInteger *other);
 bool BigInteger_intEquals(int32_t other, BigInteger *self);

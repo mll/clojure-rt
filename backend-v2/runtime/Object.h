@@ -206,7 +206,7 @@ inline void Object_retain(Object *restrict self) {
   self->refCount += COUNT_INC;
 #else
   uword_t current =
-      atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
+      atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
 
   if (!(current & SHARED_BIT)) {
     // FAST PATH: It's local. Use a plain non-atomic write.
@@ -309,7 +309,7 @@ inline bool Object_release_internal(Object *restrict self,
   }
 #else
   uintptr_t current =
-      atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
+      atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
   if (!(current & SHARED_BIT)) {
     // --- FAST PATH: Local ---
     // Since it's local, only THIS thread can be releasing it.

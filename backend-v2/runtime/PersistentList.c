@@ -101,7 +101,7 @@ uint64_t PersistentList_hash(PersistentList *self) {
   PersistentList *current = self->rest;
   while (current) {
     h = combineHash(h, PersistentList_hash(current));
-    current = self->rest;
+    current = current->rest;
   }
   return h;
 }

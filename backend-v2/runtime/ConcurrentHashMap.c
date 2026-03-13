@@ -50,6 +50,8 @@ ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent) {
   }    
   atomic_store(&(self->root), node);              
   Object_create(&(self->super), concurrentHashMapType);
+  // Concurrent collections are shared by definition
+  atomic_store_explicit(&self->super.atomicRefCount, COUNT_INC | SHARED_BIT, memory_order_release);
   return self;
 }
 
@@ -96,6 +98,9 @@ inline bool tryReplacingEntry(ConcurrentHashMapEntry *entry, RTValue key, RTValu
 
 /* MUTABLE: self is not conusmed. mem done */
 void ConcurrentHashMap_assoc(ConcurrentHashMap *self, RTValue key, RTValue value) {
+  promoteToShared(key);
+  promoteToShared(value);
+
   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
 
   uword_t keyHash = avalanche(hash(key));

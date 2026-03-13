@@ -1,7 +1,14 @@
+#include "../ConcurrentHashMap.h"
+#include "../PersistentList.h"
+#include "../Hash.h"
 #include "TestTools.h"
 #include <math.h>
 
 #define THREAD_COUNT 10
+
+static bool Ptr_isShared(void *p) {
+  return (Object_getRawRefCount((Object *)p) & SHARED_BIT) != 0;
+}
 
 typedef struct HashThreadParams {
   int start;
@@ -115,12 +122,31 @@ static void test_concurrent_hash_map_overcrowded(void **state) {
   });
 }
 
+static void test_chm_promotion_on_assoc(void **state) {
+  (void)state;
+  // Initialize PersistentList_empty() singleton before the block
+  // because otherwise it will be recorded as a "leak" (type 8)
+  PersistentList_empty();
+  ASSERT_MEMORY_ALL_BALANCED({
+    // 1. Test shared-at-birth
+    ConcurrentHashMap *m = ConcurrentHashMap_create(3);
+    assert_true(Ptr_isShared(m));
+
+    // 2. Test promotion on assoc
+    PersistentList *l = PersistentList_create(RT_boxInt32(1), PersistentList_empty());
+    assert_false(Ptr_isShared(l));
+
+    ConcurrentHashMap_assoc(m, RT_boxPtr(l), RT_boxInt32(100));
+    // The list should have been promoted because it was inserted into CHM
+    assert_true(Ptr_isShared(l));
+
+    Ptr_release(m);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
-      // There are problems with the map - bad performance all around and
-      // possible
-      // race conditions.
-      // Needs to be re-implemented? or at least checked with emini
+      cmocka_unit_test(test_chm_promotion_on_assoc),
       cmocka_unit_test_prestate(testScalingBehavior,
                                 concurrentMapThreadingAndPerformance),
       cmocka_unit_test(test_concurrent_hash_map_overcrowded),

@@ -13,6 +13,13 @@ PersistentList *PersistentList_empty() {
   return EMPTY;
 }
 
+void PersistentList_cleanup() {
+  if (EMPTY) {
+    Ptr_release(EMPTY);
+    EMPTY = NULL;
+  }
+}
+
 struct ListPair {
   PersistentList *first;
   PersistentList *last;

@@ -19,6 +19,7 @@ struct PersistentList {
 };
 
 PersistentList *PersistentList_empty();
+void PersistentList_cleanup();
 
 bool PersistentList_equals(PersistentList *self, PersistentList *other);
 uint64_t PersistentList_hash(PersistentList *self);

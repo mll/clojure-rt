@@ -382,6 +382,10 @@ inline void Object_promoteToShared(Object *restrict self) {
     PersistentList_promoteToShared((PersistentList *)self, count);
     break;
 
+  case persistentArrayMapType:
+    PersistentArrayMap_promoteToShared((PersistentArrayMap *)self, count);
+    break;
+
   default:
     Object_promoteToSharedShallow(self, count);
     break;

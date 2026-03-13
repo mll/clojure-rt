@@ -247,11 +247,36 @@ static void test_array_map_exceptions(void **state) {
     PersistentArrayMap *m = PersistentArrayMap_empty();
     // Fill up to threshold
     for (int i = 0; i < HASHTABLE_THRESHOLD; i++) {
-        m = PersistentArrayMap_assoc(m, RT_boxInt32(i), RT_boxInt32(i));
+      m = PersistentArrayMap_assoc(m, RT_boxInt32(i), RT_boxInt32(i));
     }
     ASSERT_THROWS("UnsupportedOperationException", {
-        PersistentArrayMap_assoc(m, RT_boxInt32(HASHTABLE_THRESHOLD), RT_boxInt32(0));
+      PersistentArrayMap_assoc(m, RT_boxInt32(HASHTABLE_THRESHOLD),
+                               RT_boxInt32(0));
     });
+  });
+}
+
+static void test_array_map_promotion(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    RTValue k1 = RT_boxPtr(String_create("k1"));
+    RTValue v1 = RT_boxPtr(String_create("v1"));
+    PersistentArrayMap *m = PersistentArrayMap_createMany(1, k1, v1);
+
+    // Initially local
+    assert_false(Object_getRawRefCount((Object *)m) & SHARED_BIT);
+    assert_false(Object_getRawRefCount((Object *)RT_unboxPtr(k1)) & SHARED_BIT);
+    assert_false(Object_getRawRefCount((Object *)RT_unboxPtr(v1)) & SHARED_BIT);
+
+    // Promote
+    promoteToShared(RT_boxPtr(m));
+
+    // All should be shared
+    assert_true(Object_getRawRefCount((Object *)m) & SHARED_BIT);
+    assert_true(Object_getRawRefCount((Object *)RT_unboxPtr(k1)) & SHARED_BIT);
+    assert_true(Object_getRawRefCount((Object *)RT_unboxPtr(v1)) & SHARED_BIT);
+
+    Ptr_release(m);
   });
 }
 
@@ -267,6 +292,7 @@ int main(void) {
       cmocka_unit_test(test_duplicate_keys),
       cmocka_unit_test(test_get_ownership_race),
       cmocka_unit_test(test_array_map_exceptions),
+      cmocka_unit_test(test_array_map_promotion),
   };
   initialise_memory();
   PersistentArrayMap *warmup = PersistentArrayMap_empty();

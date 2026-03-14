@@ -19,11 +19,14 @@ namespace rt {
 
 class ThreadsafeCompilerState;
 class IntrinsicDescription;
+class ShadowStackGuard;
 
 using IntrinsicCall = std::function<llvm::Value *(llvm::IRBuilder<> &,
                                                   std::vector<llvm::Value *>)>;
 using TypeIntrinsicCall =
     std::function<ObjectTypeSet(const std::vector<ObjectTypeSet> &)>;
+using GenericIntrinsicCall = std::function<llvm::Value *(
+    llvm::IRBuilder<> &, const std::vector<TypedValue> &)>;
 
 class InvokeManager {
   friend void registerMathIntrinsics(InvokeManager &mgr);
@@ -35,7 +38,9 @@ private:
   ValueEncoder &valueEncoder;
   LLVMTypes &types;
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
+  std::unordered_map<std::string, GenericIntrinsicCall> genericIntrinsics;
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
+  llvm::BasicBlock *landingPad = nullptr;
 
   // Folding Helpers
   mpz_ptr getZ(const ObjectTypeSet &t);
@@ -53,13 +58,17 @@ public:
                            const ObjectTypeSet *retValType,
                            const std::vector<ObjectTypeSet> &argTypes,
                            const std::vector<TypedValue> &args,
-                           const bool isVariadic = false);
+                           const bool isVariadic = false,
+                           ShadowStackGuard *guard = nullptr);
 
   TypedValue generateIntrinsic(const IntrinsicDescription &id,
-                               const std::vector<TypedValue> &args);
+                               const std::vector<TypedValue> &args,
+                               ShadowStackGuard *guard = nullptr);
 
   ObjectTypeSet foldIntrinsic(const IntrinsicDescription &id,
                               const std::vector<ObjectTypeSet> &args);
+
+  void setLandingPad(llvm::BasicBlock *lp) { landingPad = lp; }
 };
 
 

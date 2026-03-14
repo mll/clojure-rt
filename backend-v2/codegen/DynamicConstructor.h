@@ -12,6 +12,8 @@
 
 namespace rt {
 
+class ShadowStackGuard;
+
 class DynamicConstructor {
 private:
   LLVMTypes &types;
@@ -41,16 +43,15 @@ public:
   TypedValue createRatio(const char *s);
 
   /*
-   * TODO:
    * It is currently assumed the runtime constructors never throw
-   * This might end up to be untrue, especially that they include allocations.
-   * Once exception handling is done, we need to specify memory allocation
-   * behaviour and implement invoke + cleanup landing pad here.
    */
-  TypedValue createVector(std::vector<TypedValue> &items);
+  TypedValue createVector(std::vector<TypedValue> &items,
+                          ShadowStackGuard *guard = nullptr);
   TypedValue createArrayMap(std::vector<TypedValue> &keys,
-                            std::vector<TypedValue> &values);
-  TypedValue createList(std::vector<TypedValue> &items);
+                            std::vector<TypedValue> &values,
+                            ShadowStackGuard *guard = nullptr);
+  TypedValue createList(std::vector<TypedValue> &items,
+                        ShadowStackGuard *guard = nullptr);
 };
 
 } // namespace rt

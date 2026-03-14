@@ -131,7 +131,8 @@ set(BACKEND_SOURCES
       codegen/ops/IfNode.cpp
       codegen/ops/DefNode.cpp
       codegen/ops/TheVarNode.cpp
-      codegen/ops/VarNode.cpp)
+      codegen/ops/VarNode.cpp
+      codegen/ops/WithMetaNode.cpp)
 
 
 # 2. Protobuf Detection

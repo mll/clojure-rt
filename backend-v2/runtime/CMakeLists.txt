@@ -35,7 +35,8 @@ set(SOURCES
     Class.c
     RuntimeInterface.c
     PersistentArrayMap.c
-    Var.c)
+    Var.c
+    Numbers.c)
 
 add_library(runtime STATIC ${SOURCES})
 
@@ -71,6 +72,7 @@ set(TEST_MODULES
     Var_test
     Var_Race_test
     RefcountPerf_test
+    Numbers_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

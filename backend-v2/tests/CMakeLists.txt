@@ -8,6 +8,10 @@ set(TEST_MODULES
     codegen/Overflow_test
     codegen/IfNode_test
     codegen/StaticCallType_test
+    codegen/StaticCallNode_test
+    codegen/JITArithmetic_test
+    codegen/MathIntrinsics_test
+    codegen/DoubleAddRepro_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

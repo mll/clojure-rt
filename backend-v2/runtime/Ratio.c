@@ -32,7 +32,7 @@ Ratio *Ratio_createFromMpq(mpq_t value) {
 }
 
 /* mem done */
-Ratio *Ratio_createFromInts(word_t numerator, word_t denominator) {
+Ratio *Ratio_createFromInts(int32_t numerator, int32_t denominator) {
   if (!denominator)
     throwArithmeticException_C("Divide by zero");
   Ratio *self = Ratio_createUnassigned();
@@ -42,7 +42,7 @@ Ratio *Ratio_createFromInts(word_t numerator, word_t denominator) {
 }
 
 /* mem done */
-Ratio *Ratio_createFromInt(word_t value) {
+Ratio *Ratio_createFromInt(int32_t value) {
   Ratio *self = Ratio_createUnassigned();
   mpq_set_si(self->value, value, 1);
   // canonicalized

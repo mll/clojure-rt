@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "../RuntimeHeaders.h"
+#include "../runtime/Exceptions.h"
 #include <gmp.h>
 
 #include <exception>
@@ -46,10 +47,11 @@ throwInternalInconsistencyException(const std::string &errorMessage);
                                                const Node &node);
 
 extern "C" void registerJitFunction_C(uword_t addr, size_t size,
-                                      const char *name,
-                                      const void *objData, size_t objSize);
+                                      const char *name, const void *objData,
+                                      size_t objSize);
 
 extern "C" [[noreturn]] void
-throwInternalInconsistencyException_C(const char *errorMessage);
+throwNoMatchingOverloadException_C(const char *className,
+                                   const char *methodName);
 
 #endif

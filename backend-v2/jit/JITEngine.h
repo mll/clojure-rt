@@ -45,6 +45,7 @@ class JITEngine {
   std::map<std::string, std::vector<RTValue>> moduleConstants;
   std::map<std::string, std::unique_ptr<llvm::MemoryBuffer>> capturedObjectBuffers;
   ThreadsafeCompilerState &threadsafeState;
+  void registerRuntimeSymbols();
 
 public:
   JITEngine(ThreadsafeCompilerState &state,
@@ -60,6 +61,14 @@ public:
                                                   bool printModule = false);
 
   void invalidate(const std::string &name);
+  std::vector<RTValue> getModuleConstants(const std::string &name) {
+    std::lock_guard<std::mutex> lock(engineMutex);
+    auto it = moduleConstants.find(name);
+    if (it != moduleConstants.end()) {
+      return it->second;
+    }
+    return {};
+  }
 };
 
 } // namespace rt

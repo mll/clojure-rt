@@ -53,9 +53,6 @@ void MemoryManagement::dynamicMemoryGuidance(
 }
 
 void MemoryManagement::dynamicRetain(TypedValue &target) {
-  if (target.type.isScalar() || target.type.isBoxedScalar())
-    return;
-
   Metadata *metaPtr = dyn_cast<Metadata>(MDString::get(context, "retain"));
   MDNode *meta = MDNode::get(context, metaPtr);
 
@@ -89,9 +86,6 @@ void MemoryManagement::dynamicRetain(TypedValue &target) {
 }
 
 TypedValue MemoryManagement::dynamicRelease(TypedValue &target) {
-  if (target.type.isScalar() || target.type.isBoxedScalar())
-    return dynamicConstructor.createBoolean(false);
-
   Metadata *metaPtr = dyn_cast<Metadata>(MDString::get(context, "release"));
   MDNode *meta = MDNode::get(context, metaPtr);
 

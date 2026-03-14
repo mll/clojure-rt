@@ -45,8 +45,6 @@ int main(int argc, char *argv[]) {
 
   MemoryState initialMemoryState;
   captureMemoryState(&initialMemoryState);
-  initialise_memory();
-
   clojure::rt::protobuf::bytecode::Programme astInterfaces;
   {
     fstream interfacesInput("rt-protocols.cljb", ios::in | ios::binary);
@@ -75,6 +73,7 @@ int main(int argc, char *argv[]) {
   }
 
   try {
+    initialise_memory();
     rt::ThreadsafeCompilerState state;
     rt::JITEngine engine(state);
 
@@ -112,8 +111,10 @@ int main(int argc, char *argv[]) {
       Ptr_release(s);
     }
     retVal = 0;
-  } catch (rt::LanguageException e) {
-    cout << rt::getExceptionString(e) << endl;
+  } catch (const rt::LanguageException &e) {
+    cerr << rt::getExceptionString(e) << endl;
+  } catch (std::exception e) {
+    cerr << e.what() << endl;
   }
 
   RuntimeInterface_cleanup();

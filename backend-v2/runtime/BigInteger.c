@@ -31,7 +31,7 @@ BigInteger *BigInteger_createFromMpz(mpz_t value) {
 }
 
 /* mem done */
-BigInteger *BigInteger_createFromInt(word_t value) {
+BigInteger *BigInteger_createFromInt(int32_t value) {
   BigInteger *self = BigInteger_createUninitialized();
   mpz_init_set_si(self->value, value);
   return self;

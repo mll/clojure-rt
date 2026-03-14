@@ -122,8 +122,9 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
   }
 
   /* Standard if condition */
-
+  ShadowStackGuard guard(*this);
   auto test = codegen(subnode.test(), ObjectTypeSet::all());
+  guard.push(test);
   Value *condValue = test.value;
 
   if (!condValue)
@@ -146,9 +147,6 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
 
   // then basic block
   Builder.SetInsertPoint(thenBB);
-  // release test value
-  if (!test.type.isScalar())
-    memoryManagement.dynamicRelease(test);
   // then val is that of last value in block
   auto thenWithType = thenType.isEmpty()
                           ? TypedValue(thenType, nullptr)
@@ -166,9 +164,6 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
 
   // else block
   Builder.SetInsertPoint(elseBB);
-  // release test value
-  if (!test.type.isScalar())
-    memoryManagement.dynamicRelease(test);
 
   // else val is that of last value in block
 

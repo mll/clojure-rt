@@ -187,8 +187,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().try_(), typeRestrictions);
   case opVar:
     return codegen(node, node.subnode().var(), typeRestrictions);
-  // case opWithMeta:
-  //   return codegen(node, node.subnode().withmeta(), typeRestrictions);
+  case opWithMeta:
+    return codegen(node, node.subnode().withmeta(), typeRestrictions);
   default:
     throwCodeGenerationException(
         std::string("Compiler does not support the following op yet: ") +
@@ -287,8 +287,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().try_(), typeRestrictions);
   case opVar:
     return getType(node, node.subnode().var(), typeRestrictions);
-  // case opWithMeta:
-  //   return getType(node, node.subnode().withmeta(), typeRestrictions);
+  case opWithMeta:
+    return getType(node, node.subnode().withmeta(), typeRestrictions);
   default:
     throwCodeGenerationException(
         std::string("Compiler does not support the following op yet: ") +

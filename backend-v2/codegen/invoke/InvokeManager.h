@@ -51,6 +51,7 @@ private:
   double getD(const ObjectTypeSet &t);
   ObjectTypeSet createZ(mpz_ptr val);
   ObjectTypeSet createQ(mpq_ptr val);
+  bool canThrow(const std::string &fname) const;
 
 public:
   explicit InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m, ValueEncoder &v,

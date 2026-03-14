@@ -28,65 +28,94 @@ MemoryManagement::MemoryManagement(llvm::LLVMContext &c, IRBuilder<> &b,
       variableBindingStack(vb), invoke(i), dynamicConstructor(d) {}
 
 void MemoryManagement::initFunction(llvm::Function *F) {
+  exceptionSlot = nullptr;
+  terminalResumeBB = nullptr;
+  clear();
+}
+
+void MemoryManagement::ensureExceptionInfrastructure(llvm::Function *F) {
+  if (exceptionSlot) return;
+
+  auto currentIP = builder.saveIP();
+
+  // Create alloca in entry block if possible, or just here
   exceptionSlot = builder.CreateAlloca(llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), nullptr, "exception_slot");
   terminalResumeBB = llvm::BasicBlock::Create(context, "terminal_resume", F);
   
-  auto currentIP = builder.saveIP();
   builder.SetInsertPoint(terminalResumeBB);
   llvm::Value *exVal = builder.CreateLoad(llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), exceptionSlot, "exception_to_resume");
   builder.CreateResume(exVal);
-  builder.restoreIP(currentIP);
 
-  clear();
+  builder.restoreIP(currentIP);
 }
 
 void MemoryManagement::pushResource(TypedValue val) {
   activeResources.push_back(val);
   totalPushedResources++;
-
-  if (CleanupChainGuard::needsProtection(val.type)) {
-    llvm::Function *F = builder.GetInsertBlock()->getParent();
-    llvm::BasicBlock *prevCleanup = cleanupStack.empty() ? terminalResumeBB : cleanupStack.back();
-    llvm::BasicBlock *newCleanup = llvm::BasicBlock::Create(context, "cleanup_link_" + std::to_string(totalPushedResources), F);
-    
-    auto currentIP = builder.saveIP();
-    builder.SetInsertPoint(newCleanup);
-    
-    llvm::FunctionType *releaseFnTy = llvm::FunctionType::get(types.RT_valueTy, {types.RT_valueTy}, false);
-    llvm::FunctionCallee releaseFn = theModule.getOrInsertFunction("release", releaseFnTy);
-    builder.CreateCall(releaseFn, {valueEncoder.box(val).value});
-    builder.CreateBr(prevCleanup);
-    
-    builder.restoreIP(currentIP);
-    cleanupStack.push_back(newCleanup);
-  }
 }
 
 void MemoryManagement::popResource() {
   TypedValue val = activeResources.back();
-  activeResources.pop_back();
-  
-  if (CleanupChainGuard::needsProtection(val.type)) {
-    cleanupStack.pop_back();
+  bool processed = activeResources.size() == resourcesWithCleanup;
+
+  if (processed) {
+    if (CleanupChainGuard::needsProtection(val.type)) {
+      cleanupStack.pop_back();
+    }
+    resourcesWithCleanup--;
   }
+
+  activeResources.pop_back();
 }
 
 llvm::BasicBlock* MemoryManagement::getLandingPad() {
-  if (cleanupStack.empty()) return nullptr;
+  // Emit cleanup blocks for any resources that don't have them yet
+  while (resourcesWithCleanup < activeResources.size()) {
+    TypedValue val = activeResources[resourcesWithCleanup];
+    if (CleanupChainGuard::needsProtection(val.type)) {
+      llvm::Function *F = builder.GetInsertBlock()->getParent();
+      ensureExceptionInfrastructure(F);
+
+      llvm::BasicBlock *prevCleanup =
+          cleanupStack.empty() ? terminalResumeBB : cleanupStack.back();
+      llvm::BasicBlock *newCleanup = llvm::BasicBlock::Create(
+          context, "cleanup_link_" + std::to_string(totalPushedResources - (activeResources.size() - resourcesWithCleanup - 1)), F);
+
+      auto currentIP = builder.saveIP();
+      builder.SetInsertPoint(newCleanup);
+
+      llvm::FunctionType *releaseFnTy =
+          llvm::FunctionType::get(types.RT_valueTy, {types.RT_valueTy}, false);
+      llvm::FunctionCallee releaseFn =
+          theModule.getOrInsertFunction("release", releaseFnTy);
+      builder.CreateCall(releaseFn, {valueEncoder.box(val).value});
+      builder.CreateBr(prevCleanup);
+
+      builder.restoreIP(currentIP);
+      cleanupStack.push_back(newCleanup);
+    }
+    resourcesWithCleanup++;
+  }
+
+  if (cleanupStack.empty())
+    return nullptr;
 
   llvm::Function *F = builder.GetInsertBlock()->getParent();
-  llvm::BasicBlock *lpadEntry = llvm::BasicBlock::Create(context, "lpad_entry_" + std::to_string(totalPushedResources), F);
-  
+  ensureExceptionInfrastructure(F);
+
+  llvm::BasicBlock *lpadEntry = llvm::BasicBlock::Create(
+      context, "lpad_entry_" + std::to_string(totalPushedResources), F);
+
   auto currentIP = builder.saveIP();
   builder.SetInsertPoint(lpadEntry);
-  
+
   llvm::LandingPadInst *lpad = builder.CreateLandingPad(
       llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), 1);
   lpad->setCleanup(true);
-  
+
   builder.CreateStore(lpad, exceptionSlot);
   builder.CreateBr(cleanupStack.back());
-  
+
   builder.restoreIP(currentIP);
   return lpadEntry;
 }
@@ -95,6 +124,7 @@ void MemoryManagement::clear() {
   cleanupStack.clear();
   activeResources.clear();
   totalPushedResources = 0;
+  resourcesWithCleanup = 0;
 }
 
 void MemoryManagement::dynamicMemoryGuidance(

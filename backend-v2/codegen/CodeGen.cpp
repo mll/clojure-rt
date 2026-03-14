@@ -122,8 +122,8 @@ TypedValue CodeGen::codegen(const Node &node,
     return codegen(node, node.subnode().def(), typeRestrictions);
   // case opDeftype:
   //   return codegen(node, node.subnode().deftype(), typeRestrictions);
-  // case opDo:
-  //   return codegen(node, node.subnode().do_(), typeRestrictions);
+  case opDo:
+    return codegen(node, node.subnode().do_(), typeRestrictions);
   // case opFn:
   //   return codegen(node, node.subnode().fn(), typeRestrictions);
   // case opFnMethod:
@@ -222,8 +222,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().def(), typeRestrictions);
   // case opDeftype:
   //   return getType(node, node.subnode().deftype(), typeRestrictions);
-  // case opDo:
-  //   return getType(node, node.subnode().do_(), typeRestrictions);
+  case opDo:
+    return getType(node, node.subnode().do_(), typeRestrictions);
   // case opFn:
   //   return getType(node, node.subnode().fn(), typeRestrictions);
   // case opFnMethod:

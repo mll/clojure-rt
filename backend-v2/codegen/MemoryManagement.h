@@ -56,6 +56,9 @@ private:
   std::vector<llvm::BasicBlock *> cleanupStack;
   std::vector<TypedValue> activeResources;
   size_t totalPushedResources = 0;
+  size_t resourcesWithCleanup = 0; // Index into activeResources
+
+  void ensureExceptionInfrastructure(llvm::Function *F);
 };
 
 } // namespace rt

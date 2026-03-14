@@ -267,7 +267,6 @@ static void test_math_pow_var(void **state) {
 
 int main(void) {
   initialise_memory();
-  RuntimeInterface_initialise();
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
   const struct CMUnitTest tests[] = {

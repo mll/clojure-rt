@@ -19,6 +19,7 @@ namespace rt {
 
 class ThreadsafeCompilerState;
 class IntrinsicDescription;
+class ShadowStackGuard;
 
 using IntrinsicCall = std::function<llvm::Value *(llvm::IRBuilder<> &,
                                                   std::vector<llvm::Value *>)>;
@@ -39,6 +40,7 @@ private:
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
   std::unordered_map<std::string, GenericIntrinsicCall> genericIntrinsics;
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
+  llvm::BasicBlock *landingPad = nullptr;
 
   // Folding Helpers
   mpz_ptr getZ(const ObjectTypeSet &t);
@@ -56,13 +58,17 @@ public:
                            const ObjectTypeSet *retValType,
                            const std::vector<ObjectTypeSet> &argTypes,
                            const std::vector<TypedValue> &args,
-                           const bool isVariadic = false);
+                           const bool isVariadic = false,
+                           ShadowStackGuard *guard = nullptr);
 
   TypedValue generateIntrinsic(const IntrinsicDescription &id,
-                               const std::vector<TypedValue> &args);
+                               const std::vector<TypedValue> &args,
+                               ShadowStackGuard *guard = nullptr);
 
   ObjectTypeSet foldIntrinsic(const IntrinsicDescription &id,
                               const std::vector<ObjectTypeSet> &args);
+
+  void setLandingPad(llvm::BasicBlock *lp) { landingPad = lp; }
 };
 
 

@@ -3,10 +3,8 @@
 #include "../runtime/Numbers.h"
 #include "bridge/Exceptions.h"
 #include <llvm/ExecutionEngine/Orc/DebugObjectManagerPlugin.h>
-#include <llvm/ExecutionEngine/Orc/EPCDebugObjectRegistrar.h>
-#include <llvm/ExecutionEngine/Orc/ObjectTransformLayer.h>
-#include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/Support/MemoryBuffer.h>
+
 
 namespace rt {
 
@@ -273,6 +271,7 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(
       absoluteSymbol("throwIndexOutOfBoundsException_C",
                      (void *)throwIndexOutOfBoundsException_C));
+
 
   cantFail(jit->getMainJITDylib().define(
       absoluteSymbols(std::move(runtimeSymbols))));

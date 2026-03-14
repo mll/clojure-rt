@@ -1,4 +1,5 @@
 #include "InvokeManager.h"
+#include "../CodeGen.h"
 #include "../../bridge/Exceptions.h"
 #include "../../tools/EdnParser.h"
 #include "../../types/ConstantBool.h"
@@ -103,7 +104,8 @@ ObjectTypeSet InvokeManager::createQ(mpq_ptr val) {
 
 
 TypedValue InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
-                                             const vector<TypedValue> &args) {
+                                             const vector<TypedValue> &args,
+                                             ShadowStackGuard *guard) {
   if (id.type == CallType::Intrinsic) {
     auto git = genericIntrinsics.find(id.symbol);
     if (git != genericIntrinsics.end()) {
@@ -120,7 +122,9 @@ TypedValue InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
       argVals.push_back(valueEncoder.unbox(arg).value);
     return TypedValue(id.returnType, it->second(builder, argVals));
   } else if (id.type == CallType::Call) {
-    return invokeRuntime(id.symbol, &id.returnType, id.argTypes, args);
+    return invokeRuntime(id.symbol, &id.returnType, id.argTypes, args, false, guard);
+  } else {
+    return invokeRuntime(id.symbol, &id.returnType, id.argTypes, args, false, nullptr);
   }
 
   throwInternalInconsistencyException("Unsupported call type");
@@ -143,7 +147,8 @@ TypedValue InvokeManager::invokeRuntime(const std::string &fname,
                                          const ObjectTypeSet *retValType,
                                          const std::vector<ObjectTypeSet> &argTypes,
                                          const std::vector<TypedValue> &args,
-                                         const bool isVariadic) {
+                                         const bool isVariadic,
+                                         ShadowStackGuard *guard) {
   std::vector<llvm::Type *> llvmTypes;
   for (auto &at : argTypes) {
     if (at.isBoxedType())
@@ -190,9 +195,21 @@ TypedValue InvokeManager::invokeRuntime(const std::string &fname,
     }
   }
 
+  Value *callResult;
+  if (landingPad) {
+    if (guard) {
+      guard->popAll();
+    }
+    BasicBlock *normalBB = BasicBlock::Create(theModule.getContext(), "invoke_normal", builder.GetInsertBlock()->getParent());
+    callResult = builder.CreateInvoke(toCall, normalBB, landingPad, argVals, std::string("inv_") + fname);
+    builder.SetInsertPoint(normalBB);
+  } else {
+    callResult = builder.CreateCall(toCall, argVals, std::string("call_") + fname);
+  }
+
   return TypedValue(
       retValType ? *retValType : ObjectTypeSet::all(),
-      builder.CreateCall(toCall, argVals, std::string("call_") + fname));
+      callResult);
 }
 
 } // namespace rt

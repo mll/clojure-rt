@@ -1,4 +1,5 @@
 #include "DynamicConstructor.h"
+#include "CodeGen.h"
 #include "../RuntimeHeaders.h"
 #include "../bridge/Exceptions.h"
 #include "../cljassert.h"
@@ -110,7 +111,8 @@ TypedValue DynamicConstructor::createRatio(const char *s) {
                                 types.ptrTy));
 }
 
-TypedValue DynamicConstructor::createVector(std::vector<TypedValue> &items) {
+TypedValue DynamicConstructor::createVector(std::vector<TypedValue> &items,
+                                          ShadowStackGuard *guard) {
   auto retValType = ObjectTypeSet(persistentVectorType, false);
   std::vector<TypedValue> allArgs;
   allArgs.push_back(createInt32(items.size()));
@@ -118,11 +120,12 @@ TypedValue DynamicConstructor::createVector(std::vector<TypedValue> &items) {
     allArgs.push_back(item);
   return invokeManager.invokeRuntime("PersistentVector_createMany", &retValType,
                                      {ObjectTypeSet(integerType, false)},
-                                     allArgs, true);
+                                     allArgs, true, guard);
 }
 
 TypedValue DynamicConstructor::createArrayMap(std::vector<TypedValue> &keys,
-                                              std::vector<TypedValue> &values) {
+                                              std::vector<TypedValue> &values,
+                                              ShadowStackGuard *guard) {
   if (keys.size() != values.size())
     throwInternalInconsistencyException(
         "Keys and values need to have the same size");
@@ -142,10 +145,11 @@ TypedValue DynamicConstructor::createArrayMap(std::vector<TypedValue> &keys,
 
   return invokeManager.invokeRuntime(
       "PersistentArrayMap_createMany", &retValType,
-      {ObjectTypeSet(integerType, false)}, allArgs, true);
+      {ObjectTypeSet(integerType, false)}, allArgs, true, guard);
 }
 
-TypedValue DynamicConstructor::createList(std::vector<TypedValue> &items) {
+TypedValue DynamicConstructor::createList(std::vector<TypedValue> &items,
+                                        ShadowStackGuard *guard) {
   auto retValType = ObjectTypeSet(persistentListType, false);
   std::vector<TypedValue> allArgs;
   allArgs.push_back(createInt32(items.size()));
@@ -153,7 +157,7 @@ TypedValue DynamicConstructor::createList(std::vector<TypedValue> &items) {
     allArgs.push_back(item);
   return invokeManager.invokeRuntime("PersistentList_createMany", &retValType,
                                      {ObjectTypeSet(integerType, false)},
-                                     allArgs, true);
+                                     allArgs, true, guard);
 }
 
 } // namespace rt

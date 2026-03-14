@@ -20,13 +20,17 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   std::vector<ObjectTypeSet> argTypes;
   std::vector<TypedValue> args;
   bool allDetermined = true;
+  ShadowStackGuard guard(*this);
   for (int i = 0; i < subnode.args_size(); i++) {
     auto t = codegen(subnode.args(i), ObjectTypeSet::all());
     if (!t.type.isDetermined())
       allDetermined = false;
     argTypes.push_back(t.type.unboxed());
     args.push_back(t);
+    guard.push(t);
   }
+
+  this->invokeManager.setLandingPad(this->getLandingPad());
 
   auto c = subnode.class_();
   auto m = subnode.method();
@@ -83,7 +87,9 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
       unboxedArgs.push_back(this->valueEncoder.unbox(args[i]));
     }
     auto result =
-        this->invokeManager.generateIntrinsic(*bestMatch, unboxedArgs);
+        this->invokeManager.generateIntrinsic(*bestMatch, unboxedArgs, &guard);
+
+    this->invokeManager.setLandingPad(nullptr);
     return result;
   }
   if (allDetermined) {
@@ -220,7 +226,8 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     }
 
     TypedValue res =
-        this->invokeManager.generateIntrinsic(*fid, specializedArgs);
+        this->invokeManager.generateIntrinsic(*fid, specializedArgs, &guard);
+    
     TypedValue boxedRes = this->valueEncoder.box(res);
     cases.push_back({this->Builder.GetInsertBlock(), boxedRes});
     this->Builder.CreateBr(mergeBB);
@@ -228,7 +235,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   }
 
   if (generic) {
-    TypedValue genRes = this->invokeManager.generateIntrinsic(*generic, args);
+    TypedValue genRes = this->invokeManager.generateIntrinsic(*generic, args, &guard);
     TypedValue boxedGenRes = this->valueEncoder.box(genRes);
     cases.push_back({this->Builder.GetInsertBlock(), boxedGenRes});
     this->Builder.CreateBr(mergeBB);
@@ -244,9 +251,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
         TypedValue(ObjectTypeSet::dynamicType(), clsName),
         TypedValue(ObjectTypeSet::dynamicType(), methName)};
 
-    for (auto &arg : args) {
-      this->memoryManagement.dynamicRelease(arg);
-    }
+    // No manual release here - landing pad will handle it via shadow stack
 
     this->invokeManager.invokeRuntime("throwNoMatchingOverloadException_C",
                                       nullptr, pArgTypes, pArgVals);
@@ -259,6 +264,8 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   for (auto &c : cases) {
     phi->addIncoming(c.value.value, c.block);
   }
+
+  this->invokeManager.setLandingPad(nullptr);
 
   return TypedValue(ObjectTypeSet::dynamicType(), phi);
 }

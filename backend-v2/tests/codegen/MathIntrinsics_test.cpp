@@ -200,13 +200,16 @@ static void test_math_sqrt_leak_repro(void **state) {
   try {
     auto resCall = engine
                        .compileAST(callNode, "__test_leak_repro",
-                                   llvm::OptimizationLevel::O0, false)
+                                   llvm::OptimizationLevel::O0, true)
                        .get();
-    // Protect constant (though 'a' is a Var so it's not a constant in IR)
+    fflush(stdout);
+    fflush(stderr);
     RTValue result = resPtrToValue(resCall); // Should throw
     (void)result;
   } catch (const std::exception &e) {
     printf("Caught expected exception: %s\n", e.what());
+  } catch (...) {
+    printf("Caught UNKNOWN exception!\n");
   }
 
   // Note: initialise_memory() and RuntimeInterface_cleanup() in main will check
@@ -268,6 +271,8 @@ static void test_math_pow_var(void **state) {
 int main(void) {
   initialise_memory();
   RuntimeInterface_initialise();
+  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0);
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_math_sin_int),
       cmocka_unit_test(test_math_sqrt_bigint),

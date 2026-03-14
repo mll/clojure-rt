@@ -153,9 +153,6 @@ static void test_math_sqrt_bigint(void **state) {
                        .compileAST(callNode, "__test_sqrt_bigint",
                                    llvm::OptimizationLevel::O0, false)
                        .get();
-    // Protect constant
-    for (auto val : engine.getModuleConstants("__test_sqrt_bigint"))
-      retain(val);
 
     RTValue result = resPtrToValue(resCall);
     assert_true(RT_isDouble(result));

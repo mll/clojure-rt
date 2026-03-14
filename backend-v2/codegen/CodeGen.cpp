@@ -8,6 +8,7 @@
 #include "runtime/Object.h"
 
 using namespace llvm;
+using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
 
@@ -144,12 +145,12 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().invoke(), typeRestrictions);
   // case opKeywordInvoke:
   //   return codegen(node, node.subnode().keywordinvoke(), typeRestrictions);
-  // case opLet:
-  //   return codegen(node, node.subnode().let(), typeRestrictions);
+  case opLet:
+    return codegen(node, node.subnode().let(), typeRestrictions);
   // case opLetfn:
   //   return codegen(node, node.subnode().letfn(), typeRestrictions);
-  // case opLocal:
-  //   return codegen(node, node.subnode().local(), typeRestrictions);
+  case opLocal:
+    return codegen(node, node.subnode().local(), typeRestrictions);
   // case opLoop:
   //   return codegen(node, node.subnode().loop(), typeRestrictions);
   // case opMethod:
@@ -244,12 +245,12 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().invoke(), typeRestrictions);
   // case opKeywordInvoke:
   //   return getType(node, node.subnode().keywordinvoke(), typeRestrictions);
-  // case opLet:
-  //   return getType(node, node.subnode().let(), typeRestrictions);
+  case opLet:
+    return getType(node, node.subnode().let(), typeRestrictions);
   // case opLetfn:
   //   return getType(node, node.subnode().letfn(), typeRestrictions);
-  // case opLocal:
-  //   return getType(node, node.subnode().local(), typeRestrictions);
+  case opLocal:
+    return getType(node, node.subnode().local(), typeRestrictions);
   // case opLoop:
   //   return getType(node, node.subnode().loop(), typeRestrictions);
   // case opMethod:
@@ -307,10 +308,18 @@ bool CodeGen::canThrow(const Node &node) {
   case opQuote:
   case opStaticField:
   case opTheVar:
-  case opVar:
+  case opLocal:
   case opFn:
   case opFnMethod:
     return false;
+  
+  case opLet: {
+    const auto &l = node.subnode().let();
+    for (int i = 0; i < l.bindings_size(); ++i) {
+        if (canThrow(l.bindings(i))) return true;
+    }
+    return canThrow(l.body());
+  }
 
   case opVector: {
     const auto &v = node.subnode().vector();

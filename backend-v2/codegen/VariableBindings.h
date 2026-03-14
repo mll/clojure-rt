@@ -20,12 +20,21 @@ public:
 
   // level -1 means current level
   T *find(const std::string &key, word_t level = -1) {
-    std::unordered_map<std::string, T> &levelMap =
-        variableBindingStack[level == -1 ? (stackDepth() - 1) : level];
-    auto result = levelMap.find(key);
-    if (result == levelMap.end())
-      return nullptr;
-    return &(result->second);
+    if (level != -1) {
+      if (level >= stackDepth()) return nullptr;
+      std::unordered_map<std::string, T> &levelMap = variableBindingStack[level];
+      auto result = levelMap.find(key);
+      if (result == levelMap.end())
+        return nullptr;
+      return &(result->second);
+    }
+    for (int i = (int)stackDepth() - 1; i >= 0; --i) {
+      std::unordered_map<std::string, T> &levelMap = variableBindingStack[i];
+      auto result = levelMap.find(key);
+      if (result != levelMap.end())
+        return &(result->second);
+    }
+    return nullptr;
   }
 
   // Always sets at the current level

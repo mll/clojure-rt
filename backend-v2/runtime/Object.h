@@ -1,6 +1,7 @@
 #ifndef RT_OBJECT
 #define RT_OBJECT
 
+#include "word.h"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
 #pragma clang diagnostic ignored "-Wexpansion-to-defined"
@@ -52,6 +53,11 @@ using std::memory_order_seq_cst;
 #include "String.h"
 #include "Symbol.h"
 #include "Var.h"
+
+// Bit 0 is the shared flag.
+// Remaining bits are the count.
+#define SHARED_BIT ((uword_t)1)
+#define COUNT_INC ((uword_t)2)
 
 typedef struct String String;
 
@@ -198,9 +204,22 @@ inline void Object_retain(Object *restrict self) {
                             memory_order_relaxed);
 #endif
 #ifdef REFCOUNT_NONATOMIC
-  self->refCount++;
+  self->refCount += COUNT_INC;
 #else
-  atomic_fetch_add_explicit(&(self->atomicRefCount), 1, memory_order_relaxed);
+  uword_t current =
+      atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
+
+  if (!(current & SHARED_BIT)) {
+    // FAST PATH: It's local. Use a plain non-atomic write.
+    // We can do this because only THIS thread owns it.
+    uword_t new_val = current + COUNT_INC;
+    atomic_store_explicit(&(self->atomicRefCount), new_val,
+                          memory_order_relaxed);
+  } else {
+    // SLOW PATH: It's shared. Must use atomic fetch_add.
+    atomic_fetch_add_explicit(&(self->atomicRefCount), COUNT_INC,
+                              memory_order_relaxed);
+  }
 #endif
 }
 
@@ -242,7 +261,7 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   case varType:
     Var_destroy((Var *)self);
     break;
- 
+
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -256,16 +275,9 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
 inline bool Object_isReusable(Object *restrict self) {
   uword_t refCount =
       atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
-  // Multithreading - is it really safe to assume it is reusable if refcount is
-  // 1?
-  /*  The reasoning here is that passing object to another thread is an
-     operation that by itself increases its reference count. Therefore it is
-     assumed that if recount is 1 at a point in time this means other threads
-     have no knowledge of this object's existence at this particular moment.
-     Therefore, if only our thread knows of it, it can pass it to another but
-     only after it completes current operation.
-      */
-  return refCount == 1;
+  if (refCount & SHARED_BIT)
+    return false;
+  return refCount >> 1 == 1;
 }
 
 inline bool isReusable(RTValue self) {
@@ -275,34 +287,112 @@ inline bool isReusable(RTValue self) {
 inline bool Object_release_internal(Object *restrict self,
                                     bool deallocateChildren) {
 #ifdef REFCOUNT_TRACING
-  //    printf("RELEASE!!! %p %d %d\n", self, self->type, deallocateChildren);
   atomic_fetch_sub_explicit(&(allocationCount[self->type - 1]), 1,
                             memory_order_relaxed);
-#ifndef REFCOUNT_NONATOMIC
-  assert(atomic_load(&(self->atomicRefCount)) > 0);
-#else
-  assert(self->refCount > 0);
-#endif
 #endif
 #ifdef REFCOUNT_NONATOMIC
-  if (--self->refCount == 0) {
-#else
-  uword_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount), 1,
-                                             memory_order_release);
-  assert(relVal >= 1 && "Memory corruption!");
-  if (relVal == 1) {
+  self->refCount -= COUNT_INC;
+  if ((self->refCount >> 1) == 0) {
 #ifdef REFCOUNT_TRACING
     uword_t countVal = atomic_fetch_sub_explicit(&(objectCount[self->type - 1]),
                                                  1, memory_order_relaxed);
     assert(countVal >= 1 && "Memory corruption!");
 #endif
-#endif
-    atomic_thread_fence(memory_order_acquire);
     Object_destroy(self, deallocateChildren);
     return true;
   }
+#else
+  uintptr_t current =
+      atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
+  if (!(current & SHARED_BIT)) {
+    // --- FAST PATH: Local ---
+    // Since it's local, only THIS thread can be releasing it.
+    // No other thread can be concurrent here.
+    uword_t newVal = current - COUNT_INC;
+
+    if ((newVal >> 1) == 0) {
+#ifdef REFCOUNT_TRACING
+      uword_t countVal = atomic_fetch_sub_explicit(
+          &(objectCount[self->type - 1]), 1, memory_order_relaxed);
+      assert(countVal >= 1 && "Memory corruption!");
+#endif
+      Object_destroy(self, deallocateChildren);
+      return true;
+    }
+    atomic_store_explicit(&(self->atomicRefCount), newVal,
+                          memory_order_relaxed);
+  } else {
+    // --- SLOW PATH: Shared ---
+    // We must use atomic operations because other threads might be accessing
+    // this object.
+    uword_t relVal = atomic_fetch_sub_explicit(&(self->atomicRefCount),
+                                               COUNT_INC, memory_order_release);
+    if (relVal >> 1 == 1) {
+#ifdef REFCOUNT_TRACING
+      uword_t countVal = atomic_fetch_sub_explicit(
+          &(objectCount[self->type - 1]), 1, memory_order_relaxed);
+      assert(countVal >= 1 && "Memory corruption!");
+#endif
+      atomic_thread_fence(memory_order_acquire);
+      Object_destroy(self, deallocateChildren);
+      return true;
+    }
+  }
+#endif
   return false;
 }
+
+/* outside of refcount system */
+inline void Object_promoteToSharedShallow(Object *restrict self,
+                                          uword_t current) {
+#ifndef REFCOUNT_NONATOMIC
+  // Optimization: If we guarantee that only the 'owning' thread performs
+  // the initial promotion, we can use relaxed load/store.
+  // This is significantly faster than atomic RMW (fetch_or) in bulk operations.
+  if (!(current & SHARED_BIT)) {
+    atomic_store_explicit(&(self->atomicRefCount), current | SHARED_BIT,
+                          memory_order_relaxed);
+  }
+#else
+  self->refCount |= SHARED_BIT;
+#endif
+}
+
+/* outside of refcount system */
+inline uword_t Object_getRawRefCount(Object *self) {
+  return atomic_load_explicit(&self->atomicRefCount, memory_order_relaxed);
+}
+
+/* outside of refcount system */
+inline void Object_promoteToShared(Object *restrict self) {
+  uword_t count = Object_getRawRefCount(self);
+  if ((count & SHARED_BIT) != 0) {
+    return;
+  }
+
+  switch ((objectType)self->type) {
+  case persistentListType:
+    PersistentList_promoteToShared((PersistentList *)self, count);
+    break;
+
+  case persistentArrayMapType:
+    PersistentArrayMap_promoteToShared((PersistentArrayMap *)self, count);
+    break;
+
+  case persistentVectorType:
+    PersistentVector_promoteToShared((PersistentVector *)self, count);
+    break;
+
+  case persistentVectorNodeType:
+    PersistentVectorNode_promoteToShared((PersistentVectorNode *)self, count);
+    break;
+
+  default:
+    Object_promoteToSharedShallow(self, count);
+    break;
+  }
+}
+
 
 /* Outside of refcount system */
 inline uword_t Object_hash(Object *restrict self) {
@@ -333,7 +423,7 @@ inline uword_t Object_hash(Object *restrict self) {
   case persistentArrayMapType:
     return PersistentArrayMap_hash((PersistentArrayMap *)self);
   case varType:
-    return Var_hash((Var *)self);    
+    return Var_hash((Var *)self);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -411,10 +501,9 @@ inline bool Object_equals(Object *self, Object *other) {
                                      (PersistentArrayMap *)other);
     break;
   case varType:
-    return Var_equals((Var *)self,
-                      (Var *)other);
+    return Var_equals((Var *)self, (Var *)other);
     break;
-    
+
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -423,7 +512,8 @@ inline bool Object_equals(Object *self, Object *other) {
   return false;
 }
 
-/* Outside of refcount system - should it be like this? It probably shouldnt */
+/* Outside of refcount system - should it be like this? It probably shouldnt
+ */
 inline bool equals(RTValue self, RTValue other) {
   if (self == other)
     return true; // Handles same-ints, same-bools, and same-pointers
@@ -472,7 +562,7 @@ inline String *Object_toString(Object *restrict self) {
   case persistentArrayMapType:
     return PersistentArrayMap_toString((PersistentArrayMap *)self);
   case varType:
-    return Var_toString((Var *)self);    
+    return Var_toString((Var *)self);
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }
@@ -518,11 +608,17 @@ inline bool release(RTValue self) {
   return false;
 }
 
+inline void promoteToShared(RTValue self) {
+  if (RT_isPtr(self)) {
+    Object_promoteToShared((Object *)RT_unboxPtr(self));
+  }
+}
+
 inline void Object_create(Object *restrict self, objectType type) {
 #ifdef REFCOUNT_NONATOMIC
-  self->refCount = 1;
+  self->refCount = COUNT_INC;
 #else
-  atomic_store_explicit(&(self->atomicRefCount), 1, memory_order_relaxed);
+  atomic_store_explicit(&(self->atomicRefCount), COUNT_INC, memory_order_relaxed);
 #endif
   self->type = type;
 #ifdef REFCOUNT_TRACING

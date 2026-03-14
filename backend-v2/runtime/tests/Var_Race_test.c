@@ -196,7 +196,6 @@ static void test_var_destruction_hazard_race_stable(void **state) {
   (void)state;
   atomic_store(&stop_threads, false);
   Var *v = Var_create(Keyword_create(String_create("stable")));
-
   struct DestructionRaceArgs args = {
       .v = v, .iteration = 0, .reader_done = 0, .reader_entering = false};
 

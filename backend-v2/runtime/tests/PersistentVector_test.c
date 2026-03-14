@@ -496,6 +496,78 @@ static void test_vector_equality_deep(void **state) {
   });
 }
 
+static void test_vector_promotion(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    // 1. Small vector (tail only)
+    RTValue s1 = RT_boxPtr(String_create("s1"));
+    PersistentVector *v_small = PersistentVector_createMany(1, s1);
+
+    assert_false(Object_getRawRefCount((Object *)v_small) & SHARED_BIT);
+    assert_false(Object_getRawRefCount((Object *)RT_unboxPtr(s1)) & SHARED_BIT);
+
+    promoteToShared(RT_boxPtr(v_small));
+
+    assert_true(Object_getRawRefCount((Object *)v_small) & SHARED_BIT);
+    assert_true(Object_getRawRefCount((Object *)v_small->tail) & SHARED_BIT);
+    assert_true(Object_getRawRefCount((Object *)RT_unboxPtr(s1)) & SHARED_BIT);
+
+    Ptr_release(v_small);
+
+    // 2. Large vector (root + tail)
+    PersistentVector *v_large = PersistentVector_create();
+    RTValue elements[100];
+    for (int i = 0; i < 100; i++) {
+      elements[i] = RT_boxPtr(String_create("elem"));
+      v_large = PersistentVector_conj(v_large, elements[i]);
+    }
+
+    assert_false(Object_getRawRefCount((Object *)v_large) & SHARED_BIT);
+    assert_non_null(v_large->root);
+
+    promoteToShared(RT_boxPtr(v_large));
+
+    assert_true(Object_getRawRefCount((Object *)v_large) & SHARED_BIT);
+    assert_true(Object_getRawRefCount((Object *)v_large->tail) & SHARED_BIT);
+    assert_true(Object_getRawRefCount((Object *)v_large->root) & SHARED_BIT);
+
+    for (int i = 0; i < 100; i++) {
+      assert_true(Object_getRawRefCount((Object *)RT_unboxPtr(elements[i])) &
+                  SHARED_BIT);
+    }
+
+    Ptr_release(v_large);
+  });
+}
+
+static void test_vector_transient_promotion(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v = PersistentVector_transient(PersistentVector_create());
+    v = PersistentVector_conj_BANG_(v, RT_boxInt32(1));
+
+    ASSERT_THROWS("IllegalStateException", {
+      promoteToShared(RT_boxPtr(v));
+    });
+
+    Ptr_release(v);
+  });
+}
+
+static void test_object_shared_not_reusable(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v = PersistentVector_create();
+    promoteToShared(RT_boxPtr(v));
+
+    // Refcount is 1 (logical) + SHARED_BIT. Logical refcount is 1.
+    // In-place mutation should be blocked.
+    assert_false(Ptr_isReusable(v));
+
+    Ptr_release(v);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(vectorCreateTest),
@@ -512,6 +584,9 @@ int main(void) {
       cmocka_unit_test(test_vector_contains),
       cmocka_unit_test(test_vector_large_structural),
       cmocka_unit_test(test_vector_equality_deep),
+      cmocka_unit_test(test_vector_promotion),
+      cmocka_unit_test(test_vector_transient_promotion),
+      cmocka_unit_test(test_object_shared_not_reusable),
       cmocka_unit_test_prestate(testScalingBehavior, vectorConjNoReuse),
       cmocka_unit_test_prestate(testScalingBehavior, vectorStandardConjAndSum),
       cmocka_unit_test_prestate(testScalingBehavior, vectorTransientConj),

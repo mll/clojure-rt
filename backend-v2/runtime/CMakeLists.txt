@@ -70,6 +70,7 @@ set(TEST_MODULES
     Boolean_test
     Var_test
     Var_Race_test
+    RefcountPerf_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

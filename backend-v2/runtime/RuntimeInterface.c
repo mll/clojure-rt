@@ -54,6 +54,7 @@ void RuntimeInterface_cleanup() {
     Ptr_release(vars);
     vars = NULL;
   }
+  PersistentList_cleanup();
   PersistentVector_cleanup();
   Var_cleanup();
 }

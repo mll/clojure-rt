@@ -109,13 +109,14 @@ HazardSlot *getOrCreateSlot() {
 Var *Var_create(RTValue keyword) {
   Var *self = (Var *)allocate(sizeof(Var));
   //  retain(UNIQUE_UnboundClass);
-  atomic_init(&(self->root),
-              RT_boxNull()); //(Object *)Deftype_create(UNIQUE_UnboundClass, 1,
-                             // keyword);
+  atomic_store_explicit(&(self->root), RT_boxNull(), memory_order_relaxed);
   self->dynamic = false;
   self->keyword = keyword;
-  atomic_init(&self->rev, 0);
+  atomic_store_explicit(&self->rev, 0, memory_order_relaxed);
   Object_create((Object *)self, varType);
+  // Var is always shared
+  atomic_store_explicit(&(((Object *)self)->atomicRefCount),
+                        COUNT_INC | SHARED_BIT, memory_order_release);
   return self;
 };
 
@@ -130,8 +131,8 @@ uword_t Var_hash(Var *self) {
 String *Var_toString(Var *self) {
   String *retVal = String_create("#");
   retVal = String_concat(retVal, String_replace(toString(self->keyword),
-                                                 String_create(":"),
-                                                 String_create("'")));
+                                                String_create(":"),
+                                                String_create("'")));
   Ptr_release(self);
   return retVal;
 };
@@ -197,8 +198,8 @@ RTValue Var_deref(Var *self) {
     atomic_signal_fence(memory_order_seq_cst);
 
     // Stage 2: Verify (The "Double Check")
-    // Acquire load is enough here because writer ensures its update is visible
-    // before we’d potentially use the old freed value.
+    // Acquire load is enough here because writer ensures its update is
+    // visible before we’d potentially use the old freed value.
     if (val == atomic_load_explicit(&self->root, memory_order_acquire)) {
       retain(val);
       atomic_store_explicit(&slot->hazardPointer, RT_boxNull(),
@@ -215,6 +216,11 @@ RTValue Var_deref(Var *self) {
 };
 
 RTValue Var_bindRoot(Var *self, RTValue object) {
+  // An optimisation can be made here - instead of immediately scanning
+  // hazards, the pointer can be added to a retire list which is scanned once
+  // every N operations. This trades predictability for performance.
+
+  promoteToShared(object);
   RTValue oldRoot =
       atomic_exchange_explicit(&self->root, object, memory_order_seq_cst);
   atomic_fetch_add_explicit(&(self->rev), 1, memory_order_relaxed);

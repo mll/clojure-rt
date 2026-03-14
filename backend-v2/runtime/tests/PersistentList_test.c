@@ -73,10 +73,68 @@ static void listConjunctionAndPerformance(void **state) {
   });
 }
 
+/**
+ * @brief Test case for deep promotion of PersistentList.
+ */
+static void testListPromotion(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    RTValue s1 = RT_boxPtr(String_create("one"));
+    RTValue s2 = RT_boxPtr(String_create("two"));
+
+    PersistentList *l1 = PersistentList_create(s1, NULL);
+    PersistentList *l2 = PersistentList_conj(l1, s2);
+
+    // Initially local
+    assert_false(Object_getRawRefCount((Object *)l1) & SHARED_BIT);
+    assert_false(Object_getRawRefCount((Object *)l2) & SHARED_BIT);
+    assert_false(Object_getRawRefCount((Object *)RT_unboxPtr(s1)) & SHARED_BIT);
+    assert_false(Object_getRawRefCount((Object *)RT_unboxPtr(s2)) & SHARED_BIT);
+
+    // Promote
+    promoteToShared(RT_boxPtr(l2));
+
+    // All should be shared
+    assert_true(Object_getRawRefCount((Object *)l1) & SHARED_BIT);
+    assert_true(Object_getRawRefCount((Object *)l2) & SHARED_BIT);
+    assert_true(Object_getRawRefCount((Object *)RT_unboxPtr(s1)) & SHARED_BIT);
+    assert_true(Object_getRawRefCount((Object *)RT_unboxPtr(s2)) & SHARED_BIT);
+
+    Ptr_release(l2);
+  });
+}
+
+/**
+ * @brief Test case for "stop if shared" optimization in list promotion.
+ */
+static void testListPromotionStop(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    RTValue s1 = RT_boxPtr(String_create("one"));
+    RTValue s2 = RT_boxPtr(String_create("two"));
+
+    PersistentList *l1 = PersistentList_create(s1, NULL);
+    PersistentList *l2 = PersistentList_conj(l1, s2);
+
+    // Promote tail first
+    promoteToShared(RT_boxPtr(l1));
+    assert_true(Object_getRawRefCount((Object *)l1) & SHARED_BIT);
+    assert_false(Object_getRawRefCount((Object *)l2) & SHARED_BIT);
+
+    // Promote head - should stop at l1
+    promoteToShared(RT_boxPtr(l2));
+    assert_true(Object_getRawRefCount((Object *)l2) & SHARED_BIT);
+
+    Ptr_release(l2);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test_prestate(testScalingBehavior,
                                 listConjunctionAndPerformance),
+      cmocka_unit_test(testListPromotion),
+      cmocka_unit_test(testListPromotionStop),
   };
   initialise_memory();
   srand(0);

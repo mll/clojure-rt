@@ -1,5 +1,6 @@
 #ifndef RT_PERSISTENT_VECTOR_NODE
 #define RT_PERSISTENT_VECTOR_NODE
+#include "word.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +30,7 @@ uword_t PersistentVectorNode_hash(PersistentVectorNode *restrict self);
 String *PersistentVectorNode_toString(PersistentVectorNode *restrict self);
 void PersistentVectorNode_destroy(PersistentVectorNode *restrict self,
                                   bool deallocateChildren);
+void PersistentVectorNode_promoteToShared(PersistentVectorNode *self, uword_t current);
 
 PersistentVectorNode *PersistentVectorNode_pushTail(
     PersistentVectorNode *restrict parent, PersistentVectorNode *restrict self,

@@ -30,6 +30,7 @@ uword_t PersistentArrayMap_hash(PersistentArrayMap *self);
 String *PersistentArrayMap_toString(PersistentArrayMap *self);
 void PersistentArrayMap_destroy(PersistentArrayMap *self,
                                 bool deallocateChildren);
+void PersistentArrayMap_promoteToShared(PersistentArrayMap *self, uword_t current);
 
 PersistentArrayMap *PersistentArrayMap_assoc(PersistentArrayMap *self,
                                              RTValue key, RTValue value);

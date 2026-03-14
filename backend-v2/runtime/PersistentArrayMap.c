@@ -135,6 +135,18 @@ void PersistentArrayMap_destroy(PersistentArrayMap *self,
   }
 }
 
+void PersistentArrayMap_promoteToShared(PersistentArrayMap *self,
+                                        uword_t current) {
+  if (current & SHARED_BIT)
+    return;
+
+  for (uword_t i = 0; i < self->count; i++) {
+    promoteToShared(self->keys[i]);
+    promoteToShared(self->values[i]);
+  }
+  Object_promoteToSharedShallow((Object *)self, current);
+}
+
 /* outside refcount system */
 void PersistentArrayMap_retainChildren(PersistentArrayMap *self, int except) {
   for (uword_t i = 0; i < self->count; i++) {

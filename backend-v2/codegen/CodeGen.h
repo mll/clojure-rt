@@ -14,34 +14,10 @@
 #include <string>
 
 #include "TypedValue.h"
-#include "LLVMTypes.h"
+#include <map>
+#include <vector>
 
-namespace rt {
-class CodeGen;
-
-class ShadowStackGuard {
-  CodeGen &cg;
-  size_t pushedCount = 0;
-
-public:
-  explicit ShadowStackGuard(CodeGen &c) : cg(c) {}
-  ~ShadowStackGuard();
-
-  void push(TypedValue val);
-  void popAll();
-
-  size_t size() const { return pushedCount; }
-  
-  // Static helper to check if a type needs shadow stack protection
-  static bool needsProtection(const ObjectTypeSet &type) {
-    return !type.isScalar() && !type.isBoxedScalar();
-  }
-
-  // Prevent copying
-  ShadowStackGuard(const ShadowStackGuard &) = delete;
-  ShadowStackGuard &operator=(const ShadowStackGuard &) = delete;
-};
-} // namespace rt
+#include "CleanupChainGuard.h"
 
 #include "../state/ThreadsafeCompilerState.h"
 #include "DynamicConstructor.h"
@@ -83,13 +59,8 @@ class CodeGen {
   llvm::DICompileUnit *CU;
   std::vector<llvm::DIScope *> LexicalBlocks;
   
-  // Shadow stack for exception safety
-  llvm::Value *shadowStack = nullptr;
-  llvm::Value *shadowStackPtr = nullptr;
-  llvm::BasicBlock *globalLandingPad = nullptr;
+  // Static Landing Pads management via manager
   llvm::FunctionCallee personalityFn;
-  size_t totalPushed = 0;
-  static constexpr size_t SHADOW_STACK_SIZE = 128; // Per-function limit
 
 public:
   CodeGen(std::string_view ModuleName, ThreadsafeCompilerState &state)
@@ -101,7 +72,7 @@ public:
         valueEncoder(TheContext, Builder, types),
         invokeManager(Builder, *TheModule, valueEncoder, types, state, *this),
         dynamicConstructor(types, invokeManager, generatedConstants),
-        memoryManagement(TheContext, Builder, valueEncoder, types,
+        memoryManagement(TheContext, Builder, *TheModule, valueEncoder, types,
                          variableBindingStack, invokeManager,
                          dynamicConstructor),
         compilerState(state) {
@@ -176,32 +147,13 @@ public:
   bool canThrow(const clojure::rt::protobuf::bytecode::Node &node);
   
   // Exception safety helpers
-  void pushResource(TypedValue val);
-  void popResource();
-  void generateLandingPad();
-  llvm::BasicBlock* getLandingPad();
-  bool hasLandingPad() const { return globalLandingPad != nullptr; }
-  bool hasPushedResources() const { return totalPushed > 0; }
+  void pushResource(TypedValue val) { memoryManagement.pushResource(val); }
+  void popResource() { memoryManagement.popResource(); }
+  llvm::BasicBlock* getLandingPad() { return memoryManagement.getLandingPad(); }
+  bool hasLandingPad() const { return memoryManagement.hasPushedResources(); }
+  bool hasPushedResources() const { return memoryManagement.hasPushedResources(); }
+  MemoryManagement &getMemoryManagement() { return memoryManagement; }
 };
-
-inline ShadowStackGuard::~ShadowStackGuard() {
-  for (size_t i = 0; i < pushedCount; i++) {
-    cg.popResource();
-  }
-}
-
-inline void ShadowStackGuard::push(TypedValue val) {
-  if (!needsProtection(val.type)) return;
-  cg.pushResource(val);
-  pushedCount++;
-}
-
-inline void ShadowStackGuard::popAll() {
-  for (size_t i = 0; i < pushedCount; i++) {
-    cg.popResource();
-  }
-  pushedCount = 0;
-}
 
 } // namespace rt
 

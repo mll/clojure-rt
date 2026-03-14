@@ -1,4 +1,5 @@
 #include "CodeGen.h"
+#include "CleanupChainGuard.h"
 #include "../bridge/Exceptions.h"
 #include "../cljassert.h"
 #include "TypedValue.h"
@@ -61,13 +62,7 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
   Builder.SetInsertPoint(BB);
 
-  // Initialize Shadow Stack
-  shadowStack = Builder.CreateAlloca(ArrayType::get(types.RT_valueTy, SHADOW_STACK_SIZE), nullptr, "shadow_stack");
-  cast<AllocaInst>(shadowStack)->setAlignment(Align(8));
-  shadowStackPtr = Builder.CreateAlloca(types.i64Ty, nullptr, "shadow_stack_ptr");
-  cast<AllocaInst>(shadowStackPtr)->setAlignment(Align(8));
-  Builder.CreateStore(ConstantInt::get(types.i64Ty, 0), shadowStackPtr, false)->setAlignment(Align(8));
-  globalLandingPad = nullptr;
+  memoryManagement.initFunction(F);
 
   // Declare personality function
   FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
@@ -388,78 +383,5 @@ bool CodeGen::canThrow(const Node &node) {
   }
 }
 
-void CodeGen::pushResource(TypedValue val) {
-  Value *idx = Builder.CreateLoad(types.i64Ty, shadowStackPtr, "sp");
-  cast<LoadInst>(idx)->setAlignment(Align(8));
-  Value *gep = Builder.CreateInBoundsGEP(ArrayType::get(types.RT_valueTy, SHADOW_STACK_SIZE), shadowStack, {Builder.getInt64(0), idx});
-  Builder.CreateStore(valueEncoder.box(val).value, gep, false)->setAlignment(Align(8));
-  Value *nextIdx = Builder.CreateAdd(idx, Builder.getInt64(1), "sp_inc");
-  Builder.CreateStore(nextIdx, shadowStackPtr, false)->setAlignment(Align(8));
-  totalPushed++;
-}
-
-void CodeGen::popResource() {
-  Value *idx = Builder.CreateLoad(types.i64Ty, shadowStackPtr, "sp");
-  cast<LoadInst>(idx)->setAlignment(Align(8));
-  Value *newIdx = Builder.CreateSub(idx, Builder.getInt64(1), "sp_dec");
-  Builder.CreateStore(newIdx, shadowStackPtr, false)->setAlignment(Align(8));
-  // Optional: clear the cell
-  Value *gep = Builder.CreateInBoundsGEP(ArrayType::get(types.RT_valueTy, SHADOW_STACK_SIZE), shadowStack, {Builder.getInt64(0), newIdx});
-  Builder.CreateStore(ConstantInt::get(types.RT_valueTy, 0), gep, false)->setAlignment(Align(8));
-  totalPushed--;
-}
-
-BasicBlock *CodeGen::getLandingPad() {
-  if (!globalLandingPad) {
-    auto currentBB = Builder.GetInsertBlock();
-    generateLandingPad();
-    Builder.SetInsertPoint(currentBB);
-  }
-  return globalLandingPad;
-}
-
-void CodeGen::generateLandingPad() {
-  Function *F = Builder.GetInsertBlock()->getParent();
-  globalLandingPad = BasicBlock::Create(TheContext, "exception_cleanup", F);
-  Builder.SetInsertPoint(globalLandingPad);
-
-  LandingPadInst *lpad = Builder.CreateLandingPad(
-      StructType::get(TheContext, {types.ptrTy, types.i32Ty}), 1);
-  lpad->setCleanup(true);
-  
-  Value *currIdx = Builder.CreateLoad(types.i64Ty, shadowStackPtr, "sp_on_exception");
-  cast<LoadInst>(currIdx)->setAlignment(Align(8));
-
-  // Cleanup loop
-  BasicBlock *loopCondBB = BasicBlock::Create(TheContext, "cleanup_loop_cond", F);
-  BasicBlock *loopBodyBB = BasicBlock::Create(TheContext, "cleanup_loop_body", F);
-  BasicBlock *resumeBB = BasicBlock::Create(TheContext, "resume_exception", F);
-
-  Builder.CreateBr(loopCondBB);
-  Builder.SetInsertPoint(loopCondBB);
-  PHINode *idxPhi = Builder.CreatePHI(types.i64Ty, 2, "cleanup_idx");
-  idxPhi->addIncoming(currIdx, globalLandingPad);
-
-  Value *isDone = Builder.CreateICmpEQ(idxPhi, Builder.getInt64(0));
-  Builder.CreateCondBr(isDone, resumeBB, loopBodyBB);
-
-  Builder.SetInsertPoint(loopBodyBB);
-  Value *nextIdx = Builder.CreateSub(idxPhi, Builder.getInt64(1), "sp_next");
-  Value *gep = Builder.CreateInBoundsGEP(ArrayType::get(types.RT_valueTy, SHADOW_STACK_SIZE), shadowStack, {Builder.getInt64(0), nextIdx});
-  Value *val = Builder.CreateLoad(types.RT_valueTy, gep, "to_release");
-  cast<LoadInst>(val)->setAlignment(Align(8));
-  
-  // Call release(val)
-  // We need to be careful not to trigger another landing pad here!
-  FunctionType *releaseFnTy = FunctionType::get(types.RT_valueTy, {types.RT_valueTy}, false);
-  FunctionCallee releaseFn = TheModule->getOrInsertFunction("release", releaseFnTy);
-  Builder.CreateCall(releaseFn, {val});
-
-  idxPhi->addIncoming(nextIdx, loopBodyBB);
-  Builder.CreateBr(loopCondBB);
-
-  Builder.SetInsertPoint(resumeBB);
-  Builder.CreateResume(lpad);
-}
 
 } // namespace rt

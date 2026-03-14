@@ -21,10 +21,10 @@ TypedValue CodeGen::codegen(const Node &node, const VarNode &subnode,
       ConstantExpr::getIntToPtr(ConstantInt::get(this->types.i64Ty, address),
                                 this->types.ptrTy));
   memoryManagement.dynamicRetain(varPtr);
-  ShadowStackGuard guard(*this);
+  CleanupChainGuard guard(*this);
   guard.push(varPtr);
 
-  this->invokeManager.setLandingPad(this->getLandingPad());
+
   auto res = invokeManager.invokeRuntime("Var_deref", nullptr,
                                          {ObjectTypeSet(varType)}, {varPtr}, false, &guard);
   

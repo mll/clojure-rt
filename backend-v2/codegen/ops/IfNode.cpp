@@ -122,7 +122,7 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
   }
 
   /* Standard if condition */
-  ShadowStackGuard guard(*this);
+  CleanupChainGuard guard(*this);
   auto test = codegen(subnode.test(), ObjectTypeSet::all());
   guard.push(test);
   Value *condValue = test.value;

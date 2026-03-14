@@ -10,9 +10,11 @@
 #include <functional>
 #include <vector>
 #include <string>
+#include <gmp.h>
 
 #include "../TypedValue.h"
 #include "../ValueEncoder.h"
+#include "../LLVMTypes.h"
 #include "../../types/ObjectTypeSet.h"
 
 namespace rt {
@@ -20,7 +22,7 @@ namespace rt {
 class CodeGen;
 class ThreadsafeCompilerState;
 class IntrinsicDescription;
-class ShadowStackGuard;
+class CleanupChainGuard;
 
 using IntrinsicCall = std::function<llvm::Value *(llvm::IRBuilder<> &,
                                                   std::vector<llvm::Value *>)>;
@@ -42,7 +44,6 @@ private:
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
   std::unordered_map<std::string, GenericIntrinsicCall> genericIntrinsics;
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
-  llvm::BasicBlock *landingPad = nullptr;
 
   // Folding Helpers
   mpz_ptr getZ(const ObjectTypeSet &t);
@@ -50,7 +51,6 @@ private:
   double getD(const ObjectTypeSet &t);
   ObjectTypeSet createZ(mpz_ptr val);
   ObjectTypeSet createQ(mpq_ptr val);
-
 
 public:
   explicit InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m, ValueEncoder &v,
@@ -61,16 +61,14 @@ public:
                            const std::vector<ObjectTypeSet> &argTypes,
                            const std::vector<TypedValue> &args,
                            const bool isVariadic = false,
-                           ShadowStackGuard *guard = nullptr);
+                           CleanupChainGuard *guard = nullptr);
 
   TypedValue generateIntrinsic(const IntrinsicDescription &id,
                                const std::vector<TypedValue> &args,
-                               ShadowStackGuard *guard = nullptr);
+                               CleanupChainGuard *guard = nullptr);
 
   ObjectTypeSet foldIntrinsic(const IntrinsicDescription &id,
                               const std::vector<ObjectTypeSet> &args);
-
-  void setLandingPad(llvm::BasicBlock *lp) { landingPad = lp; }
 };
 
 

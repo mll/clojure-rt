@@ -10,7 +10,7 @@ namespace rt {
   TypedValue CodeGen::codegen(const Node &node, const VectorNode &subnode, const ObjectTypeSet &typeRestrictions) {
     vector<TypedValue> args;
     bool needsGuard = canThrow(node);
-    unique_ptr<ShadowStackGuard> guard = needsGuard ? make_unique<ShadowStackGuard>(*this) : nullptr;
+    unique_ptr<CleanupChainGuard> guard = needsGuard ? make_unique<CleanupChainGuard>(*this) : nullptr;
     for(int i=0; i<subnode.items_size(); i++) {
       auto v = codegen(subnode.items(i), ObjectTypeSet::all());
       args.push_back(v);

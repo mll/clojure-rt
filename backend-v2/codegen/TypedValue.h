@@ -8,6 +8,16 @@ struct TypedValue {
   ObjectTypeSet type;
   llvm::Value *value;
   TypedValue(const ObjectTypeSet &t, llvm::Value *v) : type(t), value(v) {}
+
+  bool operator==(const TypedValue &other) const {
+    return value == other.value && type == other.type;
+  }
+
+  bool operator<(const TypedValue &other) const {
+    if (value != other.value)
+      return value < other.value;
+    return type < other.type;
+  }
 };
 } // namespace rt
 

@@ -20,7 +20,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   std::vector<ObjectTypeSet> argTypes;
   std::vector<TypedValue> args;
   bool allDetermined = true;
-  ShadowStackGuard guard(*this);
+  CleanupChainGuard guard(*this);
   for (int i = 0; i < subnode.args_size(); i++) {
     auto t = codegen(subnode.args(i), ObjectTypeSet::all());
     if (!t.type.isDetermined())
@@ -30,7 +30,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     guard.push(t);
   }
 
-  this->invokeManager.setLandingPad(this->getLandingPad());
+
 
   auto c = subnode.class_();
   auto m = subnode.method();
@@ -89,7 +89,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     auto result =
         this->invokeManager.generateIntrinsic(*bestMatch, unboxedArgs, &guard);
 
-    this->invokeManager.setLandingPad(nullptr);
+
     return result;
   }
   if (allDetermined) {
@@ -265,7 +265,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     phi->addIncoming(c.value.value, c.block);
   }
 
-  this->invokeManager.setLandingPad(nullptr);
+
 
   return TypedValue(ObjectTypeSet::dynamicType(), phi);
 }

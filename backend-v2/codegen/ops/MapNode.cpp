@@ -12,7 +12,7 @@ namespace rt {
     vector<TypedValue> keys;
     vector<TypedValue> values;    
     bool needsGuard = canThrow(node);
-    unique_ptr<ShadowStackGuard> guard = needsGuard ? make_unique<ShadowStackGuard>(*this) : nullptr;
+    unique_ptr<CleanupChainGuard> guard = needsGuard ? make_unique<CleanupChainGuard>(*this) : nullptr;
     for(int i=0; i<subnode.keys_size(); i++) { 
       auto k = codegen(subnode.keys(i), ObjectTypeSet::all());
       keys.push_back(k);

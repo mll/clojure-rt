@@ -14,6 +14,7 @@ set(TEST_MODULES
     codegen/MathIntrinsics_test
     codegen/DoubleAddRepro_test
     codegen/NoThrow_test
+    VarUAF_repro_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

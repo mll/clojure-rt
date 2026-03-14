@@ -1,5 +1,6 @@
 #include "InvokeManager.h"
 #include "../CodeGen.h"
+#include "../CleanupChainGuard.h"
 #include "../../bridge/Exceptions.h"
 #include "../../tools/EdnParser.h"
 #include "../../types/ConstantBool.h"
@@ -105,7 +106,7 @@ ObjectTypeSet InvokeManager::createQ(mpq_ptr val) {
 
 TypedValue InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
                                              const vector<TypedValue> &args,
-                                             ShadowStackGuard *guard) {
+                                             CleanupChainGuard *guard) {
   if (id.type == CallType::Intrinsic) {
     auto git = genericIntrinsics.find(id.symbol);
     if (git != genericIntrinsics.end()) {
@@ -148,7 +149,7 @@ TypedValue InvokeManager::invokeRuntime(const std::string &fname,
                                          const std::vector<ObjectTypeSet> &argTypes,
                                          const std::vector<TypedValue> &args,
                                          const bool isVariadic,
-                                         ShadowStackGuard *guard) {
+                                         CleanupChainGuard *guard) {
   std::vector<llvm::Type *> llvmTypes;
   for (auto &at : argTypes) {
     if (at.isBoxedType())
@@ -196,12 +197,14 @@ TypedValue InvokeManager::invokeRuntime(const std::string &fname,
   }
 
   Value *callResult;
-  if (landingPad && codeGen.hasPushedResources()) {
-    if (guard) {
-      guard->popAll();
-    }
+  if (guard) {
+    guard->popAll();
+  }
+  BasicBlock *lpadToUse = codeGen.getLandingPad();
+
+  if (lpadToUse) {
     BasicBlock *normalBB = BasicBlock::Create(theModule.getContext(), "invoke_normal", builder.GetInsertBlock()->getParent());
-    callResult = builder.CreateInvoke(toCall, normalBB, landingPad, argVals, std::string("inv_") + fname);
+    callResult = builder.CreateInvoke(toCall, normalBB, lpadToUse, argVals, std::string("inv_") + fname);
     builder.SetInsertPoint(normalBB);
   } else {
     callResult = builder.CreateCall(toCall, argVals, std::string("call_") + fname);

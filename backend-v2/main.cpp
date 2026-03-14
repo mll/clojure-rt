@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     cout << "Compiling classes..." << endl;
     auto compiled = engine
                         .compileAST(astClasses.nodes(0), "__classes",
-                                    llvm::OptimizationLevel::O0, false)
+                                    llvm::OptimizationLevel::O0, true)
                         .get()
                         .toPtr<RTValue (*)()>();
     cout << "Calling classes..." << endl;

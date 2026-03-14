@@ -306,6 +306,88 @@ Var *CodeGen::getOrCreateVar(std::string_view name) {
       });
 }
 
+bool CodeGen::canThrow(const Node &node) {
+  switch (node.op()) {
+  case opConst:
+  case opQuote:
+  case opStaticField:
+  case opTheVar:
+  case opVar:
+  case opFn:
+  case opFnMethod:
+    return false;
+
+  case opVector: {
+    const auto &v = node.subnode().vector();
+    for (int i = 0; i < v.items_size(); ++i) {
+      if (canThrow(v.items(i)))
+        return true;
+    }
+    return false;
+  }
+
+  case opMap: {
+    const auto &m = node.subnode().map();
+    for (int i = 0; i < m.keys_size(); ++i) {
+      if (canThrow(m.keys(i)) || canThrow(m.vals(i)))
+        return true;
+    }
+    return false;
+  }
+
+  case opSet: {
+    const auto &s = node.subnode().set();
+    for (int i = 0; i < s.items_size(); ++i) {
+      if (canThrow(s.items(i)))
+        return true;
+    }
+    return false;
+  }
+
+  case opIf: {
+    const auto &if_ = node.subnode().if_();
+    if (canThrow(if_.test()))
+      return true;
+    if (canThrow(if_.then()))
+      return true;
+    if (if_.has_else_() && canThrow(if_.else_()))
+      return true;
+    return false;
+  }
+
+  case opDo: {
+    const auto &d = node.subnode().do_();
+    for (int i = 0; i < d.statements_size(); ++i) {
+      if (canThrow(d.statements(i)))
+        return true;
+    }
+    return canThrow(d.ret());
+  }
+
+  case opDef: {
+    const auto &d = node.subnode().def();
+    if (d.has_init() && canThrow(d.init()))
+      return true;
+    return false;
+  }
+
+  case opWithMeta: {
+    const auto &wm = node.subnode().withmeta();
+    if (canThrow(wm.expr()) || canThrow(wm.meta()))
+      return true;
+    return false;
+  }
+
+  case opStaticCall:
+  case opHostInterop:
+    return true;
+
+  default:
+    // Safer to assume it can throw if we don't know the node type
+    return true;
+  }
+}
+
 void CodeGen::pushResource(TypedValue val) {
   Value *idx = Builder.CreateLoad(types.i64Ty, shadowStackPtr, "sp");
   cast<LoadInst>(idx)->setAlignment(Align(8));
@@ -313,6 +395,7 @@ void CodeGen::pushResource(TypedValue val) {
   Builder.CreateStore(valueEncoder.box(val).value, gep, false)->setAlignment(Align(8));
   Value *nextIdx = Builder.CreateAdd(idx, Builder.getInt64(1), "sp_inc");
   Builder.CreateStore(nextIdx, shadowStackPtr, false)->setAlignment(Align(8));
+  totalPushed++;
 }
 
 void CodeGen::popResource() {
@@ -323,6 +406,7 @@ void CodeGen::popResource() {
   // Optional: clear the cell
   Value *gep = Builder.CreateInBoundsGEP(ArrayType::get(types.RT_valueTy, SHADOW_STACK_SIZE), shadowStack, {Builder.getInt64(0), newIdx});
   Builder.CreateStore(ConstantInt::get(types.RT_valueTy, 0), gep, false)->setAlignment(Align(8));
+  totalPushed--;
 }
 
 BasicBlock *CodeGen::getLandingPad() {

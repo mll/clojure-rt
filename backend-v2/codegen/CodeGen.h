@@ -31,6 +31,11 @@ public:
   void popAll();
 
   size_t size() const { return pushedCount; }
+  
+  // Static helper to check if a type needs shadow stack protection
+  static bool needsProtection(const ObjectTypeSet &type) {
+    return !type.isScalar() && !type.isBoxedScalar();
+  }
 
   // Prevent copying
   ShadowStackGuard(const ShadowStackGuard &) = delete;
@@ -83,6 +88,7 @@ class CodeGen {
   llvm::Value *shadowStackPtr = nullptr;
   llvm::BasicBlock *globalLandingPad = nullptr;
   llvm::FunctionCallee personalityFn;
+  size_t totalPushed = 0;
   static constexpr size_t SHADOW_STACK_SIZE = 128; // Per-function limit
 
 public:
@@ -93,7 +99,7 @@ public:
         TheModule(std::make_unique<llvm::Module>(ModuleName, TheContext)),
         Builder(TheContext), types(TheContext),
         valueEncoder(TheContext, Builder, types),
-        invokeManager(Builder, *TheModule, valueEncoder, types, state),
+        invokeManager(Builder, *TheModule, valueEncoder, types, state, *this),
         dynamicConstructor(types, invokeManager, generatedConstants),
         memoryManagement(TheContext, Builder, valueEncoder, types,
                          variableBindingStack, invokeManager,
@@ -167,6 +173,7 @@ public:
   ObjectTypeSet getType(const Node &node, const StaticFieldNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
   Var *getOrCreateVar(std::string_view name);
+  bool canThrow(const clojure::rt::protobuf::bytecode::Node &node);
   
   // Exception safety helpers
   void pushResource(TypedValue val);
@@ -174,6 +181,7 @@ public:
   void generateLandingPad();
   llvm::BasicBlock* getLandingPad();
   bool hasLandingPad() const { return globalLandingPad != nullptr; }
+  bool hasPushedResources() const { return totalPushed > 0; }
 };
 
 inline ShadowStackGuard::~ShadowStackGuard() {
@@ -183,6 +191,7 @@ inline ShadowStackGuard::~ShadowStackGuard() {
 }
 
 inline void ShadowStackGuard::push(TypedValue val) {
+  if (!needsProtection(val.type)) return;
   cg.pushResource(val);
   pushedCount++;
 }

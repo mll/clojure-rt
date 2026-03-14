@@ -53,7 +53,6 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     break;
   case symbolType:
     retVal = dynamicConstructor.createSymbol(name.c_str());
-    memoryManagement.dynamicRetain(retVal);
     break;
   // case classType:
   //   {
@@ -74,10 +73,8 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
   //                                node);
   //   break;
   case keywordType:
-
     retVal = dynamicConstructor.createKeyword(
         (name[0] == ':' ? name.substr(1) : name).c_str());
-    memoryManagement.dynamicRetain(retVal);
     break;
   case bigIntegerType:
     retVal = dynamicConstructor.createBigInteger(subnode.val().c_str());

@@ -25,8 +25,8 @@ void registerCmpIntrinsics(InvokeManager &mgr);
 
 InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
                              ValueEncoder &v, LLVMTypes &t,
-                             ThreadsafeCompilerState &s)
-    : builder(b), theModule(m), valueEncoder(v), types(t) {
+                             ThreadsafeCompilerState &s, CodeGen &cg)
+    : builder(b), theModule(m), valueEncoder(v), types(t), codeGen(cg) {
   
   // Register domain intrinsics
   registerMathIntrinsics(*this);
@@ -196,7 +196,7 @@ TypedValue InvokeManager::invokeRuntime(const std::string &fname,
   }
 
   Value *callResult;
-  if (landingPad) {
+  if (landingPad && codeGen.hasPushedResources()) {
     if (guard) {
       guard->popAll();
     }

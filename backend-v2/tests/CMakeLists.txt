@@ -9,6 +9,7 @@ set(TEST_MODULES
     codegen/IfNode_test
     codegen/StaticCallType_test
     codegen/StaticCallNode_test
+    codegen/StaticFieldNode_test
     codegen/JITArithmetic_test
     codegen/MathIntrinsics_test
     codegen/DoubleAddRepro_test

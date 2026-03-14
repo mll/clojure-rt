@@ -177,8 +177,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().set(), typeRestrictions);
   // case opMutateSet:
   //   return codegen(node, node.subnode().mutateset(), typeRestrictions);
-  // case opStaticField:
-  //   return codegen(node, node.subnode().staticfield(), typeRestrictions);
+  case opStaticField:
+    return codegen(node, node.subnode().staticfield(), typeRestrictions);
   case opTheVar:
     return codegen(node, node.subnode().thevar(), typeRestrictions);
   // case opThrow:
@@ -277,8 +277,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().set(), typeRestrictions);
   // case opMutateSet:
   //   return getType(node, node.subnode().mutateset(), typeRestrictions);
-  // case opStaticField:
-  //   return getType(node, node.subnode().staticfield(), typeRestrictions);
+  case opStaticField:
+    return getType(node, node.subnode().staticfield(), typeRestrictions);
   case opTheVar:
     return getType(node, node.subnode().thevar(), typeRestrictions);
   // case opThrow:

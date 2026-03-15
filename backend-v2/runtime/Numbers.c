@@ -168,3 +168,51 @@ bool Numbers_equiv(RTValue a, RTValue b) {
     Ptr_release(rb);
     return res;
 }
+#include <math.h>
+
+#define UNARY_MATH_WRAPPER(NAME, FUNC) \
+RTValue Numbers_##NAME(RTValue a) { \
+    double va = Numbers_toDouble(a); \
+    return RT_boxDouble(FUNC(va)); \
+}
+
+#define BINARY_MATH_WRAPPER(NAME, FUNC) \
+RTValue Numbers_##NAME(RTValue a, RTValue b) { \
+    if (!isNumeric(getType(a)) || !isNumeric(getType(b))) { \
+        release(a); release(b); \
+        throwIllegalArgumentException_C("Math operation requires numeric arguments"); \
+    } \
+    double va = Numbers_toDouble(a); \
+    double vb = Numbers_toDouble(b); \
+    return RT_boxDouble(FUNC(va, vb)); \
+}
+
+UNARY_MATH_WRAPPER(sin, sin)
+UNARY_MATH_WRAPPER(cos, cos)
+UNARY_MATH_WRAPPER(tan, tan)
+UNARY_MATH_WRAPPER(asin, asin)
+UNARY_MATH_WRAPPER(acos, acos)
+UNARY_MATH_WRAPPER(atan, atan)
+UNARY_MATH_WRAPPER(exp, exp)
+UNARY_MATH_WRAPPER(exp2, exp2)
+#ifdef __linux__
+UNARY_MATH_WRAPPER(exp10, exp10)
+#else
+RTValue Numbers_exp10(RTValue a) {
+    double va = Numbers_toDouble(a);
+    return RT_boxDouble(pow(10.0, va));
+}
+#endif
+UNARY_MATH_WRAPPER(log, log)
+UNARY_MATH_WRAPPER(log10, log10)
+UNARY_MATH_WRAPPER(logb, logb)
+UNARY_MATH_WRAPPER(log2, log2)
+UNARY_MATH_WRAPPER(sqrt, sqrt)
+UNARY_MATH_WRAPPER(cbrt, cbrt)
+UNARY_MATH_WRAPPER(exp1m, expm1)
+UNARY_MATH_WRAPPER(log1p, log1p)
+UNARY_MATH_WRAPPER(abs, fabs)
+
+BINARY_MATH_WRAPPER(atan2, atan2)
+BINARY_MATH_WRAPPER(pow, pow)
+BINARY_MATH_WRAPPER(hypot, hypot)

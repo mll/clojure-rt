@@ -16,6 +16,7 @@ set(TEST_MODULES
     codegen/NoThrow_test
     codegen/DoNode_test
     codegen/LetNode_test
+    codegen/MathIntrinsicsRepro_test
     VarUAF_repro_test
 )
 

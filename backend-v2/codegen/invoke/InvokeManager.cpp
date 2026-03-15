@@ -118,7 +118,7 @@ TypedValue InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
   if (id.type == CallType::Intrinsic) {
     auto git = genericIntrinsics.find(id.symbol);
     if (git != genericIntrinsics.end()) {
-      return TypedValue(id.returnType, git->second(builder, args));
+      return TypedValue(id.returnType, git->second(builder, args, guard));
     }
 
     auto it = intrinsics.find(id.symbol);

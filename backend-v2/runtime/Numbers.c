@@ -6,6 +6,7 @@
 #include "Double.h"
 #include "Integer.h"
 #include <limits.h>
+#include <math.h>
 
 static RTValue narrowBigInt(BigInteger *b) {
     if (mpz_fits_sint_p(b->value)) {

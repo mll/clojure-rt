@@ -15,18 +15,21 @@ using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
 
-TypedValue CodeGen::codegen(const Node &node, const InstanceCallNode &subnode,
+TypedValue CodeGen::codegen(const Node &node, const HostInteropNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
 
   return TypedValue(ObjectTypeSet::all(), nullptr);
 }
 
-ObjectTypeSet CodeGen::getType(const Node &node,
-                               const InstanceCallNode &subnode,
+ObjectTypeSet CodeGen::getType(const Node &node, const HostInteropNode &subnode,
                                const ObjectTypeSet &typeRestrictions) {
-  auto targetType = getType(subnode.instance(), ObjectTypeSet::all());
-  auto methodName = subnode.method();
-  uint64_t classId = 0;
+  auto targetType = getType(subnode.target(), ObjectTypeSet::all());
+  if (!targetType.isDetermined()) {
+    return ObjectTypeSet::dynamicType();
+  }
+
+  // auto methodName = subnode.method();
+  // uint64_t classId = 0;
 
   // if (targetType.isDetermined()) {
   //   if (targetType.determinedType() != deftypeType) {

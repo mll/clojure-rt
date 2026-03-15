@@ -26,7 +26,7 @@ MemoryManagement::MemoryManagement(llvm::LLVMContext &c, IRBuilder<> &b,
                                    LLVMTypes &t,
                                    VariableBindings<TypedValue> &vb,
                                    InvokeManager &i)
-    : context(c), builder(b), theModule(m), valueEncoder(v), types(t),
+    : context(c), builder(b), valueEncoder(v), types(t),
       variableBindingStack(vb), invoke(i) {}
 
 void MemoryManagement::initFunction(llvm::Function *F) {
@@ -183,7 +183,7 @@ void MemoryManagement::dynamicMemoryGuidance(
   auto name = guidance.variablename();
   auto change = guidance.requiredrefcountchange();
 
-  for (word_t depth = variableBindingStack.stackDepth() - 1; depth >= 0;
+  for (word_t depth = (word_t)variableBindingStack.stackDepth() - 1; depth >= 0;
        depth--) {
     auto val = variableBindingStack.find(name, depth);
     if (val) {

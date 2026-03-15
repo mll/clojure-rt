@@ -21,16 +21,6 @@ TypedValue CodeGen::codegen(const Node &node, const LetNode &subnode,
     auto name = binding.name();
     variableBindingStack.set(name, init);
     variableTypesBindingsStack.set(name, init.type);
-
-    // Memory guidance for the binding
-    for (const auto &guidance : bindingNode.dropmemory()) {
-      memoryManagement.dynamicMemoryGuidance(guidance);
-    }
-  }
-
-  // Memory guidance for the Let node itself (before body)
-  for (const auto &guidance : node.dropmemory()) {
-    memoryManagement.dynamicMemoryGuidance(guidance);
   }
 
   auto retVal = codegen(subnode.body(), typeRestrictions);

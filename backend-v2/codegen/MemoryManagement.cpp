@@ -183,7 +183,7 @@ void MemoryManagement::dynamicMemoryGuidance(
   auto name = guidance.variablename();
   auto change = guidance.requiredrefcountchange();
 
-  for (word_t depth = variableBindingStack.stackDepth() - 1; depth >= 0;
+  for (word_t depth = (word_t)variableBindingStack.stackDepth() - 1; depth >= 0;
        depth--) {
     auto val = variableBindingStack.find(name, depth);
     if (val) {

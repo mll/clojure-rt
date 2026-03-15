@@ -15,6 +15,16 @@ using namespace std;
 using namespace rt;
 using namespace clojure::rt::protobuf::bytecode;
 
+extern "C" {
+RTValue mock_add_bigint(RTValue a, RTValue b) {
+  // We don't really care about the result value, just that it's a BigInt
+  // that needs to be released.
+  release(a);
+  release(b);
+  return RT_boxPtr(BigInteger_createFromInt(42));
+}
+}
+
 static void test_let_uaf_fixed(void **state) {
   (void)state;
   rt::ThreadsafeCompilerState compState;
@@ -185,11 +195,160 @@ static void test_let_gap_leak(void **state) {
   assert_int_equal(finalCount, initialCount);
 }
 
+static void test_do_statement_leak(void **state) {
+  (void)state;
+  rt::ThreadsafeCompilerState compState;
+  rt::JITEngine engine(compState);
+
+  // (do (+ 1N 2N) 42)
+  // The result of (+ 1N 2N) is a BigInt statement that must be released.
+  Node root;
+  root.set_op(opDo);
+  auto *do_ = root.mutable_subnode()->mutable_do_();
+
+  auto *stmt = do_->add_statements();
+  stmt->set_op(opStaticCall);
+  auto *sc = stmt->mutable_subnode()->mutable_staticcall();
+  sc->set_class_("clojure.lang.Numbers");
+  sc->set_method("add");
+  
+  auto *a1 = sc->add_args();
+  a1->set_op(opConst);
+  a1->mutable_subnode()->mutable_const_()->set_val("1");
+  a1->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+  a1->set_tag("clojure.lang.BigInt");
+
+  auto *a2 = sc->add_args();
+  a2->set_op(opConst);
+  a2->mutable_subnode()->mutable_const_()->set_val("2");
+  a2->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+  a2->set_tag("clojure.lang.BigInt");
+
+  auto *ret = do_->mutable_ret();
+  ret->set_op(opConst);
+  ret->mutable_subnode()->mutable_const_()->set_val("42");
+  ret->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+  ret->set_tag("long");
+
+  // Setup clojure.lang.Numbers/add metadata
+  auto desc = std::make_unique<rt::ClassDescription>();
+  rt::IntrinsicDescription numAdd;
+  numAdd.type = rt::CallType::Call;
+  numAdd.symbol = "mock_add_bigint"; 
+  numAdd.argTypes = {rt::ObjectTypeSet::all(), rt::ObjectTypeSet::all()};
+  numAdd.returnType = rt::ObjectTypeSet::all();
+  desc->staticFns["add"].push_back(numAdd);
+
+  String *numName = String_createDynamicStr("clojure.lang.Numbers");
+  Ptr_retain(numName);
+  ::Class *numCls = Class_create(numName, numName, 0, nullptr);
+  numCls->compilerExtension = desc.release();
+  numCls->compilerExtensionDestructor = rt::delete_class_description;
+  compState.classRegistry.registerObject("clojure.lang.Numbers", numCls);
+
+  cout << "=== Do Statement Leak Test (Should NOT leak) ===" << endl;
+  uword_t initialCount = atomic_load(&objectCount[bigIntegerType - 1]);
+  {
+    rt::JITEngine engine(compState);
+    auto res = engine.compileAST(root, "__test_do_leak", llvm::OptimizationLevel::O0, true).get();
+    
+    // Account for constants created during compilation
+    uword_t afterCompileCount = atomic_load(&objectCount[bigIntegerType - 1]);
+    cout << "BigInt initial: " << initialCount << ", after compile: " << afterCompileCount << endl;
+
+    RTValue val = res.toPtr<RTValue (*)()>()();
+    assert_int_equal(42, RT_unboxInt32(val));
+    
+    uword_t finalCount = atomic_load(&objectCount[bigIntegerType - 1]);
+    cout << "BigInt final: " << finalCount << endl;
+    
+    // The statement result should have been released. 
+    // Any BigInts created in the mock should be gone.
+    assert_int_equal(finalCount, afterCompileCount);
+  }
+}
+
+static void test_if_test_leak(void **state) {
+  (void)state;
+  rt::ThreadsafeCompilerState compState;
+  rt::JITEngine engine(compState);
+
+  // (if (+ 1N 2N) 42 43)
+  // The result of (+ 1N 2N) is used as a test condition and must be released.
+  Node root;
+  root.set_op(opIf);
+  auto *if_ = root.mutable_subnode()->mutable_if_();
+
+  auto *testNode = if_->mutable_test();
+  testNode->set_op(opStaticCall);
+  auto *sc = testNode->mutable_subnode()->mutable_staticcall();
+  sc->set_class_("clojure.lang.Numbers");
+  sc->set_method("add");
+  
+  auto *a1 = sc->add_args();
+  a1->set_op(opConst);
+  a1->mutable_subnode()->mutable_const_()->set_val("1");
+  a1->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+  a1->set_tag("clojure.lang.BigInt");
+
+  auto *a2 = sc->add_args();
+  a2->set_op(opConst);
+  a2->mutable_subnode()->mutable_const_()->set_val("2");
+  a2->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+  a2->set_tag("clojure.lang.BigInt");
+
+  auto *then = if_->mutable_then();
+  then->set_op(opConst);
+  then->mutable_subnode()->mutable_const_()->set_val("42");
+  then->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+  then->set_tag("long");
+
+  auto *else_ = if_->mutable_else_();
+  else_->set_op(opConst);
+  else_->mutable_subnode()->mutable_const_()->set_val("43");
+  else_->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+  else_->set_tag("long");
+
+  // Setup clojure.lang.Numbers/add metadata
+  auto desc = std::make_unique<rt::ClassDescription>();
+  rt::IntrinsicDescription numAdd;
+  numAdd.type = rt::CallType::Call;
+  numAdd.symbol = "mock_add_bigint"; 
+  numAdd.argTypes = {rt::ObjectTypeSet::all(), rt::ObjectTypeSet::all()};
+  numAdd.returnType = rt::ObjectTypeSet::all();
+  desc->staticFns["add"].push_back(numAdd);
+
+  String *numName = String_createDynamicStr("clojure.lang.Numbers");
+  Ptr_retain(numName);
+  ::Class *numCls = Class_create(numName, numName, 0, nullptr);
+  numCls->compilerExtension = desc.release();
+  numCls->compilerExtensionDestructor = rt::delete_class_description;
+  compState.classRegistry.registerObject("clojure.lang.Numbers", numCls);
+
+  cout << "=== If Test Leak Test (Should NOT leak) ===" << endl;
+  uword_t initialCount = atomic_load(&objectCount[bigIntegerType - 1]);
+  (void)initialCount; // Silence warning
+  {
+    rt::JITEngine engine(compState);
+    auto res = engine.compileAST(root, "__test_if_leak", llvm::OptimizationLevel::O0, true).get();
+    
+    uword_t afterCompileCount = atomic_load(&objectCount[bigIntegerType - 1]);
+    RTValue val = res.toPtr<RTValue (*)()>()();
+    assert_int_equal(42, RT_unboxInt32(val));
+    
+    uword_t finalCount = atomic_load(&objectCount[bigIntegerType - 1]);
+    cout << "BigInt after compile: " << afterCompileCount << ", final: " << finalCount << endl;
+    assert_int_equal(finalCount, afterCompileCount);
+  }
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_let_uaf_fixed),
       cmocka_unit_test(test_let_gap_leak),
+      cmocka_unit_test(test_do_statement_leak),
+      cmocka_unit_test(test_if_test_leak),
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);

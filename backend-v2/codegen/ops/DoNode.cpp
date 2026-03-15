@@ -9,10 +9,8 @@ namespace rt {
 
 TypedValue CodeGen::codegen(const Node &node, const DoNode &subnode, const ObjectTypeSet &typeRestrictions) {
   for (int i = 0; i < subnode.statements_size(); i++) {
-    CleanupChainGuard guard(*this);
     auto v = codegen(subnode.statements(i), ObjectTypeSet::all());
-    guard.push(v);
-    // guard will automatically popResource when it goes out of scope at the end of loop iteration
+    memoryManagement.dynamicRelease(v);
   }
 
   return codegen(subnode.ret(), typeRestrictions);

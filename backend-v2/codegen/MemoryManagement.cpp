@@ -1,15 +1,17 @@
 #include "MemoryManagement.h"
-#include "CodeGen.h"
 #include "../RuntimeHeaders.h"
 #include "../bridge/Exceptions.h"
 #include "../cljassert.h"
 #include "../runtime/word.h"
 #include "CleanupChainGuard.h"
+#include "CodeGen.h"
 #include "DynamicConstructor.h"
 #include "LLVMTypes.h"
 #include "TypedValue.h"
 #include "ValueEncoder.h"
 #include "VariableBindings.h"
+#include "runtime/ObjectProto.h"
+#include "types/ObjectTypeSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include <cstdint>
 #include <llvm/IR/Constants.h>
@@ -20,8 +22,8 @@ using namespace llvm;
 namespace rt {
 
 MemoryManagement::MemoryManagement(llvm::LLVMContext &c, IRBuilder<> &b,
-                                   llvm::Module &m,
-                                   ValueEncoder &v, LLVMTypes &t,
+                                   llvm::Module &m, ValueEncoder &v,
+                                   LLVMTypes &t,
                                    VariableBindings<TypedValue> &vb,
                                    InvokeManager &i)
     : context(c), builder(b), theModule(m), valueEncoder(v), types(t),
@@ -34,16 +36,21 @@ void MemoryManagement::initFunction(llvm::Function *F) {
 }
 
 void MemoryManagement::ensureExceptionInfrastructure(llvm::Function *F) {
-  if (exceptionSlot) return;
+  if (exceptionSlot)
+    return;
 
   auto currentIP = builder.saveIP();
 
   // Create alloca in entry block if possible, or just here
-  exceptionSlot = builder.CreateAlloca(llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), nullptr, "exception_slot");
+  exceptionSlot = builder.CreateAlloca(
+      llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), nullptr,
+      "exception_slot");
   terminalResumeBB = llvm::BasicBlock::Create(context, "terminal_resume", F);
-  
+
   builder.SetInsertPoint(terminalResumeBB);
-  llvm::Value *exVal = builder.CreateLoad(llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), exceptionSlot, "exception_to_resume");
+  llvm::Value *exVal = builder.CreateLoad(
+      llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), exceptionSlot,
+      "exception_to_resume");
   builder.CreateResume(exVal);
 
   builder.restoreIP(currentIP);
@@ -74,12 +81,12 @@ llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
   }
 
   // 1. Calculate how many resources effectively need protection (survivors)
-  size_t survivorCount = (skipCount < activeResources.size()) 
-                          ? (activeResources.size() - skipCount) 
-                          : 0;
-  
+  size_t survivorCount = (skipCount < activeResources.size())
+                             ? (activeResources.size() - skipCount)
+                             : 0;
+
   bool hasGuidance = activeUnwindGuidance && !activeUnwindGuidance->empty();
-  
+
   size_t neededSurvivors = 0;
   for (size_t i = 0; i < survivorCount; ++i) {
     if (CleanupChainGuard::needsProtection(activeResources[i].type)) {
@@ -102,12 +109,12 @@ llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
     if (CleanupChainGuard::needsProtection(val.type)) {
       llvm::BasicBlock *prevCleanup =
           cleanupStack.empty() ? terminalResumeBB : cleanupStack.back();
-      
+
       llvm::BasicBlock *newCleanup = llvm::BasicBlock::Create(
           context,
-          "cleanup_link_" + std::to_string(totalPushedResources -
-                                           (activeResources.size() -
-                                            resourcesWithCleanup - 1)),
+          "cleanup_link_" +
+              std::to_string(totalPushedResources - (activeResources.size() -
+                                                     resourcesWithCleanup - 1)),
           F);
 
       builder.SetInsertPoint(newCleanup);
@@ -119,8 +126,8 @@ llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
   }
 
   // 5. Create Landing Pad entry
-  auto *lpad = BasicBlock::Create(
-      context, "lpad_entry_" + std::to_string(skipCount), F);
+  auto *lpad =
+      BasicBlock::Create(context, "lpad_entry_" + std::to_string(skipCount), F);
   builder.SetInsertPoint(lpad);
   LandingPadInst *lp = builder.CreateLandingPad(
       llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), 1);
@@ -133,8 +140,8 @@ llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
       auto name = g.variablename();
       auto change = g.requiredrefcountchange();
 
-      for (word_t depth = (word_t)variableBindingStack.stackDepth() - 1; depth >= 0;
-           depth--) {
+      for (word_t depth = (word_t)variableBindingStack.stackDepth() - 1;
+           depth >= 0; depth--) {
         auto val = variableBindingStack.find(name, depth);
         if (val) {
           int count = std::abs(change);
@@ -195,6 +202,8 @@ void MemoryManagement::dynamicMemoryGuidance(
 }
 
 void MemoryManagement::dynamicRetain(TypedValue &target) {
+  if (target.type.isScalar() || target.type.isBoxedScalar())
+    return;
   Metadata *metaPtr = dyn_cast<Metadata>(MDString::get(context, "retain"));
   MDNode *meta = MDNode::get(context, metaPtr);
 
@@ -206,6 +215,9 @@ void MemoryManagement::dynamicRetain(TypedValue &target) {
 }
 
 TypedValue MemoryManagement::dynamicRelease(TypedValue &target) {
+  if (target.type.isScalar() || target.type.isBoxedScalar())
+    return TypedValue(ObjectTypeSet(booleanType),
+                      ConstantInt::get(context, APInt(1, 0)));
   Metadata *metaPtr = dyn_cast<Metadata>(MDString::get(context, "release"));
   MDNode *meta = MDNode::get(context, metaPtr);
 

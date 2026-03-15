@@ -301,7 +301,7 @@
 (defn application-usage
   [nodes borrowed owned unwind-owned]
   (if (empty? nodes)
-    nodes
+    [nodes unwind-owned]
     (let [fresh-n (map :fresh nodes) ;; vector: i -> fv(v_i)
           owned-last (set/intersection owned (last fresh-n)) ;; Gamma_n
           ;; vector: i == Gamma_i ;; in reduce loop, vector is generated from the end
@@ -323,20 +323,21 @@
                                     (conj borrowed (set/union (first borrowed) owned-i)))
                                   (list borrowed))
                           vec)
-          [evaluated-nodes _unwind-owned]
+          [evaluated-nodes rest-unwind-owned]
           (reduce (fn [[updated-nodes unwind-owned] [borrowed owned node]]
                     (let [updated-node (-memory-management-pass node borrowed owned unwind-owned)
                           rest-unwind-owned (set/difference unwind-owned owned)]
                       [(conj updated-nodes updated-node) rest-unwind-owned]))
                   [[] unwind-owned]
                   (map vector borrowed-n owned-n nodes))]
-      evaluated-nodes)))
+      [evaluated-nodes rest-unwind-owned])))
 
 (defmethod -memory-management-pass :invoke
   [node borrowed owned unwind-owned]
   (let [nodes (concat (keep identity [(:meta node)]) [(:fn node)] (:args node))
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
         [updated-meta updated-fn & updated-args]
-        (cond->> (application-usage nodes borrowed owned unwind-owned)
+        (cond->> updated-nodes
           (not (:meta node)) (concat [nil]))]
     (-> node
         (set-unwind unwind-owned)
@@ -347,8 +348,9 @@
 (defmethod -memory-management-pass :prim-invoke
   [node borrowed owned unwind-owned]
   (let [nodes (concat (keep identity [(:meta node)]) [(:fn node)] (:args node))
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
         [updated-meta updated-fn & updated-args]
-        (cond->> (application-usage nodes borrowed owned unwind-owned)
+        (cond->> updated-nodes
           (not (:meta node)) (concat [nil]))]
     (-> node
         (set-unwind unwind-owned)
@@ -359,7 +361,8 @@
 (defmethod -memory-management-pass :protocol-invoke
   [node borrowed owned unwind-owned]
   (let [nodes (concat [(:protocol-fn node) (:target node)] (:args node))
-        [updated-protocol-fn updated-target & updated-args] (application-usage nodes borrowed owned unwind-owned)]
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
+        [updated-protocol-fn updated-target & updated-args] updated-nodes]
     (-> node
         (set-unwind unwind-owned)
         (assoc :protocol-fn updated-protocol-fn
@@ -369,7 +372,8 @@
 (defmethod -memory-management-pass :instance-call
   [node borrowed owned unwind-owned]
   (let [nodes (concat [(:instance node)] (:args node))
-        [updated-instance & updated-args] (application-usage nodes borrowed owned unwind-owned)]
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
+        [updated-instance & updated-args] updated-nodes]
     (-> node
         (set-unwind unwind-owned)
         (assoc :instance updated-instance
@@ -378,7 +382,8 @@
 (defmethod -memory-management-pass :keyword-invoke
   [node borrowed owned unwind-owned]
   (let [nodes (map node [:keyword :target])
-        [updated-keyword updated-target] (application-usage nodes borrowed owned unwind-owned)]
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
+        [updated-keyword updated-target] updated-nodes]
     (-> node
         (set-unwind unwind-owned)
         (assoc :keyword updated-keyword
@@ -387,7 +392,7 @@
 (defmethod -memory-management-pass :static-call
   [node borrowed owned unwind-owned]
   (let [nodes (:args node)
-        updated-nodes (application-usage nodes borrowed owned unwind-owned)]
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)]
     (-> node
         (set-unwind unwind-owned)
         (assoc :args updated-nodes))))
@@ -395,7 +400,7 @@
 (defmethod -memory-management-pass :new
   [node borrowed owned unwind-owned]
   (let [nodes (:args node)
-        updated-nodes (application-usage nodes borrowed owned unwind-owned)]
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)]
     (-> node
         (set-unwind unwind-owned)
         (assoc :args updated-nodes))))
@@ -404,7 +409,7 @@
   ;; Earlier pass guarantees that there is (initially) at least one statement
   [node borrowed owned unwind-owned]
   (let [nodes (concat (:statements node) [(:ret node)])
-        updated-nodes (application-usage nodes borrowed owned unwind-owned)]
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)]
     (-> node
         (set-unwind unwind-owned)
         (assoc :statements (vec (butlast updated-nodes))
@@ -415,7 +420,7 @@
   (let [nodes (:exprs node)
         this (:recur-this node)
         nodes (cond->> nodes this (concat [this]))
-        updated-nodes (application-usage nodes borrowed owned unwind-owned)
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
         [updated-this updated-exprs] (if this
                                        [(first updated-nodes) (vec (rest updated-nodes))]
                                        [nil updated-nodes])]
@@ -427,7 +432,8 @@
 (defmethod -memory-management-pass :set!
   [node borrowed owned unwind-owned]
   (let [nodes (map node [:target :val])
-        [updated-target updated-val] (application-usage nodes borrowed owned unwind-owned)]
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
+        [updated-target updated-val] updated-nodes]
     (-> node
         (set-unwind unwind-owned)
         (assoc :target updated-target
@@ -436,7 +442,8 @@
 (defmethod -memory-management-pass :with-meta
   [node borrowed owned unwind-owned]
   (let [nodes (map node [:meta :expr])
-        [updated-meta updated-expr] (application-usage nodes borrowed owned unwind-owned)]
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
+        [updated-meta updated-expr] updated-nodes]
     (-> node
         (set-unwind unwind-owned)
         (assoc :meta updated-meta
@@ -445,8 +452,9 @@
 (defmethod -memory-management-pass :def
   [node borrowed owned unwind-owned]
   (let [nodes (keep identity (map node [:meta :init]))
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
         [updated-meta updated-init]
-        (cond->> (application-usage nodes borrowed owned unwind-owned)
+        (cond->> updated-nodes
           (not (:meta node)) (concat [nil]))]
     (-> node
         (set-unwind unwind-owned)
@@ -457,7 +465,7 @@
   ;; Order of evaluation is key1, val1, key2, val2, ...
   [node borrowed owned unwind-owned]
   (let [nodes (->> [:keys :vals] (map node) (apply interleave))
-        updated-nodes (application-usage nodes borrowed owned unwind-owned)
+        [updated-nodes unwind-owned] (application-usage nodes borrowed owned unwind-owned)
         [updated-keys updated-vals] (if (seq updated-nodes)
                                       (apply mapv vector (partition 2 updated-nodes))
                                       [[] []])]
@@ -468,14 +476,14 @@
 
 (defmethod -memory-management-pass :set
   [node borrowed owned unwind-owned]
-  (let [updated-nodes (application-usage (:items node) borrowed owned unwind-owned)]
+  (let [[updated-nodes unwind-owned] (application-usage (:items node) borrowed owned unwind-owned)]
     (-> node
         (set-unwind unwind-owned)
         (assoc :items updated-nodes))))
 
 (defmethod -memory-management-pass :vector
   [node borrowed owned unwind-owned]
-  (let [updated-nodes (application-usage (:items node) borrowed owned unwind-owned)]
+  (let [[updated-nodes unwind-owned] (application-usage (:items node) borrowed owned unwind-owned)]
     (-> node
         (set-unwind unwind-owned)
         (assoc :items updated-nodes))))

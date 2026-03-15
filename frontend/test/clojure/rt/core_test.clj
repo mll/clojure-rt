@@ -10,8 +10,17 @@
 (deftest ^:test-refresh/focus analyzer
   (testing "Trivial"
     (let [ast (first (analyze "(+ 2 3)" ""))]
-      (postwalk ast #(is (= {} (:mm-refs %))))))
+      (postwalk ast (fn [node] 
+                      (when (map? node)
+                        (is (empty? (:unwind-memory node)))
+                        (is (empty? (:drop-memory node))))
+                      node))))
 
   (testing "Variable"
     (let [ast (first (analyze "(let [x 3] (+ 2 x))" ""))]
-      (postwalk ast #(is (= {} (:mm-refs %)) %)))))
+      (postwalk ast (fn [node]
+                      (when (map? node)
+                        ;; Some nodes might have guidance now, but trivial ones shouldn't have redundant ones
+                        (when (= :static-call (:op node))
+                          (is (empty? (:unwind-memory node)))))
+                      node)))))

@@ -63,8 +63,7 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
           node);
 
     auto test = codegen(subnode.test(), ObjectTypeSet::all());
-    if (!test.type.isScalar())
-      memoryManagement.dynamicRelease(test);
+    memoryManagement.dynamicRelease(test);
 
     return codegen(subnode.then(), typeRestrictions);
   }
@@ -80,8 +79,7 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
           node);
 
     auto test = codegen(subnode.test(), ObjectTypeSet::all());
-    if (!test.type.isScalar())
-      memoryManagement.dynamicRelease(test);
+    memoryManagement.dynamicRelease(test);
 
     return subnode.has_else_() ? codegen(subnode.else_(), typeRestrictions)
                                : TypedValue(ObjectTypeSet(nilType),
@@ -92,8 +90,7 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
   if (testType.getConstant() &&
       (CI = dynamic_cast<ConstantBoolean *>(testType.getConstant()))) {
     auto test = codegen(subnode.test(), ObjectTypeSet::all());
-    if (!test.type.isScalar())
-      memoryManagement.dynamicRelease(test);
+    memoryManagement.dynamicRelease(test);
     /* In case of a constant (which often arises from constant folding!) we can
      * immediately make a decision on the *compiler* level! */
     bool constCondition = CI->value;
@@ -122,20 +119,25 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
   }
 
   /* Standard if condition */
-  CleanupChainGuard guard(*this);
   auto test = codegen(subnode.test(), ObjectTypeSet::all());
-  guard.push(test);
-  Value *condValue = test.value;
+  Value *condValue = nullptr;
 
-  if (!condValue)
+  if (!test.value)
     throwCodeGenerationException(string("Internal error 1"), node);
 
-  if (!test.type.isDetermined())
-    condValue =
-        toTruthyCondition(TheContext, Builder, valueEncoder, test.value);
+  {
+    CleanupChainGuard guard(*this);
+    guard.push(test);
 
-  else if (test.type.determinedType() == booleanType)
-    condValue = test.value;
+    if (!test.type.isDetermined())
+      condValue =
+          toTruthyCondition(TheContext, Builder, valueEncoder, test.value);
+    else if (test.type.determinedType() == booleanType)
+      condValue = test.value;
+    else
+      condValue = Builder.getTrue();
+  }
+  memoryManagement.dynamicRelease(test);
 
   //  create basic blocks
   BasicBlock *thenBB =

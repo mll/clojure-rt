@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake gcc g++ libprotobuf-dev protobuf-compiler libcmocka-dev libgmp-dev lsb-release wget software-properties-common gnupg zlib1g-dev
+        sudo apt-get install -y cmake gcc g++ libprotobuf-dev protobuf-compiler libcmocka-dev libgmp-dev lsb-release wget software-properties-common gnupg zlib1g-dev leiningen
 
     - name: Install LLVM 20
       run: |

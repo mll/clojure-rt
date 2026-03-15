@@ -15,6 +15,7 @@ set(TEST_MODULES
     codegen/DoubleAddRepro_test
     codegen/NoThrow_test
     codegen/LetNode_test
+    codegen/LetLeak_test
     VarUAF_repro_test
 )
 

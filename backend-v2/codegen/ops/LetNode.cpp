@@ -12,17 +12,11 @@ TypedValue CodeGen::codegen(const Node &node, const LetNode &subnode,
   variableBindingStack.push();
   variableTypesBindingsStack.push();
 
-  // Guard for resources pushed during binding evaluation
-  CleanupChainGuard guard(*this);
-
   for (int i = 0; i < subnode.bindings_size(); i++) {
     auto bindingNode = subnode.bindings(i);
     auto binding = bindingNode.subnode().binding();
 
     auto init = codegen(binding.init(), ObjectTypeSet::all());
-    
-    // We might need to protect the init value if it's a resource
-    guard.push(init);
 
     auto name = binding.name();
     variableBindingStack.set(name, init);
@@ -55,7 +49,7 @@ ObjectTypeSet CodeGen::getType(const Node &node, const LetNode &subnode,
   for (int i = 0; i < subnode.bindings_size(); i++) {
     auto bindingNode = subnode.bindings(i);
     auto binding = bindingNode.subnode().binding();
-    
+
     auto initType = getType(binding.init(), ObjectTypeSet::all());
     auto name = binding.name();
     variableTypesBindingsStack.set(name, initType);

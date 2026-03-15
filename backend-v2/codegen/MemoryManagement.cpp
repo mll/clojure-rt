@@ -23,9 +23,9 @@ MemoryManagement::MemoryManagement(llvm::LLVMContext &c, IRBuilder<> &b,
                                    llvm::Module &m,
                                    ValueEncoder &v, LLVMTypes &t,
                                    VariableBindings<TypedValue> &vb,
-                                   InvokeManager &i, DynamicConstructor &d)
+                                   InvokeManager &i)
     : context(c), builder(b), theModule(m), valueEncoder(v), types(t),
-      variableBindingStack(vb), invoke(i), dynamicConstructor(d) {}
+      variableBindingStack(vb), invoke(i) {}
 
 void MemoryManagement::initFunction(llvm::Function *F) {
   exceptionSlot = nullptr;
@@ -68,18 +68,45 @@ void MemoryManagement::popResource() {
   activeResources.pop_back();
 }
 
-llvm::BasicBlock* MemoryManagement::getLandingPad() {
-  // Emit cleanup blocks for any resources that don't have them yet
-  while (resourcesWithCleanup < activeResources.size()) {
+llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
+  // 1. Calculate how many resources effectively need protection (survivors)
+  size_t survivorCount = (skipCount < activeResources.size()) 
+                          ? (activeResources.size() - skipCount) 
+                          : 0;
+  
+  size_t neededSurvivors = 0;
+  for (size_t i = 0; i < survivorCount; ++i) {
+    if (CleanupChainGuard::needsProtection(activeResources[i].type)) {
+      neededSurvivors++;
+    }
+  }
+
+  // 2. If no survivors need protection, we don't need a landing pad or any blocks.
+  if (neededSurvivors == 0)
+    return nullptr;
+
+  // 3. We are going to emit a landing pad, so ensure we have the infrastructure.
+  llvm::Function *F = builder.GetInsertBlock()->getParent();
+  ensureExceptionInfrastructure(F);
+
+  // 4. Flush resources up to the end of the survivor zone (or further if needed)
+  // We MUST ensure all survivors have blocks. We CAN skip building blocks for
+  // the 'skipped' resources for now - they will be built only if some future
+  // call needs them.
+  while (resourcesWithCleanup < survivorCount) {
     TypedValue val = activeResources[resourcesWithCleanup];
     if (CleanupChainGuard::needsProtection(val.type)) {
-      llvm::Function *F = builder.GetInsertBlock()->getParent();
-      ensureExceptionInfrastructure(F);
-
       llvm::BasicBlock *prevCleanup =
           cleanupStack.empty() ? terminalResumeBB : cleanupStack.back();
+      
+      // Note: totalPushedResources is a global counter, activeResources.size() is local.
+      // This naming might be slightly off in the original, but we follow the pattern.
       llvm::BasicBlock *newCleanup = llvm::BasicBlock::Create(
-          context, "cleanup_link_" + std::to_string(totalPushedResources - (activeResources.size() - resourcesWithCleanup - 1)), F);
+          context,
+          "cleanup_link_" + std::to_string(totalPushedResources -
+                                          (activeResources.size() -
+                                           resourcesWithCleanup - 1)),
+          F);
 
       auto currentIP = builder.saveIP();
       builder.SetInsertPoint(newCleanup);
@@ -97,11 +124,15 @@ llvm::BasicBlock* MemoryManagement::getLandingPad() {
     resourcesWithCleanup++;
   }
 
-  if (cleanupStack.empty())
-    return nullptr;
+  // 5. The landing pad branches to the top of the 'survivor' cleanup stack.
+  size_t survivorBlocks = 0;
+  for (size_t i = 0; i < survivorCount; ++i) {
+    if (CleanupChainGuard::needsProtection(activeResources[i].type)) {
+      survivorBlocks++;
+    }
+  }
 
-  llvm::Function *F = builder.GetInsertBlock()->getParent();
-  ensureExceptionInfrastructure(F);
+  assert(survivorBlocks > 0 && survivorBlocks <= cleanupStack.size());
 
   llvm::BasicBlock *lpadEntry = llvm::BasicBlock::Create(
       context, "lpad_entry_" + std::to_string(totalPushedResources), F);
@@ -114,7 +145,7 @@ llvm::BasicBlock* MemoryManagement::getLandingPad() {
   lpad->setCleanup(true);
 
   builder.CreateStore(lpad, exceptionSlot);
-  builder.CreateBr(cleanupStack.back());
+  builder.CreateBr(cleanupStack[survivorBlocks - 1]);
 
   builder.restoreIP(currentIP);
   return lpadEntry;

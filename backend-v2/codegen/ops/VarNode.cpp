@@ -20,15 +20,13 @@ TypedValue CodeGen::codegen(const Node &node, const VarNode &subnode,
       ObjectTypeSet(varType),
       ConstantExpr::getIntToPtr(ConstantInt::get(this->types.i64Ty, address),
                                 this->types.ptrTy));
+  // Var_deref is a consuming function in C (it calls Ptr_release(self)).
+  // We retain it once here, and Var_deref will release it.
   memoryManagement.dynamicRetain(varPtr);
-  CleanupChainGuard guard(*this);
-  guard.push(varPtr);
-
 
   auto res = invokeManager.invokeRuntime("Var_deref", nullptr,
-                                         {ObjectTypeSet(varType)}, {varPtr}, false, &guard);
+                                         {ObjectTypeSet(varType)}, {varPtr}, false, nullptr);
   
-  // We leave landing pad set as it might be used by the caller
   return res;
 }
 

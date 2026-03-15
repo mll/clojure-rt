@@ -73,8 +73,7 @@ public:
         invokeManager(Builder, *TheModule, valueEncoder, types, state, *this),
         dynamicConstructor(types, invokeManager, generatedConstants),
         memoryManagement(TheContext, Builder, *TheModule, valueEncoder, types,
-                         variableBindingStack, invokeManager,
-                         dynamicConstructor),
+                         variableBindingStack, invokeManager),
         compilerState(state) {
     TheModule->addModuleFlag(llvm::Module::Warning, "Debug Info Version",
                              llvm::DEBUG_METADATA_VERSION);
@@ -161,7 +160,7 @@ public:
   // Exception safety helpers
   void pushResource(TypedValue val) { memoryManagement.pushResource(val); }
   void popResource() { memoryManagement.popResource(); }
-  llvm::BasicBlock* getLandingPad() { return memoryManagement.getLandingPad(); }
+  llvm::BasicBlock* getLandingPad(size_t skipCount = 0) { return memoryManagement.getLandingPad(skipCount); }
   bool hasLandingPad() const { return memoryManagement.hasPushedResources(); }
   bool hasPushedResources() const { return memoryManagement.hasPushedResources(); }
   MemoryManagement &getMemoryManagement() { return memoryManagement; }

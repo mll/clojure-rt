@@ -169,7 +169,32 @@ bool InvokeManager::canThrow(const std::string &fname) const {
       "RT_unboxInt32",
       "RT_unboxDouble",
       "RT_unboxBoolean",
-      "BigInteger_toDouble"};
+
+      "BigInteger_toDouble",
+      "BigInteger_createFromInt",
+      "BigInteger_add",
+      "BigInteger_sub",
+      "BigInteger_mul",
+      "BigInteger_div",
+      "BigInteger_gte",
+      "BigInteger_gt",
+      "BigInteger_lt",
+      "BigInteger_lte",
+      "BigInteger_toString",
+
+      "Ratio_toDouble",
+      "Ratio_createFromInt",
+      "Ratio_createFromBigInteger",
+      "Ratio_add",
+      "Ratio_sub",
+      "Ratio_mul",
+      "Ratio_div",
+      "Ratio_gte",
+      "Ratio_gt",
+      "Ratio_lt",
+      "Ratio_lte",
+      "Ratio_toString",
+  };
   return safeFunctions.find(fname) == safeFunctions.end();
 }
 
@@ -226,11 +251,10 @@ InvokeManager::invokeRuntime(const std::string &fname,
   }
 
   Value *callResult = nullptr;
-  if (guard) {
-    guard->popAll();
-  }
-
-  BasicBlock *lpadToUse = canThrow(fname) ? codeGen.getLandingPad() : nullptr;
+  BasicBlock *lpadToUse = canThrow(fname)
+                              ? codeGen.getMemoryManagement().getLandingPad(
+                                    guard ? guard->size() : 0)
+                              : nullptr;
 
   if (lpadToUse) {
     BasicBlock *normalBB =

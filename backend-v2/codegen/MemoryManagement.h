@@ -1,7 +1,6 @@
 #ifndef MEMORY_MANAGEMENT_H
 #define MEMORY_MANAGEMENT_H
 
-#include "DynamicConstructor.h"
 #include "LLVMTypes.h"
 #include "TypedValue.h"
 #include "ValueEncoder.h"
@@ -22,8 +21,7 @@ public:
   explicit MemoryManagement(llvm::LLVMContext &context, llvm::IRBuilder<> &b,
                             llvm::Module &m,
                             ValueEncoder &v, LLVMTypes &t,
-                            VariableBindings<TypedValue> &vb, InvokeManager &i,
-                            DynamicConstructor &d);
+                            VariableBindings<TypedValue> &vb, InvokeManager &i);
 
   void initFunction(llvm::Function *F);
   
@@ -36,7 +34,7 @@ public:
   // Exception safety / Resource management
   void pushResource(TypedValue val);
   void popResource();
-  llvm::BasicBlock* getLandingPad();
+  llvm::BasicBlock* getLandingPad(size_t skipCount = 0);
   bool hasPushedResources() const { return !activeResources.empty(); }
   void clear();
 
@@ -48,7 +46,6 @@ private:
   LLVMTypes &types;
   VariableBindings<TypedValue> &variableBindingStack;
   InvokeManager &invoke;
-  DynamicConstructor &dynamicConstructor;
 
   // Landing pad / Exception state
   llvm::Value *exceptionSlot = nullptr;

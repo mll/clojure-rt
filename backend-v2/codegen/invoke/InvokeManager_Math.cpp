@@ -1,9 +1,6 @@
 #include "InvokeManager.h"
-#include "../../types/ConstantBool.h"
 #include "../../types/ConstantDouble.h"
 #include "../../types/ConstantInteger.h"
-#include "../../types/ConstantBigInteger.h"
-#include "../../types/ConstantRatio.h"
 #include "llvm/IR/MDBuilder.h"
 
 using namespace llvm;
@@ -351,7 +348,7 @@ void registerMathIntrinsics(InvokeManager &mgr) {
                                const std::string &errorMessage) {
     return [&mgr, &theModule, &types, llvmIntrinsic, errorMessage](llvm::IRBuilder<> &b,
                                                std::vector<llvm::Value *> args) {
-      Function *fn = Intrinsic::getDeclaration(&theModule, 
+      Function *fn = Intrinsic::getOrInsertDeclaration(&theModule, 
           llvmIntrinsic == "sadd" ? Intrinsic::sadd_with_overflow : Intrinsic::ssub_with_overflow, 
           {b.getInt32Ty()});
       Value *resStruct = b.CreateCall(fn, args);

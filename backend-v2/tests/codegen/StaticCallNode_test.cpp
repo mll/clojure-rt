@@ -169,7 +169,7 @@ static void test_dynamic_dispatch_3tail(void **state) {
     createIndeterminateArg(sc->add_args(), "10", false);
     createIndeterminateArg(sc->add_args(), "20", false);
 
-    auto resCall = engine
+    [[maybe_unused]] auto resCall = engine
                        .compileAST(callNode, "__test_3tail_int",
                                    llvm::OptimizationLevel::O0, true)
                        .get();
@@ -258,7 +258,7 @@ static void test_dynamic_dispatch_exhaustive(void **state) {
   createIndeterminateArg(sc->add_args(), "20", false);
 
   try {
-    auto resCall = engine
+    [[maybe_unused]] auto resCall = engine
                        .compileAST(callNode, "__test_exhaustive",
                                    llvm::OptimizationLevel::O0, true)
                        .get();
@@ -303,7 +303,7 @@ static void test_dynamic_dispatch_no_match(void **state) {
   }
 
   try {
-    auto resCall = engine
+    [[maybe_unused]] auto resCall = engine
                        .compileAST(callNode, "__test_no_match",
                                    llvm::OptimizationLevel::O0, true)
                        .get();

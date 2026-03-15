@@ -80,7 +80,7 @@ static void test_hot_cold_separation(void **state) {
   d1->mutable_init()->mutable_subnode()->mutable_const_()->set_val("2");
 
   cout << "=== Hot/Cold Separation Test IR ===" << endl;
-  auto res = engine.compileAST(root, "__hot_cold_test", llvm::OptimizationLevel::O0, true).get();
+  [[maybe_unused]] auto res = engine.compileAST(root, "__hot_cold_test", llvm::OptimizationLevel::O0, true).get();
   cout << "===================================" << endl;
 }
 
@@ -143,7 +143,7 @@ static void test_crash_repro(void **state) {
   arg2->mutable_subnode()->mutable_var()->set_var("v/x");
 
   cout << "=== Crash Repro Test IR ===" << endl;
-  auto res = engine.compileAST(root, "__crash_repro", llvm::OptimizationLevel::O0, true).get();
+  [[maybe_unused]] auto res = engine.compileAST(root, "__crash_repro", llvm::OptimizationLevel::O0, true).get();
   cout << "===========================" << endl;
 }
 
@@ -167,7 +167,7 @@ static void test_whitelist_works(void **state) {
 
   // Compile and dump IR
   cout << "=== Whitelist Test IR ===" << endl;
-  auto res = engine.compileAST(root, "__whitelist_test", llvm::OptimizationLevel::O0, true).get();
+  [[maybe_unused]] auto res = engine.compileAST(root, "__whitelist_test", llvm::OptimizationLevel::O0, true).get();
   cout << "=========================" << endl;
 }
 

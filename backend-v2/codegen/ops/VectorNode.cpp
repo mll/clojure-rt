@@ -9,13 +9,14 @@ namespace rt {
 
   TypedValue CodeGen::codegen(const Node &node, const VectorNode &subnode, const ObjectTypeSet &typeRestrictions) {
     vector<TypedValue> args;
-    ShadowStackGuard guard(*this);
+    bool needsGuard = canThrow(node);
+    unique_ptr<CleanupChainGuard> guard = needsGuard ? make_unique<CleanupChainGuard>(*this) : nullptr;
     for(int i=0; i<subnode.items_size(); i++) {
       auto v = codegen(subnode.items(i), ObjectTypeSet::all());
       args.push_back(v);
-      guard.push(v);
+      if (guard) guard->push(v);
     }
-    return dynamicConstructor.createVector(args, &guard);
+    return dynamicConstructor.createVector(args, guard.get());
   }
   
   ObjectTypeSet CodeGen::getType(const Node &node, const VectorNode &subnode, const ObjectTypeSet &typeRestrictions) {

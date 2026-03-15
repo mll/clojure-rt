@@ -112,7 +112,7 @@ TypedValue DynamicConstructor::createRatio(const char *s) {
 }
 
 TypedValue DynamicConstructor::createVector(std::vector<TypedValue> &items,
-                                          ShadowStackGuard *guard) {
+                                          CleanupChainGuard *guard) {
   auto retValType = ObjectTypeSet(persistentVectorType, false);
   std::vector<TypedValue> allArgs;
   allArgs.push_back(createInt32(items.size()));
@@ -125,7 +125,7 @@ TypedValue DynamicConstructor::createVector(std::vector<TypedValue> &items,
 
 TypedValue DynamicConstructor::createArrayMap(std::vector<TypedValue> &keys,
                                               std::vector<TypedValue> &values,
-                                              ShadowStackGuard *guard) {
+                                              CleanupChainGuard *guard) {
   if (keys.size() != values.size())
     throwInternalInconsistencyException(
         "Keys and values need to have the same size");
@@ -149,7 +149,7 @@ TypedValue DynamicConstructor::createArrayMap(std::vector<TypedValue> &keys,
 }
 
 TypedValue DynamicConstructor::createList(std::vector<TypedValue> &items,
-                                        ShadowStackGuard *guard) {
+                                        CleanupChainGuard *guard) {
   auto retValType = ObjectTypeSet(persistentListType, false);
   std::vector<TypedValue> allArgs;
   allArgs.push_back(createInt32(items.size()));

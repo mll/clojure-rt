@@ -9,9 +9,14 @@ set(TEST_MODULES
     codegen/IfNode_test
     codegen/StaticCallType_test
     codegen/StaticCallNode_test
+    codegen/StaticFieldNode_test
     codegen/JITArithmetic_test
     codegen/MathIntrinsics_test
     codegen/DoubleAddRepro_test
+    codegen/NoThrow_test
+    codegen/LetNode_test
+    codegen/LetLeak_test
+    VarUAF_repro_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})
@@ -32,3 +37,16 @@ foreach(TEST_MODULE ${TEST_MODULES})
     )
     set_tests_properties(${EXEC_NAME} PROPERTIES LABELS "Unit")
 endforeach()
+
+# --- Frontend Tests ---
+find_program(LEIN_EXECUTABLE lein)
+if(LEIN_EXECUTABLE)
+    add_test(
+        NAME frontend_tests
+        COMMAND ${LEIN_EXECUTABLE} test
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/../frontend
+    )
+    set_tests_properties(frontend_tests PROPERTIES LABELS "Frontend")
+else()
+    message(WARNING "Leiningen not found, skipping frontend tests")
+endif()

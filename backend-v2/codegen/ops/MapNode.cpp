@@ -11,16 +11,17 @@ namespace rt {
     auto type = getType(node, typeRestrictions);
     vector<TypedValue> keys;
     vector<TypedValue> values;    
-    ShadowStackGuard guard(*this);
+    bool needsGuard = canThrow(node);
+    unique_ptr<CleanupChainGuard> guard = needsGuard ? make_unique<CleanupChainGuard>(*this) : nullptr;
     for(int i=0; i<subnode.keys_size(); i++) { 
       auto k = codegen(subnode.keys(i), ObjectTypeSet::all());
       keys.push_back(k);
-      guard.push(k);
+      if (guard) guard->push(k);
       auto v = codegen(subnode.vals(i), ObjectTypeSet::all());
       values.push_back(v);
-      guard.push(v);
+      if (guard) guard->push(v);
     }
-    if(subnode.keys_size() <= HASHTABLE_THRESHOLD) return dynamicConstructor.createArrayMap(keys, values, &guard);  
+    if(subnode.keys_size() <= HASHTABLE_THRESHOLD) return dynamicConstructor.createArrayMap(keys, values, guard.get());  
     
     throwCodeGenerationException(string("Compiler does not support the PersistentHashMap pairs yet: ") + Op_Name(node.op()), node);
     return TypedValue(ObjectTypeSet(), nullptr);

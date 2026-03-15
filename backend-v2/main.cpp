@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
   int retVal = -1;
 
   GOOGLE_PROTOBUF_VERIFY_VERSION;
-
+  cout << "Loading protocols..." << endl;
   MemoryState initialMemoryState;
   captureMemoryState(&initialMemoryState);
   clojure::rt::protobuf::bytecode::Programme astInterfaces;
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
-
+  cout << "Loading classes..." << endl;
   clojure::rt::protobuf::bytecode::Programme astClasses;
   {
     fstream classesInput("rt-classes.cljb", ios::in | ios::binary);
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
-
+  cout << "Loading root..." << endl;
   clojure::rt::protobuf::bytecode::Programme astRoot;
   {
     fstream input(argv[1], ios::in | ios::binary);
@@ -73,26 +73,33 @@ int main(int argc, char *argv[]) {
   }
 
   try {
+    cout << "Initialising memory..." << endl;
     initialise_memory();
+    cout << "Initialising compiler state..." << endl;
     rt::ThreadsafeCompilerState state;
     rt::JITEngine engine(state);
-
+    cout << "Compiling interfaces..." << endl;
     RTValue interfaces = engine
                              .compileAST(astInterfaces.nodes(0), "__interfaces",
                                          llvm::OptimizationLevel::O0, false)
                              .get()
                              .toPtr<RTValue (*)()>()();
-
+    cout << "Storing interfaces..." << endl;
     state.storeInternalProtocols(interfaces);
 
-    RTValue classes = engine
-                          .compileAST(astClasses.nodes(0), "__classes",
-                                      llvm::OptimizationLevel::O0, false)
-                          .get()
-                          .toPtr<RTValue (*)()>()();
+    cout << "Compiling classes..." << endl;
+    auto compiled = engine
+                        .compileAST(astClasses.nodes(0), "__classes",
+                                    llvm::OptimizationLevel::O0, false)
+                        .get()
+                        .toPtr<RTValue (*)()>();
+    cout << "Calling classes..." << endl;
+    RTValue classes = compiled();
 
+    cout << "Storing classes..." << endl;
     state.storeInternalClasses(classes);
 
+    cout << "Compiling root..." << endl;
     for (int j = 0; j < astRoot.nodes_size(); j++) {
       auto topLevelNode = astRoot.nodes(j);
       cout << "=============================" << endl;

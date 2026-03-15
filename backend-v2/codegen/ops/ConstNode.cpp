@@ -53,7 +53,6 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     break;
   case symbolType:
     retVal = dynamicConstructor.createSymbol(name.c_str());
-    memoryManagement.dynamicRetain(retVal);
     break;
   // case classType:
   //   {
@@ -74,10 +73,8 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
   //                                node);
   //   break;
   case keywordType:
-
     retVal = dynamicConstructor.createKeyword(
         (name[0] == ':' ? name.substr(1) : name).c_str());
-    memoryManagement.dynamicRetain(retVal);
     break;
   case bigIntegerType:
     retVal = dynamicConstructor.createBigInteger(subnode.val().c_str());
@@ -102,17 +99,10 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     memoryManagement.dynamicRetain(retVal);
     break;
   }
-  case persistentListType:
-
-  case persistentVectorType:
-  case persistentVectorNodeType:
-  case concurrentHashMapType:
-  case persistentArrayMapType:
-  case functionType:
-  case classType:
+  default:
     throwCodeGenerationException(
         string("Compiler does not support the following const type yet: ") +
-            ConstNode_ConstType_Name(subnode.type()),
+            to_string(types.determinedType()),
         node);
   }
   return retVal;
@@ -203,15 +193,6 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
   //   return ObjectTypeSet(classType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeVar:
     return ObjectTypeSet(varType).restriction(typeRestrictions);
-  case ConstNode_ConstType_constTypeType:
-  case ConstNode_ConstType_constTypeRecord:
-  case ConstNode_ConstType_constTypeMap:
-  case ConstNode_ConstType_constTypeVector:
-  case ConstNode_ConstType_constTypeSet:
-  case ConstNode_ConstType_constTypeSeq:
-  case ConstNode_ConstType_constTypeChar:
-  case ConstNode_ConstType_constTypeRegex:
-  case ConstNode_ConstType_constTypeUnknown:
   default:
     throwCodeGenerationException(
         string("Compiler does not support the following const type yet: ") +

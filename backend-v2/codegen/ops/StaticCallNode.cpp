@@ -20,7 +20,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   std::vector<ObjectTypeSet> argTypes;
   std::vector<TypedValue> args;
   bool allDetermined = true;
-  ShadowStackGuard guard(*this);
+  CleanupChainGuard guard(*this);
   for (int i = 0; i < subnode.args_size(); i++) {
     auto t = codegen(subnode.args(i), ObjectTypeSet::all());
     if (!t.type.isDetermined())
@@ -29,8 +29,6 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     args.push_back(t);
     guard.push(t);
   }
-
-  this->invokeManager.setLandingPad(this->getLandingPad());
 
   auto c = subnode.class_();
   auto m = subnode.method();
@@ -89,7 +87,6 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     auto result =
         this->invokeManager.generateIntrinsic(*bestMatch, unboxedArgs, &guard);
 
-    this->invokeManager.setLandingPad(nullptr);
     return result;
   }
   if (allDetermined) {
@@ -155,17 +152,8 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   };
   std::vector<DispatchCase> cases;
 
-  // Pre-fetch runtime types for all arguments once
-  std::vector<Value *> argRuntimeTypes;
-  for (size_t i = 0; i < args.size(); i++) {
-    TypedValue boxed = this->valueEncoder.box(args[i]);
-    ObjectTypeSet retType(integerType, false);
-    std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType()};
-    std::vector<TypedValue> pArgVals = {boxed};
-    TypedValue typeVal = this->invokeManager.invokeRuntime("getType", &retType,
-                                                           pArgTypes, pArgVals);
-    argRuntimeTypes.push_back(typeVal.value);
-  }
+  // Placeholder for lazy runtime types
+  std::vector<Value *> argRuntimeTypes(args.size(), nullptr);
 
   for (const auto *fid : specialized) {
     BasicBlock *thenBB = BasicBlock::Create(
@@ -176,9 +164,18 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     Value *match = nullptr;
     for (size_t i = 0; i < args.size(); i++) {
       if (fid->argTypes[i].isDetermined()) {
+        if (!argRuntimeTypes[i]) {
+          TypedValue boxed = this->valueEncoder.box(args[i]);
+          ObjectTypeSet retType(integerType, false);
+          std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType()};
+          std::vector<TypedValue> pArgVals = {boxed};
+          TypedValue typeVal = this->invokeManager.invokeRuntime(
+              "getType", &retType, pArgTypes, pArgVals);
+          argRuntimeTypes[i] = typeVal.value;
+        }
+
         objectType target = fid->argTypes[i].determinedType();
-        Value *targetVal =
-            ConstantInt::get(this->types.i32Ty, (uint32_t)target);
+        Value *targetVal = ConstantInt::get(this->types.i32Ty, (uint32_t)target);
         Value *isType =
             this->Builder.CreateICmpEQ(argRuntimeTypes[i], targetVal);
 
@@ -227,7 +224,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
 
     TypedValue res =
         this->invokeManager.generateIntrinsic(*fid, specializedArgs, &guard);
-    
+
     TypedValue boxedRes = this->valueEncoder.box(res);
     cases.push_back({this->Builder.GetInsertBlock(), boxedRes});
     this->Builder.CreateBr(mergeBB);
@@ -235,7 +232,8 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   }
 
   if (generic) {
-    TypedValue genRes = this->invokeManager.generateIntrinsic(*generic, args, &guard);
+    TypedValue genRes =
+        this->invokeManager.generateIntrinsic(*generic, args, &guard);
     TypedValue boxedGenRes = this->valueEncoder.box(genRes);
     cases.push_back({this->Builder.GetInsertBlock(), boxedGenRes});
     this->Builder.CreateBr(mergeBB);
@@ -264,8 +262,6 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
   for (auto &c : cases) {
     phi->addIncoming(c.value.value, c.block);
   }
-
-  this->invokeManager.setLandingPad(nullptr);
 
   return TypedValue(ObjectTypeSet::dynamicType(), phi);
 }

@@ -1,7 +1,6 @@
 #ifndef MEMORY_MANAGEMENT_H
 #define MEMORY_MANAGEMENT_H
 
-#include "DynamicConstructor.h"
 #include "LLVMTypes.h"
 #include "TypedValue.h"
 #include "ValueEncoder.h"
@@ -18,26 +17,73 @@ using namespace clojure::rt::protobuf::bytecode;
 namespace rt {
 
 class MemoryManagement {
-private:
-  llvm::LLVMContext &context;
-  llvm::IRBuilder<> &builder;
-  ValueEncoder &valueEncoder;
-  LLVMTypes &types;
-  VariableBindings<TypedValue> &variableBindingStack;
-  InvokeManager &invoke;
-  DynamicConstructor &dynamicConstructor;
-
 public:
   explicit MemoryManagement(llvm::LLVMContext &context, llvm::IRBuilder<> &b,
+                            llvm::Module &m,
                             ValueEncoder &v, LLVMTypes &t,
-                            VariableBindings<TypedValue> &vb, InvokeManager &i,
-                            DynamicConstructor &d);
+                            VariableBindings<TypedValue> &vb, InvokeManager &i);
 
+  void initFunction(llvm::Function *F);
+  
   void dynamicMemoryGuidance(const MemoryManagementGuidance &guidance);
 
   void dynamicRetain(TypedValue &target);
   TypedValue dynamicRelease(TypedValue &target);
   void dynamicIsReusable(TypedValue &target);
+
+  // Exception safety / Resource management
+  void pushResource(TypedValue val);
+  void popResource();
+  llvm::BasicBlock* getLandingPad(size_t skipCount = 0);
+  bool hasPushedResources() const { return !activeResources.empty(); }
+  void clear();
+
+  const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* getActiveUnwindGuidance() const {
+    return activeUnwindGuidance;
+  }
+  void setActiveUnwindGuidance(const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* guidance) {
+    activeUnwindGuidance = guidance;
+    // Clearing cache because guidance might change between nodes for the same skipCount
+    lpadCache.clear();
+  }
+  void clearActiveUnwindGuidance() { 
+    activeUnwindGuidance = nullptr; 
+    lpadCache.clear();
+  }
+
+  struct UnwindGuidanceGuard {
+    MemoryManagement &mm;
+    const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* prev;
+    UnwindGuidanceGuard(MemoryManagement &mm, const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* current)
+        : mm(mm), prev(mm.getActiveUnwindGuidance()) {
+      mm.setActiveUnwindGuidance(current);
+    }
+    ~UnwindGuidanceGuard() {
+      mm.setActiveUnwindGuidance(prev);
+    }
+  };
+
+private:
+  llvm::LLVMContext &context;
+  llvm::IRBuilder<> &builder;
+  llvm::Module &theModule;
+  ValueEncoder &valueEncoder;
+  LLVMTypes &types;
+  VariableBindings<TypedValue> &variableBindingStack;
+  InvokeManager &invoke;
+
+  // Landing pad / Exception state
+  llvm::Value *exceptionSlot = nullptr;
+  llvm::BasicBlock *terminalResumeBB = nullptr;
+  std::vector<llvm::BasicBlock *> cleanupStack;
+  std::vector<TypedValue> activeResources;
+  size_t totalPushedResources = 0;
+  size_t resourcesWithCleanup = 0; // Index into activeResources
+  std::map<size_t, llvm::BasicBlock *> lpadCache;
+
+  const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* activeUnwindGuidance = nullptr;
+
+  void ensureExceptionInfrastructure(llvm::Function *F);
 };
 
 } // namespace rt

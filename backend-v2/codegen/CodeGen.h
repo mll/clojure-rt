@@ -14,29 +14,10 @@
 #include <string>
 
 #include "TypedValue.h"
-#include "LLVMTypes.h"
+#include <map>
+#include <vector>
 
-namespace rt {
-class CodeGen;
-
-class ShadowStackGuard {
-  CodeGen &cg;
-  size_t pushedCount = 0;
-
-public:
-  explicit ShadowStackGuard(CodeGen &c) : cg(c) {}
-  ~ShadowStackGuard();
-
-  void push(TypedValue val);
-  void popAll();
-
-  size_t size() const { return pushedCount; }
-
-  // Prevent copying
-  ShadowStackGuard(const ShadowStackGuard &) = delete;
-  ShadowStackGuard &operator=(const ShadowStackGuard &) = delete;
-};
-} // namespace rt
+#include "CleanupChainGuard.h"
 
 #include "../state/ThreadsafeCompilerState.h"
 #include "DynamicConstructor.h"
@@ -78,12 +59,8 @@ class CodeGen {
   llvm::DICompileUnit *CU;
   std::vector<llvm::DIScope *> LexicalBlocks;
   
-  // Shadow stack for exception safety
-  llvm::Value *shadowStack = nullptr;
-  llvm::Value *shadowStackPtr = nullptr;
-  llvm::BasicBlock *globalLandingPad = nullptr;
+  // Static Landing Pads management via manager
   llvm::FunctionCallee personalityFn;
-  static constexpr size_t SHADOW_STACK_SIZE = 128; // Per-function limit
 
 public:
   CodeGen(std::string_view ModuleName, ThreadsafeCompilerState &state)
@@ -93,11 +70,10 @@ public:
         TheModule(std::make_unique<llvm::Module>(ModuleName, TheContext)),
         Builder(TheContext), types(TheContext),
         valueEncoder(TheContext, Builder, types),
-        invokeManager(Builder, *TheModule, valueEncoder, types, state),
+        invokeManager(Builder, *TheModule, valueEncoder, types, state, *this),
         dynamicConstructor(types, invokeManager, generatedConstants),
-        memoryManagement(TheContext, Builder, valueEncoder, types,
-                         variableBindingStack, invokeManager,
-                         dynamicConstructor),
+        memoryManagement(TheContext, Builder, *TheModule, valueEncoder, types,
+                         variableBindingStack, invokeManager),
         compilerState(state) {
     TheModule->addModuleFlag(llvm::Module::Warning, "Debug Info Version",
                              llvm::DEBUG_METADATA_VERSION);
@@ -122,6 +98,8 @@ public:
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const QuoteNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const DoNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const MapNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const VectorNode &subnode,
@@ -138,6 +116,12 @@ public:
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const WithMetaNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const StaticFieldNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const LetNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const LocalNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
 
   ObjectTypeSet getType(const Node &node,
                         const ObjectTypeSet &typeRestrictions);
@@ -149,6 +133,8 @@ public:
   ObjectTypeSet getType(const Node &node, const ConstNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const QuoteNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const DoNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const VectorNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
@@ -162,33 +148,23 @@ public:
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const WithMetaNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const StaticFieldNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const LetNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const LocalNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
   Var *getOrCreateVar(std::string_view name);
+  bool canThrow(const clojure::rt::protobuf::bytecode::Node &node);
   
   // Exception safety helpers
-  void pushResource(TypedValue val);
-  void popResource();
-  void generateLandingPad();
-  llvm::BasicBlock* getLandingPad();
-  bool hasLandingPad() const { return globalLandingPad != nullptr; }
+  void pushResource(TypedValue val) { memoryManagement.pushResource(val); }
+  void popResource() { memoryManagement.popResource(); }
+  llvm::BasicBlock* getLandingPad(size_t skipCount = 0) { return memoryManagement.getLandingPad(skipCount); }
+  bool hasLandingPad() const { return memoryManagement.hasPushedResources(); }
+  bool hasPushedResources() const { return memoryManagement.hasPushedResources(); }
+  MemoryManagement &getMemoryManagement() { return memoryManagement; }
 };
-
-inline ShadowStackGuard::~ShadowStackGuard() {
-  for (size_t i = 0; i < pushedCount; i++) {
-    cg.popResource();
-  }
-}
-
-inline void ShadowStackGuard::push(TypedValue val) {
-  cg.pushResource(val);
-  pushedCount++;
-}
-
-inline void ShadowStackGuard::popAll() {
-  for (size_t i = 0; i < pushedCount; i++) {
-    cg.popResource();
-  }
-  pushedCount = 0;
-}
 
 } // namespace rt
 

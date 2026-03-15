@@ -12,7 +12,7 @@
 
 namespace rt {
 
-class ShadowStackGuard;
+class CleanupChainGuard;
 
 class DynamicConstructor {
 private:
@@ -46,12 +46,12 @@ public:
    * It is currently assumed the runtime constructors never throw
    */
   TypedValue createVector(std::vector<TypedValue> &items,
-                          ShadowStackGuard *guard = nullptr);
+                          CleanupChainGuard *guard = nullptr);
   TypedValue createArrayMap(std::vector<TypedValue> &keys,
                             std::vector<TypedValue> &values,
-                            ShadowStackGuard *guard = nullptr);
+                            CleanupChainGuard *guard = nullptr);
   TypedValue createList(std::vector<TypedValue> &items,
-                        ShadowStackGuard *guard = nullptr);
+                        CleanupChainGuard *guard = nullptr);
 };
 
 } // namespace rt

@@ -4,6 +4,7 @@
 #include "bridge/Exceptions.h"
 #include <llvm/ExecutionEngine/Orc/DebugObjectManagerPlugin.h>
 #include <llvm/Support/MemoryBuffer.h>
+#include "../tools/EdnParser.h"
 
 
 namespace rt {
@@ -205,12 +206,12 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(absoluteSymbol("Numbers_equiv", (void *)Numbers_equiv));
 
   // Object / Memory Management
-  runtimeSymbols.insert(absoluteSymbol("getType", (void *)getType));
+  runtimeSymbols.insert(absoluteSymbol("getType", (void *)::getType));
   runtimeSymbols.insert(absoluteSymbol("retain", (void *)retain));
   runtimeSymbols.insert(absoluteSymbol("release", (void *)release));
   runtimeSymbols.insert(absoluteSymbol("autorelease", (void *)autorelease));
-  runtimeSymbols.insert(absoluteSymbol("equals", (void *)equals));
-  runtimeSymbols.insert(absoluteSymbol("hash", (void *)hash));
+  runtimeSymbols.insert(absoluteSymbol("equals", (void *)::equals));
+  runtimeSymbols.insert(absoluteSymbol("hash", (void *)::hash));
   runtimeSymbols.insert(absoluteSymbol("toString", (void *)toString));
   runtimeSymbols.insert(
       absoluteSymbol("equals_managed", (void *)equals_managed));
@@ -272,6 +273,17 @@ void JITEngine::registerRuntimeSymbols() {
       absoluteSymbol("throwIndexOutOfBoundsException_C",
                      (void *)throwIndexOutOfBoundsException_C));
 
+  // ClassExtension / Static Fields
+  runtimeSymbols.insert(absoluteSymbol("ClassExtension_getIndexedStaticField",
+                                       (void *)ClassExtension_getIndexedStaticField));
+  runtimeSymbols.insert(absoluteSymbol("ClassExtension_setIndexedStaticField",
+                                       (void *)ClassExtension_setIndexedStaticField));
+  runtimeSymbols.insert(absoluteSymbol("ClassExtension_fieldIndex",
+                                       (void *)ClassExtension_fieldIndex));
+  runtimeSymbols.insert(absoluteSymbol("ClassExtension_staticFieldIndex",
+                                       (void *)ClassExtension_staticFieldIndex));
+  runtimeSymbols.insert(absoluteSymbol("ClassExtension_resolveInstanceCall",
+                                       (void *)ClassExtension_resolveInstanceCall));
 
   cantFail(jit->getMainJITDylib().define(
       absoluteSymbols(std::move(runtimeSymbols))));

@@ -1,4 +1,5 @@
 #include "CodeGen.h"
+#include "CleanupChainGuard.h"
 #include "../bridge/Exceptions.h"
 #include "../cljassert.h"
 #include "TypedValue.h"
@@ -7,6 +8,7 @@
 #include "runtime/Object.h"
 
 using namespace llvm;
+using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
 
@@ -61,13 +63,7 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
   Builder.SetInsertPoint(BB);
 
-  // Initialize Shadow Stack
-  shadowStack = Builder.CreateAlloca(ArrayType::get(types.RT_valueTy, SHADOW_STACK_SIZE), nullptr, "shadow_stack");
-  cast<AllocaInst>(shadowStack)->setAlignment(Align(8));
-  shadowStackPtr = Builder.CreateAlloca(types.i64Ty, nullptr, "shadow_stack_ptr");
-  cast<AllocaInst>(shadowStackPtr)->setAlignment(Align(8));
-  Builder.CreateStore(ConstantInt::get(types.i64Ty, 0), shadowStackPtr, false)->setAlignment(Align(8));
-  globalLandingPad = nullptr;
+  memoryManagement.initFunction(F);
 
   // Declare personality function
   FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
@@ -87,8 +83,10 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
 }
 
 TypedValue CodeGen::codegen(const Node &node,
-                            const ObjectTypeSet &typeRestrictions) {
+                             const ObjectTypeSet &typeRestrictions) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
+
+  MemoryManagement::UnwindGuidanceGuard guidanceGuard(memoryManagement, &node.unwindmemory());
 
   auto env = node.env();
   if (!LexicalBlocks.empty()) {
@@ -127,8 +125,8 @@ TypedValue CodeGen::codegen(const Node &node,
     return codegen(node, node.subnode().def(), typeRestrictions);
   // case opDeftype:
   //   return codegen(node, node.subnode().deftype(), typeRestrictions);
-  // case opDo:
-  //   return codegen(node, node.subnode().do_(), typeRestrictions);
+  case opDo:
+    return codegen(node, node.subnode().do_(), typeRestrictions);
   // case opFn:
   //   return codegen(node, node.subnode().fn(), typeRestrictions);
   // case opFnMethod:
@@ -149,12 +147,12 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().invoke(), typeRestrictions);
   // case opKeywordInvoke:
   //   return codegen(node, node.subnode().keywordinvoke(), typeRestrictions);
-  // case opLet:
-  //   return codegen(node, node.subnode().let(), typeRestrictions);
+  case opLet:
+    return codegen(node, node.subnode().let(), typeRestrictions);
   // case opLetfn:
   //   return codegen(node, node.subnode().letfn(), typeRestrictions);
-  // case opLocal:
-  //   return codegen(node, node.subnode().local(), typeRestrictions);
+  case opLocal:
+    return codegen(node, node.subnode().local(), typeRestrictions);
   // case opLoop:
   //   return codegen(node, node.subnode().loop(), typeRestrictions);
   // case opMethod:
@@ -177,8 +175,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().set(), typeRestrictions);
   // case opMutateSet:
   //   return codegen(node, node.subnode().mutateset(), typeRestrictions);
-  // case opStaticField:
-  //   return codegen(node, node.subnode().staticfield(), typeRestrictions);
+  case opStaticField:
+    return codegen(node, node.subnode().staticfield(), typeRestrictions);
   case opTheVar:
     return codegen(node, node.subnode().thevar(), typeRestrictions);
   // case opThrow:
@@ -227,8 +225,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().def(), typeRestrictions);
   // case opDeftype:
   //   return getType(node, node.subnode().deftype(), typeRestrictions);
-  // case opDo:
-  //   return getType(node, node.subnode().do_(), typeRestrictions);
+  case opDo:
+    return getType(node, node.subnode().do_(), typeRestrictions);
   // case opFn:
   //   return getType(node, node.subnode().fn(), typeRestrictions);
   // case opFnMethod:
@@ -249,12 +247,12 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().invoke(), typeRestrictions);
   // case opKeywordInvoke:
   //   return getType(node, node.subnode().keywordinvoke(), typeRestrictions);
-  // case opLet:
-  //   return getType(node, node.subnode().let(), typeRestrictions);
+  case opLet:
+    return getType(node, node.subnode().let(), typeRestrictions);
   // case opLetfn:
   //   return getType(node, node.subnode().letfn(), typeRestrictions);
-  // case opLocal:
-  //   return getType(node, node.subnode().local(), typeRestrictions);
+  case opLocal:
+    return getType(node, node.subnode().local(), typeRestrictions);
   // case opLoop:
   //   return getType(node, node.subnode().loop(), typeRestrictions);
   // case opMethod:
@@ -277,8 +275,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().set(), typeRestrictions);
   // case opMutateSet:
   //   return getType(node, node.subnode().mutateset(), typeRestrictions);
-  // case opStaticField:
-  //   return getType(node, node.subnode().staticfield(), typeRestrictions);
+  case opStaticField:
+    return getType(node, node.subnode().staticfield(), typeRestrictions);
   case opTheVar:
     return getType(node, node.subnode().thevar(), typeRestrictions);
   // case opThrow:
@@ -306,76 +304,95 @@ Var *CodeGen::getOrCreateVar(std::string_view name) {
       });
 }
 
-void CodeGen::pushResource(TypedValue val) {
-  Value *idx = Builder.CreateLoad(types.i64Ty, shadowStackPtr, "sp");
-  cast<LoadInst>(idx)->setAlignment(Align(8));
-  Value *gep = Builder.CreateInBoundsGEP(ArrayType::get(types.RT_valueTy, SHADOW_STACK_SIZE), shadowStack, {Builder.getInt64(0), idx});
-  Builder.CreateStore(valueEncoder.box(val).value, gep, false)->setAlignment(Align(8));
-  Value *nextIdx = Builder.CreateAdd(idx, Builder.getInt64(1), "sp_inc");
-  Builder.CreateStore(nextIdx, shadowStackPtr, false)->setAlignment(Align(8));
-}
-
-void CodeGen::popResource() {
-  Value *idx = Builder.CreateLoad(types.i64Ty, shadowStackPtr, "sp");
-  cast<LoadInst>(idx)->setAlignment(Align(8));
-  Value *newIdx = Builder.CreateSub(idx, Builder.getInt64(1), "sp_dec");
-  Builder.CreateStore(newIdx, shadowStackPtr, false)->setAlignment(Align(8));
-  // Optional: clear the cell
-  Value *gep = Builder.CreateInBoundsGEP(ArrayType::get(types.RT_valueTy, SHADOW_STACK_SIZE), shadowStack, {Builder.getInt64(0), newIdx});
-  Builder.CreateStore(ConstantInt::get(types.RT_valueTy, 0), gep, false)->setAlignment(Align(8));
-}
-
-BasicBlock *CodeGen::getLandingPad() {
-  if (!globalLandingPad) {
-    auto currentBB = Builder.GetInsertBlock();
-    generateLandingPad();
-    Builder.SetInsertPoint(currentBB);
+bool CodeGen::canThrow(const Node &node) {
+  switch (node.op()) {
+  case opConst:
+  case opQuote:
+  case opStaticField:
+  case opTheVar:
+  case opLocal:
+  case opFn:
+  case opFnMethod:
+    return false;
+  
+  case opLet: {
+    const auto &l = node.subnode().let();
+    for (int i = 0; i < l.bindings_size(); ++i) {
+        if (canThrow(l.bindings(i))) return true;
+    }
+    return canThrow(l.body());
   }
-  return globalLandingPad;
+
+  case opVector: {
+    const auto &v = node.subnode().vector();
+    for (int i = 0; i < v.items_size(); ++i) {
+      if (canThrow(v.items(i)))
+        return true;
+    }
+    return false;
+  }
+
+  case opMap: {
+    const auto &m = node.subnode().map();
+    for (int i = 0; i < m.keys_size(); ++i) {
+      if (canThrow(m.keys(i)) || canThrow(m.vals(i)))
+        return true;
+    }
+    return false;
+  }
+
+  case opSet: {
+    const auto &s = node.subnode().set();
+    for (int i = 0; i < s.items_size(); ++i) {
+      if (canThrow(s.items(i)))
+        return true;
+    }
+    return false;
+  }
+
+  case opIf: {
+    const auto &if_ = node.subnode().if_();
+    if (canThrow(if_.test()))
+      return true;
+    if (canThrow(if_.then()))
+      return true;
+    if (if_.has_else_() && canThrow(if_.else_()))
+      return true;
+    return false;
+  }
+
+  case opDo: {
+    const auto &d = node.subnode().do_();
+    for (int i = 0; i < d.statements_size(); ++i) {
+      if (canThrow(d.statements(i)))
+        return true;
+    }
+    return canThrow(d.ret());
+  }
+
+  case opDef: {
+    const auto &d = node.subnode().def();
+    if (d.has_init() && canThrow(d.init()))
+      return true;
+    return false;
+  }
+
+  case opWithMeta: {
+    const auto &wm = node.subnode().withmeta();
+    if (canThrow(wm.expr()) || canThrow(wm.meta()))
+      return true;
+    return false;
+  }
+
+  case opStaticCall:
+  case opHostInterop:
+    return true;
+
+  default:
+    // Safer to assume it can throw if we don't know the node type
+    return true;
+  }
 }
 
-void CodeGen::generateLandingPad() {
-  Function *F = Builder.GetInsertBlock()->getParent();
-  globalLandingPad = BasicBlock::Create(TheContext, "exception_cleanup", F);
-  Builder.SetInsertPoint(globalLandingPad);
-
-  LandingPadInst *lpad = Builder.CreateLandingPad(
-      StructType::get(TheContext, {types.ptrTy, types.i32Ty}), 1);
-  lpad->setCleanup(true);
-  
-  Value *currIdx = Builder.CreateLoad(types.i64Ty, shadowStackPtr, "sp_on_exception");
-  cast<LoadInst>(currIdx)->setAlignment(Align(8));
-
-  // Cleanup loop
-  BasicBlock *loopCondBB = BasicBlock::Create(TheContext, "cleanup_loop_cond", F);
-  BasicBlock *loopBodyBB = BasicBlock::Create(TheContext, "cleanup_loop_body", F);
-  BasicBlock *resumeBB = BasicBlock::Create(TheContext, "resume_exception", F);
-
-  Builder.CreateBr(loopCondBB);
-  Builder.SetInsertPoint(loopCondBB);
-  PHINode *idxPhi = Builder.CreatePHI(types.i64Ty, 2, "cleanup_idx");
-  idxPhi->addIncoming(currIdx, globalLandingPad);
-
-  Value *isDone = Builder.CreateICmpEQ(idxPhi, Builder.getInt64(0));
-  Builder.CreateCondBr(isDone, resumeBB, loopBodyBB);
-
-  Builder.SetInsertPoint(loopBodyBB);
-  Value *nextIdx = Builder.CreateSub(idxPhi, Builder.getInt64(1), "sp_next");
-  Value *gep = Builder.CreateInBoundsGEP(ArrayType::get(types.RT_valueTy, SHADOW_STACK_SIZE), shadowStack, {Builder.getInt64(0), nextIdx});
-  Value *val = Builder.CreateLoad(types.RT_valueTy, gep, "to_release");
-  cast<LoadInst>(val)->setAlignment(Align(8));
-  
-  // Call release(val)
-  // We need to be careful not to trigger another landing pad here!
-  FunctionType *releaseFnTy = FunctionType::get(types.RT_valueTy, {types.RT_valueTy}, false);
-  FunctionCallee releaseFn = TheModule->getOrInsertFunction("release", releaseFnTy);
-  Builder.CreateCall(releaseFn, {val});
-
-  idxPhi->addIncoming(nextIdx, loopBodyBB);
-  Builder.CreateBr(loopCondBB);
-
-  Builder.SetInsertPoint(resumeBB);
-  Builder.CreateResume(lpad);
-}
 
 } // namespace rt

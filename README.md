@@ -45,6 +45,11 @@ using your system's package manager.
 
 This should build the c/c++ compiler backend.
 
+To debug leaks on OS X:
+
+leaks --atExit -- ./name_of_the_test
+
+
 ## Running
 
 ./compile.sh fib.clj

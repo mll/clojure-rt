@@ -1,11 +1,11 @@
 #include "CodeGen.h"
-#include "CleanupChainGuard.h"
 #include "../bridge/Exceptions.h"
 #include "../cljassert.h"
+#include "CleanupChainGuard.h"
 #include "TypedValue.h"
+#include "runtime/Object.h"
 #include "runtime/RTValue.h"
 #include "runtime/String.h"
-#include "runtime/Object.h"
 
 using namespace llvm;
 using namespace clojure::rt::protobuf::bytecode;
@@ -67,7 +67,8 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
 
   // Declare personality function
   FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
-  personalityFn = TheModule->getOrInsertFunction("__gxx_personality_v0", personalityFnTy);
+  personalityFn =
+      TheModule->getOrInsertFunction("__gxx_personality_v0", personalityFnTy);
   F->setPersonalityFn(cast<Function>(personalityFn.getCallee()));
 
   // Set initial debug location
@@ -83,10 +84,11 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
 }
 
 TypedValue CodeGen::codegen(const Node &node,
-                             const ObjectTypeSet &typeRestrictions) {
+                            const ObjectTypeSet &typeRestrictions) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
 
-  MemoryManagement::UnwindGuidanceGuard guidanceGuard(memoryManagement, &node.unwindmemory());
+  MemoryManagement::UnwindGuidanceGuard guidanceGuard(memoryManagement,
+                                                      &node.unwindmemory());
 
   auto env = node.env();
   if (!LexicalBlocks.empty()) {
@@ -137,8 +139,8 @@ TypedValue CodeGen::codegen(const Node &node,
     return codegen(node, node.subnode().if_(), typeRestrictions);
   // case opImport:
   //   return codegen(node, node.subnode().import(), typeRestrictions);
-  // case opInstanceCall:
-  //   return codegen(node, node.subnode().instancecall(), typeRestrictions);
+  case opInstanceCall:
+    return codegen(node, node.subnode().instancecall(), typeRestrictions);
   // case opInstanceField:
   //   return codegen(node, node.subnode().instancefield(), typeRestrictions);
   // case opIsInstance:
@@ -237,8 +239,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().if_(), typeRestrictions);
   // case opImport:
   //   return getType(node, node.subnode().import(), typeRestrictions);
-  // case opInstanceCall:
-  //   return getType(node, node.subnode().instancecall(), typeRestrictions);
+  case opInstanceCall:
+    return getType(node, node.subnode().instancecall(), typeRestrictions);
   // case opInstanceField:
   //   return getType(node, node.subnode().instancefield(), typeRestrictions);
   // case opIsInstance:
@@ -299,7 +301,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
 Var *CodeGen::getOrCreateVar(std::string_view name) {
   return compilerState.varRegistry.getOrCreate(
       std::string(name).c_str(), [name]() {
-        RTValue keyword = Keyword_create(String_createDynamicStr(std::string(name).c_str()));
+        RTValue keyword =
+            Keyword_create(String_createDynamicStr(std::string(name).c_str()));
         return Var_create(keyword);
       });
 }
@@ -314,11 +317,12 @@ bool CodeGen::canThrow(const Node &node) {
   case opFn:
   case opFnMethod:
     return false;
-  
+
   case opLet: {
     const auto &l = node.subnode().let();
     for (int i = 0; i < l.bindings_size(); ++i) {
-        if (canThrow(l.bindings(i))) return true;
+      if (canThrow(l.bindings(i)))
+        return true;
     }
     return canThrow(l.body());
   }
@@ -393,6 +397,5 @@ bool CodeGen::canThrow(const Node &node) {
     return true;
   }
 }
-
 
 } // namespace rt

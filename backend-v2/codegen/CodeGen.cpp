@@ -83,8 +83,10 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
 }
 
 TypedValue CodeGen::codegen(const Node &node,
-                            const ObjectTypeSet &typeRestrictions) {
+                             const ObjectTypeSet &typeRestrictions) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
+
+  MemoryManagement::UnwindGuidanceGuard guidanceGuard(memoryManagement, &node.unwindmemory());
 
   auto env = node.env();
   if (!LexicalBlocks.empty()) {

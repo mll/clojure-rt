@@ -129,6 +129,28 @@ static void test_let_gap_leak(void **state) {
   ret->mutable_subnode()->mutable_local()->set_name("x");
   ret->mutable_subnode()->mutable_local()->set_local(localTypeLet);
 
+  // Add unwind-memory guidance to simulate real compiler output
+  // If Numbers_add throws, x must be released.
+  auto* g1 = body->add_unwindmemory();
+  g1->set_variablename("x");
+  g1->set_requiredrefcountchange(-1);
+
+  auto* g2 = stmt->add_unwindmemory();
+  g2->set_variablename("x");
+  g2->set_requiredrefcountchange(-1);
+
+  auto* g3 = ret->add_unwindmemory();
+  g3->set_variablename("x");
+  g3->set_requiredrefcountchange(-1);
+
+  auto* g4 = a1->add_unwindmemory();
+  g4->set_variablename("x");
+  g4->set_requiredrefcountchange(-1);
+
+  auto* g5 = a2->add_unwindmemory();
+  g5->set_variablename("x");
+  g5->set_requiredrefcountchange(-1);
+
   // Setup rt.Core/Numbers_add metadata
   auto desc = std::make_unique<rt::ClassDescription>();
   rt::IntrinsicDescription numAdd;
@@ -159,8 +181,8 @@ static void test_let_gap_leak(void **state) {
   }
   uword_t finalCount = atomic_load(&objectCount[bigIntegerType - 1]);
   cout << "BigInt initial: " << initialCount << ", final: " << finalCount << endl;
-  // This SHOULD leak exactly one BigInt because it was never consumed and not protected by LetNode.
-  assert_int_equal(finalCount, initialCount + 1);
+  // This should now NOT leak because unwind-memory handles the release during exceptions.
+  assert_int_equal(finalCount, initialCount);
 }
 
 int main(void) {

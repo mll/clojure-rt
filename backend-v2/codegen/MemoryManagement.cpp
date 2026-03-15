@@ -69,10 +69,16 @@ void MemoryManagement::popResource() {
 }
 
 llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
+  if (lpadCache.count(skipCount)) {
+    return lpadCache[skipCount];
+  }
+
   // 1. Calculate how many resources effectively need protection (survivors)
   size_t survivorCount = (skipCount < activeResources.size()) 
                           ? (activeResources.size() - skipCount) 
                           : 0;
+  
+  bool hasGuidance = activeUnwindGuidance && !activeUnwindGuidance->empty();
   
   size_t neededSurvivors = 0;
   for (size_t i = 0; i < survivorCount; ++i) {
@@ -81,81 +87,88 @@ llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
     }
   }
 
-  // 2. If no survivors need protection, we don't need a landing pad or any blocks.
-  if (neededSurvivors == 0)
+  if (neededSurvivors == 0 && !hasGuidance) {
     return nullptr;
+  }
 
-  // 3. We are going to emit a landing pad, so ensure we have the infrastructure.
-  llvm::Function *F = builder.GetInsertBlock()->getParent();
+  // 3. Ensure infrastructure
+  IRBuilder<>::InsertPointGuard guard(builder);
+  Function *F = builder.GetInsertBlock()->getParent();
   ensureExceptionInfrastructure(F);
 
-  // 4. Flush resources up to the end of the survivor zone (or further if needed)
-  // We MUST ensure all survivors have blocks. We CAN skip building blocks for
-  // the 'skipped' resources for now - they will be built only if some future
-  // call needs them.
+  // 4. Fill cleanup stack (Lazily)
   while (resourcesWithCleanup < survivorCount) {
     TypedValue val = activeResources[resourcesWithCleanup];
     if (CleanupChainGuard::needsProtection(val.type)) {
       llvm::BasicBlock *prevCleanup =
           cleanupStack.empty() ? terminalResumeBB : cleanupStack.back();
       
-      // Note: totalPushedResources is a global counter, activeResources.size() is local.
-      // This naming might be slightly off in the original, but we follow the pattern.
       llvm::BasicBlock *newCleanup = llvm::BasicBlock::Create(
           context,
           "cleanup_link_" + std::to_string(totalPushedResources -
-                                          (activeResources.size() -
-                                           resourcesWithCleanup - 1)),
+                                           (activeResources.size() -
+                                            resourcesWithCleanup - 1)),
           F);
 
-      auto currentIP = builder.saveIP();
       builder.SetInsertPoint(newCleanup);
-
-      llvm::FunctionType *releaseFnTy =
-          llvm::FunctionType::get(types.RT_valueTy, {types.RT_valueTy}, false);
-      llvm::FunctionCallee releaseFn =
-          theModule.getOrInsertFunction("release", releaseFnTy);
-      builder.CreateCall(releaseFn, {valueEncoder.box(val).value});
+      dynamicRelease(val);
       builder.CreateBr(prevCleanup);
-
-      builder.restoreIP(currentIP);
       cleanupStack.push_back(newCleanup);
     }
     resourcesWithCleanup++;
   }
 
-  // 5. The landing pad branches to the top of the 'survivor' cleanup stack.
-  size_t survivorBlocks = 0;
-  for (size_t i = 0; i < survivorCount; ++i) {
-    if (CleanupChainGuard::needsProtection(activeResources[i].type)) {
-      survivorBlocks++;
+  // 5. Create Landing Pad entry
+  auto *lpad = BasicBlock::Create(
+      context, "lpad_entry_" + std::to_string(skipCount), F);
+  builder.SetInsertPoint(lpad);
+  LandingPadInst *lp = builder.CreateLandingPad(
+      llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), 1);
+  lp->setCleanup(true);
+  builder.CreateStore(lp, exceptionSlot);
+
+  // 6. Execute Unwind Guidance
+  if (hasGuidance) {
+    for (const auto &g : *activeUnwindGuidance) {
+      auto name = g.variablename();
+      auto change = g.requiredrefcountchange();
+
+      for (word_t depth = (word_t)variableBindingStack.stackDepth() - 1; depth >= 0;
+           depth--) {
+        auto val = variableBindingStack.find(name, depth);
+        if (val) {
+          int count = std::abs(change);
+          while (count > 0) {
+            if (change > 0)
+              dynamicRetain(*val);
+            else
+              dynamicRelease(*val);
+            count--;
+          }
+          break;
+        }
+      }
     }
   }
 
-  assert(survivorBlocks > 0 && survivorBlocks <= cleanupStack.size());
+  // 7. Branch to cleanup stack or resume
+  if (neededSurvivors > 0) {
+    builder.CreateBr(cleanupStack[neededSurvivors - 1]);
+  } else {
+    builder.CreateBr(terminalResumeBB);
+  }
 
-  llvm::BasicBlock *lpadEntry = llvm::BasicBlock::Create(
-      context, "lpad_entry_" + std::to_string(totalPushedResources), F);
-
-  auto currentIP = builder.saveIP();
-  builder.SetInsertPoint(lpadEntry);
-
-  llvm::LandingPadInst *lpad = builder.CreateLandingPad(
-      llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), 1);
-  lpad->setCleanup(true);
-
-  builder.CreateStore(lpad, exceptionSlot);
-  builder.CreateBr(cleanupStack[survivorBlocks - 1]);
-
-  builder.restoreIP(currentIP);
-  return lpadEntry;
+  lpadCache[skipCount] = lpad;
+  return lpad;
 }
 
 void MemoryManagement::clear() {
   cleanupStack.clear();
   activeResources.clear();
+  lpadCache.clear();
   totalPushedResources = 0;
   resourcesWithCleanup = 0;
+  activeUnwindGuidance = nullptr;
 }
 
 void MemoryManagement::dynamicMemoryGuidance(

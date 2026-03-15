@@ -38,6 +38,31 @@ public:
   bool hasPushedResources() const { return !activeResources.empty(); }
   void clear();
 
+  const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* getActiveUnwindGuidance() const {
+    return activeUnwindGuidance;
+  }
+  void setActiveUnwindGuidance(const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* guidance) {
+    activeUnwindGuidance = guidance;
+    // Clearing cache because guidance might change between nodes for the same skipCount
+    lpadCache.clear();
+  }
+  void clearActiveUnwindGuidance() { 
+    activeUnwindGuidance = nullptr; 
+    lpadCache.clear();
+  }
+
+  struct UnwindGuidanceGuard {
+    MemoryManagement &mm;
+    const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* prev;
+    UnwindGuidanceGuard(MemoryManagement &mm, const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* current)
+        : mm(mm), prev(mm.getActiveUnwindGuidance()) {
+      mm.setActiveUnwindGuidance(current);
+    }
+    ~UnwindGuidanceGuard() {
+      mm.setActiveUnwindGuidance(prev);
+    }
+  };
+
 private:
   llvm::LLVMContext &context;
   llvm::IRBuilder<> &builder;
@@ -54,6 +79,9 @@ private:
   std::vector<TypedValue> activeResources;
   size_t totalPushedResources = 0;
   size_t resourcesWithCleanup = 0; // Index into activeResources
+  std::map<size_t, llvm::BasicBlock *> lpadCache;
+
+  const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* activeUnwindGuidance = nullptr;
 
   void ensureExceptionInfrastructure(llvm::Function *F);
 };

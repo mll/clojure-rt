@@ -41,6 +41,7 @@ private:
   ValueEncoder &valueEncoder;
   LLVMTypes &types;
   CodeGen &codeGen;
+  ThreadsafeCompilerState &compilerState;
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
   std::unordered_map<std::string, GenericIntrinsicCall> genericIntrinsics;
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
@@ -67,6 +68,16 @@ public:
   TypedValue generateIntrinsic(const IntrinsicDescription &id,
                                const std::vector<TypedValue> &args,
                                CleanupChainGuard *guard = nullptr);
+
+  TypedValue generateInstanceCall(const std::string &methodName,
+                                  TypedValue instance,
+                                  const std::vector<TypedValue> &args,
+                                  CleanupChainGuard *guard = nullptr,
+                                  const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+
+  ObjectTypeSet predictInstanceCallType(const std::string &methodName,
+                                        const ObjectTypeSet &instanceType,
+                                        const std::vector<ObjectTypeSet> &args);
 
   ObjectTypeSet foldIntrinsic(const IntrinsicDescription &id,
                               const std::vector<ObjectTypeSet> &args);

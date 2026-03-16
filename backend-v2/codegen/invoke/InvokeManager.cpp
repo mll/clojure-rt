@@ -28,7 +28,7 @@ void registerCmpIntrinsics(InvokeManager &mgr);
 InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
                              ValueEncoder &v, LLVMTypes &t,
                              ThreadsafeCompilerState &s, CodeGen &cg)
-    : builder(b), theModule(m), valueEncoder(v), types(t), codeGen(cg) {
+    : builder(b), theModule(m), valueEncoder(v), types(t), codeGen(cg), compilerState(s) {
 
   // Register domain intrinsics
   registerMathIntrinsics(*this);

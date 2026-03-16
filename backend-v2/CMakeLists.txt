@@ -120,6 +120,7 @@ set(BACKEND_SOURCES
       codegen/invoke/InvokeManager.cpp
       codegen/invoke/InvokeManager_Math.cpp
       codegen/invoke/InvokeManager_Cmp.cpp
+      codegen/invoke/InvokeManager_InstanceCall.cpp
 
       codegen/MemoryManagement.cpp
       codegen/ops/ConstNode.cpp

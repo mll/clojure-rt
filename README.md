@@ -49,6 +49,10 @@ To debug leaks on OS X:
 
 leaks --atExit -- ./name_of_the_test
 
+To show llvm IR for runtime:
+
+llvm-dis runtime_uber.bc -o runtime_uber.ll
+
 
 ## Running
 

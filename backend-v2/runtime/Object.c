@@ -47,13 +47,13 @@ void initialise_memory() {
 extern void *allocate(size_t size);
 extern void deallocate(void *restrict ptr);
 
-extern void retain(RTValue self);
-extern bool release(RTValue self);
+void retain(RTValue self);
+bool release(RTValue self);
 extern void autorelease(RTValue self);
 extern bool release_internal(void *restrict self, bool deallocatesChildren);
-extern bool equals(RTValue self, RTValue other);
+bool equals(RTValue self, RTValue other);
 extern uword_t hash(RTValue self);
-extern String *toString(RTValue self);
+String *toString(RTValue self);
 
 extern void Object_create(Object *restrict self, objectType type);
 extern void Object_retain(Object *restrict self);
@@ -66,18 +66,18 @@ extern bool Object_equals(Object *restrict self, Object *restrict other);
 extern uword_t Object_hash(Object *restrict self);
 extern String *Object_toString(Object *restrict self);
 extern bool Object_isReusable(Object *restrict self);
-extern bool isReusable(RTValue self);
-extern objectType getType(RTValue obj);
+bool isReusable(RTValue self);
+objectType getType(RTValue obj);
 
 extern uword_t combineHash(uword_t lhs, uword_t rhs);
 
 extern void Ptr_autorelease(void *self);
-extern void Ptr_retain(void *self);
-extern bool Ptr_release(void *self);
+void Ptr_retain(void *self);
+bool Ptr_release(void *self);
 extern uword_t Ptr_hash(void *self);
 extern bool Ptr_equals(void *self, void *other);
 extern bool Ptr_isReusable(void *self);
-extern bool equals_managed(RTValue self, RTValue other);
+bool equals_managed(RTValue self, RTValue other);
 extern void Object_promoteToShared(Object *restrict self);
 extern void Object_promoteToSharedShallow(Object *restrict self,
                                           uword_t current);

@@ -31,7 +31,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 set(CMAKE_CXX_STANDARD 20)
 add_compile_definitions(BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
-add_subdirectory(runtime)
 
 # --- Dependency Discovery ---
 
@@ -139,6 +138,8 @@ set(BACKEND_SOURCES
       codegen/ops/WithMetaNode.cpp
       codegen/ops/InstanceCallNode.cpp
       codegen/ops/HostInteropNode.cpp)
+
+add_subdirectory(runtime)
 
 
 # 2. Protobuf Detection

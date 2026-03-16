@@ -1,9 +1,12 @@
-# Clojure Real Time
+# Clojure Real Time [![C++ CI Linux](https://github.com/mll/clojure-rt/actions/workflows/ci.yml/badge.svg)](https://github.com/mll/clojure-rt/actions/workflows/ci.yml)
 
 Clojuire Real Time (clojure-rt) is a compiler of Clojure programming language.
 
-It is being developed to allow deterministic and fast execution that could allow Clojure to proliferate beyond its 
+It is being developed to allow deterministic and fast execution that could enable Clojure to proliferate beyond its 
 original domains of application. It uses LLVM for agressive optimisations, JIT and platform independence.
+
+It aims for C++ interoperability, with the exception model following C++ ABI. Its performance targets are much higher than any known
+Clojure implementation. 
 
 The compiler strives to be a full implementation of Clojure following the reference java implementation as closely as possible.
 
@@ -16,7 +19,7 @@ Furthermore, advanced optimisations allowed by llvm enable the compiler to often
 
 Type annotations, commonly used in the java implementation to speed the execution up are not needed in clojure-rt as 
 all the types are being discovered during programme execution and the resulting JITted representations are optimised to benefit from static type
-analysis. To archieve the above result, two tiered JIT compiler designed specifically with CLojure in mind  has been developed.
+analysis. To archieve the above result, two tiered JIT compiler, designed specifically with Clojure in mind, has been developed.
 
 Currently the compiler is set up in bootstrap mode and consists of two separate parts
 
@@ -58,10 +61,7 @@ llvm-dis runtime_uber.bc -o runtime_uber.ll
 
 ./compile.sh fib.clj
 
-Please note that currently the backend prints out a lot of debug information. The primary info it prints is the LLVM code generated for given clojure statements.
-Please also note, that currently the programmes compiled bu the frontend have to be *executed* by the frontend to generate the AST. Therefore, running 
-the naive recursive (fib 42) runs on my machine for 26 seconds (frontend using java implementation) and 0.46 seconds (backend, clojre-rt). 
-This not only shows how much faster clojure-rt can be, but also how much will be gained when the compiler bootstrapping process will be complete.
+Please note that currently the backend prints out a lot of debug information. The primary info it prints is the LLVM code generated for given clojure statements. 
 
 ## Generating protobuf models
 

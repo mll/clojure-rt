@@ -58,7 +58,7 @@ class CodeGen {
   std::unique_ptr<llvm::DIBuilder> DIB;
   llvm::DICompileUnit *CU;
   std::vector<llvm::DIScope *> LexicalBlocks;
-  
+
   // Static Landing Pads management via manager
   llvm::FunctionCallee personalityFn;
 
@@ -122,6 +122,8 @@ public:
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const LocalNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const InstanceCallNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
 
   ObjectTypeSet getType(const Node &node,
                         const ObjectTypeSet &typeRestrictions);
@@ -154,15 +156,22 @@ public:
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const LocalNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const InstanceCallNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
+
   Var *getOrCreateVar(std::string_view name);
   bool canThrow(const clojure::rt::protobuf::bytecode::Node &node);
-  
+
   // Exception safety helpers
   void pushResource(TypedValue val) { memoryManagement.pushResource(val); }
   void popResource() { memoryManagement.popResource(); }
-  llvm::BasicBlock* getLandingPad(size_t skipCount = 0) { return memoryManagement.getLandingPad(skipCount); }
+  llvm::BasicBlock *getLandingPad(size_t skipCount = 0) {
+    return memoryManagement.getLandingPad(skipCount);
+  }
   bool hasLandingPad() const { return memoryManagement.hasPushedResources(); }
-  bool hasPushedResources() const { return memoryManagement.hasPushedResources(); }
+  bool hasPushedResources() const {
+    return memoryManagement.hasPushedResources();
+  }
   MemoryManagement &getMemoryManagement() { return memoryManagement; }
 };
 

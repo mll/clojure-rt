@@ -29,7 +29,7 @@ using IntrinsicCall = std::function<llvm::Value *(llvm::IRBuilder<> &,
 using TypeIntrinsicCall =
     std::function<ObjectTypeSet(const std::vector<ObjectTypeSet> &)>;
 using GenericIntrinsicCall = std::function<llvm::Value *(
-    llvm::IRBuilder<> &, const std::vector<TypedValue> &)>;
+    llvm::IRBuilder<> &, const std::vector<TypedValue> &, CleanupChainGuard *)>;
 
 class InvokeManager {
   friend void registerMathIntrinsics(InvokeManager &mgr);

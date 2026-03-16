@@ -19,6 +19,14 @@ using namespace std;
 using namespace rt;
 using namespace clojure::rt::protobuf::bytecode;
 
+extern "C" {
+RTValue mock_add_bigint(RTValue a, RTValue b) {
+  release(a);
+  release(b);
+  return RT_boxPtr(BigInteger_createFromInt(42));
+}
+}
+
 static RTValue resPtrToValue(llvm::orc::ExecutorAddr res) {
   return res.toPtr<RTValue (*)()>()();
 }
@@ -185,6 +193,78 @@ static void test_if_integer_const(void **state) {
   });
 }
 
+static void test_if_test_leak(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    rt::JITEngine engine(compState);
+
+    // (if (+ 1N 2N) 42 43)
+    Node root;
+    root.set_op(opIf);
+    auto *if_ = root.mutable_subnode()->mutable_if_();
+
+    auto *testNode = if_->mutable_test();
+    testNode->set_op(opStaticCall);
+    auto *sc = testNode->mutable_subnode()->mutable_staticcall();
+    sc->set_class_("clojure.lang.Numbers");
+    sc->set_method("add");
+    
+    auto *a1 = sc->add_args();
+    a1->set_op(opConst);
+    a1->mutable_subnode()->mutable_const_()->set_val("1");
+    a1->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    a1->set_tag("clojure.lang.BigInt");
+
+    auto *a2 = sc->add_args();
+    a2->set_op(opConst);
+    a2->mutable_subnode()->mutable_const_()->set_val("2");
+    a2->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    a2->set_tag("clojure.lang.BigInt");
+
+    auto *then = if_->mutable_then();
+    then->set_op(opConst);
+    then->mutable_subnode()->mutable_const_()->set_val("42");
+    then->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    then->set_tag("long");
+
+    auto *else_ = if_->mutable_else_();
+    else_->set_op(opConst);
+    else_->mutable_subnode()->mutable_const_()->set_val("43");
+    else_->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    else_->set_tag("long");
+
+    // Setup clojure.lang.Numbers/add metadata
+    auto desc = std::make_unique<rt::ClassDescription>();
+    rt::IntrinsicDescription numAdd;
+    numAdd.type = rt::CallType::Call;
+    numAdd.symbol = "mock_add_bigint"; 
+    numAdd.argTypes.push_back(rt::ObjectTypeSet::all());
+    numAdd.argTypes.push_back(rt::ObjectTypeSet::all());
+    numAdd.returnType = rt::ObjectTypeSet::all();
+    desc->staticFns["add"].push_back(numAdd);
+
+    String *numName = String_createDynamicStr("clojure.lang.Numbers");
+    Ptr_retain(numName);
+    ::Class *numCls = Class_create(numName, numName, 0, nullptr);
+    numCls->compilerExtension = desc.release();
+    numCls->compilerExtensionDestructor = rt::delete_class_description;
+    compState.classRegistry.registerObject("clojure.lang.Numbers", numCls);
+
+    cout << "=== If Test Leak Test (Should NOT leak) ===" << endl;
+    try {
+      rt::JITEngine engine(compState);
+      auto res = engine.compileAST(root, "__test_if_leak", llvm::OptimizationLevel::O0, true).get();
+      
+      RTValue val = res.toPtr<RTValue (*)()>()();
+      assert_int_equal(42, RT_unboxInt32(val));
+    } catch (const std::exception &e) {
+      cout << "Caught exception: " << e.what() << endl;
+      assert_true(false);
+    }
+  });
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
@@ -192,6 +272,7 @@ int main(void) {
       cmocka_unit_test(test_if_falsy_const),
       cmocka_unit_test(test_if_nil),
       cmocka_unit_test(test_if_integer_const),
+      cmocka_unit_test(test_if_test_leak),
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);

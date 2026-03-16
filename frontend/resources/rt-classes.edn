@@ -192,102 +192,77 @@
 
   java.lang.Math
   {:static-fns
-   {sin   [{:args [:double] :type :intrinsic :symbol "Math_sin" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_sin" :returns :double}
+   {sin   [{:args [:double] :type :intrinsic :symbol "Math_sin_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_sin_I" :returns :double}
            {:args [:bigint] :type :intrinsic :symbol "Math_sin" :returns :double}
            {:args [:ratio]  :type :intrinsic :symbol "Math_sin" :returns :double}
            {:args [:any]    :type :intrinsic :symbol "Math_sin" :returns :double}]
-    cos   [{:args [:double] :type :intrinsic :symbol "Math_cos" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_cos" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_cos" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_cos" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_cos" :returns :double}]
-    tan   [{:args [:double] :type :intrinsic :symbol "Math_tan" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_tan" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_tan" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_tan" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_tan" :returns :double}]
-    asin  [{:args [:double] :type :intrinsic :symbol "Math_asin" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_asin" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_asin" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_asin" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_asin" :returns :double}]
-    acos  [{:args [:double] :type :intrinsic :symbol "Math_acos" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_acos" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_acos" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_acos" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_acos" :returns :double}]
-    atan  [{:args [:double] :type :intrinsic :symbol "Math_atan" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_atan" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_atan" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_atan" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_atan" :returns :double}]
-    exp   [{:args [:double] :type :intrinsic :symbol "Math_exp" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_exp" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_exp" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_exp" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_exp" :returns :double}]
-    exp2  [{:args [:double] :type :intrinsic :symbol "Math_exp2" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_exp2" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_exp2" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_exp2" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_exp2" :returns :double}]
-    exp10 [{:args [:double] :type :intrinsic :symbol "Math_exp10" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_exp10" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_exp10" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_exp10" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_exp10" :returns :double}]
-    log   [{:args [:double] :type :intrinsic :symbol "Math_log" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_log" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_log" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_log" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_log" :returns :double}]
-    log10 [{:args [:double] :type :intrinsic :symbol "Math_log10" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_log10" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_log10" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_log10" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_log10" :returns :double}]
-    logb  [{:args [:double] :type :intrinsic :symbol "Math_logb" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_logb" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_logb" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_logb" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_logb" :returns :double}]
-    log2  [{:args [:double] :type :intrinsic :symbol "Math_log2" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_log2" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_log2" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_log2" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_log2" :returns :double}]
-    sqrt  [{:args [:double] :type :intrinsic :symbol "Math_sqrt" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_sqrt" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_sqrt" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_sqrt" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_sqrt" :returns :double}]
-    cbrt  [{:args [:double] :type :intrinsic :symbol "Math_cbrt" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_cbrt" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_cbrt" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_cbrt" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_cbrt" :returns :double}]
-    exp1m [{:args [:double] :type :intrinsic :symbol "Math_exp1m" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_exp1m" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_exp1m" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_exp1m" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_exp1m" :returns :double}]
-    log1p [{:args [:double] :type :intrinsic :symbol "Math_log1p" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_log1p" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_log1p" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_log1p" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_log1p" :returns :double}]
-    abs   [{:args [:double] :type :intrinsic :symbol "Math_abs" :returns :double}
-           {:args [:int]    :type :intrinsic :symbol "Math_abs" :returns :double}
-           {:args [:bigint] :type :intrinsic :symbol "Math_abs" :returns :double}
-           {:args [:ratio]  :type :intrinsic :symbol "Math_abs" :returns :double}
-           {:args [:any]    :type :intrinsic :symbol "Math_abs" :returns :double}]
-    atan2 [{:args [:double :double] :type :intrinsic :symbol "Math_atan2" :returns :double}
-           {:args [:any :any]       :type :intrinsic :symbol "Math_atan2" :returns :double}]
-    pow   [{:args [:double :double] :type :intrinsic :symbol "Math_pow" :returns :double}
-           {:args [:any :any]       :type :intrinsic :symbol "Math_pow" :returns :double}]
-    hypot [{:args [:double :double] :type :intrinsic :symbol "Math_hypot" :returns :double}
-           {:args [:any :any]       :type :intrinsic :symbol "Math_hypot" :returns :double}]}}
+    cos   [{:args [:double] :type :intrinsic :symbol "Math_cos_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_cos_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_cos"   :returns :double}]
+    tan   [{:args [:double] :type :intrinsic :symbol "Math_tan_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_tan_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_tan"   :returns :double}]
+    asin  [{:args [:double] :type :intrinsic :symbol "Math_asin_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_asin_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_asin"   :returns :double}]
+    acos  [{:args [:double] :type :intrinsic :symbol "Math_acos_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_acos_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_acos"   :returns :double}]
+    atan  [{:args [:double] :type :intrinsic :symbol "Math_atan_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_atan_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_atan"   :returns :double}]
+    exp   [{:args [:double] :type :intrinsic :symbol "Math_exp_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_exp_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_exp"   :returns :double}]
+    exp2  [{:args [:double] :type :intrinsic :symbol "Math_exp2_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_exp2_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_exp2"   :returns :double}]
+    exp10 [{:args [:double] :type :intrinsic :symbol "Math_exp10_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_exp10_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_exp10"   :returns :double}]
+    log   [{:args [:double] :type :intrinsic :symbol "Math_log_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_log_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_log"   :returns :double}]
+    log10 [{:args [:double] :type :intrinsic :symbol "Math_log10_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_log10_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_log10"   :returns :double}]
+    logb  [{:args [:double] :type :intrinsic :symbol "Math_logb_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_logb_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_logb"   :returns :double}]
+    log2  [{:args [:double] :type :intrinsic :symbol "Math_log2_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_log2_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_log2"   :returns :double}]
+    sqrt  [{:args [:double] :type :intrinsic :symbol "Math_sqrt_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_sqrt_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_sqrt"   :returns :double}]
+    cbrt  [{:args [:double] :type :intrinsic :symbol "Math_cbrt_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_cbrt_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_cbrt"   :returns :double}]
+    exp1m [{:args [:double] :type :intrinsic :symbol "Math_exp1m_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_exp1m_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_exp1m"   :returns :double}]
+    log1p [{:args [:double] :type :intrinsic :symbol "Math_log1p_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_log1p_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_log1p"   :returns :double}]
+    abs   [{:args [:double] :type :intrinsic :symbol "Math_abs_D" :returns :double}
+           {:args [:int]    :type :intrinsic :symbol "Math_abs_I" :returns :double}
+           {:args [:any]    :type :intrinsic :symbol "Math_abs"   :returns :double}]
+    atan2 [{:args [:double :double] :type :intrinsic :symbol "Math_atan2_DD" :returns :double}
+           {:args [:int :int]       :type :intrinsic :symbol "Math_atan2_II" :returns :double}
+           {:args [:int :double]    :type :intrinsic :symbol "Math_atan2_ID" :returns :double}
+           {:args [:double :int]    :type :intrinsic :symbol "Math_atan2_DI" :returns :double}
+           {:args [:any :any]       :type :intrinsic :symbol "Math_atan2"    :returns :double}]
+    pow   [{:args [:double :double] :type :intrinsic :symbol "Math_pow_DD"   :returns :double}
+           {:args [:int :int]       :type :intrinsic :symbol "Math_pow_II"   :returns :double}
+           {:args [:int :double]    :type :intrinsic :symbol "Math_pow_ID"   :returns :double}
+           {:args [:double :int]    :type :intrinsic :symbol "Math_pow_DI"   :returns :double}
+           {:args [:any :any]       :type :intrinsic :symbol "Math_pow"      :returns :double}]
+    hypot [{:args [:double :double] :type :intrinsic :symbol "Math_hypot_DD" :returns :double}
+           {:args [:int :int]       :type :intrinsic :symbol "Math_hypot_II" :returns :double}
+           {:args [:int :double]    :type :intrinsic :symbol "Math_hypot_ID" :returns :double}
+           {:args [:double :int]    :type :intrinsic :symbol "Math_hypot_DI" :returns :double}
+           {:args [:any :any]       :type :intrinsic :symbol "Math_hypot"    :returns :double}]}}
 
   java.lang.String
   {:object-type 7

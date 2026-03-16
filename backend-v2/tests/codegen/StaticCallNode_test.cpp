@@ -57,8 +57,8 @@ static void setup_mock_runtime_full(rt::ThreadsafeCompilerState &compState) {
     IntrinsicDescription addII;
     addII.symbol = "mock_add_int";
     addII.type = CallType::Call;
-    addII.argTypes = {ObjectTypeSet(integerType, false),
-                      ObjectTypeSet(integerType, false)};
+    addII.argTypes.push_back(ObjectTypeSet(integerType, false));
+    addII.argTypes.push_back(ObjectTypeSet(integerType, false));
     addII.returnType = ObjectTypeSet(integerType, false);
     ext->staticFns["add"].push_back(addII);
 
@@ -66,8 +66,8 @@ static void setup_mock_runtime_full(rt::ThreadsafeCompilerState &compState) {
     IntrinsicDescription addDD;
     addDD.symbol = "mock_add_double";
     addDD.type = CallType::Call;
-    addDD.argTypes = {ObjectTypeSet(doubleType, false),
-                      ObjectTypeSet(doubleType, false)};
+    addDD.argTypes.push_back(ObjectTypeSet(doubleType, false));
+    addDD.argTypes.push_back(ObjectTypeSet(doubleType, false));
     addDD.returnType = ObjectTypeSet(doubleType, false);
     ext->staticFns["add"].push_back(addDD);
 
@@ -75,8 +75,8 @@ static void setup_mock_runtime_full(rt::ThreadsafeCompilerState &compState) {
     IntrinsicDescription addGen;
     addGen.symbol = "mock_add_generic";
     addGen.type = CallType::Call;
-    addGen.argTypes = {ObjectTypeSet::dynamicType(),
-                       ObjectTypeSet::dynamicType()};
+    addGen.argTypes.push_back(ObjectTypeSet::dynamicType());
+    addGen.argTypes.push_back(ObjectTypeSet::dynamicType());
     addGen.returnType = ObjectTypeSet::dynamicType();
     ext->staticFns["add"].push_back(addGen);
 
@@ -89,8 +89,8 @@ static void setup_mock_runtime_full(rt::ThreadsafeCompilerState &compState) {
     IntrinsicDescription addBB;
     addBB.symbol = "mock_get_true"; // just a dummy
     addBB.type = CallType::Call;
-    addBB.argTypes = {ObjectTypeSet(booleanType, false),
-                      ObjectTypeSet(booleanType, false)};
+    addBB.argTypes.push_back(ObjectTypeSet(booleanType, false));
+    addBB.argTypes.push_back(ObjectTypeSet(booleanType, false));
     addBB.returnType = ObjectTypeSet(booleanType, false);
     ext->staticFns["ex_add"].push_back(addBB);
 
@@ -99,8 +99,8 @@ static void setup_mock_runtime_full(rt::ThreadsafeCompilerState &compState) {
     IntrinsicDescription addComplex;
     addComplex.symbol = "Add";
     addComplex.type = CallType::Intrinsic;
-    addComplex.argTypes = {ObjectTypeSet(integerType, false),
-                           ObjectTypeSet(integerType, false)};
+    addComplex.argTypes.push_back(ObjectTypeSet(integerType, false));
+    addComplex.argTypes.push_back(ObjectTypeSet(integerType, false));
     addComplex.returnType = ObjectTypeSet(integerType, false);
     ext->staticFns["complex_add"].push_back(addComplex);
 
@@ -155,306 +155,320 @@ static void createIndeterminateArg(Node *node, const char *val, bool isDouble) {
 
 static void test_dynamic_dispatch_3tail(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_mock_runtime_full(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_runtime_full(compState);
+    JITEngine engine(compState);
 
-  // Test Case 1: Int + Int
-  {
-    Node callNode;
-    callNode.set_op(opStaticCall);
-    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-    sc->set_class_("clojure.lang.Numbers");
-    sc->set_method("add");
-    createIndeterminateArg(sc->add_args(), "10", false);
-    createIndeterminateArg(sc->add_args(), "20", false);
+    // Test Case 1: Int + Int
+    {
+      Node callNode;
+      callNode.set_op(opStaticCall);
+      auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+      sc->set_class_("clojure.lang.Numbers");
+      sc->set_method("add");
+      createIndeterminateArg(sc->add_args(), "10", false);
+      createIndeterminateArg(sc->add_args(), "20", false);
 
-    auto resCall = engine
-                       .compileAST(callNode, "__test_3tail_int",
-                                   llvm::OptimizationLevel::O0, true)
-                       .get();
-    RTValue result = resPtrToValue(resCall);
-    assert_true(RT_isInt32(result));
-    assert_int_equal(1030, RT_unboxInt32(result));
-    release(result);
-  }
+      [[maybe_unused]] auto resCall = engine
+                         .compileAST(callNode, "__test_3tail_int",
+                                     llvm::OptimizationLevel::O0, true)
+                         .get();
+      RTValue result = resPtrToValue(resCall);
+      assert_true(RT_isInt32(result));
+      assert_int_equal(1030, RT_unboxInt32(result));
+      release(result);
+    }
 
-  // Test Case 2: Double + Double
-  {
-    Node callNode;
-    callNode.set_op(opStaticCall);
-    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-    sc->set_class_("clojure.lang.Numbers");
-    sc->set_method("add");
-    createIndeterminateArg(sc->add_args(), "10.5", true);
-    createIndeterminateArg(sc->add_args(), "20.5", true);
+    // Test Case 2: Double + Double
+    {
+      Node callNode;
+      callNode.set_op(opStaticCall);
+      auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+      sc->set_class_("clojure.lang.Numbers");
+      sc->set_method("add");
+      createIndeterminateArg(sc->add_args(), "10.5", true);
+      createIndeterminateArg(sc->add_args(), "20.5", true);
 
-    auto resCallD = engine
-                        .compileAST(callNode, "__test_3tail_double",
-                                    llvm::OptimizationLevel::O0, true)
-                        .get();
-    RTValue resultD = resPtrToValue(resCallD);
-    assert_true(RT_isDouble(resultD));
-    assert_double_equal(2031.0, RT_unboxDouble(resultD), 0.001);
-    release(resultD);
-  }
+      auto resCallD = engine
+                          .compileAST(callNode, "__test_3tail_double",
+                                      llvm::OptimizationLevel::O0, true)
+                          .get();
+      RTValue resultD = resPtrToValue(resCallD);
+      assert_true(RT_isDouble(resultD));
+      assert_double_equal(2031.0, RT_unboxDouble(resultD), 0.001);
+      release(resultD);
+    }
+  });
 }
 
 static void test_dynamic_dispatch_filtering(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_mock_runtime_full(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_runtime_full(compState);
+    JITEngine engine(compState);
 
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("clojure.lang.Numbers");
-  sc->set_method("add");
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("clojure.lang.Numbers");
+    sc->set_method("add");
 
-  // Arg 1: Statically Double
-  {
-    auto *arg1 = sc->add_args();
-    arg1->set_op(opConst);
-    arg1->mutable_subnode()->mutable_const_()->set_type(
-        ConstNode_ConstType_constTypeNumber);
-    arg1->mutable_subnode()->mutable_const_()->set_val("10.5");
-    arg1->set_tag("double");
-  }
+    // Arg 1: Statically Double
+    {
+      auto *arg1 = sc->add_args();
+      arg1->set_op(opConst);
+      arg1->mutable_subnode()->mutable_const_()->set_type(
+          ConstNode_ConstType_constTypeNumber);
+      arg1->mutable_subnode()->mutable_const_()->set_val("10.5");
+      arg1->set_tag("double");
+    }
 
-  // Arg 2: Statically Any (using If)
-  createIndeterminateArg(sc->add_args(), "20.5", true);
+    // Arg 2: Statically Any (using If)
+    createIndeterminateArg(sc->add_args(), "20.5", true);
 
-  try {
-    auto resCall = engine
-                       .compileAST(callNode, "__test_filtering",
-                                   llvm::OptimizationLevel::O0, true)
-                       .get();
-    RTValue result = resPtrToValue(resCall);
-    assert_true(RT_isDouble(result));
-    assert_double_equal(10.5 + 20.5 + 2000.0, RT_unboxDouble(result), 0.001);
-    release(result);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "Exception: %s\n", e.what());
-    assert_true(false);
-  }
+    try {
+      auto resCall = engine
+                         .compileAST(callNode, "__test_filtering",
+                                     llvm::OptimizationLevel::O0, true)
+                         .get();
+      RTValue result = resPtrToValue(resCall);
+      assert_true(RT_isDouble(result));
+      assert_double_equal(10.5 + 20.5 + 2000.0, RT_unboxDouble(result), 0.001);
+      release(result);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Exception: %s\n", e.what());
+      assert_true(false);
+    }
+  });
 }
 
 static void test_dynamic_dispatch_exhaustive(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_mock_runtime_full(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_runtime_full(compState);
+    JITEngine engine(compState);
 
-  // Call "ex_add" (no generic, 3 specializations)
-  // Args: statically Any (using If)
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("clojure.lang.Numbers");
-  sc->set_method("ex_add");
+    // Call "ex_add" (no generic, 3 specializations)
+    // Args: statically Any (using If)
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("clojure.lang.Numbers");
+    sc->set_method("ex_add");
 
-  createIndeterminateArg(sc->add_args(), "10", false);
-  createIndeterminateArg(sc->add_args(), "20", false);
+    createIndeterminateArg(sc->add_args(), "10", false);
+    createIndeterminateArg(sc->add_args(), "20", false);
 
-  try {
-    auto resCall = engine
-                       .compileAST(callNode, "__test_exhaustive",
-                                   llvm::OptimizationLevel::O0, true)
-                       .get();
-    RTValue result = resPtrToValue(resCall);
-    assert_true(RT_isInt32(result));
-    assert_int_equal(1030, RT_unboxInt32(result));
-    release(result);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "Exception: %s\n", e.what());
-    assert_true(false);
-  }
+    try {
+      [[maybe_unused]] auto resCall = engine
+                         .compileAST(callNode, "__test_exhaustive",
+                                     llvm::OptimizationLevel::O0, true)
+                         .get();
+      RTValue result = resPtrToValue(resCall);
+      assert_true(RT_isInt32(result));
+      assert_int_equal(1030, RT_unboxInt32(result));
+      release(result);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Exception: %s\n", e.what());
+      assert_true(false);
+    }
+  });
 }
 
 static void test_dynamic_dispatch_no_match(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_mock_runtime_full(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_runtime_full(compState);
+    JITEngine engine(compState);
 
-  // Call "ex_add" but with (String, String) -> Should throw runtime exception
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("clojure.lang.Numbers");
-  sc->set_method("ex_add");
+    // Call "ex_add" but with (String, String) -> Should throw runtime exception
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("clojure.lang.Numbers");
+    sc->set_method("ex_add");
 
-  // Arg 1: String
-  {
-    auto *arg1 = sc->add_args();
-    arg1->set_op(opConst);
-    arg1->mutable_subnode()->mutable_const_()->set_type(
-        ConstNode_ConstType_constTypeString);
-    arg1->mutable_subnode()->mutable_const_()->set_val("hello");
-  }
-  // Arg 2: String
-  {
-    auto *arg2 = sc->add_args();
-    arg2->set_op(opConst);
-    arg2->mutable_subnode()->mutable_const_()->set_type(
-        ConstNode_ConstType_constTypeString);
-    arg2->mutable_subnode()->mutable_const_()->set_val("world");
-  }
+    // Arg 1: String
+    {
+      auto *arg1 = sc->add_args();
+      arg1->set_op(opConst);
+      arg1->mutable_subnode()->mutable_const_()->set_type(
+          ConstNode_ConstType_constTypeString);
+      arg1->mutable_subnode()->mutable_const_()->set_val("hello");
+    }
+    // Arg 2: String
+    {
+      auto *arg2 = sc->add_args();
+      arg2->set_op(opConst);
+      arg2->mutable_subnode()->mutable_const_()->set_type(
+          ConstNode_ConstType_constTypeString);
+      arg2->mutable_subnode()->mutable_const_()->set_val("world");
+    }
 
-  try {
-    auto resCall = engine
-                       .compileAST(callNode, "__test_no_match",
-                                   llvm::OptimizationLevel::O0, true)
-                       .get();
-    // Since both are strings, it's statically possible they match a dynamic
-    // overload if it existed, but we filtered versions. (String, String) is NOT
-    // statically possible for any of (int, int), (double, double), (bool,
-    // bool). Wait, if it's NOT statically possible, codegen should throw
-    // compile-time error!
-    assert_true(false); // Should not reach here
-  } catch (const LanguageException &e) {
-    // Correctly threw compile-time exception because no statically possible
-    // overloads exist
-    assert_true(true);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "Unexpected exception: %s\n", e.what());
-    assert_true(false);
-  }
+    try {
+      [[maybe_unused]] auto resCall = engine
+                         .compileAST(callNode, "__test_no_match",
+                                     llvm::OptimizationLevel::O0, true)
+                         .get();
+      // Since both are strings, it's statically possible they match a dynamic
+      // overload if it existed, but we filtered versions. (String, String) is NOT
+      // statically possible for any of (int, int), (double, double), (bool,
+      // bool). Wait, if it's NOT statically possible, codegen should throw
+      // compile-time error!
+      assert_true(false); // Should not reach here
+    } catch (const LanguageException &e) {
+      // Correctly threw compile-time exception because no statically possible
+      // overloads exist
+      assert_true(true);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Unexpected exception: %s\n", e.what());
+      assert_true(false);
+    }
+  });
 }
 
 static void test_dynamic_dispatch_no_match_runtime(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_mock_runtime_full(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_runtime_full(compState);
+    JITEngine engine(compState);
 
-  // To test RUNTIME exception, we need arguments that are statically ANY but
-  // runtime NOT matching any specialization.
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("clojure.lang.Numbers");
-  sc->set_method("ex_add");
+    // To test RUNTIME exception, we need arguments that are statically ANY but
+    // runtime NOT matching any specialization.
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("clojure.lang.Numbers");
+    sc->set_method("ex_add");
 
-  // Helper method to create a truly generic "String" at runtime
-  auto createGenericString = [&](Node *node) {
-    node->set_op(opIf);
-    auto *if_ = node->mutable_subnode()->mutable_if_();
-    auto *test = if_->mutable_test();
-    test->set_op(opStaticCall);
-    test->mutable_subnode()->mutable_staticcall()->set_class_("Helper");
-    test->mutable_subnode()->mutable_staticcall()->set_method("getTrue");
+    // Helper method to create a truly generic "String" at runtime
+    auto createGenericString = [&](Node *node) {
+      node->set_op(opIf);
+      auto *if_ = node->mutable_subnode()->mutable_if_();
+      auto *test = if_->mutable_test();
+      test->set_op(opStaticCall);
+      test->mutable_subnode()->mutable_staticcall()->set_class_("Helper");
+      test->mutable_subnode()->mutable_staticcall()->set_method("getTrue");
 
-    auto *then = if_->mutable_then();
-    then->set_op(opConst);
-    then->mutable_subnode()->mutable_const_()->set_type(
-        ConstNode_ConstType_constTypeString);
-    then->mutable_subnode()->mutable_const_()->set_val("mismatch");
+      auto *then = if_->mutable_then();
+      then->set_op(opConst);
+      then->mutable_subnode()->mutable_const_()->set_type(
+          ConstNode_ConstType_constTypeString);
+      then->mutable_subnode()->mutable_const_()->set_val("mismatch");
 
-    auto *else_ = if_->mutable_else_();
-    else_->set_op(opConst);
-    else_->mutable_subnode()->mutable_const_()->set_type(
-        ConstNode_ConstType_constTypeNumber);
-    else_->mutable_subnode()->mutable_const_()->set_val("123");
-    else_->set_tag("long");
-  };
+      auto *else_ = if_->mutable_else_();
+      else_->set_op(opConst);
+      else_->mutable_subnode()->mutable_const_()->set_type(
+          ConstNode_ConstType_constTypeNumber);
+      else_->mutable_subnode()->mutable_const_()->set_val("123");
+      else_->set_tag("long");
+    };
 
-  createGenericString(sc->add_args());
-  createGenericString(sc->add_args());
+    createGenericString(sc->add_args());
+    createGenericString(sc->add_args());
 
-  try {
-    auto resCall = engine
-                       .compileAST(callNode, "__test_no_match_runtime",
-                                   llvm::OptimizationLevel::O0, true)
-                       .get();
-    resPtrToValue(resCall);
-    assert_true(false); // Should have thrown runtime exception
-  } catch (const LanguageException &e) {
-    // Exception: NoMatchingOverloadException
-    // Message: No matching overload found for clojure.lang.Numbers/ex_add
-    assert_true(true);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "Unexpected exception: %s\n", e.what());
-    assert_true(false);
-  }
+    try {
+      auto resCall = engine
+                         .compileAST(callNode, "__test_no_match_runtime",
+                                     llvm::OptimizationLevel::O0, true)
+                         .get();
+      resPtrToValue(resCall);
+      assert_true(false); // Should have thrown runtime exception
+    } catch (const LanguageException &e) {
+      // Exception: NoMatchingOverloadException
+      // Message: No matching overload found for clojure.lang.Numbers/ex_add
+      assert_true(true);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Unexpected exception: %s\n", e.what());
+      assert_true(false);
+    }
+  });
 }
 
 static void test_regression_type_narrowing_specialized(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_mock_runtime_full(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_runtime_full(compState);
+    JITEngine engine(compState);
 
-  // This test specifically documents the fix for the
-  // "InternalInconsistencyException" caused by type mismatch in specialized
-  // branches. We call "add" with arguments that are statically indeterminate
-  // (Any). The dispatch logic will:
-  // 1. Check if they are (int, int) at runtime.
-  // 2. Unbox them if true.
-  // 3. Call mock_add_int(i32, i32).
-  // The InvokeManager::generateIntrinsic checks if the arguments passed to
-  // mock_add_int match the IntrinsicDescription. If we don't narrow the type of
-  // the unboxed TypedValue, it will still be "Any" and InvokeManager will throw
-  // an exception.
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("clojure.lang.Numbers");
-  sc->set_method("add");
+    // This test specifically documents the fix for the
+    // "InternalInconsistencyException" caused by type mismatch in specialized
+    // branches. We call "add" with arguments that are statically indeterminate
+    // (Any). The dispatch logic will:
+    // 1. Check if they are (int, int) at runtime.
+    // 2. Unbox them if true.
+    // 3. Call mock_add_int(i32, i32).
+    // The InvokeManager::generateIntrinsic checks if the arguments passed to
+    // mock_add_int match the IntrinsicDescription. If we don't narrow the type of
+    // the unboxed TypedValue, it will still be "Any" and InvokeManager will throw
+    // an exception.
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("clojure.lang.Numbers");
+    sc->set_method("add");
 
-  createIndeterminateArg(sc->add_args(), "42", false);
-  createIndeterminateArg(sc->add_args(), "8", false);
+    createIndeterminateArg(sc->add_args(), "42", false);
+    createIndeterminateArg(sc->add_args(), "8", false);
 
-  try {
-    auto resCall = engine
-                       .compileAST(callNode, "__test_regression_narrowing",
-                                   llvm::OptimizationLevel::O0, true)
-                       .get();
-    RTValue result = resPtrToValue(resCall);
-    assert_true(RT_isInt32(result));
-    assert_int_equal(1050, RT_unboxInt32(result)); // mock_add_int adds 1000
-    release(result);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "Regression failure: %s\n", e.what());
-    assert_true(false);
-  }
+    try {
+      auto resCall = engine
+                         .compileAST(callNode, "__test_regression_narrowing",
+                                     llvm::OptimizationLevel::O0, true)
+                         .get();
+      RTValue result = resPtrToValue(resCall);
+      assert_true(RT_isInt32(result));
+      assert_int_equal(1050, RT_unboxInt32(result)); // mock_add_int adds 1000
+      release(result);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Regression failure: %s\n", e.what());
+      assert_true(false);
+    }
+  });
 }
 
 static void test_regression_phi_node_segfault(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_mock_runtime_full(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_runtime_full(compState);
+    JITEngine engine(compState);
 
-  // This test specifically documents the fix for the LLVM segfault (SimplifyCFG
-  // crash) caused by malformed PHI nodes when a specialized branch contains
-  // internal branching. "complex_add" specialization "Add" (intrinsic) creates
-  // "overflow" and "no_overflow" blocks.
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("clojure.lang.Numbers");
-  sc->set_method("complex_add");
+    // This test specifically documents the fix for the LLVM segfault (SimplifyCFG
+    // crash) caused by malformed PHI nodes when a specialized branch contains
+    // internal branching. "complex_add" specialization "Add" (intrinsic) creates
+    // "overflow" and "no_overflow" blocks.
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("clojure.lang.Numbers");
+    sc->set_method("complex_add");
 
-  createIndeterminateArg(sc->add_args(), "100", false);
-  createIndeterminateArg(sc->add_args(), "200", false);
+    createIndeterminateArg(sc->add_args(), "100", false);
+    createIndeterminateArg(sc->add_args(), "200", false);
 
-  try {
-    // Optimization level O1 or higher is needed to trigger SimplifyCFG in a way
-    // that crashes
-    auto resCall = engine
-                       .compileAST(callNode, "__test_regression_segfault",
-                                   llvm::OptimizationLevel::O1, true)
-                       .get();
-    RTValue result = resPtrToValue(resCall);
-    assert_true(RT_isInt32(result));
-    assert_int_equal(300, RT_unboxInt32(result)); // Real Add doesn't add 1000
-    release(result);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "Segfault regression failure: %s\n", e.what());
-    assert_true(false);
-  }
+    try {
+      // Optimization level O1 or higher is needed to trigger SimplifyCFG in a way
+      // that crashes
+      auto resCall = engine
+                         .compileAST(callNode, "__test_regression_segfault",
+                                     llvm::OptimizationLevel::O1, true)
+                         .get();
+      RTValue result = resPtrToValue(resCall);
+      assert_true(RT_isInt32(result));
+      assert_int_equal(300, RT_unboxInt32(result)); // Real Add doesn't add 1000
+      release(result);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Segfault regression failure: %s\n", e.what());
+      assert_true(false);
+    }
+  });
 }
 
 int main(void) {

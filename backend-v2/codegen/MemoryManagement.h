@@ -66,7 +66,7 @@ public:
 private:
   llvm::LLVMContext &context;
   llvm::IRBuilder<> &builder;
-  llvm::Module &theModule;
+
   ValueEncoder &valueEncoder;
   LLVMTypes &types;
   VariableBindings<TypedValue> &variableBindingStack;

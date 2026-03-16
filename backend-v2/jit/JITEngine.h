@@ -45,6 +45,9 @@ class JITEngine {
   std::map<std::string, std::vector<RTValue>> moduleConstants;
   std::map<std::string, std::unique_ptr<llvm::MemoryBuffer>> capturedObjectBuffers;
   ThreadsafeCompilerState &threadsafeState;
+  
+  std::unique_ptr<llvm::MemoryBuffer> runtimeBitcodeBuffer;
+  void optimize(llvm::Module &M, llvm::OptimizationLevel Level, const std::string &entryPoint);
   void registerRuntimeSymbols();
 
 public:

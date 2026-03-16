@@ -66,31 +66,31 @@ extern _Thread_local void *memoryBank[8];
 extern _Thread_local int memoryBankSize[8];
 
 void initialise_memory();
-static inline void retain(RTValue self);
-static inline bool release(RTValue self);
-static inline void promoteToShared(RTValue self);
-static inline uword_t hash(RTValue v);
-static inline bool equals(RTValue v1, RTValue v2);
-static inline bool equals_managed(RTValue v1, RTValue v2);
-static inline objectType getType(RTValue v);
-static inline String* toString(RTValue v);
-static inline void Object_retain(Object* self);
-static inline bool Object_release(Object* self);
-static inline void Object_promoteToShared(Object* self);
-static inline void Object_create(Object* self, objectType type);
-static inline uword_t Object_hash(Object* self);
-static inline bool Object_equals(Object* self, Object* other);
-static inline bool Object_isReusable(Object* self);
-static inline bool isReusable(RTValue v);
-static inline void Object_promoteToSharedShallow(Object* self, uword_t current);
-static inline uword_t Object_getRawRefCount(Object* self);
-static inline bool Object_release_internal(Object* self, bool deallocateChildren);
-static inline void Ptr_retain(void* ptr);
-static inline bool Ptr_release(void* ptr);
-static inline void Ptr_autorelease(void* ptr);
-static inline uword_t Ptr_hash(void* ptr);
-static inline bool Ptr_equals(void* ptr, void* other);
-static inline bool Ptr_isReusable(void* ptr);
+inline void retain(RTValue self);
+inline bool release(RTValue self);
+inline void promoteToShared(RTValue self);
+inline uword_t hash(RTValue v);
+inline bool equals(RTValue v1, RTValue v2);
+inline bool equals_managed(RTValue v1, RTValue v2);
+inline objectType getType(RTValue v);
+inline String* toString(RTValue v);
+inline void Object_retain(Object* self);
+inline bool Object_release(Object* self);
+inline void Object_promoteToShared(Object* self);
+inline void Object_create(Object* self, objectType type);
+inline uword_t Object_hash(Object* self);
+inline bool Object_equals(Object* self, Object* other);
+inline bool Object_isReusable(Object* self);
+inline bool isReusable(RTValue v);
+inline void Object_promoteToSharedShallow(Object* self, uword_t current);
+inline uword_t Object_getRawRefCount(Object* self);
+inline bool Object_release_internal(Object* self, bool deallocateChildren);
+inline void Ptr_retain(void* ptr);
+inline bool Ptr_release(void* ptr);
+inline void Ptr_autorelease(void* ptr);
+inline uword_t Ptr_hash(void* ptr);
+inline bool Ptr_equals(void* ptr, void* other);
+inline bool Ptr_isReusable(void* ptr);
 
 
 #include "BigInteger.h"
@@ -112,7 +112,7 @@ static inline bool Ptr_isReusable(void* ptr);
 #include "Symbol.h"
 #include "Var.h"
 
-static inline void *allocate(size_t size) {
+inline void *allocate(size_t size) {
 #ifndef USE_MEMORY_BANKS
   return malloc(size);
 #else
@@ -169,7 +169,7 @@ static inline void *allocate(size_t size) {
 #endif
 }
 
-static inline void deallocate(void *ptr) {
+inline void deallocate(void *ptr) {
 #ifndef USE_MEMORY_BANKS
   free(ptr);
   return;
@@ -193,7 +193,7 @@ static inline void deallocate(void *ptr) {
 }
 
 /* Outside of refcount system */
-static inline objectType getType(RTValue v) {
+inline objectType getType(RTValue v) {
   if (RT_isDouble(v))
     return doubleType;
   if (RT_isInt32(v))
@@ -210,7 +210,7 @@ static inline objectType getType(RTValue v) {
   return ((Object *)RT_unboxPtr(v))->type;
 }
 
-static inline void Object_retain(Object *restrict self) {
+inline void Object_retain(Object *restrict self) {
 //  printf("RETAIN!!! %d\n", self->type);
 #ifdef REFCOUNT_TRACING
   atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
@@ -236,7 +236,7 @@ static inline void Object_retain(Object *restrict self) {
 #endif
 }
 
-static inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
+inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   //  printf("--> Deallocating type %d addres %lld\n", self->type, (uword_t));
   // printReferenceCounts();
   switch ((objectType)self->type) {
@@ -285,7 +285,7 @@ static inline void Object_destroy(Object *restrict self, bool deallocateChildren
   // printf("=========================\n");
 }
 
-static inline bool Object_isReusable(Object *restrict self) {
+inline bool Object_isReusable(Object *restrict self) {
   uword_t refCount =
       atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
   if (refCount & SHARED_BIT)
@@ -293,11 +293,11 @@ static inline bool Object_isReusable(Object *restrict self) {
   return refCount >> 1 == 1;
 }
 
-static inline bool isReusable(RTValue self) {
+inline bool isReusable(RTValue self) {
   return RT_isPtr(self) && Object_isReusable((Object *)RT_unboxPtr(self));
 }
 
-static inline bool Object_release_internal(Object *restrict self,
+inline bool Object_release_internal(Object *restrict self,
                                     bool deallocateChildren) {
 #ifdef REFCOUNT_TRACING
   atomic_fetch_sub_explicit(&(allocationCount[self->type - 1]), 1,
@@ -356,7 +356,7 @@ static inline bool Object_release_internal(Object *restrict self,
 }
 
 /* outside of refcount system */
-static inline void Object_promoteToSharedShallow(Object *restrict self,
+inline void Object_promoteToSharedShallow(Object *restrict self,
                                           uword_t current) {
 #ifndef REFCOUNT_NONATOMIC
   // Optimization: If we guarantee that only the 'owning' thread performs
@@ -372,12 +372,12 @@ static inline void Object_promoteToSharedShallow(Object *restrict self,
 }
 
 /* outside of refcount system */
-static inline uword_t Object_getRawRefCount(Object *self) {
+inline uword_t Object_getRawRefCount(Object *self) {
   return atomic_load_explicit(&self->atomicRefCount, memory_order_relaxed);
 }
 
 /* outside of refcount system */
-static inline void Object_promoteToShared(Object *restrict self) {
+inline void Object_promoteToShared(Object *restrict self) {
   uword_t count = Object_getRawRefCount(self);
   if ((count & SHARED_BIT) != 0) {
     return;
@@ -408,7 +408,7 @@ static inline void Object_promoteToShared(Object *restrict self) {
 
 
 /* Outside of refcount system */
-static inline uword_t Object_hash(Object *restrict self) {
+inline uword_t Object_hash(Object *restrict self) {
   switch ((objectType)self->type) {
   case stringType:
     return String_hash((String *)self);
@@ -446,7 +446,7 @@ static inline uword_t Object_hash(Object *restrict self) {
 }
 
 /* Outside of refcount system */
-static inline uword_t hash(RTValue v) {
+inline uword_t hash(RTValue v) {
   objectType t = getType(v);
   switch (t) {
   case integerType:
@@ -473,7 +473,7 @@ static inline uword_t hash(RTValue v) {
 }
 
 /* Outside of refcount system */
-static inline bool Object_equals(Object *self, Object *other) {
+inline bool Object_equals(Object *self, Object *other) {
   if (Object_hash(self) != Object_hash(other))
     return false;
 
@@ -527,7 +527,7 @@ static inline bool Object_equals(Object *self, Object *other) {
 
 /* Outside of refcount system - should it be like this? It probably shouldnt
  */
-static inline bool equals(RTValue self, RTValue other) {
+inline bool equals(RTValue self, RTValue other) {
   if (self == other)
     return true; // Handles same-ints, same-bools, and same-pointers
 
@@ -547,7 +547,7 @@ static inline bool equals(RTValue self, RTValue other) {
   return false;
 }
 
-static inline String *Object_toString(Object *restrict self) {
+inline String *Object_toString(Object *restrict self) {
   switch ((objectType)self->type) {
   case stringType:
     return String_toString((String *)self);
@@ -583,11 +583,11 @@ static inline String *Object_toString(Object *restrict self) {
   return NULL;
 }
 
-static inline bool Object_release(Object *restrict self) {
+inline bool Object_release(Object *restrict self) {
   return Object_release_internal(self, true);
 }
 
-static inline void Object_autorelease(Object *restrict self) {
+inline void Object_autorelease(Object *restrict self) {
   /* The object could have been deallocated through direct releases in the
    * meantime (e.g. if autoreleasing entity does not own ) */
 #ifdef REFCOUNT_NONATOMIC
@@ -602,32 +602,32 @@ static inline void Object_autorelease(Object *restrict self) {
   Object_release(self);
 }
 
-static inline void autorelease(RTValue self) {
+inline void autorelease(RTValue self) {
   if (RT_isPtr(self)) {
     Object_autorelease((Object *)RT_unboxPtr(self));
   }
 }
 
-static inline void retain(RTValue self) {
+inline void retain(RTValue self) {
   if (RT_isPtr(self)) {
     Object_retain((Object *)RT_unboxPtr(self));
   }
 }
 
-static inline bool release(RTValue self) {
+inline bool release(RTValue self) {
   if (RT_isPtr(self)) {
     return Object_release((Object *)RT_unboxPtr(self));
   }
   return false;
 }
 
-static inline void promoteToShared(RTValue self) {
+inline void promoteToShared(RTValue self) {
   if (RT_isPtr(self)) {
     Object_promoteToShared((Object *)RT_unboxPtr(self));
   }
 }
 
-static inline void Object_create(Object *restrict self, objectType type) {
+inline void Object_create(Object *restrict self, objectType type) {
 #ifdef REFCOUNT_NONATOMIC
   self->refCount = COUNT_INC;
 #else
@@ -643,25 +643,25 @@ static inline void Object_create(Object *restrict self, objectType type) {
   //  printf("--> Allocating type %d addres %p\n", self->type, );
 }
 
-static inline uword_t combineHash(uword_t lhs, uword_t rhs) {
+inline uword_t combineHash(uword_t lhs, uword_t rhs) {
   lhs ^= rhs + 0x9ddfea08eb382d69ULL + (lhs << 6) + (lhs >> 2);
   return lhs;
 }
 
-static inline void Ptr_autorelease(void *self) { Object_autorelease((Object *)self); }
-static inline void Ptr_retain(void *self) { Object_retain((Object *)self); }
-static inline bool Ptr_release(void *self) { return Object_release((Object *)self); }
-static inline uword_t Ptr_hash(void *self) { return Object_hash((Object *)self); }
-static inline bool Ptr_isReusable(void *self) {
+inline void Ptr_autorelease(void *self) { Object_autorelease((Object *)self); }
+inline void Ptr_retain(void *self) { Object_retain((Object *)self); }
+inline bool Ptr_release(void *self) { return Object_release((Object *)self); }
+inline uword_t Ptr_hash(void *self) { return Object_hash((Object *)self); }
+inline bool Ptr_isReusable(void *self) {
   return Object_isReusable((Object *)self);
 }
-static inline bool Ptr_equals(void *self, void *other) {
+inline bool Ptr_equals(void *self, void *other) {
   if (self == other)
     return true;
   return Object_equals((Object *)self, (Object *)other);
 }
 
-static inline String *toString(RTValue self) {
+inline String *toString(RTValue self) {
   if (RT_isInt32(self))
     return Integer_toString(self);
   if (RT_isDouble(self))
@@ -681,7 +681,7 @@ static inline String *toString(RTValue self) {
   return Object_toString((Object *)RT_unboxPtr(self));
 }
 
-static inline bool equals_managed(RTValue self, RTValue other) {
+inline bool equals_managed(RTValue self, RTValue other) {
   bool result = equals(self, other);
   release(self);
   release(other);

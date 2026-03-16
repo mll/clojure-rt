@@ -4,6 +4,13 @@
 #include "bridge/Exceptions.h"
 #include <llvm/ExecutionEngine/Orc/DebugObjectManagerPlugin.h>
 #include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/Linker/Linker.h>
+#include <llvm/Analysis/InlineAdvisor.h>
+#include <llvm/Analysis/InlineCost.h>
+#include <llvm/Transforms/IPO/Inliner.h>
+#include <llvm/Transforms/IPO/ModuleInliner.h>
+#include <dlfcn.h>
 #include "../tools/EdnParser.h"
 
 
@@ -59,13 +66,21 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
           DL.getGlobalPrefix())));
 
   registerRuntimeSymbols();
+
+  // Load runtime bitcode
+  auto bufferOrErr = llvm::MemoryBuffer::getFile("runtime/runtime_uber.bc");
+  if (!bufferOrErr) {
+    llvm::errs() << "Warning: Could not load runtime/runtime_uber.bc\n";
+  } else {
+    runtimeBitcodeBuffer = std::move(*bufferOrErr);
+  }
 }
 
 std::future<llvm::orc::ExecutorAddr>
 JITEngine::compileAST(const Node &AST, const std::string &moduleName,
                       llvm::OptimizationLevel level, bool printModule) {
   // Wrap logic in a task for the pool
-  return pool.enqueue([this, AST, moduleName,
+  return pool.enqueue([this, AST, moduleName, level,
                        printModule]() -> llvm::orc::ExecutorAddr {
     auto codeGenerator = CodeGen(moduleName, threadsafeState);
 
@@ -86,9 +101,9 @@ JITEngine::compileAST(const Node &AST, const std::string &moduleName,
     auto constants = std::move(result.constants);
 
     // 4. Optimize WITHOUT LOCK
-    // if (level != llvm::OptimizationLevel::O0) {
-    //   this->optimize(*mod, Level);
-    // }
+    if (level != llvm::OptimizationLevel::O0) {
+      this->optimize(*module, level, fName);
+    }
 
     // --- TUTAJ WYPISUJEMY IR ---
     if (module && printModule) {
@@ -285,6 +300,11 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(absoluteSymbol("ClassExtension_resolveInstanceCall",
                                        (void *)ClassExtension_resolveInstanceCall));
 
+  void* emutlsAddr = dlsym(RTLD_DEFAULT, "___emutls_get_address");
+  if (emutlsAddr) {
+      runtimeSymbols.insert(absoluteSymbol("___emutls_get_address", emutlsAddr));
+  }
+
   cantFail(jit->getMainJITDylib().define(
       absoluteSymbols(std::move(runtimeSymbols))));
 }
@@ -300,6 +320,70 @@ JITEngine::~JITEngine() {
   for (auto const &name : names) {
     invalidate(name);
   }
+}
+
+void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level, const std::string &entryPoint) {
+  if (runtimeBitcodeBuffer && Level != llvm::OptimizationLevel::O0) {
+    auto runtimeModuleOrErr = llvm::parseBitcodeFile(*runtimeBitcodeBuffer, M.getContext());
+    if (!runtimeModuleOrErr) {
+      llvm::errs() << "Failed to parse runtime bitcode: " 
+                   << llvm::toString(runtimeModuleOrErr.takeError()) << "\n";
+    } else {
+      auto &runtimeModule = *runtimeModuleOrErr;
+      
+      // We want to link only what's needed and keep linked functions internal
+      // so they can be inlined and then deleted if not needed elsewere.
+      if (llvm::Linker::linkModules(M, std::move(runtimeModule), 
+                                    llvm::Linker::LinkOnlyNeeded)) {
+         llvm::errs() << "Failed to link runtime bitcode\n";
+      } else {
+        // Shared global variables should not be duplicated (e.g., objectCount, Nil_VALUE).
+        // We force them to be external declarations so they bind to the host process.
+        for (auto &G : M.globals()) {
+          if (!G.isDeclaration() && G.hasExternalLinkage()) {
+              G.setInitializer(nullptr);
+              G.setLinkage(llvm::GlobalValue::ExternalLinkage);
+          }
+        }
+
+        // Mark all functions from runtime as internal so they can be optimized away if inlined.
+        // We keep the entry point and 'main' external so the JIT can find/run them.
+        for (auto &F : M) {
+          if (!F.isDeclaration() && F.getName() != "main" && F.getName() != entryPoint) {
+             if (F.hasExternalLinkage()) {
+                 F.setLinkage(llvm::GlobalValue::InternalLinkage);
+             }
+          }
+        }
+      }
+    }
+  }
+
+  llvm::LoopAnalysisManager LAM;
+  llvm::FunctionAnalysisManager FAM;
+  llvm::CGSCCAnalysisManager CGAM;
+  llvm::ModuleAnalysisManager MAM;
+
+  llvm::PassBuilder PB;
+
+  PB.registerModuleAnalyses(MAM);
+  PB.registerCGSCCAnalyses(CGAM);
+  PB.registerFunctionAnalyses(FAM);
+  PB.registerLoopAnalyses(LAM);
+  PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+  llvm::ModulePassManager MPM;
+
+  if (Level == llvm::OptimizationLevel::O2) {
+    // For O2 we want VERY aggressive inlining
+    llvm::InlineParams IP = llvm::getInlineParams(2, 0);
+    IP.DefaultThreshold = 500; // Increase default threshold (normally 225)
+    IP.HintThreshold = 1000;   // Increase hint threshold
+    MPM.addPass(llvm::ModuleInlinerWrapperPass(IP));
+  }
+
+  MPM.addPass(PB.buildPerModuleDefaultPipeline(Level));
+  MPM.run(M, MAM);
 }
 
 } // namespace rt

@@ -51,9 +51,22 @@ include_directories(${GMP_INCLUDE_DIRS})
 # BITCODE GENERATION FOR JIT INTROSPECTION
 # ##############################################################################
 
+if(NOT LLVM_TOOLS_BINARY_DIR AND LLVM_DIR)
+    # If LLVM_DIR is /prefix/lib/cmake/llvm, then tools are in /prefix/bin
+    get_filename_component(LLVM_PREFIX "${LLVM_DIR}/../../.." ABSOLUTE)
+    set(LLVM_TOOLS_BINARY_DIR "${LLVM_PREFIX}/bin")
+endif()
+
 # 1. Find the required LLVM tools
-find_program(CLANG_EXECUTABLE clang REQUIRED)
-find_program(LLVM_LINK_EXECUTABLE llvm-link REQUIRED)
+# We use PATHS to ensure we use the tools from the SAME LLVM version as the JIT
+find_program(CLANG_EXECUTABLE clang 
+             PATHS ${LLVM_TOOLS_BINARY_DIR}
+             NO_DEFAULT_PATH
+             REQUIRED)
+find_program(LLVM_LINK_EXECUTABLE llvm-link 
+             PATHS ${LLVM_TOOLS_BINARY_DIR}
+             NO_DEFAULT_PATH
+             REQUIRED)
 
 set(BITCODE_OUTPUTS "")
 

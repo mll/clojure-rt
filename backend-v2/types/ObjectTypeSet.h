@@ -356,6 +356,8 @@ public:
       return "VectorNode";
     case concurrentHashMapType:
       return "CHM";
+    case varType:
+      return "Var";
     default:
       return "Unknown";
     }

@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::string filename = argv[1];
-  llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O3;
+  llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O0;
 
   int retVal = -1;
 

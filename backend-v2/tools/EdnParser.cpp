@@ -221,7 +221,7 @@ ClassDescription::ClassDescription(RTValue from,
 
   // sfnsWrapper is consumed by parseIntrinsics.
   if (getType(sfnsWrapper.get()) == persistentArrayMapType) {
-    this->staticFns = parseIntrinsics(sfnsWrapper.take(), classData);
+    this->staticFns = parseIntrinsics(sfnsWrapper.take(), classData, this->type);
   } else if (getType(sfnsWrapper.get()) != nilType) {
     throwInternalInconsistencyException(":static-fns must be a map.");
   }
@@ -231,7 +231,7 @@ ClassDescription::ClassDescription(RTValue from,
       description, Keyword_create(String_create("instance-fns"))));
 
   if (getType(ifnsWrapper.get()) == persistentArrayMapType) {
-    this->instanceFns = parseIntrinsics(ifnsWrapper.take(), classData);
+    this->instanceFns = parseIntrinsics(ifnsWrapper.take(), classData, this->type);
   } else if (getType(ifnsWrapper.get()) != nilType) {
     throwInternalInconsistencyException(":instance-fns must be a map.");
   }
@@ -346,7 +346,8 @@ ClassDescription::parseStaticFields(RTValue from) {
 }
 
 unordered_map<string, vector<IntrinsicDescription>>
-ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData) {
+ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
+                                 const ObjectTypeSet &thisType) {
   ConsumedValue root(from);
   unordered_map<string, vector<IntrinsicDescription>> retVal;
   if (getType(root.get()) != persistentArrayMapType) {
@@ -382,7 +383,8 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData) {
       RTValue intrinsicRaw = PersistentVector_iteratorGet(&it);
       // IntrinsicDescription constructor consumes. Protect borrowed entry.
       retain(intrinsicRaw);
-      descriptions.push_back(IntrinsicDescription(intrinsicRaw, classData));
+      descriptions.push_back(
+          IntrinsicDescription(intrinsicRaw, classData, thisType));
       PersistentVector_iteratorNext(&it);
     }
 
@@ -399,7 +401,8 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData) {
 }
 
 IntrinsicDescription::IntrinsicDescription(RTValue from,
-                                           TemporaryClassData &classData) {
+                                           TemporaryClassData &classData,
+                                           const ObjectTypeSet &thisType) {
   ConsumedValue root(from);
   if (getType(root.get()) != persistentArrayMapType) {
     throwInternalInconsistencyException("Intrinsic description is not a map");
@@ -472,7 +475,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
       Ptr_release(argStr);
 
       if (sArgKey == ":this") {
-        this->argTypes.push_back(ObjectTypeSet(classType));
+        this->argTypes.push_back(thisType);
       } else if (sArgKey == ":any") {
         this->argTypes.push_back(ObjectTypeSet::all());
       } else if (sArgKey == ":nil") {

@@ -269,10 +269,10 @@
    :static-fns
    {print [{:args [:any] :type :call :symbol "print" :returns :nil}]}
    :instance-fns
-   {contains [{:args [java.lang.String] :type :call :symbol "String_contains" :returns :bool}]
-    indexOf  [{:args [java.lang.String] :type :call :symbol "String_indexOf"  :returns :int}
-              {:args [java.lang.String :int] :type :call :symbol "String_indexOfFrom"  :returns :int}]
-    replace [{:args [java.lang.String java.lang.String] :type :call :symbol "String_replace" :returns java.lang.String}]}}
+   {contains [{:args [:this java.lang.String] :type :call :symbol "String_contains" :returns :bool}]
+    indexOf  [{:args [:this java.lang.String] :type :call :symbol "String_indexOf"  :returns :int}
+              {:args [:this java.lang.String :int] :type :call :symbol "String_indexOfFrom"  :returns :int}]
+    replace [{:args [:this java.lang.String java.lang.String] :type :call :symbol "String_replace" :returns java.lang.String}]}}
 
   clojure.lang.Util
   {:static-fns

@@ -29,13 +29,15 @@ public:
   string symbol;
   ObjectTypeSet returnType;
   IntrinsicDescription() = default;
-  IntrinsicDescription(RTValue from, TemporaryClassData &classData);
+  IntrinsicDescription(RTValue from, TemporaryClassData &classData,
+                       const ObjectTypeSet &thisType = ObjectTypeSet::all());
 };
 
 class ClassDescription {
   unordered_map<string, RTValue> parseStaticFields(RTValue from);
   unordered_map<string, vector<IntrinsicDescription>>
-  parseIntrinsics(RTValue from, TemporaryClassData &classData);
+  parseIntrinsics(RTValue from, TemporaryClassData &classData,
+                  const ObjectTypeSet &thisType = ObjectTypeSet::all());
 
 public:
   ObjectTypeSet type;

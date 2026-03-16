@@ -17,7 +17,7 @@ set(TEST_MODULES
     codegen/DoNode_test
     codegen/LetNode_test
     codegen/MathIntrinsicsRepro_test
-#    codegen/MathSpecialization_test
+    codegen/StaticInstanceCall_test
     VarUAF_repro_test
 )
 

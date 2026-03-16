@@ -172,11 +172,57 @@ static void test_vector_pop_call(void **state) {
   });
 }
 
+static void test_dynamic_instance_call(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_instance_metadata(compState);
+    JITEngine engine(compState);
+
+    Node callNode;
+    callNode.set_op(opInstanceCall);
+    auto *ic = callNode.mutable_subnode()->mutable_instancecall();
+    ic->set_method("getValue");
+
+    // 1. Instance (statically known as Int)
+    auto *inst = ic->mutable_instance();
+    inst->set_op(opConst);
+    inst->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    inst->mutable_subnode()->mutable_const_()->set_val("0");
+    inst->set_tag("long");
+
+    // 2. Arg (dynamic/untagged, but at runtime it will be Int)
+    auto *arg = ic->add_args();
+    arg->set_op(opConst);
+    arg->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    arg->mutable_subnode()->mutable_const_()->set_val("42");
+    // NO TAG -> Dynamic dispatch
+
+    try {
+      auto resCall = engine
+                         .compileAST(callNode, "__test_dynamic_instance_call",
+                                     llvm::OptimizationLevel::O0, true)
+                         .get();
+      RTValue result = resPtrToValue(resCall);
+      assert_true(RT_isInt32(result));
+      assert_int_equal(142, RT_unboxInt32(result));
+      release(result);
+    } catch (const rt::LanguageException &e) {
+      fprintf(stderr, "CodeGenerationException in dynamic test: %s\n", rt::getExceptionString(e).c_str());
+      assert_true(false);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Exception in dynamic test: %s\n", e.what());
+      assert_true(false);
+    }
+  });
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_static_instance_call),
       cmocka_unit_test(test_vector_pop_call),
+      cmocka_unit_test(test_dynamic_instance_call),
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);

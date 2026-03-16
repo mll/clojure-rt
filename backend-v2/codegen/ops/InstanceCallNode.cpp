@@ -88,24 +88,35 @@ TypedValue CodeGen::codegen(const Node &node, const InstanceCallNode &subnode,
     throwCodeGenerationException(oss.str(), node);
   }
 
+  // 4. Resolve Overloads and Handle Dynamic Dispatch
   const std::vector<IntrinsicDescription> &versions = it_method->second;
   const IntrinsicDescription *bestMatch = nullptr;
+  const IntrinsicDescription *generic = nullptr;
+  std::vector<const IntrinsicDescription *> specialized;
 
-  if (allDetermined) {
-    // 1. Try exact match
-    for (const auto &id : versions) {
-      // Instance method intrinsics expect 'this' as the first argument in their argTypes
-      if (id.argTypes.size() == args.size() + 1) {
+  // allArgs will be used for dispatch logic to match StaticCallNode pattern
+  std::vector<TypedValue> allArgs = {instanceVal};
+  allArgs.insert(allArgs.end(), args.begin(), args.end());
+
+  for (const auto &id : versions) {
+    if (id.argTypes.size() == allArgs.size()) {
+      bool staticallyPossible = true;
+      for (size_t i = 0; i < allArgs.size(); i++) {
+        if (allArgs[i].type.restriction(id.argTypes[i]).isEmpty()) {
+          staticallyPossible = false;
+          break;
+        }
+      }
+      if (!staticallyPossible)
+        continue;
+
+      // Special case: exact match
+      if (allDetermined) {
         bool match = true;
-        // Check 'this' type
-        if (instanceVal.type.restriction(id.argTypes[0]).isEmpty()) {
-          match = false;
-        } else {
-          for (size_t i = 0; i < args.size(); i++) {
-            if (argTypes[i].restriction(id.argTypes[i + 1]).isEmpty()) {
-              match = false;
-              break;
-            }
+        for (size_t i = 0; i < allArgs.size(); i++) {
+          if (allArgs[i].type.restriction(id.argTypes[i]).isEmpty()) {
+            match = false;
+            break;
           }
         }
         if (match) {
@@ -113,39 +124,160 @@ TypedValue CodeGen::codegen(const Node &node, const InstanceCallNode &subnode,
           break;
         }
       }
+
+      bool isGeneric = true;
+      for (const auto &at : id.argTypes) {
+        if (!at.isDynamic()) {
+          isGeneric = false;
+          break;
+        }
+      }
+      if (isGeneric) {
+        generic = &id;
+      } else {
+        specialized.push_back(&id);
+      }
     }
   }
 
   if (bestMatch) {
     std::vector<TypedValue> unboxedArgs;
-    // Push 'this'
-    unboxedArgs.push_back(this->valueEncoder.unbox(instanceVal));
-    // Push args
-    for (size_t i = 0; i < args.size(); i++) {
-      unboxedArgs.push_back(this->valueEncoder.unbox(args[i]));
+    for (size_t i = 0; i < allArgs.size(); i++) {
+      unboxedArgs.push_back(this->valueEncoder.unbox(allArgs[i]));
     }
-    
-    // Invoke intrinsic. CleanupChainGuard ensures resources are released.
-    // "functions consume" convention: generateIntrinsic takes guard and will pop/release.
-    auto result =
-        this->invokeManager.generateIntrinsic(*bestMatch, unboxedArgs, &guard);
-
-    return result;
+    return this->invokeManager.generateIntrinsic(*bestMatch, unboxedArgs, &guard);
   }
 
-  if (allDetermined) {
-    std::ostringstream oss;
-    oss << "No matching overload found for " << ObjectTypeSet::toHumanReadableName(objType) << "." << m
-        << " with arguments: [";
-    for (size_t i = 0; i < argTypes.size(); i++) {
-      oss << argTypes[i].toString() << (i == argTypes.size() - 1 ? "" : ", ");
-    }
-    oss << "]";
-    throwCodeGenerationException(oss.str(), node);
+  if (specialized.empty() && !generic) {
+    std::ostringstream ss;
+    ss << "No statically possible overloads found for " << ObjectTypeSet::toHumanReadableName(objType) << "." << m;
+    throwCodeGenerationException(ss.str(), node);
   }
 
-  throwCodeGenerationException("Dynamic dispatch for InstanceCallNode not implemented yet", node);
-  return TypedValue(ObjectTypeSet::all(), nullptr);
+  // If we have a generic fallback, limit specialized checks to save code size
+  if (generic && specialized.size() > 2) {
+    specialized.resize(2);
+  }
+
+  Function *currentFn = this->Builder.GetInsertBlock()->getParent();
+  BasicBlock *mergeBB =
+      BasicBlock::Create(this->TheContext, "instance_call_merge", currentFn);
+
+  struct DispatchCase {
+    BasicBlock *block;
+    TypedValue value;
+  };
+  std::vector<DispatchCase> cases;
+
+  // Placeholder for lazy runtime types
+  std::vector<Value *> argRuntimeTypes(allArgs.size(), nullptr);
+
+  for (const auto *fid : specialized) {
+    BasicBlock *thenBB = BasicBlock::Create(
+        this->TheContext, "instance_call_specialised", currentFn);
+    BasicBlock *nextBB = BasicBlock::Create(
+        this->TheContext, "instance_call_specialised_next", currentFn);
+
+    Value *match = nullptr;
+    for (size_t i = 0; i < allArgs.size(); i++) {
+      if (fid->argTypes[i].isDetermined()) {
+        if (!argRuntimeTypes[i]) {
+          TypedValue boxed = this->valueEncoder.box(allArgs[i]);
+          ObjectTypeSet retType(integerType, false);
+          std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType()};
+          std::vector<TypedValue> pArgVals = {boxed};
+          TypedValue typeVal = this->invokeManager.invokeRuntime(
+              "getType", &retType, pArgTypes, pArgVals);
+          argRuntimeTypes[i] = typeVal.value;
+        }
+
+        objectType target = fid->argTypes[i].determinedType();
+        Value *targetVal = ConstantInt::get(this->types.i32Ty, (uint32_t)target);
+        Value *isType =
+            this->Builder.CreateICmpEQ(argRuntimeTypes[i], targetVal);
+
+        if (match) {
+          match = this->Builder.CreateAnd(match, isType);
+        } else {
+          match = isType;
+        }
+      }
+    }
+
+    if (!match) {
+      match = this->Builder.getTrue();
+    }
+
+    this->Builder.CreateCondBr(match, thenBB, nextBB);
+    this->Builder.SetInsertPoint(thenBB);
+
+    std::vector<TypedValue> specializedArgs;
+    for (size_t i = 0; i < allArgs.size(); i++) {
+      if (fid->argTypes[i].isDetermined()) {
+        objectType target = fid->argTypes[i].determinedType();
+        llvm::Value *unboxedVal = nullptr;
+        if (target == integerType)
+          unboxedVal = this->valueEncoder.unboxInt32(allArgs[i]).value;
+        else if (target == doubleType)
+          unboxedVal = this->valueEncoder.unboxDouble(allArgs[i]).value;
+        else if (target == booleanType)
+          unboxedVal = this->valueEncoder.unboxBool(allArgs[i]).value;
+        else if (target == stringType || target == persistentListType ||
+                 target == persistentVectorType || target == bigIntegerType ||
+                 target == ratioType || target == keywordType ||
+                 target == symbolType || target == functionType ||
+                 target == classType || target == persistentArrayMapType ||
+                 target == varType) {
+          unboxedVal = this->valueEncoder.unboxPointer(allArgs[i]).value;
+        } else {
+          unboxedVal = this->valueEncoder.unbox(allArgs[i]).value;
+        }
+        specializedArgs.push_back(TypedValue(fid->argTypes[i], unboxedVal));
+      } else {
+        specializedArgs.push_back(this->valueEncoder.box(allArgs[i]));
+      }
+    }
+
+    TypedValue res =
+        this->invokeManager.generateIntrinsic(*fid, specializedArgs, &guard);
+
+    TypedValue boxedRes = this->valueEncoder.box(res);
+    cases.push_back({this->Builder.GetInsertBlock(), boxedRes});
+    this->Builder.CreateBr(mergeBB);
+    this->Builder.SetInsertPoint(nextBB);
+  }
+
+  if (generic) {
+    TypedValue genRes =
+        this->invokeManager.generateIntrinsic(*generic, allArgs, &guard);
+    TypedValue boxedGenRes = this->valueEncoder.box(genRes);
+    cases.push_back({this->Builder.GetInsertBlock(), boxedGenRes});
+    this->Builder.CreateBr(mergeBB);
+  } else {
+    // No match and no generic -> Runtime Exception
+    string typeName = ObjectTypeSet::toHumanReadableName(objType);
+    Value *className = this->Builder.CreateGlobalString(typeName, "instance_call_class");
+    Value *methName = this->Builder.CreateGlobalString(m, "instance_call_method");
+
+    std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType(),
+                                            ObjectTypeSet::dynamicType()};
+    std::vector<TypedValue> pArgVals = {
+        TypedValue(ObjectTypeSet::dynamicType(), className),
+        TypedValue(ObjectTypeSet::dynamicType(), methName)};
+
+    this->invokeManager.invokeRuntime("throwNoMatchingOverloadException_C",
+                                      nullptr, pArgTypes, pArgVals);
+    this->Builder.CreateUnreachable();
+  }
+
+  this->Builder.SetInsertPoint(mergeBB);
+  PHINode *phi =
+      Builder.CreatePHI(types.RT_valueTy, cases.size(), "instance_call_phi");
+  for (auto &c : cases) {
+    phi->addIncoming(c.value.value, c.block);
+  }
+
+  return TypedValue(ObjectTypeSet::dynamicType(), phi);
 }
 
 ObjectTypeSet CodeGen::getType(const Node &node,

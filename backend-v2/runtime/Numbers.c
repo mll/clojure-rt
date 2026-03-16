@@ -218,14 +218,10 @@ UNARY_MATH_WRAPPER(acos, acos)
 UNARY_MATH_WRAPPER(atan, atan)
 UNARY_MATH_WRAPPER(exp, exp)
 UNARY_MATH_WRAPPER(exp2, exp2)
-#ifdef __linux__
-UNARY_MATH_WRAPPER(exp10, exp10)
-#else
 RTValue Numbers_exp10(RTValue a) {
   double va = Numbers_toDouble(a);
   return RT_boxDouble(pow(10.0, va));
 }
-#endif
 UNARY_MATH_WRAPPER(log, log)
 UNARY_MATH_WRAPPER(logb, logb)
 UNARY_MATH_WRAPPER(log2, log2)

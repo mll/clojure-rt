@@ -18,6 +18,7 @@ namespace rt {
 TypedValue CodeGen::codegen(const Node &node, const HostInteropNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
 
+  throwCodeGenerationException("Host interop not implemented yet", node);
   return TypedValue(ObjectTypeSet::all(), nullptr);
 }
 

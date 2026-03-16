@@ -18,6 +18,7 @@ namespace rt {
 TypedValue CodeGen::codegen(const Node &node, const InstanceCallNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
 
+  throwCodeGenerationException("Instance call not implemented yet", node);
   return TypedValue(ObjectTypeSet::all(), nullptr);
 }
 

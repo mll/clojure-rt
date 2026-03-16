@@ -139,16 +139,16 @@ TypedValue CodeGen::codegen(const Node &node,
     return codegen(node, node.subnode().if_(), typeRestrictions);
   // case opImport:
   //   return codegen(node, node.subnode().import(), typeRestrictions);
-  //case opInstanceCall:
-//    return codegen(node, node.subnode().instancecall(), typeRestrictions);
-  // case opInstanceField:
-  //   return codegen(node, node.subnode().instancefield(), typeRestrictions);
-  // case opIsInstance:
-  //   return codegen(node, node.subnode().isinstance(), typeRestrictions);
-  // case opInvoke:
-  //   return codegen(node, node.subnode().invoke(), typeRestrictions);
-  // case opKeywordInvoke:
-  //   return codegen(node, node.subnode().keywordinvoke(), typeRestrictions);
+  case opInstanceCall:
+    return codegen(node, node.subnode().instancecall(), typeRestrictions);
+    // case opInstanceField:
+    //   return codegen(node, node.subnode().instancefield(), typeRestrictions);
+    // case opIsInstance:
+    //   return codegen(node, node.subnode().isinstance(), typeRestrictions);
+    // case opInvoke:
+    //   return codegen(node, node.subnode().invoke(), typeRestrictions);
+    // case opKeywordInvoke:
+    //   return codegen(node, node.subnode().keywordinvoke(), typeRestrictions);
   case opLet:
     return codegen(node, node.subnode().let(), typeRestrictions);
   // case opLetfn:
@@ -239,8 +239,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().if_(), typeRestrictions);
   // case opImport:
   //   return getType(node, node.subnode().import(), typeRestrictions);
-  //case opInstanceCall:
-//    return getType(node, node.subnode().instancecall(), typeRestrictions);
+  case opInstanceCall:
+    return getType(node, node.subnode().instancecall(), typeRestrictions);
   // case opInstanceField:
   //   return getType(node, node.subnode().instancefield(), typeRestrictions);
   // case opIsInstance:

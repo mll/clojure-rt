@@ -335,7 +335,7 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
                          const std::string &entryPoint) {
   // No changes here, we are moving this block later.
 
-  if (runtimeBitcodeBuffer) {
+  if (Level != llvm::OptimizationLevel::O0 && runtimeBitcodeBuffer) {
     auto runtimeModuleOrErr =
         llvm::parseBitcodeFile(*runtimeBitcodeBuffer, M.getContext());
     if (!runtimeModuleOrErr) {

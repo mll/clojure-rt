@@ -22,6 +22,7 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Target/TargetMachine.h"
 
 // Standard Library
 #include "../codegen/CodeGen.h"
@@ -39,6 +40,7 @@ namespace rt {
 
 class JITEngine {
   std::unique_ptr<llvm::orc::LLJIT> jit;
+  std::unique_ptr<llvm::TargetMachine> TM;
   ThreadPool pool;
   std::mutex engineMutex;
   std::map<std::string, llvm::orc::ResourceTrackerSP> functionTrackers;

@@ -1,18 +1,18 @@
 #include "JITEngine.h"
 #include "../RuntimeHeaders.h"
 #include "../runtime/Numbers.h"
+#include "../tools/EdnParser.h"
 #include "bridge/Exceptions.h"
-#include <llvm/ExecutionEngine/Orc/DebugObjectManagerPlugin.h>
-#include <llvm/Support/MemoryBuffer.h>
-#include <llvm/Bitcode/BitcodeReader.h>
-#include <llvm/Linker/Linker.h>
 #include <llvm/Analysis/InlineAdvisor.h>
 #include <llvm/Analysis/InlineCost.h>
+#include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/ExecutionEngine/Orc/DebugObjectManagerPlugin.h>
+#include <llvm/Linker/Linker.h>
+#include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Transforms/IPO/Inliner.h>
 #include <llvm/Transforms/IPO/ModuleInliner.h>
-#include <dlfcn.h>
-#include "../tools/EdnParser.h"
 
+extern "C" void *__emutls_get_address(void *);
 
 namespace rt {
 
@@ -24,8 +24,18 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
 
+  auto JTMB = llvm::orc::JITTargetMachineBuilder::detectHost();
+  if (!JTMB)
+    throw std::runtime_error("Failed to detect host");
+
+  auto TMTmp = JTMB->createTargetMachine();
+  if (!TMTmp)
+    throw std::runtime_error("Failed to create target machine");
+  TM = std::move(*TMTmp);
+
   auto JITExp =
       llvm::orc::LLJITBuilder()
+          .setJITTargetMachineBuilder(*JTMB)
           .setObjectLinkingLayerCreator(
               [&](llvm::orc::ExecutionSession &ES, const llvm::Triple &TT) {
                 auto ObjLinkingLayer =
@@ -100,22 +110,15 @@ JITEngine::compileAST(const Node &AST, const std::string &moduleName,
     auto module = std::move(result.module);
     auto constants = std::move(result.constants);
 
-    // 4. Optimize WITHOUT LOCK
-    if (level != llvm::OptimizationLevel::O0) {
-      this->optimize(*module, level, fName);
-    }
+    this->optimize(*module, level, fName);
 
-    // --- TUTAJ WYPISUJEMY IR ---
-    if (module && printModule) {
-      llvm::outs() << "\n=== Generated LLVM IR for: '" << moduleName
+    if (printModule && module) {
+      llvm::outs() << "\n=== Optimized LLVM IR for: '" << moduleName
                    << "' ===\n";
-      module->print(llvm::outs(),
-                    nullptr); // Wypisuje IR do standardowego wyjścia LLVM
-      llvm::outs() << "=============================================\n";
-      llvm::outs().flush(); // Wymuszamy opróżnienie bufora, żeby tekst nie
-                            // zniknął przy błędzie
+      module->print(llvm::outs(), nullptr);
+      llvm::outs() << "===============================================\n";
+      llvm::outs().flush();
     }
-    // ---------------------------
 
     llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
 
@@ -213,7 +216,8 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(absoluteSymbol("Numbers_sub", (void *)Numbers_sub));
   runtimeSymbols.insert(absoluteSymbol("Numbers_mul", (void *)Numbers_mul));
   runtimeSymbols.insert(absoluteSymbol("Numbers_div", (void *)Numbers_div));
-  runtimeSymbols.insert(absoluteSymbol("Numbers_toDouble", (void *)Numbers_toDouble));
+  runtimeSymbols.insert(
+      absoluteSymbol("Numbers_toDouble", (void *)Numbers_toDouble));
   runtimeSymbols.insert(absoluteSymbol("Numbers_lt", (void *)Numbers_lt));
   runtimeSymbols.insert(absoluteSymbol("Numbers_lte", (void *)Numbers_lte));
   runtimeSymbols.insert(absoluteSymbol("Numbers_gt", (void *)Numbers_gt));
@@ -289,21 +293,26 @@ void JITEngine::registerRuntimeSymbols() {
                      (void *)throwIndexOutOfBoundsException_C));
 
   // ClassExtension / Static Fields
-  runtimeSymbols.insert(absoluteSymbol("ClassExtension_getIndexedStaticField",
-                                       (void *)ClassExtension_getIndexedStaticField));
-  runtimeSymbols.insert(absoluteSymbol("ClassExtension_setIndexedStaticField",
-                                       (void *)ClassExtension_setIndexedStaticField));
+  runtimeSymbols.insert(
+      absoluteSymbol("ClassExtension_getIndexedStaticField",
+                     (void *)ClassExtension_getIndexedStaticField));
+  runtimeSymbols.insert(
+      absoluteSymbol("ClassExtension_setIndexedStaticField",
+                     (void *)ClassExtension_setIndexedStaticField));
   runtimeSymbols.insert(absoluteSymbol("ClassExtension_fieldIndex",
                                        (void *)ClassExtension_fieldIndex));
-  runtimeSymbols.insert(absoluteSymbol("ClassExtension_staticFieldIndex",
-                                       (void *)ClassExtension_staticFieldIndex));
-  runtimeSymbols.insert(absoluteSymbol("ClassExtension_resolveInstanceCall",
-                                       (void *)ClassExtension_resolveInstanceCall));
+  runtimeSymbols.insert(
+      absoluteSymbol("ClassExtension_staticFieldIndex",
+                     (void *)ClassExtension_staticFieldIndex));
+  runtimeSymbols.insert(
+      absoluteSymbol("ClassExtension_resolveInstanceCall",
+                     (void *)ClassExtension_resolveInstanceCall));
 
-  void* emutlsAddr = dlsym(RTLD_DEFAULT, "___emutls_get_address");
-  if (emutlsAddr) {
-      runtimeSymbols.insert(absoluteSymbol("___emutls_get_address", emutlsAddr));
-  }
+  // Bridge for emulated TLS required by JIT-compiled code
+  runtimeSymbols.insert(
+      absoluteSymbol("___emutls_get_address", (void *)__emutls_get_address));
+  runtimeSymbols.insert(
+      absoluteSymbol("__emutls_get_address", (void *)__emutls_get_address));
 
   cantFail(jit->getMainJITDylib().define(
       absoluteSymbols(std::move(runtimeSymbols))));
@@ -322,40 +331,94 @@ JITEngine::~JITEngine() {
   }
 }
 
-void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level, const std::string &entryPoint) {
-  if (runtimeBitcodeBuffer && Level != llvm::OptimizationLevel::O0) {
-    auto runtimeModuleOrErr = llvm::parseBitcodeFile(*runtimeBitcodeBuffer, M.getContext());
+void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
+                         const std::string &entryPoint) {
+  // No changes here, we are moving this block later.
+
+  if (runtimeBitcodeBuffer) {
+    auto runtimeModuleOrErr =
+        llvm::parseBitcodeFile(*runtimeBitcodeBuffer, M.getContext());
     if (!runtimeModuleOrErr) {
-      llvm::errs() << "Failed to parse runtime bitcode: " 
+      llvm::errs() << "Failed to parse runtime bitcode: "
                    << llvm::toString(runtimeModuleOrErr.takeError()) << "\n";
     } else {
       auto &runtimeModule = *runtimeModuleOrErr;
-      
+
       // We want to link only what's needed and keep linked functions internal
       // so they can be inlined and then deleted if not needed elsewere.
-      if (llvm::Linker::linkModules(M, std::move(runtimeModule), 
+      if (llvm::Linker::linkModules(M, std::move(runtimeModule),
                                     llvm::Linker::LinkOnlyNeeded)) {
-         llvm::errs() << "Failed to link runtime bitcode\n";
+        llvm::errs() << "Failed to link runtime bitcode\n";
       } else {
-        // Shared global variables should not be duplicated (e.g., objectCount, Nil_VALUE).
-        // We force them to be external declarations so they bind to the host process.
+        // Shared global variables should not be duplicated (e.g., objectCount,
+        // Nil_VALUE). We force them to be external declarations so they bind to
+        // the host process.
         for (auto &G : M.globals()) {
           if (!G.isDeclaration() && G.hasExternalLinkage()) {
-              G.setInitializer(nullptr);
-              G.setLinkage(llvm::GlobalValue::ExternalLinkage);
+            G.setInitializer(nullptr);
+            G.setLinkage(llvm::GlobalValue::ExternalLinkage);
           }
         }
 
-        // Mark all functions from runtime as internal so they can be optimized away if inlined.
-        // We keep the entry point and 'main' external so the JIT can find/run them.
+        // Mark all functions from runtime as internal so they can be optimized
+        // away if inlined. We keep the entry point and 'main' external so the
+        // JIT can find/run them.
         for (auto &F : M) {
-          if (!F.isDeclaration() && F.getName() != "main" && F.getName() != entryPoint) {
-             if (F.hasExternalLinkage()) {
-                 F.setLinkage(llvm::GlobalValue::InternalLinkage);
-             }
+          if (!F.isDeclaration() && F.getName() != "main" &&
+              F.getName() != entryPoint) {
+            if (F.hasExternalLinkage()) {
+              F.setLinkage(llvm::GlobalValue::InternalLinkage);
+            }
           }
         }
       }
+    }
+  }
+
+  // 1. Sync target attributes and strip blockers across the module.
+  // We do this AFTER linking so that functions pulled from runtime bitcode
+  // are also processed. This is critical for inlining.
+  std::string bestCPU = TM->getTargetCPU().str();
+  std::string bestFeatures = TM->getTargetFeatureString().str();
+
+  // First pass: Discover "richest" attributes from the merged module.
+  // Runtime bitcode usually has more detailed feature strings than the TM
+  // default.
+  for (auto &F : M) {
+    if (F.isDeclaration())
+      continue;
+    if (F.hasFnAttribute("target-cpu")) {
+      auto attr = F.getFnAttribute("target-cpu").getValueAsString();
+      if (attr.size() > bestCPU.size())
+        bestCPU = attr.str();
+    }
+    if (F.hasFnAttribute("target-features")) {
+      auto attr = F.getFnAttribute("target-features").getValueAsString();
+      if (attr.size() > bestFeatures.size())
+        bestFeatures = attr.str();
+    }
+  }
+
+  // Second pass: Apply "gold standard" attributes to EVERY function.
+  for (auto &F : M) {
+    if (!F.isDeclaration()) {
+      if (!bestCPU.empty())
+        F.addFnAttr("target-cpu", bestCPU);
+      if (!bestFeatures.empty())
+        F.addFnAttr("target-features", bestFeatures);
+
+      // Force consistent frame-pointer
+      F.addFnAttr("frame-pointer", "non-leaf");
+
+      F.removeFnAttr(llvm::Attribute::OptimizeNone);
+      F.removeFnAttr(llvm::Attribute::NoInline);
+
+      // Also remove ssp (stack protector) to avoid potential mismatches,
+      // and ensure we don't have "no-skipped-passes" which can interfere.
+      F.removeFnAttr(llvm::Attribute::StackProtect);
+      F.removeFnAttr(llvm::Attribute::StackProtectReq);
+      F.removeFnAttr(llvm::Attribute::StackProtectStrong);
+      F.removeFnAttr("no-skipped-passes");
     }
   }
 
@@ -364,7 +427,7 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level, const s
   llvm::CGSCCAnalysisManager CGAM;
   llvm::ModuleAnalysisManager MAM;
 
-  llvm::PassBuilder PB;
+  llvm::PassBuilder PB(TM->getTargetTriple().isOSDarwin() ? nullptr : TM.get());
 
   PB.registerModuleAnalyses(MAM);
   PB.registerCGSCCAnalyses(CGAM);
@@ -372,13 +435,18 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level, const s
   PB.registerLoopAnalyses(LAM);
   PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
+  // Add target-specific analysis
+  FAM.registerPass([&] { return TM->getTargetIRAnalysis(); });
+
   llvm::ModulePassManager MPM;
 
-  if (Level == llvm::OptimizationLevel::O2) {
-    // For O2 we want VERY aggressive inlining
-    llvm::InlineParams IP = llvm::getInlineParams(2, 0);
-    IP.DefaultThreshold = 500; // Increase default threshold (normally 225)
-    IP.HintThreshold = 1000;   // Increase hint threshold
+  if (Level == llvm::OptimizationLevel::O3) {
+    // For O3 we want VERY aggressive inlining to pull in linked runtime
+    // functions.
+    llvm::InlineParams IP;
+    IP = llvm::getInlineParams(3, 0);
+    IP.DefaultThreshold = 1500; // Aggressive
+    IP.HintThreshold = 2500;
     MPM.addPass(llvm::ModuleInlinerWrapperPass(IP));
   }
 

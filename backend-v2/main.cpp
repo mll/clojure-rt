@@ -33,15 +33,15 @@ using namespace llvm;
 
 #include "RuntimeHeaders.h"
 
-extern "C" void* __emutls_get_address(void*);
+extern "C" void *__emutls_get_address(void *);
 
 int main(int argc, char *argv[]) {
   // Force the linker to include ___emutls_get_address from the Clang runtime.
   // This is required on macOS when JIT-compiled code uses thread-local storage,
   // as the JIT session needs to resolve this symbol.
-  volatile void* force_emutls = (void*)&__emutls_get_address;
+  volatile void *force_emutls = (void *)&__emutls_get_address;
   (void)force_emutls;
-  
+
   setbuf(stdout, NULL);
   if (argc != 2) {
     cout << "Usage: clojure-rt <filename.cljb>" << endl;
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::string filename = argv[1];
-  llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O2;
+  llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O3;
 
   int retVal = -1;
 
@@ -100,11 +100,10 @@ int main(int argc, char *argv[]) {
     state.storeInternalProtocols(interfaces);
 
     cout << "Compiling classes..." << endl;
-    auto compiled = engine
-                        .compileAST(astClasses.nodes(0), "__classes",
-                                    optLevel, false)
-                        .get()
-                        .toPtr<RTValue (*)()>();
+    auto compiled =
+        engine.compileAST(astClasses.nodes(0), "__classes", optLevel, false)
+            .get()
+            .toPtr<RTValue (*)()>();
     cout << "Calling classes..." << endl;
     RTValue classes = compiled();
 
@@ -117,8 +116,7 @@ int main(int argc, char *argv[]) {
       cout << "=============================" << endl;
       cout << "Compiling!!!" << endl;
       std::string moduleName = "__repl__" + std::to_string(j);
-      auto f = engine.compileAST(topLevelNode, moduleName,
-                                 optLevel, true);
+      auto f = engine.compileAST(topLevelNode, moduleName, optLevel, true);
 
       RTValue whaat = f.get().toPtr<RTValue (*)()>()();
       String *s = toString(whaat);

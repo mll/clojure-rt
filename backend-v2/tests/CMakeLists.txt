@@ -20,8 +20,7 @@ set(TEST_MODULES
     codegen/InstanceCallNode_test
     codegen/InstanceCallIC_test
     VarUAF_repro_test
-    JITReclimation_test
-    JITSafety_advanced_test
+    JITSafety_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

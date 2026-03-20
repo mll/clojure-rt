@@ -128,7 +128,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
                         builder.CreateStructGEP(argsArrType, argsArray, i + 1));
   }
 
-  Value *methNameG = builder.CreateGlobalStringPtr(methodName);
+  Value *methNameG = builder.CreateGlobalString(methodName);
   Value *jitEnginePtr =
       ConstantInt::get(this->types.i64Ty, (uintptr_t)codeGen.jitEnginePtr);
   jitEnginePtr = builder.CreateIntToPtr(jitEnginePtr, types.ptrTy);
@@ -224,22 +224,58 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
       throwInternalInconsistencyException(oss.str());
   }
 
-  auto it_method = ext->instanceFns.find(methodName);
-  if (it_method == ext->instanceFns.end()) {
+  // 1. Resolve Overloads and Handle Dynamic Dispatch
+  const std::vector<IntrinsicDescription> *versions_ptr = nullptr;
+  ClassDescription *curr_ext = ext;
+  ::Class *curr_cls = cls.get();
+  Ptr_retain(curr_cls);
+
+  while (curr_ext) {
+    auto it = curr_ext->instanceFns.find(methodName);
+    if (it != curr_ext->instanceFns.end()) {
+      versions_ptr = &it->second;
+      break;
+    }
+
+    if (curr_ext->parentName.empty() || curr_ext->parentName == curr_ext->name) {
+      break;
+    }
+
+    ::Class *parentCls =
+        this->compilerState.classRegistry.getCurrent(curr_ext->parentName.c_str());
+    Ptr_release(curr_cls);
+    curr_cls = parentCls;
+    if (!curr_cls) {
+      curr_ext = nullptr;
+      break;
+    }
+    curr_ext = static_cast<ClassDescription *>(curr_cls->compilerExtension);
+  }
+
+  if (!versions_ptr) {
+    if (curr_cls)
+      Ptr_release(curr_cls);
     std::ostringstream oss;
     oss << "Class " << ObjectTypeSet::toHumanReadableName(objType)
-        << " does not have an instance method " << methodName;
+        << " (or any of its parents) does not have an instance method "
+        << methodName;
     if (node)
       throwCodeGenerationException(oss.str(), *node);
     else
       throwInternalInconsistencyException(oss.str());
   }
 
-  // 2. Resolve Overloads and Handle Dynamic Dispatch
-  const std::vector<IntrinsicDescription> &versions = it_method->second;
+  const std::vector<IntrinsicDescription> &versions = *versions_ptr;
   const IntrinsicDescription *bestMatch = nullptr;
   const IntrinsicDescription *generic = nullptr;
   std::vector<const IntrinsicDescription *> specialized;
+
+  // We must release curr_cls before return/throw but we need to keep versions_ptr
+  // valid until we are done with it. Since versions_ptr points INTO ClassDescription
+  // which is owned by the Class in the registry, we should keep curr_cls alive
+  // until the end of this function or until we've used versions.
+  // Using a PtrWrapper for safety.
+  PtrWrapper<::Class> cls_guard(curr_cls); 
 
   std::vector<TypedValue> allArgs = {instance};
   allArgs.insert(allArgs.end(), args.begin(), args.end());
@@ -482,7 +518,32 @@ InvokeManager::predictInstanceCallType(const std::string &methodName,
   if (it_method == ext->instanceFns.end())
     return ObjectTypeSet::dynamicType();
 
-  const std::vector<IntrinsicDescription> &versions = it_method->second;
+  const std::vector<IntrinsicDescription> *versions_ptr = nullptr;
+  ClassDescription *curr_ext = ext;
+  ::Class *curr_cls = cls.get();
+  Ptr_retain(curr_cls);
+
+  while (curr_ext) {
+    auto it = curr_ext->instanceFns.find(methodName);
+    if (it != curr_ext->instanceFns.end()) {
+      versions_ptr = &it->second;
+      break;
+    }
+
+    if (curr_ext->parentName.empty() || curr_ext->parentName == curr_ext->name) {
+      break;
+    }
+
+    ::Class *parentCls =
+        compilerState.classRegistry.getCurrent(curr_ext->parentName.c_str());
+    Ptr_release(curr_cls);
+    curr_cls = parentCls;
+    if (!curr_cls) {
+      curr_ext = nullptr;
+      break;
+    }
+    curr_ext = static_cast<ClassDescription *>(curr_cls->compilerExtension);
+  }
 
   bool allDetermined = instanceType.isDetermined();
   for (const auto &a : args) {
@@ -492,7 +553,9 @@ InvokeManager::predictInstanceCallType(const std::string &methodName,
     }
   }
 
-  if (allDetermined) {
+  if (versions_ptr && allDetermined) {
+    PtrWrapper<::Class> cls_guard(curr_cls);
+    const std::vector<IntrinsicDescription> &versions = *versions_ptr;
     for (const auto &id : versions) {
       if (id.argTypes.size() == args.size() + 1) {
         bool match = true;

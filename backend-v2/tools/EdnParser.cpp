@@ -231,7 +231,7 @@ ClassDescription::ClassDescription(RTValue from,
       description, Keyword_create(String_create("instance-fns"))));
 
   if (getType(ifnsWrapper.get()) == persistentArrayMapType) {
-    this->instanceFns = parseIntrinsics(ifnsWrapper.take(), classData, this->type);
+    this->instanceFns = parseIntrinsics(ifnsWrapper.take(), classData, this->type, true);
   } else if (getType(ifnsWrapper.get()) != nilType) {
     throwInternalInconsistencyException(":instance-fns must be a map.");
   }
@@ -347,7 +347,8 @@ ClassDescription::parseStaticFields(RTValue from) {
 
 unordered_map<string, vector<IntrinsicDescription>>
 ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
-                                 const ObjectTypeSet &thisType) {
+                                 const ObjectTypeSet &thisType,
+                                 bool isInstance) {
   ConsumedValue root(from);
   unordered_map<string, vector<IntrinsicDescription>> retVal;
   if (getType(root.get()) != persistentArrayMapType) {
@@ -384,7 +385,7 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
       // IntrinsicDescription constructor consumes. Protect borrowed entry.
       retain(intrinsicRaw);
       descriptions.push_back(
-          IntrinsicDescription(intrinsicRaw, classData, thisType));
+          IntrinsicDescription(intrinsicRaw, classData, thisType, isInstance));
       PersistentVector_iteratorNext(&it);
     }
 
@@ -402,7 +403,8 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
 
 IntrinsicDescription::IntrinsicDescription(RTValue from,
                                            TemporaryClassData &classData,
-                                           const ObjectTypeSet &thisType) {
+                                           const ObjectTypeSet &thisType,
+                                           bool isInstance) {
   ConsumedValue root(from);
   if (getType(root.get()) != persistentArrayMapType) {
     throwInternalInconsistencyException("Intrinsic description is not a map");
@@ -465,17 +467,24 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
     uword_t argCnt = argsVector->count; // Safe borrowed access.
 
     // PersistentVector_iterator does not consume argsVector.
+    bool firstArgIsThis = false;
     PersistentVectorIterator it = PersistentVector_iterator(argsVector);
     for (uword_t j = 0; j < argCnt; j++) {
       RTValue argRaw = PersistentVector_iteratorGet(&it);
-      // toString consumes. Protect borrowed entry for iterator.
       retain(argRaw);
       String *argStr = String_compactify(toString(argRaw));
       string sArgKey = String_c_str(argStr);
       Ptr_release(argStr);
 
       if (sArgKey == ":this") {
+        if (!isInstance) {
+          throwInternalInconsistencyException(":this used in a static function/intrinsic.");
+        }
+        if (j != 0) {
+          throwInternalInconsistencyException(":this must be the first argument.");
+        }
         this->argTypes.push_back(thisType);
+        firstArgIsThis = true;
       } else if (sArgKey == ":any") {
         this->argTypes.push_back(ObjectTypeSet::all());
       } else if (sArgKey == ":nil") {
@@ -487,7 +496,6 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
         }
         PersistentArrayMap *argClassMap = classData.classesByName[sArgKey];
 
-        // Protect borrowed argClassMap for get.
         Ptr_retain(argClassMap);
         RTValue argTypeRaw = PersistentArrayMap_get(
             argClassMap, Keyword_create(String_create("object-type")));
@@ -502,6 +510,12 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
       }
       PersistentVector_iteratorNext(&it);
     }
+    
+    if (isInstance && !firstArgIsThis) {
+       throwInternalInconsistencyException("Instance method missing :this argument.");
+    }
+  } else if (isInstance) {
+    throwInternalInconsistencyException("Instance method missing :this argument (no args vector).");
   }
 
   retain(root.get());

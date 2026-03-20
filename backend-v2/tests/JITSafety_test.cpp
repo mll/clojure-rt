@@ -9,6 +9,7 @@
 extern "C" {
 #include "../runtime/RuntimeInterface.h"
 #include "../runtime/tests/TestTools.h"
+#include "../bridge/InstanceCallStub.h"
 #include <cmocka.h>
 }
 
@@ -150,14 +151,24 @@ static void setup_test_metadata(rt::ThreadsafeCompilerState &compState, rt::JITE
         return;
     }
 
-    auto res = engine.compileAST(astClasses.nodes(0), "__classes", llvm::OptimizationLevel::O0, false).get();
-    RTValue classes = res.toPtr<RTValue (*)()>()();
-    compState.storeInternalClasses(classes);
+    try {
+        auto res = engine.compileAST(astClasses.nodes(0), "__classes", llvm::OptimizationLevel::O0, false).get();
+        RTValue classes = res.toPtr<RTValue (*)()>()();
+        compState.storeInternalClasses(classes);
+    } catch (const LanguageException& e) {
+        fprintf(stderr, "LanguageException during setup_test_metadata: %s\n", getExceptionString(e).c_str());
+        throw;
+    } catch (const std::exception& e) {
+        fprintf(stderr, "std::exception during setup_test_metadata: %s\n", e.what());
+        throw;
+    } catch (...) {
+        fprintf(stderr, "UNKNOWN EXCEPTION during setup_test_metadata\n");
+        throw;
+    }
 }
 
 // 3. Concurrency Under Compilation Error Test
-// External declaration of the bouncer we want to test
-extern "C" RTValue InstanceCallSlowPath(void* icSlot, const char* methodName, int argCount, RTValue* args, uint64_t signature, void* jitEnginePtr);
+// Bouncer declaration is now in InstanceCallStub.h
 
 static void test_compilation_error_concurrency(void **state_arg) {
     (void)state_arg;
@@ -186,7 +197,7 @@ static void test_compilation_error_concurrency(void **state_arg) {
             // Signature (boxedMask) should be 1 if arg 0 is boxed (which it is)
             RTValue search = RT_boxPtr(String_create("e"));
             RTValue args[2] = { strObj, search };
-            RTValue res = InstanceCallSlowPath(&icSlotOk, "indexOf", 1, args, 1, &engine);
+            void* res = InstanceCallSlowPath(&icSlotOk, "indexOf", 1, args, 1, &engine);
             
             // res is the address of the specialized bridge
             if (res != 0) {
@@ -225,6 +236,43 @@ static void test_compilation_error_concurrency(void **state_arg) {
     engine.sweep(); 
 }
 
+void test_inheritance_bigint_tostring(void **state) {
+    (void)state;
+    rt::ThreadsafeCompilerState compState;
+    JITEngine engine(compState);
+    setup_test_metadata(compState, engine);
+    
+    // Create a BigInt (type 13 in rt-classes.edn)
+    BigInteger *bi = BigInteger_createFromInt(12345);
+    RTValue biObj = RT_boxPtr(bi);
+    
+    InlineCache icSlot = {0, nullptr};
+    // InstanceCallSlowPath expects [0] = instance, [1...] = args. 
+    // For 0-arg method toString, we need 1 element in args array.
+    RTValue args[1] = { biObj };
+    
+    // This should resolve toString from java.lang.Object
+    // because clojure.lang.BigInt (type 13) extends Object and doesn't have its own toString in metadata.
+    void* bridgePtr = InstanceCallSlowPath(&icSlot, "toString", 0, args, 0, &engine);
+    assert_non_null(bridgePtr);
+    
+    assert_int_equal(icSlot.key, 13);
+    
+    // Call the bridge. Specialized bridge for 0-arg method takes 1 arg (instance).
+    typedef RTValue (*BridgeFn)(RTValue);
+    BridgeFn bridgeFn = (BridgeFn)bridgePtr;
+    RTValue res = bridgeFn(biObj);
+    
+    assert_true(RT_isPtr(res));
+    String *s = (String*)RT_unboxPtr(res);
+    
+    // BigInteger_toString appends 'N' and creates a compound string.
+    // String_c_str requires compactification.
+    String *compact = String_compactify(s);
+    assert_string_equal(String_c_str(compact), "12345N");
+    Ptr_release(compact);
+}
+
 int main(void) {
     initialise_memory();
     RuntimeInterface_initialise();
@@ -233,6 +281,7 @@ int main(void) {
         cmocka_unit_test(test_two_stage_reclamation),
         cmocka_unit_test(test_jit_reclamation_stress),
         cmocka_unit_test(test_compilation_error_concurrency),
+        cmocka_unit_test(test_inheritance_bigint_tostring),
     };
     int result = cmocka_run_group_tests(tests, NULL, NULL);
     RuntimeInterface_cleanup();

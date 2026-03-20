@@ -30,14 +30,16 @@ public:
   ObjectTypeSet returnType;
   IntrinsicDescription() = default;
   IntrinsicDescription(RTValue from, TemporaryClassData &classData,
-                       const ObjectTypeSet &thisType = ObjectTypeSet::all());
+                       const ObjectTypeSet &thisType = ObjectTypeSet::all(),
+                       bool isInstance = false);
 };
 
 class ClassDescription {
   unordered_map<string, RTValue> parseStaticFields(RTValue from);
   unordered_map<string, vector<IntrinsicDescription>>
   parseIntrinsics(RTValue from, TemporaryClassData &classData,
-                  const ObjectTypeSet &thisType = ObjectTypeSet::all());
+                  const ObjectTypeSet &thisType = ObjectTypeSet::all(),
+                  bool isInstance = false);
 
 public:
   ObjectTypeSet type;

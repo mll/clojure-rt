@@ -1,7 +1,7 @@
 '{java.lang.Object
   {:alias :any
    :instance-fns
-   {toString [{:args [] :type :call :symbol "toString" :returns java.lang.String}]}}
+   {toString [{:args [:this] :type :call :symbol "toString" :returns java.lang.String}]}}
 
   java.lang.Class
   {:object-type 15

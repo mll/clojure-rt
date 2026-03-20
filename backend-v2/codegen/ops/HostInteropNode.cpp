@@ -17,60 +17,27 @@ namespace rt {
 
 TypedValue CodeGen::codegen(const Node &node, const HostInteropNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
+  CleanupChainGuard guard(*this);
 
-  throwCodeGenerationException("Host interop not implemented yet", node);
-  return TypedValue(ObjectTypeSet::all(), nullptr);
+  // 1. Codegen target
+  auto targetVal = codegen(subnode.target(), ObjectTypeSet::all());
+  guard.push(targetVal);
+
+  // 2. Host interop (getter/0-arg call) uses the same mechanism as instance
+  // call
+  return this->invokeManager.generateInstanceCall(subnode.morf(), targetVal, {},
+                                                  &guard, &node);
 }
 
 ObjectTypeSet CodeGen::getType(const Node &node, const HostInteropNode &subnode,
                                const ObjectTypeSet &typeRestrictions) {
-  auto targetType = getType(subnode.target(), ObjectTypeSet::all());
-  if (!targetType.isDetermined()) {
-    return ObjectTypeSet::dynamicType();
+  if (subnode.isassignable()) {
+    return ObjectTypeSet::all();
   }
 
-  // auto methodName = subnode.method();
-  // uint64_t classId = 0;
-
-  // if (targetType.isDetermined()) {
-  //   if (targetType.determinedType() != deftypeType) {
-  //     classId = targetType.determinedType();
-  //   } else if (targetType.isDeterminedClass()) {
-  //     classId = targetType.determinedClass();
-  //   }
-  // }
-
-  // if (classId) { // Static dispatch
-  //   auto classMethods = TheProgramme->InstanceCallLibrary.find(classId);
-  //   if (classMethods == TheProgramme->InstanceCallLibrary.end())
-  //     return ObjectTypeSet::dynamicType(); // class not found
-
-  //   auto methods = classMethods->second.find(methodName);
-  //   if (methods != classMethods->second.end()) { // class and method found
-  //     vector<ObjectTypeSet> types{targetType};
-  //     for (auto arg : subnode.args())
-  //       types.push_back(getType(arg, ObjectTypeSet::all()));
-  //     string requiredTypes = ObjectTypeSet::typeStringForArgs(types);
-  //     for (auto method : methods->second) {
-  //       auto methodTypes = typesForArgString(node, method.first);
-  //       if (method.first != requiredTypes)
-  //         continue;
-  //       return method.second
-  //           .first(this, methodName + " " + requiredTypes, node, types)
-  //           .restriction(typeRestrictions);
-  //     }
-  //     return ObjectTypeSet::dynamicType(); // class found, static method
-  //     found,
-  //                                          // but does not expect arity 0
-  //   } else { // class found, static method not found - dynamic method or not
-  //            // present at all
-  //     return ObjectTypeSet::dynamicType();
-  //   }
-  // }
-
-  // CONSIDER: Check if dynamic method exists (this tells us nothing about its
-  // type, but lets us throw an exception)
-  return ObjectTypeSet::all();
+  auto targetType = getType(subnode.target(), ObjectTypeSet::all());
+  return this->invokeManager.predictInstanceCallType(subnode.morf(), targetType,
+                                                     {});
 }
 
 } // namespace rt

@@ -108,6 +108,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(BACKEND_SOURCES
       bridge/Exceptions.cpp
+      bridge/InstanceCallStub.cpp
       types/ObjectTypeSet.cpp
       tools/ThreadPool.cpp
       jit/JITEngine.cpp

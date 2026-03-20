@@ -1,9 +1,9 @@
-#include "InvokeManager.h"
-#include "../CodeGen.h"
 #include "../../bridge/Exceptions.h"
 #include "../../tools/EdnParser.h"
 #include "../../tools/RTValueWrapper.h"
 #include "../../types/ConstantClass.h"
+#include "../CodeGen.h"
+#include "InvokeManager.h"
 #include "llvm/IR/MDBuilder.h"
 #include <sstream>
 
@@ -12,22 +12,176 @@ using namespace std;
 
 namespace rt {
 
-TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
-                                              TypedValue instance,
-                                              const std::vector<TypedValue> &args,
-                                              CleanupChainGuard *guard,
-                                              const clojure::rt::protobuf::bytecode::Node *node) {
-  // 1. Resolve Class
+TypedValue InvokeManager::generateInstanceCall(
+    const std::string &methodName, TypedValue instance,
+    const std::vector<TypedValue> &args, CleanupChainGuard *guard,
+    const clojure::rt::protobuf::bytecode::Node *node) {
   if (!instance.type.isDetermined()) {
-    if (node)
-        throwCodeGenerationException("Dynamic instance calls require determined instance type currently", *node);
-    else
-        throwInternalInconsistencyException("Dynamic instance calls require determined instance type currently");
+    return generateDynamicInstanceCall(methodName, instance, args, guard, node);
+  } else {
+    return generateDeterminedInstanceCall(methodName, instance, args, guard,
+                                          node);
+  }
+}
+
+TypedValue InvokeManager::generateDynamicInstanceCall(
+    const std::string &methodName, TypedValue instance,
+    const std::vector<TypedValue> &args, CleanupChainGuard *guard,
+    const clojure::rt::protobuf::bytecode::Node *node) {
+  auto &TheContext = theModule.getContext();
+  Function *currentFn = this->builder.GetInsertBlock()->getParent();
+  if (args.size() >= 64) {
+    throwInternalInconsistencyException(
+        "Instance call with more than 63 arguments is not supported in dynamic "
+        "mode");
   }
 
+  // Allocate an Inline Cache slot as a global variable in the module
+  auto *slotTy = StructType::get(TheContext, {types.wordTy, types.ptrTy});
+
+  std::stringstream ss;
+  ss << "__ic_slot_cg_" << &this->codeGen << "_" << icCounter++;
+  if (node) {
+    ss << "_node_" << node;
+  }
+  std::string slotName = ss.str();
+
+  auto *slotGlobal =
+      new GlobalVariable(theModule, slotTy, false, GlobalValue::InternalLinkage,
+                         ConstantAggregateZero::get(slotTy), slotName);
+  unsigned int wordSizeBits = types.wordTy->getPrimitiveSizeInBits();
+  slotGlobal->setAlignment(MaybeAlign(wordSizeBits / 4));
+  Value *slotPtr = slotGlobal;
+
+  // Define the bridge signature based on call-site knowledge
+  std::vector<Type *> llvmArgTypes;
+  llvmArgTypes.push_back(types.RT_valueTy); // Instance
+  uint64_t boxedMask = 0;
+  for (size_t i = 0; i < args.size(); i++) {
+    if (args[i].type.isDetermined()) {
+      objectType t = args[i].type.determinedType();
+      if (t == integerType)
+        llvmArgTypes.push_back(types.i32Ty);
+      else if (t == doubleType)
+        llvmArgTypes.push_back(types.doubleTy);
+      else if (t == booleanType)
+        llvmArgTypes.push_back(types.i1Ty);
+      else if (t == keywordType || t == symbolType || t == nilType)
+        llvmArgTypes.push_back(types.RT_valueTy);
+      else
+        llvmArgTypes.push_back(types.ptrTy);
+    } else {
+      llvmArgTypes.push_back(types.RT_valueTy);
+      boxedMask |= (1ULL << i);
+    }
+  }
+  FunctionType *bridgeSig =
+      FunctionType::get(types.RT_valueTy, llvmArgTypes, false);
+
+  // 1. Get current instance type
+  TypedValue boxedInstance = valueEncoder.box(instance);
+  FunctionType *getTypeSig =
+      FunctionType::get(types.i64Ty, {types.RT_valueTy}, false);
+  FunctionCallee getTypeFunc =
+      theModule.getOrInsertFunction("getType", getTypeSig);
+  Value *currentTypeIdent =
+      builder.CreateCall(getTypeFunc, {boxedInstance.value});
+
+  // 2. Check IC hit (Atomic load for consistency)
+  unsigned int pairSizeBits = wordSizeBits * 2;
+  Type *pairTy = IntegerType::get(TheContext, pairSizeBits);
+  LoadInst *pair = builder.CreateAlignedLoad(
+      pairTy, slotPtr, MaybeAlign(wordSizeBits / 4), "ic_pair");
+  pair->setAtomic(AtomicOrdering::Acquire);
+
+  Value *cachedTag = builder.CreateTrunc(pair, types.wordTy, "cached_tag");
+  Value *cachedBridgeVal = builder.CreateLShr(pair, wordSizeBits);
+  Value *cachedBridgeIword =
+      builder.CreateTrunc(cachedBridgeVal, types.wordTy, "cached_bridge_iword");
+  Value *cachedBridge =
+      builder.CreateIntToPtr(cachedBridgeIword, types.ptrTy, "cached_bridge");
+
+  BasicBlock *fastPath = BasicBlock::Create(TheContext, "ic_hit", currentFn);
+  BasicBlock *slowPath = BasicBlock::Create(TheContext, "ic_miss", currentFn);
+  BasicBlock *callBB = BasicBlock::Create(TheContext, "ic_call", currentFn);
+
+  Value *isHit = builder.CreateICmpEQ(cachedTag, currentTypeIdent);
+  builder.CreateCondBr(isHit, fastPath, slowPath);
+
+  // --- SLOW PATH: Call Bouncer ---
+  builder.SetInsertPoint(slowPath);
+  FunctionType *bouncerSig =
+      FunctionType::get(types.ptrTy,
+                        {types.ptrTy, types.ptrTy, types.i32Ty, types.ptrTy,
+                         types.i64Ty, types.ptrTy},
+                        false);
+  FunctionCallee bouncerFunc =
+      theModule.getOrInsertFunction("InstanceCallSlowPath", bouncerSig);
+
+  auto *argsArrType = ArrayType::get(types.RT_valueTy, args.size() + 1);
+  auto *argsArray = builder.CreateAlloca(argsArrType, nullptr, "bouncer_args");
+  builder.CreateStore(boxedInstance.value,
+                      builder.CreateStructGEP(argsArrType, argsArray, 0));
+  for (size_t i = 0; i < args.size(); i++) {
+    TypedValue b = valueEncoder.box(args[i]);
+    builder.CreateStore(b.value,
+                        builder.CreateStructGEP(argsArrType, argsArray, i + 1));
+  }
+
+  Value *methNameG = builder.CreateGlobalStringPtr(methodName);
+  Value *jitEnginePtr =
+      ConstantInt::get(this->types.i64Ty, (uintptr_t)codeGen.jitEnginePtr);
+  jitEnginePtr = builder.CreateIntToPtr(jitEnginePtr, types.ptrTy);
+
+  Value *newBridge = builder.CreateCall(
+      bouncerFunc,
+      {slotPtr, methNameG, ConstantInt::get(types.i32Ty, (int32_t)args.size()),
+       builder.CreateStructGEP(argsArrType, argsArray, 0),
+       ConstantInt::get(types.i64Ty, boxedMask), jitEnginePtr});
+  builder.CreateBr(callBB);
+
+  // --- FAST PATH ---
+  builder.SetInsertPoint(fastPath);
+  builder.CreateBr(callBB);
+
+  // --- EXECUTE BRIDGE ---
+  builder.SetInsertPoint(callBB);
+  PHINode *bridgePtr = builder.CreatePHI(types.ptrTy, 2, "bridge_to_call");
+  bridgePtr->addIncoming(cachedBridge, fastPath);
+  bridgePtr->addIncoming(newBridge, slowPath);
+
+  std::vector<Value *> bridgeArgs;
+  bridgeArgs.push_back(boxedInstance.value);
+  for (size_t i = 0; i < args.size(); i++) {
+    if (args[i].type.isDetermined()) {
+      objectType t = args[i].type.determinedType();
+      if (t == integerType)
+        bridgeArgs.push_back(valueEncoder.unboxInt32(args[i]).value);
+      else if (t == doubleType)
+        bridgeArgs.push_back(valueEncoder.unboxDouble(args[i]).value);
+      else if (t == booleanType)
+        bridgeArgs.push_back(valueEncoder.unboxBool(args[i]).value);
+      else if (t == keywordType || t == symbolType || t == nilType)
+        bridgeArgs.push_back(valueEncoder.box(args[i]).value);
+      else
+        bridgeArgs.push_back(valueEncoder.unboxPointer(args[i]).value);
+    } else {
+      bridgeArgs.push_back(valueEncoder.box(args[i]).value);
+    }
+  }
+
+  Value *result = builder.CreateCall(bridgeSig, bridgePtr, bridgeArgs);
+  return TypedValue(ObjectTypeSet::dynamicType(), result);
+}
+
+TypedValue InvokeManager::generateDeterminedInstanceCall(
+    const std::string &methodName, TypedValue instance,
+    const std::vector<TypedValue> &args, CleanupChainGuard *guard,
+    const clojure::rt::protobuf::bytecode::Node *node) {
   auto objType = instance.type.determinedType();
-  
-  ::Class *targetClass = this->compilerState.classRegistry.getCurrent((int32_t)objType);
+
+  ::Class *targetClass =
+      this->compilerState.classRegistry.getCurrent((int32_t)objType);
 
   if (objType == classType && instance.type.getConstant()) {
     if (auto *cc = dynamic_cast<ConstantClass *>(instance.type.getConstant())) {
@@ -51,25 +205,34 @@ TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
   PtrWrapper<Class> cls(targetClass);
   if (!cls) {
     std::ostringstream oss;
-    oss << "Class not found for instance type: " << ObjectTypeSet::toHumanReadableName(objType);
-    if (node) throwCodeGenerationException(oss.str(), *node);
-    else throwInternalInconsistencyException(oss.str());
+    oss << "Class not found for instance type: "
+        << ObjectTypeSet::toHumanReadableName(objType);
+    if (node)
+      throwCodeGenerationException(oss.str(), *node);
+    else
+      throwInternalInconsistencyException(oss.str());
   }
 
   auto *ext = static_cast<ClassDescription *>(cls->compilerExtension);
   if (!ext) {
     std::ostringstream oss;
-    oss << "Class " << ObjectTypeSet::toHumanReadableName(objType) << " does not have compiler metadata";
-    if (node) throwCodeGenerationException(oss.str(), *node);
-    else throwInternalInconsistencyException(oss.str());
+    oss << "Class " << ObjectTypeSet::toHumanReadableName(objType)
+        << " does not have compiler metadata";
+    if (node)
+      throwCodeGenerationException(oss.str(), *node);
+    else
+      throwInternalInconsistencyException(oss.str());
   }
 
   auto it_method = ext->instanceFns.find(methodName);
   if (it_method == ext->instanceFns.end()) {
     std::ostringstream oss;
-    oss << "Class " << ObjectTypeSet::toHumanReadableName(objType) << " does not have an instance method " << methodName;
-    if (node) throwCodeGenerationException(oss.str(), *node);
-    else throwInternalInconsistencyException(oss.str());
+    oss << "Class " << ObjectTypeSet::toHumanReadableName(objType)
+        << " does not have an instance method " << methodName;
+    if (node)
+      throwCodeGenerationException(oss.str(), *node);
+    else
+      throwInternalInconsistencyException(oss.str());
   }
 
   // 2. Resolve Overloads and Handle Dynamic Dispatch
@@ -84,8 +247,8 @@ TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
   bool allDetermined = true;
   for (const auto &a : allArgs) {
     if (!a.type.isDetermined()) {
-        allDetermined = false;
-        break;
+      allDetermined = false;
+      break;
     }
   }
 
@@ -141,9 +304,12 @@ TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
 
   if (specialized.empty() && !generic) {
     std::ostringstream ss;
-    ss << "No statically possible overloads found for " << ObjectTypeSet::toHumanReadableName(objType) << "." << methodName;
-    if (node) throwCodeGenerationException(ss.str(), *node);
-    else throwInternalInconsistencyException(ss.str());
+    ss << "No statically possible overloads found for "
+       << ObjectTypeSet::toHumanReadableName(objType) << "." << methodName;
+    if (node)
+      throwCodeGenerationException(ss.str(), *node);
+    else
+      throwInternalInconsistencyException(ss.str());
   }
 
   // If we have a generic fallback, limit specialized checks to save code size
@@ -166,8 +332,8 @@ TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
   std::vector<Value *> argRuntimeTypes(allArgs.size(), nullptr);
 
   for (const auto *fid : specialized) {
-    BasicBlock *thenBB = BasicBlock::Create(
-        TheContext, "instance_call_specialised", currentFn);
+    BasicBlock *thenBB =
+        BasicBlock::Create(TheContext, "instance_call_specialised", currentFn);
     BasicBlock *nextBB = BasicBlock::Create(
         TheContext, "instance_call_specialised_next", currentFn);
 
@@ -179,13 +345,14 @@ TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
           ObjectTypeSet retType(integerType, false);
           std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType()};
           std::vector<TypedValue> pArgVals = {boxed};
-          TypedValue typeVal = this->invokeRuntime(
-              "getType", &retType, pArgTypes, pArgVals);
+          TypedValue typeVal =
+              this->invokeRuntime("getType", &retType, pArgTypes, pArgVals);
           argRuntimeTypes[i] = typeVal.value;
         }
 
         objectType target = fid->argTypes[i].determinedType();
-        Value *targetVal = ConstantInt::get(this->types.i32Ty, (uint32_t)target);
+        Value *targetVal =
+            ConstantInt::get(this->types.i32Ty, (uint32_t)target);
         Value *isType =
             this->builder.CreateICmpEQ(argRuntimeTypes[i], targetVal);
 
@@ -231,8 +398,7 @@ TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
       }
     }
 
-    TypedValue res =
-        this->generateIntrinsic(*fid, specializedArgs, guard);
+    TypedValue res = this->generateIntrinsic(*fid, specializedArgs, guard);
 
     TypedValue boxedRes = this->valueEncoder.box(res);
     cases.push_back({this->builder.GetInsertBlock(), boxedRes});
@@ -241,16 +407,17 @@ TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
   }
 
   if (generic) {
-    TypedValue genRes =
-        this->generateIntrinsic(*generic, allArgs, guard);
+    TypedValue genRes = this->generateIntrinsic(*generic, allArgs, guard);
     TypedValue boxedGenRes = this->valueEncoder.box(genRes);
     cases.push_back({this->builder.GetInsertBlock(), boxedGenRes});
     this->builder.CreateBr(mergeBB);
   } else {
     // No match and no generic -> Runtime Exception
     string typeName = ObjectTypeSet::toHumanReadableName(objType);
-    Value *className = this->builder.CreateGlobalString(typeName, "instance_call_class");
-    Value *methName = this->builder.CreateGlobalString(methodName, "instance_call_method");
+    Value *className =
+        this->builder.CreateGlobalString(typeName, "instance_call_class");
+    Value *methName =
+        this->builder.CreateGlobalString(methodName, "instance_call_method");
 
     std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType(),
                                             ObjectTypeSet::dynamicType()};
@@ -258,8 +425,8 @@ TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
         TypedValue(ObjectTypeSet::dynamicType(), className),
         TypedValue(ObjectTypeSet::dynamicType(), methName)};
 
-    this->invokeRuntime("throwNoMatchingOverloadException_C",
-                                      nullptr, pArgTypes, pArgVals);
+    this->invokeRuntime("throwNoMatchingOverloadException_C", nullptr,
+                        pArgTypes, pArgVals);
     this->builder.CreateUnreachable();
   }
 
@@ -273,14 +440,16 @@ TypedValue InvokeManager::generateInstanceCall(const std::string &methodName,
   return TypedValue(ObjectTypeSet::dynamicType(), phi);
 }
 
-ObjectTypeSet InvokeManager::predictInstanceCallType(const std::string &methodName,
-                                                   const ObjectTypeSet &instanceType,
-                                                   const std::vector<ObjectTypeSet> &args) {
+ObjectTypeSet
+InvokeManager::predictInstanceCallType(const std::string &methodName,
+                                       const ObjectTypeSet &instanceType,
+                                       const std::vector<ObjectTypeSet> &args) {
   if (!instanceType.isDetermined())
     return ObjectTypeSet::dynamicType();
 
   auto objType = instanceType.determinedType();
-  ::Class *targetClass = compilerState.classRegistry.getCurrent((int32_t)objType);
+  ::Class *targetClass =
+      compilerState.classRegistry.getCurrent((int32_t)objType);
 
   if (objType == classType && instanceType.getConstant()) {
     if (auto *cc = dynamic_cast<ConstantClass *>(instanceType.getConstant())) {

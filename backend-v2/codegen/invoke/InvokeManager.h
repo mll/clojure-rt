@@ -45,6 +45,19 @@ private:
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
   std::unordered_map<std::string, GenericIntrinsicCall> genericIntrinsics;
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
+  size_t icCounter = 0;
+ 
+  TypedValue generateDeterminedInstanceCall(const std::string &methodName,
+                                          TypedValue instance,
+                                          const std::vector<TypedValue> &args,
+                                          CleanupChainGuard *guard = nullptr,
+                                          const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+
+  TypedValue generateDynamicInstanceCall(const std::string &methodName,
+                                        TypedValue instance,
+                                        const std::vector<TypedValue> &args,
+                                        CleanupChainGuard *guard = nullptr,
+                                        const clojure::rt::protobuf::bytecode::Node *node = nullptr);
 
   // Folding Helpers
   mpz_ptr getZ(const ObjectTypeSet &t);

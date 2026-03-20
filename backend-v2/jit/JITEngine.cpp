@@ -3,6 +3,7 @@
 #include "../runtime/Numbers.h"
 #include "../tools/EdnParser.h"
 #include "bridge/Exceptions.h"
+#include "bridge/InstanceCallStub.h"
 #include <llvm/Analysis/InlineAdvisor.h>
 #include <llvm/Analysis/InlineCost.h>
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -87,16 +88,17 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
 }
 
 std::future<llvm::orc::ExecutorAddr>
-JITEngine::compileAST(const Node &AST, const std::string &moduleName,
-                      llvm::OptimizationLevel level, bool printModule) {
+JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
+                          const std::string &moduleName,
+                          llvm::OptimizationLevel level, bool printModule) {
   // Wrap logic in a task for the pool
-  return pool.enqueue([this, AST, moduleName, level,
+  return pool.enqueue([this, codegenFunc, moduleName, level,
                        printModule]() -> llvm::orc::ExecutorAddr {
-    auto codeGenerator = CodeGen(moduleName, threadsafeState);
+    auto codeGenerator = CodeGen(moduleName, threadsafeState, (void*)this);
 
     std::string fName;
     try {
-      fName = codeGenerator.codegenTopLevel(AST);
+      fName = codegenFunc(codeGenerator);
     } catch (...) {
       auto result = std::move(codeGenerator).release();
       for (auto c : result.constants) {
@@ -175,6 +177,37 @@ JITEngine::compileAST(const Node &AST, const std::string &moduleName,
   });
 }
 
+std::future<llvm::orc::ExecutorAddr>
+JITEngine::compileAST(const Node &AST, const std::string &moduleName,
+                      llvm::OptimizationLevel level, bool printModule) {
+  return compileGeneric(
+      [&AST](CodeGen &cg) { return cg.codegenTopLevel(AST); }, moduleName, level,
+      printModule);
+}
+
+std::future<llvm::orc::ExecutorAddr>
+JITEngine::compileInstanceCallBridge(
+    const std::string &methodName, const ObjectTypeSet &instanceType,
+    const std::vector<ObjectTypeSet> &argTypes, void *callSiteId,
+    llvm::OptimizationLevel Level, bool printModule) {
+
+  // For bridges, the module name should be descriptive and include the call site
+  std::string moduleName = "__bridge_" + methodName + "_" +
+                          std::to_string((int)instanceType.determinedType());
+  if (callSiteId) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "_%p", callSiteId);
+    moduleName += buf;
+  }
+
+  return compileGeneric(
+      [methodName, instanceType, argTypes, callSiteId](CodeGen &cg) {
+        return cg.generateInstanceCallBridge(methodName, instanceType, argTypes,
+                                             callSiteId);
+      },
+      moduleName, Level, printModule);
+}
+
 void JITEngine::invalidate(const std::string &name) {
   std::lock_guard<std::mutex> lock(engineMutex);
 
@@ -198,15 +231,17 @@ void JITEngine::registerRuntimeSymbols() {
   // On macOS/Darwin, symbols are prefixed with '_'
   auto &DL = jit->getDataLayout();
   auto prefix = DL.getGlobalPrefix();
+  // llvm::errs() << "JIT DataLayout prefix: '" << (prefix ? prefix : ' ') << "'\n";
 
   auto absoluteSymbol = [&](const std::string &name, void *addr) {
     std::string mangledName = name;
     if (prefix != '\0') {
       mangledName = std::string(1, prefix) + name;
     }
+    // llvm::errs() << "Registering JIT symbol: " << mangledName << " at " << addr << "\n";
     return std::make_pair(jit->getExecutionSession().intern(mangledName),
                           ExecutorSymbolDef(ExecutorAddr::fromPtr(addr),
-                                            llvm::JITSymbolFlags::Exported));
+                                            llvm::JITSymbolFlags::Exported | llvm::JITSymbolFlags::Callable));
   };
 
   SymbolMap runtimeSymbols;
@@ -307,6 +342,10 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(
       absoluteSymbol("ClassExtension_resolveInstanceCall",
                      (void *)ClassExtension_resolveInstanceCall));
+
+  // Dynamic Instance Call Bouncer
+  runtimeSymbols.insert(
+      absoluteSymbol("InstanceCallSlowPath", (void *)InstanceCallSlowPath));
 
   // Bridge for emulated TLS required by JIT-compiled code
   runtimeSymbols.insert(

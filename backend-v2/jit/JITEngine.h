@@ -35,6 +35,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <functional>
 
 namespace rt {
 
@@ -52,6 +53,13 @@ class JITEngine {
   void optimize(llvm::Module &M, llvm::OptimizationLevel Level, const std::string &entryPoint);
   void registerRuntimeSymbols();
 
+  // Private helper for common JIT logic
+  std::future<llvm::orc::ExecutorAddr> compileGeneric(
+      std::function<std::string(CodeGen&)> codegenFunc,
+      const std::string &moduleName,
+      llvm::OptimizationLevel Level,
+      bool printModule);
+
 public:
   JITEngine(ThreadsafeCompilerState &state,
             size_t numThreads = std::thread::hardware_concurrency());
@@ -64,6 +72,17 @@ public:
                                                   const std::string &moduleName,
                                                   llvm::OptimizationLevel Level,
                                                   bool printModule = false);
+
+  /**
+   * Compiles a specialized bridge for an instance call.
+   */
+  std::future<llvm::orc::ExecutorAddr> compileInstanceCallBridge(
+      const std::string &methodName,
+      const ObjectTypeSet &instanceType,
+      const std::vector<ObjectTypeSet> &argTypes,
+      void* callSiteId,
+      llvm::OptimizationLevel Level,
+      bool printModule = false);
 
   void invalidate(const std::string &name);
   std::vector<RTValue> getModuleConstants(const std::string &name) {

@@ -19,6 +19,7 @@ set(TEST_MODULES
     codegen/MathIntrinsicsRepro_test
     codegen/InstanceCallNode_test
     VarUAF_repro_test
+    JITReclimation_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

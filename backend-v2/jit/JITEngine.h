@@ -40,6 +40,14 @@
 namespace rt {
 
 class JITEngine {
+public:
+  struct SafetySection {
+    JITEngine &engine;
+    SafetySection(JITEngine &e);
+    ~SafetySection();
+  };
+
+private:
   std::unique_ptr<llvm::orc::LLJIT> jit;
   std::unique_ptr<llvm::TargetMachine> TM;
   ThreadPool pool;
@@ -47,6 +55,20 @@ class JITEngine {
   std::map<std::string, llvm::orc::ResourceTrackerSP> functionTrackers;
   std::map<std::string, std::vector<RTValue>> moduleConstants;
   std::map<std::string, std::unique_ptr<llvm::MemoryBuffer>> capturedObjectBuffers;
+
+  // Epoch-based Reclamation (EBR)
+  struct ZombieTracker {
+    llvm::orc::ResourceTrackerSP tracker;
+    uint64_t epoch;
+    std::vector<RTValue> constants;
+  };
+  std::atomic<uint64_t> globalEpoch{1};
+  std::vector<ZombieTracker> zombieTrackers;
+  std::map<std::thread::id, std::atomic<uint64_t>*> activeThreads;
+  std::mutex zombieMutex;
+
+  static thread_local std::atomic<uint64_t> threadLocalEpoch;
+  static thread_local bool inSafeSection;
   ThreadsafeCompilerState &threadsafeState;
   
   std::unique_ptr<llvm::MemoryBuffer> runtimeBitcodeBuffer;
@@ -85,6 +107,14 @@ public:
       bool printModule = false);
 
   void invalidate(const std::string &name);
+  
+  /**
+   * EBR management
+   */
+  void enterSafeSection();
+  void leaveSafeSection();
+  void sweep();
+
   std::vector<RTValue> getModuleConstants(const std::string &name) {
     std::lock_guard<std::mutex> lock(engineMutex);
     auto it = moduleConstants.find(name);

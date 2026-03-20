@@ -48,7 +48,9 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
 
   JITEngine *engine = static_cast<JITEngine *>(jitEngine);
   InlineCache *ic = static_cast<InlineCache *>(slot);
-
+ 
+  JITEngine::SafetySection safety(*engine);
+ 
   // 1. Determine the actual type of the instance at runtime
   RTValue instance = args[0];
   objectType instanceType = getType(instance);
@@ -84,6 +86,7 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
     } else {
         __atomic_store((uint64_t *)ic, (uint64_t *)&newCache, __ATOMIC_RELEASE);
     }
+    engine->commit(methodName);
 
     // 5. Return the bridge pointer. The caller will jump to it.
     return bridgePtr;

@@ -16,6 +16,9 @@
 extern "C" void *__emutls_get_address(void *);
 
 namespace rt {
+ 
+ thread_local std::atomic<uint64_t> JITEngine::threadLocalEpoch{0};
+ thread_local bool JITEngine::inSafeSection = false;
 
 JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
     : pool(std::max(numThreads / 4, size_t(1)), Priority::Low),
@@ -126,15 +129,29 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
 
     {
       std::lock_guard<std::mutex> lock(engineMutex);
+      
+      // If we are replacing an existing function, move the old tracker to the zombie list
+      if (functionTrackers.count(moduleName)) {
+        auto oldRT = functionTrackers[moduleName];
+        auto oldConstants = std::move(moduleConstants[moduleName]);
+        {
+          std::lock_guard<std::mutex> zLock(zombieMutex);
+          zombieTrackers.push_back({oldRT, globalEpoch.fetch_add(1), std::move(oldConstants)});
+        }
+      }
+
       auto RT = jit->getMainJITDylib().createResourceTracker();
-
-      // ORC takes ownership of TSM and the Context inside it
-      if (auto Err = jit->addIRModule(RT, std::move(TSM)))
-        throwInternalInconsistencyException("JIT Link Error");
-
-      functionTrackers[moduleName] = RT;
-      moduleConstants[moduleName] = std::move(constants);
+ 
+       // ORC takes ownership of TSM and the Context inside it
+       if (auto Err = jit->addIRModule(RT, std::move(TSM)))
+         throwInternalInconsistencyException("JIT Link Error");
+ 
+       functionTrackers[moduleName] = RT;
+       moduleConstants[moduleName] = std::move(constants);
     }
+
+    // Periodically sweep old modules
+    sweep();
 
     // 6. Return executable address
     auto Sym = jit->lookup(fName);
@@ -211,18 +228,92 @@ JITEngine::compileInstanceCallBridge(
 void JITEngine::invalidate(const std::string &name) {
   std::lock_guard<std::mutex> lock(engineMutex);
 
-  if (auto itConst = moduleConstants.find(name);
-      itConst != moduleConstants.end()) {
-    for (auto val : itConst->second) {
-      release(val);
+  auto itConst = moduleConstants.find(name);
+  auto itTrack = functionTrackers.find(name);
+
+  if (itTrack != functionTrackers.end()) {
+    auto RT = itTrack->second;
+    std::vector<RTValue> constants;
+    if (itConst != moduleConstants.end()) {
+        constants = std::move(itConst->second);
+        moduleConstants.erase(itConst);
     }
-    moduleConstants.erase(itConst);
+    
+    {
+        std::lock_guard<std::mutex> zLock(zombieMutex);
+        zombieTrackers.push_back({RT, globalEpoch.fetch_add(1), std::move(constants)});
+    }
+    functionTrackers.erase(itTrack);
+  }
+}
+
+void JITEngine::enterSafeSection() {
+  if (inSafeSection)
+    return;
+  inSafeSection = true;
+  threadLocalEpoch.store(globalEpoch.load(std::memory_order_relaxed),
+                         std::memory_order_relaxed);
+
+  std::lock_guard<std::mutex> lock(zombieMutex);
+  activeThreads[std::this_thread::get_id()] = &threadLocalEpoch;
+}
+
+JITEngine::SafetySection::SafetySection(JITEngine &e) : engine(e) {
+  engine.enterSafeSection();
+}
+
+JITEngine::SafetySection::~SafetySection() { engine.leaveSafeSection(); }
+
+void JITEngine::leaveSafeSection() {
+  if (!inSafeSection)
+    return;
+  inSafeSection = false;
+  threadLocalEpoch.store(0, std::memory_order_relaxed);
+
+  std::lock_guard<std::mutex> lock(zombieMutex);
+  activeThreads.erase(std::this_thread::get_id());
+}
+
+void JITEngine::sweep() {
+  std::lock_guard<std::mutex> lock(zombieMutex);
+  if (activeThreads.empty()) {
+    // No threads in safe sections, we can clear everything
+    for (auto &z : zombieTrackers) {
+      cantFail(z.tracker->remove());
+      for (auto v : z.constants) {
+        release(v);
+      }
+    }
+    zombieTrackers.clear();
+    return;
   }
 
-  if (auto it = functionTrackers.find(name); it != functionTrackers.end()) {
-    cantFail(it->second->remove());
-    functionTrackers.erase(it);
+  uint64_t minEpoch = std::numeric_limits<uint64_t>::max();
+  bool anyActive = false;
+  for (auto const &[id, epochPtr] : activeThreads) {
+    uint64_t e = epochPtr->load(std::memory_order_relaxed);
+    if (e != 0) {
+        if (e < minEpoch) minEpoch = e;
+        anyActive = true;
+    }
   }
+
+  if (!anyActive) {
+      minEpoch = globalEpoch.load(std::memory_order_relaxed);
+  }
+
+  auto it = std::remove_if(
+      zombieTrackers.begin(), zombieTrackers.end(), [&](const ZombieTracker &z) {
+        if (z.epoch < minEpoch) {
+          cantFail(z.tracker->remove());
+          for (auto v : z.constants) {
+            release(v);
+          }
+          return true;
+        }
+        return false;
+      });
+  zombieTrackers.erase(it, zombieTrackers.end());
 }
 
 void JITEngine::registerRuntimeSymbols() {

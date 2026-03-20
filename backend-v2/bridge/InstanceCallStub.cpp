@@ -79,6 +79,19 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
     llvm::orc::ExecutorAddr bridgeAddr = future.get();
     void *bridgePtr = bridgeAddr.toPtr<void *>();
     // 4. Update the Inline Cache for subsequent calls (atomically)
+    // Double check if another thread already updated it for our type
+    InlineCache currentIC;
+    if constexpr (K_WORD_SIZE == 8) {
+        __atomic_load((unsigned __int128 *)ic, (unsigned __int128 *)&currentIC,
+                       __ATOMIC_ACQUIRE);
+    } else {
+        __atomic_load((uint64_t *)ic, (uint64_t *)&currentIC, __ATOMIC_ACQUIRE);
+    }
+
+    if (currentIC.key == (word_t)instanceType) {
+        return currentIC.value;
+    }
+
     InlineCache newCache = {(word_t)instanceType, bridgePtr};
     if constexpr (K_WORD_SIZE == 8) {
         __atomic_store((unsigned __int128 *)ic, (unsigned __int128 *)&newCache,

@@ -35,13 +35,15 @@ class InvokeManager {
   friend void registerMathIntrinsics(InvokeManager &mgr);
   friend void registerCmpIntrinsics(InvokeManager &mgr);
 
-private:
+public:
   llvm::IRBuilder<> &builder;
   llvm::Module &theModule;
   ValueEncoder &valueEncoder;
   LLVMTypes &types;
   CodeGen &codeGen;
   ThreadsafeCompilerState &compilerState;
+
+private:
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
   std::unordered_map<std::string, GenericIntrinsicCall> genericIntrinsics;
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
@@ -70,6 +72,8 @@ private:
 public:
   explicit InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m, ValueEncoder &v,
                          LLVMTypes &t, ThreadsafeCompilerState &s, CodeGen &cg);
+
+  llvm::Module &getLLVMModule() { return theModule; }
 
   TypedValue invokeRuntime(const std::string &fname,
                            const ObjectTypeSet *retValType,

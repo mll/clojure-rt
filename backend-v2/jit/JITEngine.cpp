@@ -17,8 +17,20 @@ extern "C" void *__emutls_get_address(void *);
 
 namespace rt {
  
- thread_local std::atomic<uint64_t> JITEngine::threadLocalEpoch{0};
- thread_local bool JITEngine::inSafeSection = false;
+thread_local std::atomic<uint64_t> JITEngine::threadLocalEpoch{0};
+thread_local int JITEngine::safeSectionDepth = 0;
+
+extern "C" {
+void JITEngine_enterSafeSection(void *engine) {
+  if (engine)
+    static_cast<rt::JITEngine *>(engine)->enterSafeSection();
+}
+
+void JITEngine_leaveSafeSection(void *engine) {
+  if (engine)
+    static_cast<rt::JITEngine *>(engine)->leaveSafeSection();
+}
+}
 
 JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
     : pool(std::max(numThreads / 4, size_t(1)), Priority::Low),
@@ -90,12 +102,33 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
   }
 }
 
-std::future<llvm::orc::ExecutorAddr>
+std::shared_future<llvm::orc::ExecutorAddr>
 JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                           const std::string &moduleName,
-                          llvm::OptimizationLevel level, bool printModule) {
+                          llvm::OptimizationLevel level, bool printModule,
+                          bool reuseIfExists) {
+  {
+    std::lock_guard<std::mutex> lock(compilationMutex);
+    auto it = activeCompilations.find(moduleName);
+    if (it != activeCompilations.end()) {
+      return it->second;
+    }
+  }
+
+  if (reuseIfExists) {
+    std::lock_guard<std::mutex> lock(engineMutex);
+    if (functionTrackers.count(moduleName)) {
+      auto Sym = jit->lookup(moduleName);
+      if (Sym) {
+        std::promise<llvm::orc::ExecutorAddr> p;
+        p.set_value(*Sym);
+        return p.get_future().share();
+      }
+    }
+  }
+
   // Wrap logic in a task for the pool
-  return pool.enqueue([this, codegenFunc, moduleName, level,
+  auto shared_f = pool.enqueue([this, codegenFunc, moduleName, level,
                        printModule]() -> llvm::orc::ExecutorAddr {
     auto codeGenerator = CodeGen(moduleName, threadsafeState, (void*)this);
 
@@ -106,6 +139,10 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
       auto result = std::move(codeGenerator).release();
       for (auto c : result.constants) {
         release(c);
+      }
+      {
+        std::lock_guard<std::mutex> lock(compilationMutex);
+        activeCompilations.erase(moduleName);
       }
       throw;
     }
@@ -136,15 +173,20 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
         auto oldConstants = std::move(moduleConstants[moduleName]);
         {
           std::lock_guard<std::mutex> zLock(zombieMutex);
-          zombieTrackers.push_back({oldRT, globalEpoch.fetch_add(1), std::move(oldConstants)});
+          limboTrackers[moduleName].push_back({oldRT, std::move(oldConstants)});
         }
       }
 
       auto RT = jit->getMainJITDylib().createResourceTracker();
  
        // ORC takes ownership of TSM and the Context inside it
-       if (auto Err = jit->addIRModule(RT, std::move(TSM)))
+       if (auto Err = jit->addIRModule(RT, std::move(TSM))) {
+         {
+           std::lock_guard<std::mutex> lock(compilationMutex);
+           activeCompilations.erase(moduleName);
+         }
          throwInternalInconsistencyException("JIT Link Error");
+       }
  
        functionTrackers[moduleName] = RT;
        moduleConstants[moduleName] = std::move(constants);
@@ -155,8 +197,13 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
 
     // 6. Return executable address
     auto Sym = jit->lookup(fName);
-    if (!Sym)
+    if (!Sym) {
+      {
+        std::lock_guard<std::mutex> lock(compilationMutex);
+        activeCompilations.erase(moduleName);
+      }
       throwInternalInconsistencyException("Symbol Lookup Failed: " + fName);
+    }
 
     // Register for stack trace resolution
     {
@@ -190,11 +237,22 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
       }
     }
 
-    return *Sym;
-  });
+    auto val = *Sym;
+    {
+      std::lock_guard<std::mutex> lock(compilationMutex);
+      activeCompilations.erase(moduleName);
+    }
+    return val;
+  }).share();
+
+  {
+    std::lock_guard<std::mutex> lock(compilationMutex);
+    activeCompilations[moduleName] = shared_f;
+  }
+  return shared_f;
 }
 
-std::future<llvm::orc::ExecutorAddr>
+std::shared_future<llvm::orc::ExecutorAddr>
 JITEngine::compileAST(const Node &AST, const std::string &moduleName,
                       llvm::OptimizationLevel level, bool printModule) {
   return compileGeneric(
@@ -202,7 +260,7 @@ JITEngine::compileAST(const Node &AST, const std::string &moduleName,
       printModule);
 }
 
-std::future<llvm::orc::ExecutorAddr>
+std::shared_future<llvm::orc::ExecutorAddr>
 JITEngine::compileInstanceCallBridge(
     const std::string &methodName, const ObjectTypeSet &instanceType,
     const std::vector<ObjectTypeSet> &argTypes, void *callSiteId,
@@ -222,7 +280,7 @@ JITEngine::compileInstanceCallBridge(
         return cg.generateInstanceCallBridge(methodName, instanceType, argTypes,
                                              callSiteId);
       },
-      moduleName, Level, printModule);
+      moduleName, Level, printModule, true);
 }
 
 void JITEngine::invalidate(const std::string &name) {
@@ -241,16 +299,42 @@ void JITEngine::invalidate(const std::string &name) {
     
     {
         std::lock_guard<std::mutex> zLock(zombieMutex);
-        zombieTrackers.push_back({RT, globalEpoch.fetch_add(1), std::move(constants)});
+        limboTrackers[name].push_back({RT, std::move(constants)});
     }
     functionTrackers.erase(itTrack);
   }
 }
 
+size_t JITEngine::getLimboCount() const {
+  std::lock_guard<std::mutex> lock(zombieMutex);
+  size_t count = 0;
+  for (auto const &pair : limboTrackers) {
+    count += pair.second.size();
+  }
+  return count;
+}
+
+size_t JITEngine::getZombieCount() const {
+  std::lock_guard<std::mutex> lock(zombieMutex);
+  return zombieTrackers.size();
+}
+
+void JITEngine::commit(const std::string &name) {
+  std::lock_guard<std::mutex> lock(zombieMutex);
+  auto it = limboTrackers.find(name);
+  if (it != limboTrackers.end()) {
+    uint64_t epoch = globalEpoch.fetch_add(1);
+    for (auto &limbo : it->second) {
+      zombieTrackers.push_back(
+          {limbo.tracker, epoch, std::move(limbo.constants)});
+    }
+    limboTrackers.erase(it);
+  }
+}
+
 void JITEngine::enterSafeSection() {
-  if (inSafeSection)
+  if (safeSectionDepth++ > 0)
     return;
-  inSafeSection = true;
   threadLocalEpoch.store(globalEpoch.load(std::memory_order_relaxed),
                          std::memory_order_relaxed);
 
@@ -265,9 +349,12 @@ JITEngine::SafetySection::SafetySection(JITEngine &e) : engine(e) {
 JITEngine::SafetySection::~SafetySection() { engine.leaveSafeSection(); }
 
 void JITEngine::leaveSafeSection() {
-  if (!inSafeSection)
+  if (--safeSectionDepth > 0)
     return;
-  inSafeSection = false;
+  if (safeSectionDepth < 0) {
+    safeSectionDepth = 0;
+    return;
+  }
   threadLocalEpoch.store(0, std::memory_order_relaxed);
 
   std::lock_guard<std::mutex> lock(zombieMutex);
@@ -438,6 +525,12 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(
       absoluteSymbol("InstanceCallSlowPath", (void *)InstanceCallSlowPath));
 
+  // JIT Safety Sections
+  runtimeSymbols.insert(absoluteSymbol("JITEngine_enterSafeSection",
+                                       (void *)JITEngine_enterSafeSection));
+  runtimeSymbols.insert(absoluteSymbol("JITEngine_leaveSafeSection",
+                                       (void *)JITEngine_leaveSafeSection));
+
   // Bridge for emulated TLS required by JIT-compiled code
   runtimeSymbols.insert(
       absoluteSymbol("___emutls_get_address", (void *)__emutls_get_address));
@@ -459,6 +552,19 @@ JITEngine::~JITEngine() {
   for (auto const &name : names) {
     invalidate(name);
   }
+  // Final promotion and sweep
+  {
+    std::lock_guard<std::mutex> lock(zombieMutex);
+    uint64_t epoch = globalEpoch.fetch_add(1);
+    for (auto &pair : limboTrackers) {
+      for (auto &limbo : pair.second) {
+        zombieTrackers.push_back(
+            {limbo.tracker, epoch, std::move(limbo.constants)});
+      }
+    }
+    limboTrackers.clear();
+  }
+  sweep();
 }
 
 void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,

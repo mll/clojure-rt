@@ -17,6 +17,11 @@ extern "C" {
 #include <cmocka.h>
 }
 
+#include <atomic>
+#include <random>
+#include <thread>
+#include <vector>
+
 using namespace std;
 using namespace rt;
 using namespace clojure::rt::protobuf::bytecode;
@@ -162,6 +167,123 @@ static void test_instance_call_ic_hit_miss(void **state) {
   });
 }
 
+static void test_instance_call_ic_atomicity(void **state) {
+  (void)state;
+
+  // Pre-populate shared constants
+  PersistentVector_initialise();
+  PersistentList_empty();
+
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::ThreadsafeCompilerState compState;
+    setup_ic_test_metadata(compState);
+    JITEngine engine(compState);
+
+    // Register a Var "user/my-var" to hold our instance
+    RTValue varKeyword = Keyword_create(String_create("user/my-var"));
+    Var *myVar = Var_create(varKeyword);
+    compState.varRegistry.registerObject("user/my-var", myVar);
+
+    // AST: (.foo @my-var 10)
+    Node callNode;
+    callNode.set_op(opInstanceCall);
+    auto *ic = callNode.mutable_subnode()->mutable_instancecall();
+    ic->set_method("foo");
+    auto *inst = ic->mutable_instance();
+    inst->set_op(opVar);
+    inst->mutable_subnode()->mutable_var()->set_var("#'user/my-var");
+    auto *arg = ic->add_args();
+    arg->set_op(opConst);
+    arg->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    arg->mutable_subnode()->mutable_const_()->set_val("10");
+    arg->set_tag("long");
+
+    auto resF = engine.compileAST(callNode, "__test_ic_atomicity", llvm::OptimizationLevel::O0, true).get();
+    auto fn = resF.toPtr<RTValue (*)()>();
+
+    // --- Pre-compilation phase ---
+    // We call the function with both types from a single thread first.
+    // This ensures both bridges are compiled and added to the JIT engine
+    // before we start the multi-threaded stress test, avoiding JIT races.
+    {
+      RTValue vec = RT_boxPtr(PersistentVector_create());
+      Ptr_retain(myVar);
+      Var_bindRoot(myVar, vec);
+      release(fn());
+
+      RTValue list = RT_boxPtr(PersistentList_empty());
+      Ptr_retain(myVar);
+      Var_bindRoot(myVar, list);
+      release(fn());
+    }
+
+    const int numThreads = 8;
+    const int iterationsForSwitcher = 1000;
+    const int iterationsForObservers = 100000;
+    std::atomic<bool> failed{false};
+    std::atomic<int> readyCount{0};
+    std::atomic<bool> start{false};
+    std::atomic<bool> stop{false};
+
+    auto switcherFn = [&]() {
+      readyCount++;
+      while (!start) std::this_thread::yield();
+
+      RTValue vec = RT_boxPtr(PersistentVector_create());
+      RTValue list = RT_boxPtr(PersistentList_empty());
+
+      for (int i = 0; i < iterationsForSwitcher && !failed; ++i) {
+        RTValue val = (i % 2 == 0) ? vec : list;
+        retain(val);
+        Ptr_retain(myVar);
+        Var_bindRoot(myVar, val);
+        // Give time for observers to hit the IC
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      }
+      
+      stop = true;
+      release(vec);
+      release(list);
+    };
+
+    auto observerFn = [&](int threadId) {
+      readyCount++;
+      while (!start) std::this_thread::yield();
+
+      JITEngine::SafetySection safety(engine);
+      for (int i = 0; i < iterationsForObservers && !failed && !stop; ++i) {
+        RTValue res = fn();
+        int32_t val = RT_unboxInt32(res);
+        
+        if (val != 1010 && val != 2010) {
+            fprintf(stderr, "Thread %d: Unexpected result %d\n", threadId, val);
+            failed = true;
+        }
+        release(res);
+      }
+    };
+
+    std::vector<std::thread> threads;
+    threads.emplace_back(switcherFn);
+    for (int i = 1; i < numThreads; ++i) {
+      threads.emplace_back(observerFn, i);
+    }
+
+    while (readyCount < numThreads) std::this_thread::yield();
+    start = true;
+
+    for (auto &t : threads) {
+      t.join();
+    }
+
+    assert_false(failed);
+
+    // Cleanup Var before memory check
+    Ptr_retain(myVar);
+    Var_bindRoot(myVar, RT_boxNil());
+  });
+}
+
 int main(void) {
   initialise_memory();
   RuntimeInterface_initialise();
@@ -170,6 +292,7 @@ int main(void) {
 
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_instance_call_ic_hit_miss),
+      cmocka_unit_test(test_instance_call_ic_atomicity),
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);

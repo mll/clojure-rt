@@ -174,9 +174,7 @@ add_executable(clojure-rt main.cpp)
 target_link_libraries(clojure-rt PUBLIC backend_lib)
 
 # On Linux, export symbols so the JIT can find runtime functions
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_link_options(clojure-rt PRIVATE -rdynamic)
-endif()
+target_link_options(clojure-rt PRIVATE -rdynamic)
 
 find_path(GMP_INCLUDE_DIRS NAMES gmp.h)
 find_library(GMP_LIBRARY NAMES gmp libgmp)

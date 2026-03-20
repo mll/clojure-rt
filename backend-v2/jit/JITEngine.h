@@ -36,6 +36,7 @@
 #include <mutex>
 #include <string>
 #include <functional>
+#include <unordered_map>
 
 namespace rt {
 
@@ -62,25 +63,36 @@ private:
     uint64_t epoch;
     std::vector<RTValue> constants;
   };
+  struct LimboTracker {
+    llvm::orc::ResourceTrackerSP tracker;
+    std::vector<RTValue> constants;
+  };
   std::atomic<uint64_t> globalEpoch{1};
   std::vector<ZombieTracker> zombieTrackers;
+  std::map<std::string, std::vector<LimboTracker>> limboTrackers;
   std::map<std::thread::id, std::atomic<uint64_t>*> activeThreads;
-  std::mutex zombieMutex;
+  mutable std::mutex zombieMutex;
 
   static thread_local std::atomic<uint64_t> threadLocalEpoch;
-  static thread_local bool inSafeSection;
+  static thread_local int safeSectionDepth;
   ThreadsafeCompilerState &threadsafeState;
+
+  // Active compilation tracking
+  std::unordered_map<std::string, std::shared_future<llvm::orc::ExecutorAddr>>
+      activeCompilations;
+  std::mutex compilationMutex;
   
   std::unique_ptr<llvm::MemoryBuffer> runtimeBitcodeBuffer;
   void optimize(llvm::Module &M, llvm::OptimizationLevel Level, const std::string &entryPoint);
   void registerRuntimeSymbols();
 
   // Private helper for common JIT logic
-  std::future<llvm::orc::ExecutorAddr> compileGeneric(
+  std::shared_future<llvm::orc::ExecutorAddr> compileGeneric(
       std::function<std::string(CodeGen&)> codegenFunc,
       const std::string &moduleName,
       llvm::OptimizationLevel Level,
-      bool printModule);
+      bool printModule,
+      bool reuseIfExists = false);
 
 public:
   JITEngine(ThreadsafeCompilerState &state,
@@ -90,7 +102,7 @@ public:
    * The primary entry point.
    * Returns a future that resolves to the function address once compiled.
    */
-  std::future<llvm::orc::ExecutorAddr> compileAST(const Node &AST,
+  std::shared_future<llvm::orc::ExecutorAddr> compileAST(const Node &AST,
                                                   const std::string &moduleName,
                                                   llvm::OptimizationLevel Level,
                                                   bool printModule = false);
@@ -98,7 +110,7 @@ public:
   /**
    * Compiles a specialized bridge for an instance call.
    */
-  std::future<llvm::orc::ExecutorAddr> compileInstanceCallBridge(
+  std::shared_future<llvm::orc::ExecutorAddr> compileInstanceCallBridge(
       const std::string &methodName,
       const ObjectTypeSet &instanceType,
       const std::vector<ObjectTypeSet> &argTypes,
@@ -113,7 +125,12 @@ public:
    */
   void enterSafeSection();
   void leaveSafeSection();
+  void commit(const std::string &name);
   void sweep();
+
+  // Testing helpers
+  size_t getLimboCount() const;
+  size_t getZombieCount() const;
 
   std::vector<RTValue> getModuleConstants(const std::string &name) {
     std::lock_guard<std::mutex> lock(engineMutex);
@@ -126,5 +143,10 @@ public:
 };
 
 } // namespace rt
+
+extern "C" {
+void JITEngine_enterSafeSection(void *engine);
+void JITEngine_leaveSafeSection(void *engine);
+}
 
 #endif // JIT_ENGINE_H

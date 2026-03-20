@@ -64,6 +64,7 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   Builder.SetInsertPoint(BB);
 
   memoryManagement.initFunction(F);
+  memoryManagement.enterSafetySection(jitEnginePtr);
 
   // Declare personality function
   FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
@@ -75,8 +76,9 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   Builder.SetCurrentDebugLocation(
       llvm::DILocation::get(TheContext, env.line(), env.column(), SP));
 
-  Builder.CreateRet(
-      valueEncoder.box(codegen(node, ObjectTypeSet::all())).value);
+  TypedValue result = codegen(node, ObjectTypeSet::all());
+  memoryManagement.leaveSafetySection(jitEnginePtr);
+  Builder.CreateRet(valueEncoder.box(result).value);
 
   LexicalBlocks.pop_back();
   verifyFunction(*F);
@@ -140,6 +142,7 @@ std::string CodeGen::generateInstanceCallBridge(
   Builder.SetInsertPoint(BB);
 
   memoryManagement.initFunction(F);
+  memoryManagement.enterSafetySection(jitEnginePtr);
 
   // 4. Prepare TypedValues for the call
   auto it = F->arg_begin();
@@ -159,6 +162,7 @@ std::string CodeGen::generateInstanceCallBridge(
       invokeManager.generateInstanceCall(methodName, instanceTV, callArgs);
 
   // 6. Ensure result is boxed and return
+  memoryManagement.leaveSafetySection(jitEnginePtr);
   Builder.CreateRet(valueEncoder.box(result).value);
 
   verifyFunction(*F);

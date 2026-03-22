@@ -79,8 +79,9 @@ std::atomic<bool> JITEngine::instanceExists{false};
 JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
     : pool(std::max(numThreads / 4, size_t(1)), Priority::Low),
       threadsafeState(state) {
-  // Optional: Warning: Multiple JITEngine instances detected. 
-  // In production, only one instance is supported.
+  if (instanceExists.exchange(true)) {
+    throw std::runtime_error("Only one JITEngine instance is allowed");
+  }
 
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
@@ -604,19 +605,27 @@ void JITEngine::registerRuntimeSymbols() {
   // On Linux/others, we provide the OFFSET from the Thread Pointer.
   // The JIT-ed code uses inline assembly to get the TP and then adds this
   // offset. This is 100% inlined and matches 'Local Exec' TLS performance.
-  char *tp = (char *)get_thread_pointer();
-  uintptr_t safety_offset = (char *)&host_jit_safety_state - tp;
-  uintptr_t bank_offset = (char *)&memoryBank - tp;
-  uintptr_t bank_size_offset = (char *)&memoryBankSize - tp;
-  uintptr_t hazard_offset = (char *)&threadLocalHazardSlot - tp;
+  // CRITICAL: We must provide the ADDRESS of a variable that holds the offset,
+  // NOT the offset itself as an absolute symbol value.
+  static uintptr_t safety_offset_static = 0;
+  static uintptr_t bank_offset_static = 0;
+  static uintptr_t bank_size_offset_static = 0;
+  static uintptr_t hazard_offset_static = 0;
 
+  char *tp = (char *)get_thread_pointer();
+  safety_offset_static = (char *)&host_jit_safety_state - tp;
+  bank_offset_static = (char *)&memoryBank - tp;
+  bank_size_offset_static = (char *)&memoryBankSize - tp;
+  hazard_offset_static = (char *)&threadLocalHazardSlot - tp;
+
+  runtimeSymbols.insert(absoluteSymbol("host_jit_safety_state_offset",
+                                       (void *)&safety_offset_static));
   runtimeSymbols.insert(
-      absoluteSymbol("host_jit_safety_state_offset", (void *)safety_offset));
-  runtimeSymbols.insert(absoluteSymbol("memoryBank_offset", (void *)bank_offset));
-  runtimeSymbols.insert(
-      absoluteSymbol("memoryBankSize_offset", (void *)bank_size_offset));
-  runtimeSymbols.insert(
-      absoluteSymbol("threadLocalHazardSlot_offset", (void *)hazard_offset));
+      absoluteSymbol("memoryBank_offset", (void *)&bank_offset_static));
+  runtimeSymbols.insert(absoluteSymbol("memoryBankSize_offset",
+                                       (void *)&bank_size_offset_static));
+  runtimeSymbols.insert(absoluteSymbol("threadLocalHazardSlot_offset",
+                                       (void *)&hazard_offset_static));
 #endif
 
   cantFail(jit->getMainJITDylib().define(

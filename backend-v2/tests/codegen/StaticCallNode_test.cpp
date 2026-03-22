@@ -155,10 +155,10 @@ static void createIndeterminateArg(Node *node, const char *val, bool isDouble) {
 
 static void test_dynamic_dispatch_3tail(void **state) {
   (void)state;
+  rt::ThreadsafeCompilerState compState;
+  setup_mock_runtime_full(compState);
+  JITEngine engine(compState);
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    setup_mock_runtime_full(compState);
-    JITEngine engine(compState);
 
     // Test Case 1: Int + Int
     {
@@ -205,10 +205,10 @@ static void test_dynamic_dispatch_3tail(void **state) {
 
 static void test_dynamic_dispatch_filtering(void **state) {
   (void)state;
+  rt::ThreadsafeCompilerState compState;
+  setup_mock_runtime_full(compState);
+  JITEngine engine(compState);
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    setup_mock_runtime_full(compState);
-    JITEngine engine(compState);
 
     Node callNode;
     callNode.set_op(opStaticCall);
@@ -247,10 +247,10 @@ static void test_dynamic_dispatch_filtering(void **state) {
 
 static void test_dynamic_dispatch_exhaustive(void **state) {
   (void)state;
+  rt::ThreadsafeCompilerState compState;
+  setup_mock_runtime_full(compState);
+  JITEngine engine(compState);
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    setup_mock_runtime_full(compState);
-    JITEngine engine(compState);
 
     // Call "ex_add" (no generic, 3 specializations)
     // Args: statically Any (using If)
@@ -282,10 +282,10 @@ static void test_dynamic_dispatch_exhaustive(void **state) {
 
 static void test_dynamic_dispatch_no_match(void **state) {
   (void)state;
+  rt::ThreadsafeCompilerState compState;
+  setup_mock_runtime_full(compState);
+  JITEngine engine(compState);
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    setup_mock_runtime_full(compState);
-    JITEngine engine(compState);
 
     // Call "ex_add" but with (String, String) -> Should throw runtime exception
     Node callNode;
@@ -336,10 +336,10 @@ static void test_dynamic_dispatch_no_match(void **state) {
 
 static void test_dynamic_dispatch_no_match_runtime(void **state) {
   (void)state;
+  rt::ThreadsafeCompilerState compState;
+  setup_mock_runtime_full(compState);
+  JITEngine engine(compState);
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    setup_mock_runtime_full(compState);
-    JITEngine engine(compState);
 
     // To test RUNTIME exception, we need arguments that are statically ANY but
     // runtime NOT matching any specialization.
@@ -395,10 +395,10 @@ static void test_dynamic_dispatch_no_match_runtime(void **state) {
 
 static void test_regression_type_narrowing_specialized(void **state) {
   (void)state;
+  rt::ThreadsafeCompilerState compState;
+  setup_mock_runtime_full(compState);
+  JITEngine engine(compState);
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    setup_mock_runtime_full(compState);
-    JITEngine engine(compState);
 
     // This test specifically documents the fix for the
     // "InternalInconsistencyException" caused by type mismatch in specialized
@@ -438,10 +438,10 @@ static void test_regression_type_narrowing_specialized(void **state) {
 
 static void test_regression_phi_node_segfault(void **state) {
   (void)state;
+  rt::ThreadsafeCompilerState compState;
+  setup_mock_runtime_full(compState);
+  JITEngine engine(compState);
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    setup_mock_runtime_full(compState);
-    JITEngine engine(compState);
 
     // This test specifically documents the fix for the LLVM segfault
     // (SimplifyCFG crash) caused by malformed PHI nodes when a specialized

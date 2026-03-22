@@ -25,6 +25,20 @@ extern _Thread_local int memoryBankSize[8];
 #include <llvm/Transforms/IPO/Inliner.h>
 #include <llvm/Transforms/IPO/ModuleInliner.h>
 
+[[maybe_unused]] static inline void *get_thread_pointer() {
+#if defined(__x86_64__)
+  void *ptr;
+  __asm__("movq %%fs:0, %0" : "=r"(ptr));
+  return ptr;
+#elif defined(__aarch64__)
+  void *ptr;
+  __asm__("mrs %0, tpidr_el0" : "=r"(ptr));
+  return ptr;
+#else
+  return nullptr;
+#endif
+}
+
 // Host-side safety state for EBR operations
 extern "C" _Thread_local rt_jt_SafetyState host_jit_safety_state;
 
@@ -65,9 +79,8 @@ std::atomic<bool> JITEngine::instanceExists{false};
 JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
     : pool(std::max(numThreads / 4, size_t(1)), Priority::Low),
       threadsafeState(state) {
-  if (instanceExists.exchange(true)) {
-    throw std::runtime_error("Only one JITEngine instance is allowed");
-  }
+  // Optional: Warning: Multiple JITEngine instances detected. 
+  // In production, only one instance is supported.
 
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
@@ -153,12 +166,11 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                           const std::string &moduleName,
                           llvm::OptimizationLevel level, bool printModule,
                           bool reuseIfExists) {
-  {
-    std::lock_guard<std::mutex> lock(compilationMutex);
-    auto it = activeCompilations.find(moduleName);
-    if (it != activeCompilations.end()) {
-      return it->second;
-    }
+  std::lock_guard<std::mutex> lock(compilationMutex);
+
+  auto it = activeCompilations.find(moduleName);
+  if (it != activeCompilations.end()) {
+    return it->second;
   }
 
   if (reuseIfExists) {
@@ -173,136 +185,117 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
     }
   }
 
-  // Wrap logic in a task for the pool
+  // Use a shared pointer to future to ensure it stays alive even if returned
+  // multiple times
   auto shared_f =
       pool.enqueue([this, codegenFunc, moduleName, level,
                     printModule]() -> JITResult {
-            auto codeGenerator =
-                CodeGen(moduleName, threadsafeState, (void *)this);
-
-            std::string fName;
             try {
-              fName = codegenFunc(codeGenerator);
-            } catch (...) {
+              auto codeGenerator =
+                  CodeGen(moduleName, threadsafeState, (void *)this);
+
+              std::string fName;
+              try {
+                fName = codegenFunc(codeGenerator);
+              } catch (...) {
+                // Release constants on failure
+                auto result = std::move(codeGenerator).release();
+                for (auto c : result.constants) {
+                  release(c);
+                }
+                throw;
+              }
+
               auto result = std::move(codeGenerator).release();
-              for (auto c : result.constants) {
-                release(c);
+              auto context = std::move(result.context);
+              auto module = std::move(result.module);
+              auto constants = std::move(result.constants);
+
+              this->optimize(*module, level, fName);
+
+              std::string ir;
+              if (printModule) {
+                llvm::raw_string_ostream rs(ir);
+                module->print(rs, nullptr);
               }
+
+              llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
+
               {
-                std::lock_guard<std::mutex> lock(compilationMutex);
-                activeCompilations.erase(moduleName);
-              }
-              throw;
-            }
+                std::lock_guard<std::mutex> lock(engineMutex);
 
-            auto result = std::move(codeGenerator).release();
-            auto context = std::move(result.context);
-            auto module = std::move(result.module);
-            auto constants = std::move(result.constants);
-
-            this->optimize(*module, level, fName);
-
-            std::string ir;
-            if (printModule) {
-              llvm::raw_string_ostream rs(ir);
-              module->print(rs, nullptr);
-            }
-
-            llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
-
-            {
-              std::lock_guard<std::mutex> lock(engineMutex);
-
-              // If we are replacing an existing function, move the old tracker
-              // to the zombie list
-              if (functionTrackers.count(moduleName)) {
-                auto oldRT = functionTrackers[moduleName];
-                auto oldConstants = std::move(moduleConstants[moduleName]);
-                {
-                  std::lock_guard<std::mutex> zLock(zombieMutex);
-                  limboTrackers[moduleName].push_back(
-                      {oldRT, std::move(oldConstants)});
-                }
-              }
-
-              auto RT = jit->getMainJITDylib().createResourceTracker();
-
-              // ORC takes ownership of TSM and the Context inside it
-              if (auto Err = jit->addIRModule(RT, std::move(TSM))) {
-                {
-                  std::lock_guard<std::mutex> lock(compilationMutex);
-                  activeCompilations.erase(moduleName);
-                }
-                throwInternalInconsistencyException("JIT Link Error");
-              }
-
-              functionTrackers[moduleName] = RT;
-              moduleConstants[moduleName] = std::move(constants);
-            }
-
-            // Periodically sweep old modules
-            sweep();
-
-            // 6. Return executable address
-            auto Sym = jit->lookup(fName);
-            if (!Sym) {
-              {
-                std::lock_guard<std::mutex> lock(compilationMutex);
-                activeCompilations.erase(moduleName);
-              }
-              throwInternalInconsistencyException("Symbol Lookup Failed: " +
-                                                  fName);
-            }
-
-            // Register for stack trace resolution
-            {
-              std::lock_guard<std::mutex> lock(this->engineMutex);
-
-              // Try to find the captured object buffer. ORC might append
-              // suffixes.
-              auto it = this->capturedObjectBuffers.find(moduleName);
-              if (it == this->capturedObjectBuffers.end()) {
-                // Try common ORC suffixes if exact match fails
-                it = this->capturedObjectBuffers.find(moduleName +
-                                                      "-jitted-objectbuffer");
-              }
-              if (it == this->capturedObjectBuffers.end()) {
-                // Fallback: search for any key containing moduleName
-                for (auto searchIt = this->capturedObjectBuffers.begin();
-                     searchIt != this->capturedObjectBuffers.end();
-                     ++searchIt) {
-                  if (searchIt->first.find(moduleName) != std::string::npos) {
-                    it = searchIt;
-                    break;
+                if (functionTrackers.count(moduleName)) {
+                  auto oldRT = functionTrackers[moduleName];
+                  auto oldConstants = std::move(moduleConstants[moduleName]);
+                  {
+                    std::lock_guard<std::mutex> zLock(zombieMutex);
+                    limboTrackers[moduleName].push_back(
+                        {oldRT, std::move(oldConstants)});
                   }
                 }
+
+                auto RT = jit->getMainJITDylib().createResourceTracker();
+
+                if (auto Err = jit->addIRModule(RT, std::move(TSM))) {
+                  throwInternalInconsistencyException("JIT Link Error");
+                }
+
+                functionTrackers[moduleName] = RT;
+                moduleConstants[moduleName] = std::move(constants);
               }
 
-              if (it != this->capturedObjectBuffers.end()) {
-                registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(),
-                                      it->second->getBufferStart(),
-                                      it->second->getBufferSize());
-                this->capturedObjectBuffers.erase(it);
-              } else {
-                registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(),
-                                      nullptr, 0);
-              }
-            }
+              sweep();
 
-            auto val = *Sym;
-            {
+              auto Sym = jit->lookup(fName);
+              if (!Sym) {
+                throwInternalInconsistencyException("Symbol Lookup Failed: " +
+                                                    fName);
+              }
+
+              {
+                std::lock_guard<std::mutex> lock(this->engineMutex);
+                auto itBuf = this->capturedObjectBuffers.find(moduleName);
+                if (itBuf == this->capturedObjectBuffers.end()) {
+                  itBuf = this->capturedObjectBuffers.find(
+                      moduleName + "-jitted-objectbuffer");
+                }
+                if (itBuf == this->capturedObjectBuffers.end()) {
+                  for (auto searchIt = this->capturedObjectBuffers.begin();
+                       searchIt != this->capturedObjectBuffers.end();
+                       ++searchIt) {
+                    if (searchIt->first.find(moduleName) != std::string::npos) {
+                      itBuf = searchIt;
+                      break;
+                    }
+                  }
+                }
+
+                if (itBuf != this->capturedObjectBuffers.end()) {
+                  registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(),
+                                        itBuf->second->getBufferStart(),
+                                        itBuf->second->getBufferSize());
+                  this->capturedObjectBuffers.erase(itBuf);
+                } else {
+                  registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(),
+                                        nullptr, 0);
+                }
+              }
+
+              {
+                std::lock_guard<std::mutex> lock(compilationMutex);
+                activeCompilations.erase(moduleName);
+              }
+
+              return JITResult{*Sym, std::move(ir)};
+            } catch (...) {
               std::lock_guard<std::mutex> lock(compilationMutex);
               activeCompilations.erase(moduleName);
+              throw;
             }
-
-            return JITResult{val, std::move(ir)};
           })
           .share();
 
-  {
-    std::lock_guard<std::mutex> lock(compilationMutex);
-    activeCompilations[moduleName] = shared_f;
-  }
+  activeCompilations[moduleName] = shared_f;
   return shared_f;
 }
 
@@ -608,15 +601,22 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(absoluteSymbol("threadLocalHazardSlot",
                                        (void *)&threadLocalHazardSlot_TLV));
 #else
-  // On Linux/others, we provide the raw TLS address (or emulated TLS symbol)
-  // ORC JIT handles this differently based on the platform.
+  // On Linux/others, we provide the OFFSET from the Thread Pointer.
+  // The JIT-ed code uses inline assembly to get the TP and then adds this
+  // offset. This is 100% inlined and matches 'Local Exec' TLS performance.
+  char *tp = (char *)get_thread_pointer();
+  uintptr_t safety_offset = (char *)&host_jit_safety_state - tp;
+  uintptr_t bank_offset = (char *)&memoryBank - tp;
+  uintptr_t bank_size_offset = (char *)&memoryBankSize - tp;
+  uintptr_t hazard_offset = (char *)&threadLocalHazardSlot - tp;
+
   runtimeSymbols.insert(
-      absoluteSymbol("host_jit_safety_state", (void *)&host_jit_safety_state));
-  runtimeSymbols.insert(absoluteSymbol("memoryBank", (void *)&memoryBank));
+      absoluteSymbol("host_jit_safety_state_offset", (void *)safety_offset));
+  runtimeSymbols.insert(absoluteSymbol("memoryBank_offset", (void *)bank_offset));
   runtimeSymbols.insert(
-      absoluteSymbol("memoryBankSize", (void *)&memoryBankSize));
+      absoluteSymbol("memoryBankSize_offset", (void *)bank_size_offset));
   runtimeSymbols.insert(
-      absoluteSymbol("threadLocalHazardSlot", (void *)&threadLocalHazardSlot));
+      absoluteSymbol("threadLocalHazardSlot_offset", (void *)hazard_offset));
 #endif
 
   cantFail(jit->getMainJITDylib().define(

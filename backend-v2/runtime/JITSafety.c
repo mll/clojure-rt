@@ -3,7 +3,9 @@
 #include <stdbool.h>
 
 // Storage is provided by the Host, but defined here for the Runtime
+#ifndef COMPILING_RUNTIME_BITCODE
 _Thread_local rt_jt_SafetyState host_jit_safety_state;
+#endif
 
 void JITEngine_enterSafeSection(void *engine) {
     // Fast path: increment depth

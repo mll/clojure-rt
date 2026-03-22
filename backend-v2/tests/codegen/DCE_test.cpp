@@ -6,6 +6,7 @@
 #include "runtime/BigInteger.h"
 #include "runtime/Object.h"
 #include "runtime/RTValue.h"
+#include "runtime/String.h"
 #include <fstream>
 #include <iostream>
 #include <string>

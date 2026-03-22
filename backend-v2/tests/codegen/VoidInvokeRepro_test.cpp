@@ -41,7 +41,7 @@ static void test_void_invoke_verification(void **state) {
   // We don't even need to run it, just compile it. 
   // If verification fails, it will throw/crash during compileAST.
   try {
-    engine.compileAST(addNode, "__test_void_invoke", llvm::OptimizationLevel::O0, false).get().address;
+    (void)engine.compileAST(addNode, "__test_void_invoke", llvm::OptimizationLevel::O0, false).get().address;
   } catch (const std::exception &e) {
     // It might throw due to overflow at runtime if we execute it, 
     // but here we just want to see if it COMPILES without verification error.

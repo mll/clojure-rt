@@ -90,15 +90,13 @@ static bool isNumeric(objectType t) {
     if (ta == bigIntegerType || tb == bigIntegerType) {                        \
       BigInteger *ba = toBigInt(a);                                            \
       BigInteger *bb = toBigInt(b);                                            \
-      return simplifyResult(RT_boxPtr(BigInteger_##NAME(ba, bb)));             \
+      return RT_boxPtr(BigInteger_##NAME(ba, bb));                             \
     }                                                                          \
     int32_t va = RT_unboxInt32(a);                                             \
     int32_t vb = RT_unboxInt32(b);                                             \
     int32_t res;                                                               \
     if (__builtin_##OP_INT##_overflow(va, vb, &res)) {                         \
-      BigInteger *ba = BigInteger_createFromInt(va);                           \
-      BigInteger *bb = BigInteger_createFromInt(vb);                           \
-      return simplifyResult(RT_boxPtr(BigInteger_##NAME(ba, bb)));             \
+      throwArithmeticException_C("Integer overflow");                          \
     }                                                                          \
     return RT_boxInt32(res);                                                   \
   }

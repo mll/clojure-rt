@@ -35,7 +35,7 @@ static void test_two_stage_reclamation(void **state_arg) {
     std::string moduleName = "safety_test_module";
     
     // Initial compilation
-    engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get().address;
+    (void)engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get().address;
     
     assert_int_equal(engine.getLimboCount(), 0);
     assert_int_equal(engine.getZombieCount(), 0);
@@ -56,7 +56,7 @@ static void test_two_stage_reclamation(void **state_arg) {
     while (!inSafety) std::this_thread::yield();
 
     // Recompile - the old module should go to Limbo
-    engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get().address;
+    (void)engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get().address;
     
     assert_int_equal(engine.getLimboCount(), 1);
     assert_int_equal(engine.getZombieCount(), 0);
@@ -232,7 +232,7 @@ static void test_compilation_error_concurrency(void **state_arg) {
 
     // Verify system stability
     Node node = create42Node();
-    engine.compileAST(node, "test_after_error", llvm::OptimizationLevel::O0, false).get().address;
+    (void)engine.compileAST(node, "test_after_error", llvm::OptimizationLevel::O0, false).get().address;
     engine.commit("test_after_error");
     engine.sweep(); 
 }

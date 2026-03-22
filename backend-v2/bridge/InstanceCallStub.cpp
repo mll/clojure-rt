@@ -49,8 +49,6 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
   JITEngine *engine = static_cast<JITEngine *>(jitEngine);
   InlineCache *ic = static_cast<InlineCache *>(slot);
 
-  // JITEngine::SafetySection safety(*engine);
-
   // 1. Determine the actual type of the instance at runtime
   RTValue instance = args[0];
   objectType instanceType = getType(instance);
@@ -82,22 +80,22 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
     // Double check if another thread already updated it for our type
     InlineCache currentIC;
     if constexpr (K_WORD_SIZE == 8) {
-        __atomic_load((unsigned __int128 *)ic, (unsigned __int128 *)&currentIC,
-                       __ATOMIC_ACQUIRE);
+      __atomic_load((unsigned __int128 *)ic, (unsigned __int128 *)&currentIC,
+                    __ATOMIC_ACQUIRE);
     } else {
-        __atomic_load((uint64_t *)ic, (uint64_t *)&currentIC, __ATOMIC_ACQUIRE);
+      __atomic_load((uint64_t *)ic, (uint64_t *)&currentIC, __ATOMIC_ACQUIRE);
     }
 
     if (currentIC.key == (word_t)instanceType) {
-        return currentIC.value;
+      return currentIC.value;
     }
 
     InlineCache newCache = {(word_t)instanceType, bridgePtr};
     if constexpr (K_WORD_SIZE == 8) {
-        __atomic_store((unsigned __int128 *)ic, (unsigned __int128 *)&newCache,
-                       __ATOMIC_RELEASE);
+      __atomic_store((unsigned __int128 *)ic, (unsigned __int128 *)&newCache,
+                     __ATOMIC_RELEASE);
     } else {
-        __atomic_store((uint64_t *)ic, (uint64_t *)&newCache, __ATOMIC_RELEASE);
+      __atomic_store((uint64_t *)ic, (uint64_t *)&newCache, __ATOMIC_RELEASE);
     }
     engine->commit(methodName);
 

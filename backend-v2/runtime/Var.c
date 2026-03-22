@@ -35,7 +35,9 @@ typedef struct HazardSlot {
 } HazardSlot;
 
 _Atomic(HazardSlot *) hazardHead = NULL;
+#ifndef COMPILING_RUNTIME_BITCODE
 _Thread_local void *threadLocalHazardSlot = NULL;
+#endif
 static pthread_key_t cleanup_gatekeeper;
 
 static void *dummy_page = NULL;

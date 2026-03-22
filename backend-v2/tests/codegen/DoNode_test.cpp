@@ -27,7 +27,6 @@ static void test_do_statement_leak(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
 
     // (do (+ 1N 2N) 42)
     Node root;

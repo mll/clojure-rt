@@ -137,7 +137,7 @@ static void setup_test_metadata(rt::ThreadsafeCompilerState &compState, rt::JITE
     std::string path = "tests/rt-classes.cljb";
     std::fstream classesInput(path, std::ios::in | std::ios::binary);
     if (!classesInput.is_open()) {
-        path = "backend-v2/tests/rt-classes.cljb";
+        path = "../tests/rt-classes.cljb";
         classesInput.open(path, std::ios::in | std::ios::binary);
     }
     

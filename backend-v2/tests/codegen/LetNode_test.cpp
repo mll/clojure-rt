@@ -163,7 +163,6 @@ static void test_let_uaf_fixed(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
 
     // (let [x 1N] (+ "aa" x))
     // This used to cause UAF because both let and Numbers_add released x.
@@ -231,7 +230,6 @@ static void test_let_gap_leak(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
 
     // (let [x 1N] (do (+ "aa" "bb") x))
     Node root;

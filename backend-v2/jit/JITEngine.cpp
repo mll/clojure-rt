@@ -13,30 +13,56 @@
 #include <llvm/Transforms/IPO/Inliner.h>
 #include <llvm/Transforms/IPO/ModuleInliner.h>
 #include <llvm/IR/Verifier.h>
+#include <cstdint>
 
-
-extern "C" void *__emutls_get_address(void *);
-
-namespace rt {
- 
-thread_local std::atomic<uint64_t> JITEngine::threadLocalEpoch{0};
-thread_local int JITEngine::safeSectionDepth = 0;
 
 extern "C" {
-void JITEngine_enterSafeSection(void *engine) {
-  if (engine)
-    static_cast<rt::JITEngine *>(engine)->enterSafeSection();
+void *__emutls_get_address(void *);
 }
 
-void JITEngine_leaveSafeSection(void *engine) {
+// Host-side safety state for EBR operations
+extern "C" _Thread_local rt_jt_SafetyState host_jit_safety_state;
+
+extern "C" void JITEngine_slowPath_enter(void *engine, rt_jt_epoch_t *epochPtr) {
   if (engine)
-    static_cast<rt::JITEngine *>(engine)->leaveSafeSection();
+    static_cast<rt::JITEngine *>(engine)->registerThread(epochPtr);
 }
+
+extern "C" void JITEngine_slowPath_leave(void *engine) {
+  if (engine)
+    static_cast<rt::JITEngine *>(engine)->unregisterThread();
 }
+
+extern "C" void JITEngine_enterSafeSection(void *engine);
+extern "C" void JITEngine_leaveSafeSection(void *engine);
+
+namespace rt {
+
+void JITEngine::registerThread(rt_jt_epoch_t *epochPtr) {
+    uint64_t currentEpoch = globalEpoch.load(std::memory_order_relaxed);
+    __atomic_store_n(epochPtr, (uintptr_t)currentEpoch, __ATOMIC_RELAXED);
+    std::lock_guard<std::mutex> lock(zombieMutex);
+    activeThreads[std::this_thread::get_id()] = (std::atomic<uint64_t>*)epochPtr;
+}
+
+void JITEngine::unregisterThread() {
+    std::lock_guard<std::mutex> lock(zombieMutex);
+    auto it = activeThreads.find(std::this_thread::get_id());
+    if (it != activeThreads.end()) {
+        it->second->store(0, std::memory_order_relaxed);
+        activeThreads.erase(it);
+    }
+}
+
+std::atomic<bool> JITEngine::instanceExists{false};
+
 
 JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
     : pool(std::max(numThreads / 4, size_t(1)), Priority::Low),
       threadsafeState(state) {
+  if (instanceExists.exchange(true)) {
+    throw std::runtime_error("Only one JITEngine instance is allowed");
+  }
 
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
@@ -335,13 +361,7 @@ void JITEngine::commit(const std::string &name) {
 }
 
 void JITEngine::enterSafeSection() {
-  if (safeSectionDepth++ > 0)
-    return;
-  threadLocalEpoch.store(globalEpoch.load(std::memory_order_relaxed),
-                         std::memory_order_relaxed);
-
-  std::lock_guard<std::mutex> lock(zombieMutex);
-  activeThreads[std::this_thread::get_id()] = &threadLocalEpoch;
+  ::JITEngine_enterSafeSection(this);
 }
 
 JITEngine::SafetySection::SafetySection(JITEngine &e) : engine(e) {
@@ -351,16 +371,7 @@ JITEngine::SafetySection::SafetySection(JITEngine &e) : engine(e) {
 JITEngine::SafetySection::~SafetySection() { engine.leaveSafeSection(); }
 
 void JITEngine::leaveSafeSection() {
-  if (--safeSectionDepth > 0)
-    return;
-  if (safeSectionDepth < 0) {
-    safeSectionDepth = 0;
-    return;
-  }
-  threadLocalEpoch.store(0, std::memory_order_relaxed);
-
-  std::lock_guard<std::mutex> lock(zombieMutex);
-  activeThreads.erase(std::this_thread::get_id());
+  ::JITEngine_leaveSafeSection(this);
 }
 
 void JITEngine::sweep() {
@@ -528,10 +539,14 @@ void JITEngine::registerRuntimeSymbols() {
       absoluteSymbol("InstanceCallSlowPath", (void *)InstanceCallSlowPath));
 
   // JIT Safety Sections
-  runtimeSymbols.insert(absoluteSymbol("JITEngine_enterSafeSection",
-                                       (void *)JITEngine_enterSafeSection));
-  runtimeSymbols.insert(absoluteSymbol("JITEngine_leaveSafeSection",
-                                       (void *)JITEngine_leaveSafeSection));
+  runtimeSymbols.insert(absoluteSymbol("JITEngine_slowPath_enter",
+                                       (void *)JITEngine_slowPath_enter));
+  runtimeSymbols.insert(absoluteSymbol("JITEngine_slowPath_leave",
+                                       (void *)JITEngine_slowPath_leave));
+
+  // Map the external TLS variable to the Host address
+  runtimeSymbols.insert(absoluteSymbol("host_jit_safety_state",
+                                       (void *)&host_jit_safety_state));
 
   // Bridge for emulated TLS required by JIT-compiled code
   runtimeSymbols.insert(
@@ -567,6 +582,7 @@ JITEngine::~JITEngine() {
     limboTrackers.clear();
   }
   sweep();
+  instanceExists.store(false);
 }
 
 void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
@@ -687,6 +703,7 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
     llvm::InlineParams IP;
     IP = llvm::getInlineParams(3, 0);
     IP.DefaultThreshold = 1500; // Aggressive
+    IP.DefaultThreshold = 1500;
     IP.HintThreshold = 2500;
     MPM.addPass(llvm::ModuleInlinerWrapperPass(IP));
   }

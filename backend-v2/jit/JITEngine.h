@@ -30,6 +30,7 @@
 #include "../tools/ThreadPool.h"
 #include "bytecode.pb.h"
 #include <algorithm>
+#include <bitset>
 #include <future>
 #include <map>
 #include <memory>
@@ -37,11 +38,16 @@
 #include <string>
 #include <functional>
 #include <unordered_map>
+#include <cstdint>
+
+#include "../runtime/JITSafety.h"
+
 
 namespace rt {
 
 class JITEngine {
 public:
+
   struct SafetySection {
     JITEngine &engine;
     SafetySection(JITEngine &e);
@@ -73,8 +79,6 @@ private:
   std::map<std::thread::id, std::atomic<uint64_t>*> activeThreads;
   mutable std::mutex zombieMutex;
 
-  static thread_local std::atomic<uint64_t> threadLocalEpoch;
-  static thread_local int safeSectionDepth;
   ThreadsafeCompilerState &threadsafeState;
 
   // Active compilation tracking
@@ -83,6 +87,7 @@ private:
   std::mutex compilationMutex;
   
   std::unique_ptr<llvm::MemoryBuffer> runtimeBitcodeBuffer;
+  
   void optimize(llvm::Module &M, llvm::OptimizationLevel Level, const std::string &entryPoint);
   void registerRuntimeSymbols();
 
@@ -132,21 +137,15 @@ public:
   size_t getLimboCount() const;
   size_t getZombieCount() const;
 
-  std::vector<RTValue> getModuleConstants(const std::string &name) {
-    std::lock_guard<std::mutex> lock(engineMutex);
-    auto it = moduleConstants.find(name);
-    if (it != moduleConstants.end()) {
-      return it->second;
-    }
-    return {};
-  }
+  void registerThread(rt_jt_epoch_t *epochPtr);
+  void unregisterThread();
+
+  uint64_t getGlobalEpoch() const { return globalEpoch.load(std::memory_order_relaxed); }
+
+private:
+  static std::atomic<bool> instanceExists;
 };
 
 } // namespace rt
-
-extern "C" {
-void JITEngine_enterSafeSection(void *engine);
-void JITEngine_leaveSafeSection(void *engine);
-}
 
 #endif // JIT_ENGINE_H

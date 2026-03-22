@@ -197,7 +197,6 @@ static void test_if_test_leak(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
 
     // (if (+ 1N 2N) 42 43)
     Node root;

@@ -28,6 +28,8 @@ extern "C" {
 using namespace std;
 using namespace rt;
 
+#include <fstream>
+
 static void test_trivial_memory(void **state) {
   (void)state; // unused
 

@@ -160,6 +160,22 @@ else()
     protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ../model/bytecode.proto)
 endif()
 
+# 3. GMP Detection
+find_path(GMP_INCLUDE_DIRS NAMES gmp.h)
+find_library(GMP_LIBRARY NAMES gmp libgmp)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
+mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
+include_directories(${GMP_INCLUDE_DIRS})
+
+# 4. Atomic Detection (needed for 128-bit atomics on standard Linux)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_library(ATOMIC_LIBRARY atomic)
+    if(ATOMIC_LIBRARY)
+        message(STATUS "Found libatomic at ${ATOMIC_LIBRARY}")
+    endif()
+endif()
+
 add_library(backend_lib STATIC ${BACKEND_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
 # Use target-based linking for Protobuf to handle Abseil dependencies automatically
 if(TARGET protobuf::libprotobuf)
@@ -168,7 +184,7 @@ else()
     set(PROTOBUF_LINK_TARGET ${Protobuf_LIBRARIES})
 endif()
 
-target_link_libraries(backend_lib PUBLIC runtime ${LLVM_LIBS} ${PROTOBUF_LINK_TARGET} ${GMP_LIBRARY})
+target_link_libraries(backend_lib PUBLIC runtime ${LLVM_LIBS} ${PROTOBUF_LINK_TARGET} ${GMP_LIBRARY} ${ATOMIC_LIBRARY})
 
 add_executable(clojure-rt main.cpp)
 target_link_libraries(clojure-rt PUBLIC backend_lib)
@@ -176,12 +192,6 @@ target_link_libraries(clojure-rt PUBLIC backend_lib)
 # On Linux, export symbols so the JIT can find runtime functions
 target_link_options(clojure-rt PRIVATE -rdynamic)
 
-find_path(GMP_INCLUDE_DIRS NAMES gmp.h)
-find_library(GMP_LIBRARY NAMES gmp libgmp)
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
-mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
-include_directories(${GMP_INCLUDE_DIRS})
 
 enable_testing()
 find_package(Cmocka REQUIRED)

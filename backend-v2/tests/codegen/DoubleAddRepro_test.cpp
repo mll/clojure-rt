@@ -86,8 +86,7 @@ static void test_double_add_repro(void **state) {
   try {
     auto resCall = engine
                        .compileAST(callNode, "__test_double_add",
-                                   llvm::OptimizationLevel::O0, true)
-                       .get();
+                                   llvm::OptimizationLevel::O0, false).get().address;
     RTValue result = resPtrToValue(resCall);
     (void)result;
     release(result);

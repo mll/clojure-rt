@@ -39,7 +39,7 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JIT
       engine
           .compileAST(astClasses.nodes(0), "__classes",
                       llvm::OptimizationLevel::O0, false)
-          .get();
+          .get().address;
   RTValue classes = resClasses.toPtr<RTValue (*)()>()();
   auto classesList = rt::buildClasses(classes);
   for (auto &desc : classesList) {
@@ -85,7 +85,7 @@ static void test_integer_overflow_add(void **state) {
     auto resCall = engine
                        .compileAST(callNode, "__test_overflow_add",
                                    llvm::OptimizationLevel::O0, false)
-                       .get();
+                       .get().address;
 
     try {
       resPtrToValue(resCall);
@@ -128,8 +128,8 @@ static void test_integer_overflow_sub(void **state) {
 
     auto resCall = engine
                        .compileAST(callNode, "__test_overflow_sub",
-                                   llvm::OptimizationLevel::O0, false)
-                       .get();
+                                    llvm::OptimizationLevel::O0, false)
+                       .get().address;
 
     try {
       resPtrToValue(resCall);

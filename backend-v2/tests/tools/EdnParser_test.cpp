@@ -62,7 +62,7 @@ static void test_edn_parser_memory(void **state) {
         engine
             .compileAST(astClasses.nodes(0), "__classes",
                         llvm::OptimizationLevel::O0, false)
-            .get();
+            .get().address;
 
     RTValue classes = res.toPtr<RTValue (*)()>()();
 
@@ -91,7 +91,7 @@ static void test_edn_parser_class_parsing_memory(void **state) {
         engine
             .compileAST(astClasses.nodes(0), "__classes",
                         llvm::OptimizationLevel::O0, false)
-            .get();
+            .get().address;
 
     RTValue classes = res.toPtr<RTValue (*)()>()();
 

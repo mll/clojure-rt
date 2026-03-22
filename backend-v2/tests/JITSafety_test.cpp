@@ -35,7 +35,7 @@ static void test_two_stage_reclamation(void **state_arg) {
     std::string moduleName = "safety_test_module";
     
     // Initial compilation
-    engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get();
+    engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get().address;
     
     assert_int_equal(engine.getLimboCount(), 0);
     assert_int_equal(engine.getZombieCount(), 0);
@@ -56,7 +56,7 @@ static void test_two_stage_reclamation(void **state_arg) {
     while (!inSafety) std::this_thread::yield();
 
     // Recompile - the old module should go to Limbo
-    engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get();
+    engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get().address;
     
     assert_int_equal(engine.getLimboCount(), 1);
     assert_int_equal(engine.getZombieCount(), 0);
@@ -89,7 +89,8 @@ static void test_jit_reclamation_stress(void **state_arg) {
     Node topNode = create42Node();
     std::string moduleName = "reclamation_target";
     
-    auto addr = engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get();
+    auto res = engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get();
+    auto addr = res.address;
     typedef RTValue (*FnPtr)();
     std::atomic<FnPtr> funcPtr{(FnPtr)addr.getValue()};
 
@@ -116,7 +117,7 @@ static void test_jit_reclamation_stress(void **state_arg) {
     }
 
     for (int i = 0; i < 50; i++) {
-        auto nextAddr = engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get();
+        auto nextAddr = engine.compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false).get().address;
         funcPtr.store((FnPtr)nextAddr.getValue());
         engine.commit(moduleName);
         std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -152,7 +153,7 @@ static void setup_test_metadata(rt::ThreadsafeCompilerState &compState, rt::JITE
     }
 
     try {
-        auto res = engine.compileAST(astClasses.nodes(0), "__classes", llvm::OptimizationLevel::O0, false).get();
+        auto res = engine.compileAST(astClasses.nodes(0), "__classes", llvm::OptimizationLevel::O0, false).get().address;
         RTValue classes = res.toPtr<RTValue (*)()>()();
         compState.storeInternalClasses(classes);
     } catch (const LanguageException& e) {
@@ -231,7 +232,7 @@ static void test_compilation_error_concurrency(void **state_arg) {
 
     // Verify system stability
     Node node = create42Node();
-    engine.compileAST(node, "test_after_error", llvm::OptimizationLevel::O0, false).get();
+    engine.compileAST(node, "test_after_error", llvm::OptimizationLevel::O0, false).get().address;
     engine.commit("test_after_error");
     engine.sweep(); 
 }

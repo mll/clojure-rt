@@ -74,7 +74,7 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
   try {
     // Block until the JIT compilation is finished and get the executable
     // address
-    llvm::orc::ExecutorAddr bridgeAddr = future.get();
+    llvm::orc::ExecutorAddr bridgeAddr = future.get().address;
     void *bridgePtr = bridgeAddr.toPtr<void *>();
     // 4. Update the Inline Cache for subsequent calls (atomically)
     // Double check if another thread already updated it for our type

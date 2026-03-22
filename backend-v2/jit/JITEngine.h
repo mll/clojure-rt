@@ -45,6 +45,11 @@
 
 namespace rt {
 
+struct JITResult {
+  llvm::orc::ExecutorAddr address;
+  std::string optimizedIR;
+};
+
 class JITEngine {
 public:
 
@@ -82,7 +87,7 @@ private:
   ThreadsafeCompilerState &threadsafeState;
 
   // Active compilation tracking
-  std::unordered_map<std::string, std::shared_future<llvm::orc::ExecutorAddr>>
+  std::unordered_map<std::string, std::shared_future<JITResult>>
       activeCompilations;
   std::mutex compilationMutex;
   
@@ -92,7 +97,7 @@ private:
   void registerRuntimeSymbols();
 
   // Private helper for common JIT logic
-  std::shared_future<llvm::orc::ExecutorAddr> compileGeneric(
+  std::shared_future<JITResult> compileGeneric(
       std::function<std::string(CodeGen&)> codegenFunc,
       const std::string &moduleName,
       llvm::OptimizationLevel Level,
@@ -107,7 +112,7 @@ public:
    * The primary entry point.
    * Returns a future that resolves to the function address once compiled.
    */
-  std::shared_future<llvm::orc::ExecutorAddr> compileAST(const Node &AST,
+  std::shared_future<JITResult> compileAST(const Node &AST,
                                                   const std::string &moduleName,
                                                   llvm::OptimizationLevel Level,
                                                   bool printModule = false);
@@ -115,7 +120,7 @@ public:
   /**
    * Compiles a specialized bridge for an instance call.
    */
-  std::shared_future<llvm::orc::ExecutorAddr> compileInstanceCallBridge(
+  std::shared_future<JITResult> compileInstanceCallBridge(
       const std::string &methodName,
       const ObjectTypeSet &instanceType,
       const std::vector<ObjectTypeSet> &argTypes,

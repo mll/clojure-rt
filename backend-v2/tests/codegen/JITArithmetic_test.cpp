@@ -84,7 +84,7 @@ static void test_jit_arithmetic_ib_regression(void **state) {
     arg2->set_tag("clojure.lang.BigInt");
 
     try {
-        auto resCall = engine.compileAST(callNode, "__test_arith_regression", llvm::OptimizationLevel::O0, false).get();
+        auto resCall = engine.compileAST(callNode, "__test_arith_regression", llvm::OptimizationLevel::O0, false).get().address;
         RTValue result = resPtrToValue(resCall);
         
         assert_true(getType(result) == bigIntegerType);

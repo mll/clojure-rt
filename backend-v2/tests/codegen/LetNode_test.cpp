@@ -89,7 +89,7 @@ static void test_let_basic(void **state) {
     compState.classRegistry.registerObject("rt.Core", coreCls);
 
     try {
-      auto res = engine.compileAST(root, "__test_let_basic", llvm::OptimizationLevel::O0, true).get();
+      auto res = engine.compileAST(root, "__test_let_basic", llvm::OptimizationLevel::O0, true).get().address;
       RTValue result = res.toPtr<RTValue (*)()>()();
       assert_int_equal(RT_unboxInt32(result), 3);
     } catch (const rt::LanguageException &e) {
@@ -141,7 +141,7 @@ static void test_let_memory_mm(void **state) {
 
     cout << "=== Let Memory Guidance Test IR ===" << endl;
     try {
-      auto res = engine.compileAST(root, "__test_let_mm", llvm::OptimizationLevel::O0, true).get();
+      auto res = engine.compileAST(root, "__test_let_mm", llvm::OptimizationLevel::O0, true).get().address;
       cout << "===================================" << endl;
       
       RTValue result = res.toPtr<RTValue (*)()>()();
@@ -216,7 +216,7 @@ static void test_let_uaf_fixed(void **state) {
     try {
       {
         rt::JITEngine engine(compState);
-        auto res = engine.compileAST(root, "__test_let_uaf", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(root, "__test_let_uaf", llvm::OptimizationLevel::O0, true).get().address;
         res.toPtr<RTValue (*)()>()();
         assert_true(false); // Should have thrown
       }
@@ -298,7 +298,7 @@ static void test_let_gap_leak(void **state) {
     try {
       {
         rt::JITEngine engine(compState);
-        auto res = engine.compileAST(root, "__test_let_leak", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(root, "__test_let_leak", llvm::OptimizationLevel::O0, true).get().address;
         res.toPtr<RTValue (*)()>()();
         assert_true(false); 
       }
@@ -362,7 +362,7 @@ static void test_let_nested_redundancy(void **state) {
 
         cout << "=== Let Nested Redundancy Detection Test ===" << endl;
         try {
-            auto res = engine.compileAST(root, "__test_let_nested_redundancy", llvm::OptimizationLevel::O0, true).get();
+            auto res = engine.compileAST(root, "__test_let_nested_redundancy", llvm::OptimizationLevel::O0, true).get().address;
             RTValue val = res.toPtr<RTValue (*)()>()();
             assert_int_equal(42, RT_unboxInt32(val));
         } catch (const std::exception &e) {

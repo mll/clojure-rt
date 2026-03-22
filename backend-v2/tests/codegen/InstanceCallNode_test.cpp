@@ -125,7 +125,7 @@ static void test_static_instance_call(void **state) {
       auto resCall = engine
                          .compileAST(callNode, "__test_static_instance_call",
                                      llvm::OptimizationLevel::O0, true)
-                         .get();
+                         .get().address;
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));
       assert_int_equal(142, RT_unboxInt32(result));
@@ -165,7 +165,7 @@ static void test_vector_pop_call(void **state) {
       auto resCall = engine
                          .compileAST(callNode, "__test_vector_pop",
                                      llvm::OptimizationLevel::O0, true)
-                         .get();
+                         .get().address;
       RTValue result = resPtrToValue(resCall);
       assert_int_equal(persistentVectorType, getType(result));
       release(result);
@@ -212,7 +212,7 @@ static void test_dynamic_instance_call(void **state) {
       auto resCall = engine
                          .compileAST(callNode, "__test_dynamic_instance_call",
                                      llvm::OptimizationLevel::O0, true)
-                         .get();
+                         .get().address;
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));
       assert_int_equal(142, RT_unboxInt32(result));

@@ -122,7 +122,7 @@ static void test_math_sin_int(void **state) {
     auto resCall = engine
                        .compileAST(callNode, "__test_sin_int",
                                    llvm::OptimizationLevel::O0, false)
-                       .get();
+                       .get().address;
     RTValue result = resPtrToValue(resCall);
     assert_true(RT_isDouble(result));
     assert_double_equal(0.0, RT_unboxDouble(result), 0.0001);
@@ -157,7 +157,7 @@ static void test_math_sqrt_bigint(void **state) {
     auto resCall = engine
                        .compileAST(callNode, "__test_sqrt_bigint",
                                    llvm::OptimizationLevel::O0, false)
-                       .get();
+                       .get().address;
 
     RTValue result = resPtrToValue(resCall);
     assert_true(RT_isDouble(result));
@@ -203,7 +203,7 @@ static void test_math_sqrt_leak_repro(void **state) {
     auto resCall = engine
                        .compileAST(callNode, "__test_leak_repro",
                                    llvm::OptimizationLevel::O0, false)
-                       .get();
+                       .get().address;
     fflush(stdout);
     fflush(stderr);
     RTValue result = resPtrToValue(resCall); // Should throw
@@ -264,7 +264,7 @@ static void test_math_pow_var(void **state) {
     auto resCall = engine
                        .compileAST(callNode, "__test_pow_var",
                                    llvm::OptimizationLevel::O0, false)
-                       .get();
+                       .get().address;
     RTValue result = resPtrToValue(resCall);
     assert_true(RT_isDouble(result));
     assert_double_equal(4.0, RT_unboxDouble(result), 0.0001);

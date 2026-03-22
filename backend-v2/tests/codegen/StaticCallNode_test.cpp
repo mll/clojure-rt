@@ -174,7 +174,7 @@ static void test_dynamic_dispatch_3tail(void **state) {
           engine
               .compileAST(callNode, "__test_3tail_int",
                           llvm::OptimizationLevel::O0, false)
-              .get();
+              .get().address;
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));
       assert_int_equal(1030, RT_unboxInt32(result));
@@ -194,7 +194,7 @@ static void test_dynamic_dispatch_3tail(void **state) {
       auto resCallD = engine
                           .compileAST(callNode, "__test_3tail_double",
                                       llvm::OptimizationLevel::O0, false)
-                          .get();
+                          .get().address;
       RTValue resultD = resPtrToValue(resCallD);
       assert_true(RT_isDouble(resultD));
       assert_double_equal(2031.0, RT_unboxDouble(resultD), 0.001);
@@ -233,7 +233,7 @@ static void test_dynamic_dispatch_filtering(void **state) {
       auto resCall = engine
                          .compileAST(callNode, "__test_filtering",
                                      llvm::OptimizationLevel::O0, false)
-                         .get();
+                         .get().address;
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isDouble(result));
       assert_double_equal(10.5 + 20.5 + 2000.0, RT_unboxDouble(result), 0.001);
@@ -268,7 +268,7 @@ static void test_dynamic_dispatch_exhaustive(void **state) {
           engine
               .compileAST(callNode, "__test_exhaustive",
                           llvm::OptimizationLevel::O0, false)
-              .get();
+              .get().address;
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));
       assert_int_equal(1030, RT_unboxInt32(result));
@@ -316,7 +316,7 @@ static void test_dynamic_dispatch_no_match(void **state) {
           engine
               .compileAST(callNode, "__test_no_match",
                           llvm::OptimizationLevel::O0, false)
-              .get();
+              .get().address;
       // Since both are strings, it's statically possible they match a dynamic
       // overload if it existed, but we filtered versions. (String, String) is
       // NOT statically possible for any of (int, int), (double, double), (bool,
@@ -379,7 +379,7 @@ static void test_dynamic_dispatch_no_match_runtime(void **state) {
       auto resCall = engine
                          .compileAST(callNode, "__test_no_match_runtime",
                                      llvm::OptimizationLevel::O0, false)
-                         .get();
+                         .get().address;
       resPtrToValue(resCall);
       assert_true(false); // Should have thrown runtime exception
     } catch (const LanguageException &e) {
@@ -424,7 +424,7 @@ static void test_regression_type_narrowing_specialized(void **state) {
       auto resCall = engine
                          .compileAST(callNode, "__test_regression_narrowing",
                                      llvm::OptimizationLevel::O0, false)
-                         .get();
+                         .get().address;
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));
       assert_int_equal(1050, RT_unboxInt32(result)); // mock_add_int adds 1000
@@ -462,7 +462,7 @@ static void test_regression_phi_node_segfault(void **state) {
       auto resCall = engine
                          .compileAST(callNode, "__test_regression_segfault",
                                      llvm::OptimizationLevel::O1, false)
-                         .get();
+                         .get().address;
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));
       assert_int_equal(300, RT_unboxInt32(result)); // Real Add doesn't add 1000

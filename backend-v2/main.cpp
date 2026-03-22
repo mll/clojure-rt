@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::string filename = argv[1];
-  llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O0;
+  llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O3;
 
   int retVal = -1;
 
@@ -94,19 +94,16 @@ int main(int argc, char *argv[]) {
     RTValue interfaces = engine
                              .compileAST(astInterfaces.nodes(0), "__interfaces",
                                          llvm::OptimizationLevel::O0, false)
-                             .get()
+                             .get().address
                              .toPtr<RTValue (*)()>()();
     cout << "Storing interfaces..." << endl;
     state.storeInternalProtocols(interfaces);
 
     cout << "Compiling classes..." << endl;
-    auto compiled =
-        engine.compileAST(astClasses.nodes(0), "__classes", optLevel, false)
-            .get()
-            .toPtr<RTValue (*)()>();
-    cout << "Calling classes..." << endl;
-    RTValue classes = compiled();
-
+    RTValue classes = engine.compileAST(astClasses.nodes(0), "__classes",
+                                        llvm::OptimizationLevel::O0, false)
+                          .get().address
+                          .toPtr<RTValue (*)()>()();
     cout << "Storing classes..." << endl;
     state.storeInternalClasses(classes);
 
@@ -116,9 +113,15 @@ int main(int argc, char *argv[]) {
       cout << "=============================" << endl;
       cout << "Compiling!!!" << endl;
       std::string moduleName = "__repl__" + std::to_string(j);
-      auto f = engine.compileAST(topLevelNode, moduleName, optLevel, true);
+      auto res = engine.compileAST(topLevelNode, moduleName, optLevel, true).get();
 
-      RTValue whaat = f.get().toPtr<RTValue (*)()>()();
+      if (!res.optimizedIR.empty()) {
+        cout << "\n=== Optimized LLVM IR for: '" << moduleName << "' ===\n";
+        cout << res.optimizedIR << "\n";
+        cout << "===============================================\n" << endl;
+      }
+
+      RTValue whaat = res.address.toPtr<RTValue (*)()>()();
       String *s = toString(whaat);
       s = String_compactify(s);
 

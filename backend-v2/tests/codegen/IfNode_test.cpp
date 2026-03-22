@@ -62,7 +62,7 @@ static void test_if_truthy_const(void **state) {
     auto resIf = engine
                      .compileAST(ifNode, "__test_if_truthy_const",
                                  llvm::OptimizationLevel::O0, false)
-                     .get();
+                     .get().address;
 
     RTValue result = resPtrToValue(resIf);
     assert_true(RT_isPtr(result));
@@ -102,7 +102,7 @@ static void test_if_falsy_const(void **state) {
     auto resIf = engine
                      .compileAST(ifNode, "__test_if_falsy_const",
                                  llvm::OptimizationLevel::O0, false)
-                     .get();
+                     .get().address;
 
     RTValue result = resPtrToValue(resIf);
     assert_true(RT_isPtr(result));
@@ -142,7 +142,7 @@ static void test_if_nil(void **state) {
     auto resIf = engine
                      .compileAST(ifNode, "__test_if_nil",
                                  llvm::OptimizationLevel::O0, false)
-                     .get();
+                     .get().address;
 
     RTValue result = resPtrToValue(resIf);
     assert_true(RT_isPtr(result));
@@ -184,7 +184,7 @@ static void test_if_integer_const(void **state) {
     auto resIf = engine
                      .compileAST(ifNode, "__test_if_integer_const",
                                  llvm::OptimizationLevel::O0, false)
-                     .get();
+                     .get().address;
 
     RTValue result = resPtrToValue(resIf);
     assert_true(RT_isPtr(result));
@@ -253,7 +253,7 @@ static void test_if_test_leak(void **state) {
     cout << "=== If Test Leak Test (Should NOT leak) ===" << endl;
     try {
       rt::JITEngine engine(compState);
-      auto res = engine.compileAST(root, "__test_if_leak", llvm::OptimizationLevel::O0, true).get();
+      auto res = engine.compileAST(root, "__test_if_leak", llvm::OptimizationLevel::O0, true).get().address;
       
       RTValue val = res.toPtr<RTValue (*)()>()();
       assert_int_equal(42, RT_unboxInt32(val));

@@ -125,7 +125,7 @@ static void test_instance_call_ic_hit_miss(void **state) {
       auto resF = engine
                       .compileAST(callNode, "__test_ic_dynamic",
                                   llvm::OptimizationLevel::O0, true)
-                      .get();
+                      .get().address;
       auto fn = resF.toPtr<RTValue (*)()>();
 
       // --- Phase 1: Call with TypeA (Vector) ---
@@ -201,7 +201,7 @@ static void test_instance_call_ic_atomicity(void **state) {
     auto resF = engine
                     .compileAST(callNode, "__test_ic_atomicity",
                                 llvm::OptimizationLevel::O0, false)
-                    .get();
+                    .get().address;
     auto fn = resF.toPtr<RTValue (*)()>();
 
     // --- Pre-compilation phase ---

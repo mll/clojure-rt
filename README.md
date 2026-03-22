@@ -1,40 +1,29 @@
 # Clojure Real Time [![C++ CI Linux](https://github.com/mll/clojure-rt/actions/workflows/ci.yml/badge.svg)](https://github.com/mll/clojure-rt/actions/workflows/ci.yml)
 
-Clojuire Real Time (clojure-rt) is a compiler of Clojure programming language.
+**Clojure Real Time (`clojure-rt`)** is a high-performance Clojure compiler designed for deterministic execution, enabling Clojure to expand into domains beyond its traditional reach. By leveraging **LLVM** for aggressive optimization and platform independence, `clojure-rt` targets performance benchmarks significantly higher than existing implementations.
 
-It is being developed to allow deterministic and fast execution that could enable Clojure to proliferate beyond its 
-original domains of application. It uses LLVM for agressive optimisations, JIT and platform independence.
+---
 
-It aims for C++ interoperability, with the exception model following C++ ABI. Its performance targets are much higher than any known
-Clojure implementation. 
+## Key Technical Features
 
-The compiler strives to be a full implementation of Clojure following the reference java implementation as closely as possible.
+* **C++ Interoperability:** Aims for seamless C++ interop, with an exception model following the **C++ ABI**.
+* **Reference Counting:** Unlike the standard JVM implementation, `clojure-rt` utilizes a reference-counting memory model based on *Reinking et al. (MSR-TR-2020-42)*. This eliminates garbage collection pauses, providing predictable memory management and execution time.
+* **Two-Tiered JIT:** A custom, two-tiered JIT compiler optimizes code at runtime. It uses static type analysis to discover types during execution, rendering traditional Clojure type hints unnecessary while achieving near-native speeds.
+* **C-Based Runtime:** To maximize optimization, all core immutable data structures and the Clojure-to-Java interop layers have been reimplemented in C.
 
-The interop part of java has been reimplemented in C to enable the compilation of *.clj part of the clojure source code (this is work in progress).
+---
 
-All the data structures have been developed in C. The compiler uses JIT to compile clojure->llvm->binary at runtime.
-The primary advantage of this implementation is reference counting memory model, based on Renking et al, MSR-TR-2020-42, Nov 29, 2020. 
-It allows clojure programmes to behave predictably with respect to memory management and execution time, as no garbage collector is involved. 
-Furthermore, advanced optimisations allowed by llvm enable the compiler to often execute clojure code at nearly native speeds.
+## Current Architecture & Bootstrap Status
 
-Type annotations, commonly used in the java implementation to speed the execution up are not needed in clojure-rt as 
-all the types are being discovered during programme execution and the resulting JITted representations are optimised to benefit from static type
-analysis. To archieve the above result, two tiered JIT compiler, designed specifically with Clojure in mind, has been developed.
+The compiler is currently in a bootstrap phase, consisting of two distinct components:
 
-Currently the compiler is set up in bootstrap mode and consists of two separate parts
+### 1. Frontend (Clojure)
+Built on `org.clojure/tools.reader` and `org.clojure/tools.analyzer`, the frontend runs via Leiningen. It remains lightweight, primarily adding passes to compute memory management annotations.
 
-1. Compiler frontend written in Clojure itself, to be executed using leiningen / java clojure
-   Based on org.clojure/tools.reader and org.clojure/tools.analyzer.
-   
-   The frontend therefore is very simple, it only adds some additional passes to compute memory management annotations.
+### 2. Backend (C++/C)
+The backend comprises the LLVM code generator, JIT infrastructure, and the core Clojure runtime. Implementing data structures in C allows for the highest possible level of optimization.
 
-2. Compiler backend written in C++ (llvm part) and C (runtime + basic standard library).
-   
-   The backend is composed of llvm code generator, llvm JIT infrastructure and bootstraps and implementation of clojure runtime in C (for performance).
-   All the basic immutable data structures are implemented in C, allowing the highest level of optimisation.
-
-The parts of the compiler currently communicate using protocol buffers (the *.cljb files). However, as soon as clojure itself will be able to be compiled 
-using the two-part bootstrap compiler, a self-hosted compiler will be developed.
+> **Note:** Currently, these components communicate via **Protocol Buffers** (using `.cljb` files). Development is progressing toward a **self-hosted compiler**, which will be established once the bootstrap process can fully compile Clojure itself.
 
 ## Compilation
 

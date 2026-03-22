@@ -162,17 +162,47 @@ endif()
 
 # 3. GMP Detection
 find_path(GMP_INCLUDE_DIRS NAMES gmp.h)
-find_library(GMP_LIBRARY NAMES gmp libgmp)
+find_library(GMP_LIBRARY_PATH NAMES gmp libgmp)
+if(GMP_LIBRARY_PATH)
+    set(GMP_LIBRARY ${GMP_LIBRARY_PATH})
+else()
+    set(GMP_LIBRARY "")
+endif()
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
 mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
 include_directories(${GMP_INCLUDE_DIRS})
 
 # 4. Atomic Detection (needed for 128-bit atomics on standard Linux)
+set(ATOMIC_LIBRARY "")
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    find_library(ATOMIC_LIBRARY atomic)
-    if(ATOMIC_LIBRARY)
-        message(STATUS "Found libatomic at ${ATOMIC_LIBRARY}")
+    include(CheckCXXSourceCompiles)
+    
+    # Check if we can use 128-bit atomics without libatomic
+    set(CMAKE_REQUIRED_FLAGS "-std=c++20")
+    check_cxx_source_compiles("
+        #include <atomic>
+        #include <cstdint>
+        struct dummy { uint64_t a, b; };
+        int main() {
+            std::atomic<dummy> x;
+            dummy d = x.load();
+            x.store(d);
+            return 0;
+        }
+    " ATOMIC_128_BUILTIN)
+    unset(CMAKE_REQUIRED_FLAGS)
+
+    if(NOT ATOMIC_128_BUILTIN)
+        find_library(ATOMIC_LIBRARY_PATH NAMES atomic libatomic.so.1 libatomic.so)
+        if(ATOMIC_LIBRARY_PATH)
+            set(ATOMIC_LIBRARY ${ATOMIC_LIBRARY_PATH})
+            message(STATUS "Found libatomic at ${ATOMIC_LIBRARY}")
+        else()
+            message(FATAL_ERROR "128-bit atomics require libatomic on Linux, but it was not found. Please install libatomic1 (Debian/Ubuntu) or libatomic (RHEL/CentOS).")
+        endif()
+    else()
+        message(STATUS "128-bit atomics are builtin, libatomic not needed.")
     endif()
 endif()
 

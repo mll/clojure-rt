@@ -16,9 +16,6 @@
 #include <cstdint>
 
 
-extern "C" {
-void *__emutls_get_address(void *);
-}
 
 // Host-side safety state for EBR operations
 extern "C" _Thread_local rt_jt_SafetyState host_jit_safety_state;
@@ -71,6 +68,9 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
   auto JTMB = llvm::orc::JITTargetMachineBuilder::detectHost();
   if (!JTMB)
     throw std::runtime_error("Failed to detect host");
+
+  // Modern macOS uses native TLS (TLVs). JIT should match the host.
+  JTMB->getOptions().EmulatedTLS = false;
 
   auto TMTmp = JTMB->createTargetMachine();
   if (!TMTmp)
@@ -544,15 +544,26 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(absoluteSymbol("JITEngine_slowPath_leave",
                                        (void *)JITEngine_slowPath_leave));
 
-  // Map the external TLS variable to the Host address
-  runtimeSymbols.insert(absoluteSymbol("host_jit_safety_state",
-                                       (void *)&host_jit_safety_state));
+  // On macOS (arm64), native TLS uses TLV descriptors.
+  // The JITed code (with EmulatedTLS=false) expects a pointer to a descriptor
+  // whose first element is a thunk that returns the actual TLS address.
+  struct MachOTLVDescriptor {
+    void* (*thunk)(MachOTLVDescriptor*);
+    unsigned long key;
+    unsigned long offset;
+  };
 
-  // Bridge for emulated TLS required by JIT-compiled code
-  runtimeSymbols.insert(
-      absoluteSymbol("___emutls_get_address", (void *)__emutls_get_address));
-  runtimeSymbols.insert(
-      absoluteSymbol("__emutls_get_address", (void *)__emutls_get_address));
+  static auto thunk = [](MachOTLVDescriptor*) -> void* {
+    return (void*)&host_jit_safety_state;
+  };
+
+  static MachOTLVDescriptor host_jit_safety_state_TLV = {
+    thunk, 0, 0
+  };
+
+  runtimeSymbols.insert(absoluteSymbol("host_jit_safety_state",
+                                       (void *)&host_jit_safety_state_TLV));
+
 
   cantFail(jit->getMainJITDylib().define(
       absoluteSymbols(std::move(runtimeSymbols))));

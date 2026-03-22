@@ -244,7 +244,7 @@ public:
     retVal.insert(ratioType);
     retVal.insert(classType);
     retVal.insert(persistentArrayMapType);
-    retVal.insert(varType);    
+    retVal.insert(varType);
     retVal.isBoxed = true;
     return retVal;
   }
@@ -325,50 +325,54 @@ public:
   static std::string toHumanReadableName(objectType type) {
     switch (type) {
     case integerType:
-      return "Int";
+      return ":int";
     case stringType:
-      return "String";
+      return ":string";
     case persistentListType:
-      return "List";
+      return ":list";
     case persistentVectorType:
-      return "Vector";
+      return ":vector";
     case doubleType:
-      return "Double";
+      return ":double";
     case nilType:
-      return "Nil";
+      return ":nil";
     case booleanType:
-      return "Boolean";
+      return ":bool";
     case symbolType:
-      return "Symbol";
+      return ":symbol";
     case keywordType:
-      return "Keyword";
+      return ":keyword";
     case functionType:
-      return "Function";
+      return ":fn";
     case bigIntegerType:
-      return "BigInt";
+      return ":bigint";
     case ratioType:
-      return "Ratio";
+      return ":ratio";
     case classType:
-      return "Class";
+      return ":class";
     case persistentArrayMapType:
-      return "Map";
+      return ":map";
     case persistentVectorNodeType:
-      return "VectorNode";
+      return ":vector-node";
     case concurrentHashMapType:
-      return "CHM";
+      return ":chm";
     case varType:
-      return "Var";
+      return ":var";
     default:
-      return "Unknown";
+      return ":unknown";
     }
   }
 
   std::string toString() const {
+    if (*this == ObjectTypeSet::all() ||
+        *this == ObjectTypeSet::dynamicType()) {
+      return ":any";
+    }
     std::stringstream ss;
     if (isBoxed)
-      ss << "Boxed(";
+      ss << "^:b ";
     if (internal.empty()) {
-      ss << "Empty";
+      ss << ":empty";
     } else if (internal.size() == 1) {
       ss << toHumanReadableName(*internal.begin());
       if (constant) {
@@ -382,8 +386,6 @@ public:
       }
       ss << ")";
     }
-    if (isBoxed)
-      ss << ")";
     return ss.str();
   }
 };

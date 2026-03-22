@@ -96,7 +96,7 @@ std::string CodeGen::generateInstanceCallBridge(
   if (callSiteId) {
     // Use the call site pointer for uniqueness if provided
     char buf[32];
-    sprintf(buf, "_%p", callSiteId);
+    snprintf(buf, sizeof(buf), "_%p", callSiteId);
     funcName += buf;
   }
 

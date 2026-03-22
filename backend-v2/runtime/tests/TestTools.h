@@ -126,4 +126,43 @@ void reset_exception_state();
     }                                                                          \
   } while (0)
 
+#ifdef __cplusplus
+#define assert_string_contains(str, substr)                                    \
+  do {                                                                         \
+    std::string __s = (str);                                                   \
+    const char *__sub = (substr);                                              \
+    if (__s.find(__sub) == std::string::npos) {                                \
+      fail_msg("String '%s' does not contain '%s'", __s.c_str(), __sub);       \
+    }                                                                          \
+  } while (0)
+
+#define assert_string_not_contains(str, substr)                                \
+  do {                                                                         \
+    std::string __s = (str);                                                   \
+    const char *__sub = (substr);                                              \
+    if (__s.find(__sub) != std::string::npos) {                                \
+      fail_msg("String '%s' contains '%s' (but should not)", __s.c_str(),      \
+               __sub);                                                         \
+    }                                                                          \
+  } while (0)
+#else
+#define assert_string_contains(str, substr)                                    \
+  do {                                                                         \
+    const char *__s = (str);                                                   \
+    const char *__sub = (substr);                                              \
+    if (strstr(__s, __sub) == NULL) {                                          \
+      fail_msg("String '%s' does not contain '%s'", __s, __sub);               \
+    }                                                                          \
+  } while (0)
+
+#define assert_string_not_contains(str, substr)                                \
+  do {                                                                         \
+    const char *__s = (str);                                                   \
+    const char *__sub = (substr);                                              \
+    if (strstr(__s, __sub) != NULL) {                                          \
+      fail_msg("String '%s' contains '%s' (but should not)", __s, __sub);      \
+    }                                                                          \
+  } while (0)
+#endif
+
 #endif

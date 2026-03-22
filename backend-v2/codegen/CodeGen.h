@@ -183,6 +183,7 @@ public:
     return memoryManagement.hasPushedResources();
   }
   MemoryManagement &getMemoryManagement() { return memoryManagement; }
+  DynamicConstructor &getDynamicConstructor() { return dynamicConstructor; }
 };
 
 } // namespace rt

@@ -3,6 +3,7 @@
 #include "../../runtime/RuntimeInterface.h"
 #include "../../state/ThreadsafeCompilerState.h"
 #include "../../tools/EdnParser.h"
+#include "bridge/Exceptions.h"
 #include "bytecode.pb.h"
 #include "runtime/Keyword.h"
 #include <cmath>
@@ -46,7 +47,7 @@ static void setup_math_runtime_test(rt::ThreadsafeCompilerState &compState) {
     auto addUnary = [&](const string &method, const string &symbol) {
       // double
       IntrinsicDescription idD;
-      idD.symbol = symbol;
+      idD.symbol = symbol + "_D";
       idD.type = CallType::Intrinsic;
       idD.returnType = ObjectTypeSet(doubleType, false);
       idD.argTypes = {ObjectTypeSet(doubleType, false)};
@@ -54,12 +55,14 @@ static void setup_math_runtime_test(rt::ThreadsafeCompilerState &compState) {
 
       // int
       IntrinsicDescription idI = idD;
+      idI.symbol = symbol + "_I";
       idI.argTypes = {ObjectTypeSet(integerType, false)};
       ext->staticFns[method].push_back(idI);
 
-      // bigint
+      // any
       IntrinsicDescription idB = idD;
-      idB.argTypes = {ObjectTypeSet(bigIntegerType, false)};
+      idB.symbol = symbol;
+      idB.argTypes = {ObjectTypeSet::dynamicType()};
       ext->staticFns[method].push_back(idB);
     };
 
@@ -69,12 +72,14 @@ static void setup_math_runtime_test(rt::ThreadsafeCompilerState &compState) {
       idD.symbol = symbol;
       idD.type = CallType::Intrinsic;
       idD.returnType = ObjectTypeSet(doubleType, false);
-      idD.argTypes = {ObjectTypeSet(doubleType, false), ObjectTypeSet(doubleType, false)};
+      idD.argTypes = {ObjectTypeSet(doubleType, false),
+                      ObjectTypeSet(doubleType, false)};
       ext->staticFns[method].push_back(idD);
 
       // int, int
       IntrinsicDescription idI = idD;
-      idI.argTypes = {ObjectTypeSet(integerType, false), ObjectTypeSet(integerType, false)};
+      idI.argTypes = {ObjectTypeSet(integerType, false),
+                      ObjectTypeSet(integerType, false)};
       ext->staticFns[method].push_back(idI);
 
       // any, any
@@ -192,21 +197,26 @@ static void test_math_sqrt_leak_repro(void **state) {
   auto *arg1 = sc->add_args();
   arg1->set_op(opVar);
   auto *v1 = arg1->mutable_subnode()->mutable_var();
-  v1->set_var("v_a");
+  v1->set_var("#'a");
 
   try {
     auto resCall = engine
                        .compileAST(callNode, "__test_leak_repro",
-                                   llvm::OptimizationLevel::O0, true)
+                                   llvm::OptimizationLevel::O0, false)
                        .get();
     fflush(stdout);
     fflush(stderr);
     RTValue result = resPtrToValue(resCall); // Should throw
     (void)result;
-  } catch (const std::exception &e) {
-    printf("Caught expected exception: %s\n", e.what());
+  } catch (const LanguageException &e) {
+    std::string s = rt::getExceptionString(e);
+    assert_string_contains(s, "Operation requires a numeric argument");
+    assert_string_contains(s, "IllegalArgumentException");
+    assert_string_contains(s, "Numbers_toDouble");
+    assert_string_contains(s, "Numbers_sqrt");
   } catch (...) {
     printf("Caught UNKNOWN exception!\n");
+    assert_true(false);
   }
 
   // Note: initialise_memory() and RuntimeInterface_cleanup() in main will check
@@ -225,7 +235,7 @@ static void test_math_pow_var(void **state) {
     RTValue v_a = RT_boxInt32(2);
     RTValue k = Keyword_create(String_create("a"));
     Var *v = Var_create(k);
-    
+
     Ptr_retain(v);
     Var_bindRoot(v, v_a);
     compState.varRegistry.registerObject("a", v);

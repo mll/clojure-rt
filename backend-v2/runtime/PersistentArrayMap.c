@@ -1,19 +1,26 @@
 #include "PersistentArrayMap.h"
+#include "Exceptions.h"
 #include "Nil.h"
 #include "Object.h"
 #include "RTValue.h"
 #include "defines.h"
 #include <stdarg.h>
-#include "Exceptions.h"
 
 static PersistentArrayMap *EMPTY = NULL;
 
 /* mem done */
 PersistentArrayMap *PersistentArrayMap_empty() {
-  if (EMPTY == NULL)
-    EMPTY = PersistentArrayMap_create();
   Ptr_retain(EMPTY);
   return EMPTY;
+}
+
+void PersistentArrayMap_initialise() { EMPTY = PersistentArrayMap_create(); }
+
+void PersistentArrayMap_cleanup() {
+  if (EMPTY) {
+    Ptr_release(EMPTY);
+    EMPTY = NULL;
+  }
 }
 
 /* mem done */

@@ -1,6 +1,6 @@
 #include "RuntimeInterface.h"
 #include "ConcurrentHashMap.h"
-#include "Keyword.h"
+#include "PersistentArrayMap.h"
 #include "PersistentVector.h"
 #include "Symbol.h"
 #include "Var.h"
@@ -56,6 +56,7 @@ void RuntimeInterface_cleanup() {
   }
   PersistentList_cleanup();
   PersistentVector_cleanup();
+  PersistentArrayMap_cleanup();
   Var_cleanup();
 }
 

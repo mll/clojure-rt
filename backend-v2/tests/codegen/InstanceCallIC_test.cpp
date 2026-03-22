@@ -198,7 +198,10 @@ static void test_instance_call_ic_atomicity(void **state) {
     arg->mutable_subnode()->mutable_const_()->set_val("10");
     arg->set_tag("long");
 
-    auto resF = engine.compileAST(callNode, "__test_ic_atomicity", llvm::OptimizationLevel::O0, true).get();
+    auto resF = engine
+                    .compileAST(callNode, "__test_ic_atomicity",
+                                llvm::OptimizationLevel::O0, false)
+                    .get();
     auto fn = resF.toPtr<RTValue (*)()>();
 
     // --- Pre-compilation phase ---

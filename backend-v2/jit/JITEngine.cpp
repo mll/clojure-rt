@@ -12,6 +12,8 @@
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Transforms/IPO/Inliner.h>
 #include <llvm/Transforms/IPO/ModuleInliner.h>
+#include <llvm/IR/Verifier.h>
+
 
 extern "C" void *__emutls_get_address(void *);
 
@@ -569,9 +571,12 @@ JITEngine::~JITEngine() {
 
 void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
                          const std::string &entryPoint) {
-  // No changes here, we are moving this block later.
+  if (llvm::verifyModule(M, &llvm::errs())) {
+    throw std::runtime_error("Module verification failed before optimization");
+  }
 
   if (Level != llvm::OptimizationLevel::O0 && runtimeBitcodeBuffer) {
+
     auto runtimeModuleOrErr =
         llvm::parseBitcodeFile(*runtimeBitcodeBuffer, M.getContext());
     if (!runtimeModuleOrErr) {

@@ -36,6 +36,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
         "mode");
   }
 
+  cout << "Generating dynamic instance call for method: " << methodName << endl;
   // Allocate an Inline Cache slot as a global variable in the module
   auto *slotTy = StructType::get(TheContext, {types.wordTy, types.ptrTy});
 
@@ -115,11 +116,14 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
                         {types.ptrTy, types.ptrTy, types.i32Ty, types.ptrTy,
                          types.i64Ty, types.ptrTy},
                         false);
-  FunctionCallee bouncerFunc =
-      theModule.getOrInsertFunction("InstanceCallSlowPath", bouncerSig);
 
   auto *argsArrType = ArrayType::get(types.RT_valueTy, args.size() + 1);
-  auto *argsArray = builder.CreateAlloca(argsArrType, nullptr, "bouncer_args");
+  // Create alloca in entry block for proper dominance and SROA optimization
+  llvm::BasicBlock &entryBB = currentFn->getEntryBlock();
+  llvm::IRBuilder<> entryBuilder(&entryBB, entryBB.begin());
+  entryBuilder.SetCurrentDebugLocation(this->builder.getCurrentDebugLocation());
+  auto *argsArray =
+      entryBuilder.CreateAlloca(argsArrType, nullptr, "bouncer_args");
   builder.CreateStore(boxedInstance.value,
                       builder.CreateStructGEP(argsArrType, argsArray, 0));
   for (size_t i = 0; i < args.size(); i++) {
@@ -133,11 +137,13 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
       ConstantInt::get(this->types.i64Ty, (uintptr_t)codeGen.jitEnginePtr);
   jitEnginePtr = builder.CreateIntToPtr(jitEnginePtr, types.ptrTy);
 
-  Value *newBridge = builder.CreateCall(
-      bouncerFunc,
+  Value *newBridge = invokeRaw(
+      "InstanceCallSlowPath", bouncerSig,
       {slotPtr, methNameG, ConstantInt::get(types.i32Ty, (int32_t)args.size()),
        builder.CreateStructGEP(argsArrType, argsArray, 0),
-       ConstantInt::get(types.i64Ty, boxedMask), jitEnginePtr});
+       ConstantInt::get(types.i64Ty, boxedMask), jitEnginePtr},
+      guard);
+  BasicBlock *slowPathEnd = builder.GetInsertBlock();
   builder.CreateBr(callBB);
 
   // --- FAST PATH ---
@@ -148,7 +154,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
   builder.SetInsertPoint(callBB);
   PHINode *bridgePtr = builder.CreatePHI(types.ptrTy, 2, "bridge_to_call");
   bridgePtr->addIncoming(cachedBridge, fastPath);
-  bridgePtr->addIncoming(newBridge, slowPath);
+  bridgePtr->addIncoming(newBridge, slowPathEnd);
 
   std::vector<Value *> bridgeArgs;
   bridgeArgs.push_back(boxedInstance.value);
@@ -170,7 +176,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
     }
   }
 
-  Value *result = builder.CreateCall(bridgeSig, bridgePtr, bridgeArgs);
+  Value *result = invokeRaw(bridgePtr, bridgeSig, bridgeArgs, guard);
   return TypedValue(ObjectTypeSet::dynamicType(), result);
 }
 
@@ -195,11 +201,6 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
         Ptr_retain(targetClass);
       }
     }
-  }
-
-  if (!targetClass) {
-    string name = ObjectTypeSet::toHumanReadableName(objType);
-    targetClass = this->compilerState.classRegistry.getCurrent(name.c_str());
   }
 
   PtrWrapper<Class> cls(targetClass);
@@ -237,12 +238,13 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
       break;
     }
 
-    if (curr_ext->parentName.empty() || curr_ext->parentName == curr_ext->name) {
+    if (curr_ext->parentName.empty() ||
+        curr_ext->parentName == curr_ext->name) {
       break;
     }
 
-    ::Class *parentCls =
-        this->compilerState.classRegistry.getCurrent(curr_ext->parentName.c_str());
+    ::Class *parentCls = this->compilerState.classRegistry.getCurrent(
+        curr_ext->parentName.c_str());
     Ptr_release(curr_cls);
     curr_cls = parentCls;
     if (!curr_cls) {
@@ -270,12 +272,12 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
   const IntrinsicDescription *generic = nullptr;
   std::vector<const IntrinsicDescription *> specialized;
 
-  // We must release curr_cls before return/throw but we need to keep versions_ptr
-  // valid until we are done with it. Since versions_ptr points INTO ClassDescription
-  // which is owned by the Class in the registry, we should keep curr_cls alive
-  // until the end of this function or until we've used versions.
-  // Using a PtrWrapper for safety.
-  PtrWrapper<::Class> cls_guard(curr_cls); 
+  // We must release curr_cls before return/throw but we need to keep
+  // versions_ptr valid until we are done with it. Since versions_ptr points
+  // INTO ClassDescription which is owned by the Class in the registry, we
+  // should keep curr_cls alive until the end of this function or until we've
+  // used versions. Using a PtrWrapper for safety.
+  PtrWrapper<::Class> cls_guard(curr_cls);
 
   std::vector<TypedValue> allArgs = {instance};
   allArgs.insert(allArgs.end(), args.begin(), args.end());
@@ -450,19 +452,16 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
   } else {
     // No match and no generic -> Runtime Exception
     string typeName = ObjectTypeSet::toHumanReadableName(objType);
-    Value *className =
+    Value *classNameVal =
         this->builder.CreateGlobalString(typeName, "instance_call_class");
-    Value *methName =
+    Value *methNameVal =
         this->builder.CreateGlobalString(methodName, "instance_call_method");
 
-    std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType(),
-                                            ObjectTypeSet::dynamicType()};
-    std::vector<TypedValue> pArgVals = {
-        TypedValue(ObjectTypeSet::dynamicType(), className),
-        TypedValue(ObjectTypeSet::dynamicType(), methName)};
-
-    this->invokeRuntime("throwNoMatchingOverloadException_C", nullptr,
-                        pArgTypes, pArgVals);
+    FunctionType *fnTy = FunctionType::get(this->types.voidTy,
+                                          {this->types.ptrTy, this->types.ptrTy},
+                                          false);
+    this->invokeRaw("throwNoMatchingOverloadException_C", fnTy,
+                    {classNameVal, methNameVal}, guard);
     this->builder.CreateUnreachable();
   }
 
@@ -530,7 +529,8 @@ InvokeManager::predictInstanceCallType(const std::string &methodName,
       break;
     }
 
-    if (curr_ext->parentName.empty() || curr_ext->parentName == curr_ext->name) {
+    if (curr_ext->parentName.empty() ||
+        curr_ext->parentName == curr_ext->name) {
       break;
     }
 

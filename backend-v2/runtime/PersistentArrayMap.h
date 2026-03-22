@@ -23,6 +23,8 @@ struct PersistentArrayMap {
 };
 
 PersistentArrayMap *PersistentArrayMap_empty();
+void PersistentArrayMap_initialise();
+void PersistentArrayMap_cleanup();
 
 bool PersistentArrayMap_equals(PersistentArrayMap *self,
                                PersistentArrayMap *other);

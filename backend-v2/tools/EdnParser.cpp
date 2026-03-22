@@ -1,5 +1,6 @@
 #include "EdnParser.h"
 #include "RTValueWrapper.h"
+#include "bridge/Exceptions.h"
 
 namespace rt {
 
@@ -24,7 +25,9 @@ TemporaryClassData::~TemporaryClassData() {
   }
 }
 
-TemporaryClassData::TemporaryClassData(RTValue from) {
+TemporaryClassData::TemporaryClassData(RTValue from) { scanMetadata(from); }
+
+void TemporaryClassData::scanMetadata(RTValue from) {
   ConsumedValue root(from);
   if (getType(root.get()) != persistentArrayMapType)
     throwInternalInconsistencyException("Class definitions are not a map");
@@ -77,7 +80,7 @@ TemporaryClassData::TemporaryClassData(RTValue from) {
 
     if (getType(aliasWrapper.get()) == keywordType) {
       // toString consumes.
-      String *ss = String_compactify(toString(aliasWrapper.take()));
+      String *ss = String_compactify(::toString(aliasWrapper.take()));
       PersistentArrayMap *pMap =
           (PersistentArrayMap *)RT_unboxPtr(valWrapper.get());
       classesByName[string(String_c_str(ss))] = pMap;
@@ -89,7 +92,7 @@ TemporaryClassData::TemporaryClassData(RTValue from) {
 
     // toString consumes. Protect borrowed key.
     retain(key);
-    String *s = String_compactify(toString(key));
+    String *s = String_compactify(::toString(key));
     PersistentArrayMap *pMap =
         (PersistentArrayMap *)RT_unboxPtr(valWrapper.get());
     classesByName[string(String_c_str(s))] = pMap;
@@ -115,7 +118,7 @@ ClassDescription::ClassDescription(RTValue from,
       description, Keyword_create(String_create("alias"))));
 
   if (getType(aliasWrapper.get()) == keywordType) {
-    String *s = String_compactify(toString(aliasWrapper.take()));
+    String *s = String_compactify(::toString(aliasWrapper.take()));
     string sAlias = String_c_str(s);
     Ptr_release(s);
 
@@ -131,7 +134,8 @@ ClassDescription::ClassDescription(RTValue from,
       if (getType(typeWrapper.get()) == integerType) {
         this->type = (objectType)RT_unboxInt32(typeWrapper.get());
       } else {
-        this->type = classType;
+        throwInternalInconsistencyException(
+            "Each object hast to have an integer :object-type");
       }
     }
   } else {
@@ -153,7 +157,7 @@ ClassDescription::ClassDescription(RTValue from,
       description, Keyword_create(String_create("extends"))));
   if (getType(extendsWrapper.get()) == symbolType ||
       getType(extendsWrapper.get()) == stringType) {
-    String *sParent = String_compactify(toString(extendsWrapper.take()));
+    String *sParent = String_compactify(::toString(extendsWrapper.take()));
     this->parentName = String_c_str(sParent);
     Ptr_release(sParent);
   }
@@ -168,7 +172,7 @@ ClassDescription::ClassDescription(RTValue from,
   }
 
   // toString consumes.
-  String *compactifiedName = String_compactify(toString(nameWrapper.take()));
+  String *compactifiedName = String_compactify(::toString(nameWrapper.take()));
   this->name = String_c_str(compactifiedName);
   Ptr_release(compactifiedName);
 
@@ -198,7 +202,7 @@ ClassDescription::ClassDescription(RTValue from,
       retain(RT_boxPtr(vec)); // PersistentVector_nth consumes self
       ConsumedValue fieldName(PersistentVector_nth(vec, i));
       // toString consumes.
-      String *ss = String_compactify(toString(fieldName.take()));
+      String *ss = String_compactify(::toString(fieldName.take()));
       this->instanceFields[String_c_str(ss)] = (int32_t)i;
       Ptr_release(ss);
     }
@@ -221,7 +225,8 @@ ClassDescription::ClassDescription(RTValue from,
 
   // sfnsWrapper is consumed by parseIntrinsics.
   if (getType(sfnsWrapper.get()) == persistentArrayMapType) {
-    this->staticFns = parseIntrinsics(sfnsWrapper.take(), classData, this->type);
+    this->staticFns =
+        parseIntrinsics(sfnsWrapper.take(), classData, this->type);
   } else if (getType(sfnsWrapper.get()) != nilType) {
     throwInternalInconsistencyException(":static-fns must be a map.");
   }
@@ -231,7 +236,8 @@ ClassDescription::ClassDescription(RTValue from,
       description, Keyword_create(String_create("instance-fns"))));
 
   if (getType(ifnsWrapper.get()) == persistentArrayMapType) {
-    this->instanceFns = parseIntrinsics(ifnsWrapper.take(), classData, this->type, true);
+    this->instanceFns =
+        parseIntrinsics(ifnsWrapper.take(), classData, this->type, true);
   } else if (getType(ifnsWrapper.get()) != nilType) {
     throwInternalInconsistencyException(":instance-fns must be a map.");
   }
@@ -240,7 +246,7 @@ ClassDescription::ClassDescription(RTValue from,
 extern "C" {
 int32_t ClassExtension_fieldIndex(void *ext, RTValue field) {
   ClassDescription *description = (ClassDescription *)ext;
-  String *s = String_compactify(toString(field));
+  String *s = String_compactify(::toString(field));
   string key = String_c_str(s);
   Ptr_release(s);
 
@@ -253,7 +259,7 @@ int32_t ClassExtension_fieldIndex(void *ext, RTValue field) {
 
 int32_t ClassExtension_staticFieldIndex(void *ext, RTValue staticField) {
   ClassDescription *description = (ClassDescription *)ext;
-  String *s = String_compactify(toString(staticField));
+  String *s = String_compactify(::toString(staticField));
   string key = String_c_str(s);
   Ptr_release(s);
 
@@ -295,7 +301,7 @@ RTValue ClassExtension_setIndexedStaticField(void *ext, int32_t i,
 ClojureFunction *ClassExtension_resolveInstanceCall(void *ext, RTValue name,
                                                     int32_t argCount) {
   ClassDescription *description = (ClassDescription *)ext;
-  String *s = String_compactify(toString(name));
+  String *s = String_compactify(::toString(name));
   string key = String_c_str(s);
   Ptr_release(s);
 
@@ -332,7 +338,7 @@ ClassDescription::parseStaticFields(RTValue from) {
 
     // toString consumes. Protect borrowed key.
     retain(key);
-    String *ss = String_compactify(toString(key));
+    String *ss = String_compactify(::toString(key));
     string sKey = String_c_str(ss);
     Ptr_release(ss);
 
@@ -347,8 +353,8 @@ ClassDescription::parseStaticFields(RTValue from) {
 
 unordered_map<string, vector<IntrinsicDescription>>
 ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
-                                 const ObjectTypeSet &thisType,
-                                 bool isInstance) {
+                                  const ObjectTypeSet &thisType,
+                                  bool isInstance) {
   ConsumedValue root(from);
   unordered_map<string, vector<IntrinsicDescription>> retVal;
   if (getType(root.get()) != persistentArrayMapType) {
@@ -391,7 +397,7 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
 
     // toString consumes. Protect borrowed key for the map.
     retain(key);
-    String *ss = String_compactify(toString(key));
+    String *ss = String_compactify(::toString(key));
     string sKey = String_c_str(ss);
     Ptr_release(ss);
 
@@ -405,6 +411,8 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
                                            TemporaryClassData &classData,
                                            const ObjectTypeSet &thisType,
                                            bool isInstance) {
+  this->thisType = thisType;
+  this->isInstance = isInstance;
   ConsumedValue root(from);
   if (getType(root.get()) != persistentArrayMapType) {
     throwInternalInconsistencyException("Intrinsic description is not a map");
@@ -422,7 +430,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
   }
 
   // toString consumes.
-  String *typeStr = String_compactify(toString(typeWrapper.take()));
+  String *typeStr = String_compactify(::toString(typeWrapper.take()));
   string sType = String_c_str(typeStr);
   Ptr_release(typeStr);
 
@@ -438,6 +446,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
   retain(root.get());
   RTValue symbolRaw =
       PersistentArrayMap_get(map, Keyword_create(String_create("symbol")));
+
   ConsumedValue symbolWrapper(symbolRaw);
 
   if (getType(symbolWrapper.get()) != stringType) {
@@ -472,16 +481,18 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
     for (uword_t j = 0; j < argCnt; j++) {
       RTValue argRaw = PersistentVector_iteratorGet(&it);
       retain(argRaw);
-      String *argStr = String_compactify(toString(argRaw));
+      String *argStr = String_compactify(::toString(argRaw));
       string sArgKey = String_c_str(argStr);
       Ptr_release(argStr);
 
       if (sArgKey == ":this") {
         if (!isInstance) {
-          throwInternalInconsistencyException(":this used in a static function/intrinsic.");
+          throwInternalInconsistencyException(
+              ":this used in a static function/intrinsic.");
         }
         if (j != 0) {
-          throwInternalInconsistencyException(":this must be the first argument.");
+          throwInternalInconsistencyException(
+              ":this must be the first argument.");
         }
         this->argTypes.push_back(thisType);
         firstArgIsThis = true;
@@ -510,12 +521,24 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
       }
       PersistentVector_iteratorNext(&it);
     }
-    
+
     if (isInstance && !firstArgIsThis) {
-       throwInternalInconsistencyException("Instance method missing :this argument.");
+      RTValue v = root.get();
+      retain(v);
+      String *s = String_compactify(::toString(v));
+      string sVal = String_c_str(s);
+      Ptr_release(s);
+      throwInternalInconsistencyException(
+          "Instance method missing :this argument: " + sVal);
     }
   } else if (isInstance) {
-    throwInternalInconsistencyException("Instance method missing :this argument (no args vector).");
+    RTValue v = root.get();
+    retain(v);
+    String *s = String_compactify(::toString(v));
+    string sVal = String_c_str(s);
+    Ptr_release(s);
+    throwInternalInconsistencyException(
+        "Instance method missing :this argument (no args vector): " + sVal);
   }
 
   retain(root.get());
@@ -525,7 +548,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
 
   if (getType(returnsWrapper.get()) != nilType) {
     // toString consumes.
-    String *retStr = String_compactify(toString(returnsWrapper.take()));
+    String *retStr = String_compactify(::toString(returnsWrapper.take()));
     string sRetKey = String_c_str(retStr);
     Ptr_release(retStr);
 
@@ -576,6 +599,97 @@ vector<unique_ptr<ClassDescription>> buildClasses(RTValue from) {
   }
 
   return retVal;
+}
+
+string IntrinsicDescription::toString() const {
+  stringstream ss;
+  ss << "{:symbol \"" << symbol << "\", :type ";
+  switch (type) {
+  case CallType::Call:
+    ss << ":call";
+    break;
+  case CallType::Intrinsic:
+    ss << ":intrinsic";
+    break;
+  case CallType::ClojureFn:
+    ss << ":clojure-fn";
+    break;
+  }
+  ss << ", :args [";
+  for (size_t i = 0; i < argTypes.size(); ++i) {
+    if (isInstance && i == 0 && argTypes[i] == thisType) {
+      ss << ":this";
+    } else {
+      ss << argTypes[i].toString();
+    }
+    ss << (i == argTypes.size() - 1 ? "" : " ");
+  }
+  ss << "], :returns " << returnType.toString() << "}";
+  return ss.str();
+}
+
+string ClassDescription::toString() const {
+  stringstream ss;
+  ss << "{" << name << "\n";
+  ss << "  {:object-type " << type.toString();
+  if (!parentName.empty()) {
+    ss << ",\n   :extends " << parentName;
+  }
+
+  if (!staticFields.empty()) {
+    ss << ",\n   :static-fields {";
+    for (auto it = staticFields.begin(); it != staticFields.end(); ++it) {
+      RTValue v = it->second;
+      retain(v);
+      String *s = String_compactify(::toString(v));
+      ss << ":" << it->first << " " << String_c_str(s)
+         << (std::next(it) == staticFields.end() ? "" : ", ");
+      Ptr_release(s);
+    }
+    ss << "}";
+  }
+
+  if (!instanceFields.empty()) {
+    ss << ",\n   :instance-fields [";
+    vector<string> fields(instanceFields.size());
+    for (auto const &[name, index] : instanceFields) {
+      if (index >= 0 && index < (int32_t)fields.size())
+        fields[index] = name;
+    }
+    for (size_t i = 0; i < fields.size(); ++i) {
+      ss << "\"" << fields[i] << "\"" << (i == fields.size() - 1 ? "" : " ");
+    }
+    ss << "]";
+  }
+
+  if (!staticFns.empty()) {
+    ss << ",\n   :static-fns {";
+    for (auto it = staticFns.begin(); it != staticFns.end(); ++it) {
+      ss << it->first << " [";
+      for (size_t i = 0; i < it->second.size(); ++i) {
+        ss << it->second[i].toString()
+           << (i == it->second.size() - 1 ? "" : " ");
+      }
+      ss << "]" << (std::next(it) == staticFns.end() ? "" : ", ");
+    }
+    ss << "}";
+  }
+
+  if (!instanceFns.empty()) {
+    ss << ",\n   :instance-fns {";
+    for (auto it = instanceFns.begin(); it != instanceFns.end(); ++it) {
+      ss << it->first << " [";
+      for (size_t i = 0; i < it->second.size(); ++i) {
+        ss << it->second[i].toString()
+           << (i == it->second.size() - 1 ? "" : " ");
+      }
+      ss << "]" << (std::next(it) == instanceFns.end() ? "" : ", ");
+    }
+    ss << "}";
+  }
+
+  ss << "}}";
+  return ss.str();
 }
 
 } // namespace rt

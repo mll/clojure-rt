@@ -42,16 +42,18 @@ void MemoryManagement::ensureExceptionInfrastructure(llvm::Function *F) {
 
   auto currentIP = builder.saveIP();
 
-  // Create alloca in entry block if possible, or just here
-  exceptionSlot = builder.CreateAlloca(
+  // Create alloca in entry block for proper dominance and SROA optimization
+  llvm::BasicBlock &entryBB = F->getEntryBlock();
+  llvm::IRBuilder<> entryBuilder(&entryBB, entryBB.begin());
+  entryBuilder.SetCurrentDebugLocation(builder.getCurrentDebugLocation());
+
+  exceptionSlot = entryBuilder.CreateAlloca(
       llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), nullptr,
       "exception_slot");
   terminalResumeBB = llvm::BasicBlock::Create(context, "terminal_resume", F);
 
   builder.SetInsertPoint(terminalResumeBB);
-  if (jitEnginePtr) {
-    leaveSafetySection(jitEnginePtr);
-  }
+  leaveSafetySection(jitEnginePtr);
   llvm::Value *exVal = builder.CreateLoad(
       llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), exceptionSlot,
       "exception_to_resume");
@@ -98,9 +100,6 @@ llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
     }
   }
 
-  if (neededSurvivors == 0 && !hasGuidance) {
-    return nullptr;
-  }
 
   // 3. Ensure infrastructure
   IRBuilder<>::InsertPointGuard guard(builder);

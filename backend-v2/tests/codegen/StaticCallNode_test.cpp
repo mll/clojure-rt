@@ -170,10 +170,11 @@ static void test_dynamic_dispatch_3tail(void **state) {
       createIndeterminateArg(sc->add_args(), "10", false);
       createIndeterminateArg(sc->add_args(), "20", false);
 
-      [[maybe_unused]] auto resCall = engine
-                         .compileAST(callNode, "__test_3tail_int",
-                                     llvm::OptimizationLevel::O0, true)
-                         .get();
+      [[maybe_unused]] auto resCall =
+          engine
+              .compileAST(callNode, "__test_3tail_int",
+                          llvm::OptimizationLevel::O0, false)
+              .get();
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));
       assert_int_equal(1030, RT_unboxInt32(result));
@@ -192,7 +193,7 @@ static void test_dynamic_dispatch_3tail(void **state) {
 
       auto resCallD = engine
                           .compileAST(callNode, "__test_3tail_double",
-                                      llvm::OptimizationLevel::O0, true)
+                                      llvm::OptimizationLevel::O0, false)
                           .get();
       RTValue resultD = resPtrToValue(resCallD);
       assert_true(RT_isDouble(resultD));
@@ -231,7 +232,7 @@ static void test_dynamic_dispatch_filtering(void **state) {
     try {
       auto resCall = engine
                          .compileAST(callNode, "__test_filtering",
-                                     llvm::OptimizationLevel::O0, true)
+                                     llvm::OptimizationLevel::O0, false)
                          .get();
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isDouble(result));
@@ -263,10 +264,11 @@ static void test_dynamic_dispatch_exhaustive(void **state) {
     createIndeterminateArg(sc->add_args(), "20", false);
 
     try {
-      [[maybe_unused]] auto resCall = engine
-                         .compileAST(callNode, "__test_exhaustive",
-                                     llvm::OptimizationLevel::O0, true)
-                         .get();
+      [[maybe_unused]] auto resCall =
+          engine
+              .compileAST(callNode, "__test_exhaustive",
+                          llvm::OptimizationLevel::O0, false)
+              .get();
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));
       assert_int_equal(1030, RT_unboxInt32(result));
@@ -310,13 +312,14 @@ static void test_dynamic_dispatch_no_match(void **state) {
     }
 
     try {
-      [[maybe_unused]] auto resCall = engine
-                         .compileAST(callNode, "__test_no_match",
-                                     llvm::OptimizationLevel::O0, true)
-                         .get();
+      [[maybe_unused]] auto resCall =
+          engine
+              .compileAST(callNode, "__test_no_match",
+                          llvm::OptimizationLevel::O0, false)
+              .get();
       // Since both are strings, it's statically possible they match a dynamic
-      // overload if it existed, but we filtered versions. (String, String) is NOT
-      // statically possible for any of (int, int), (double, double), (bool,
+      // overload if it existed, but we filtered versions. (String, String) is
+      // NOT statically possible for any of (int, int), (double, double), (bool,
       // bool). Wait, if it's NOT statically possible, codegen should throw
       // compile-time error!
       assert_true(false); // Should not reach here
@@ -375,7 +378,7 @@ static void test_dynamic_dispatch_no_match_runtime(void **state) {
     try {
       auto resCall = engine
                          .compileAST(callNode, "__test_no_match_runtime",
-                                     llvm::OptimizationLevel::O0, true)
+                                     llvm::OptimizationLevel::O0, false)
                          .get();
       resPtrToValue(resCall);
       assert_true(false); // Should have thrown runtime exception
@@ -405,9 +408,9 @@ static void test_regression_type_narrowing_specialized(void **state) {
     // 2. Unbox them if true.
     // 3. Call mock_add_int(i32, i32).
     // The InvokeManager::generateIntrinsic checks if the arguments passed to
-    // mock_add_int match the IntrinsicDescription. If we don't narrow the type of
-    // the unboxed TypedValue, it will still be "Any" and InvokeManager will throw
-    // an exception.
+    // mock_add_int match the IntrinsicDescription. If we don't narrow the type
+    // of the unboxed TypedValue, it will still be "Any" and InvokeManager will
+    // throw an exception.
     Node callNode;
     callNode.set_op(opStaticCall);
     auto *sc = callNode.mutable_subnode()->mutable_staticcall();
@@ -420,7 +423,7 @@ static void test_regression_type_narrowing_specialized(void **state) {
     try {
       auto resCall = engine
                          .compileAST(callNode, "__test_regression_narrowing",
-                                     llvm::OptimizationLevel::O0, true)
+                                     llvm::OptimizationLevel::O0, false)
                          .get();
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));
@@ -440,10 +443,10 @@ static void test_regression_phi_node_segfault(void **state) {
     setup_mock_runtime_full(compState);
     JITEngine engine(compState);
 
-    // This test specifically documents the fix for the LLVM segfault (SimplifyCFG
-    // crash) caused by malformed PHI nodes when a specialized branch contains
-    // internal branching. "complex_add" specialization "Add" (intrinsic) creates
-    // "overflow" and "no_overflow" blocks.
+    // This test specifically documents the fix for the LLVM segfault
+    // (SimplifyCFG crash) caused by malformed PHI nodes when a specialized
+    // branch contains internal branching. "complex_add" specialization "Add"
+    // (intrinsic) creates "overflow" and "no_overflow" blocks.
     Node callNode;
     callNode.set_op(opStaticCall);
     auto *sc = callNode.mutable_subnode()->mutable_staticcall();
@@ -454,11 +457,11 @@ static void test_regression_phi_node_segfault(void **state) {
     createIndeterminateArg(sc->add_args(), "200", false);
 
     try {
-      // Optimization level O1 or higher is needed to trigger SimplifyCFG in a way
-      // that crashes
+      // Optimization level O1 or higher is needed to trigger SimplifyCFG in a
+      // way that crashes
       auto resCall = engine
                          .compileAST(callNode, "__test_regression_segfault",
-                                     llvm::OptimizationLevel::O1, true)
+                                     llvm::OptimizationLevel::O1, false)
                          .get();
       RTValue result = resPtrToValue(resCall);
       assert_true(RT_isInt32(result));

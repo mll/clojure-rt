@@ -48,19 +48,7 @@ void Var_thread_initialize();
 void Var_cleanup();
 
 #if defined(COMPILING_RUNTIME_BITCODE) && !defined(__APPLE__)
-static inline void* JITEngine_getThreadPointer() {
-#if defined(__x86_64__)
-    void* ptr;
-    __asm__("movq %%fs:0, %0" : "=r"(ptr));
-    return ptr;
-#elif defined(__aarch64__)
-    void* ptr;
-    __asm__("mrs %0, tpidr_el0" : "=r"(ptr));
-    return ptr;
-#else
-    return (void*)0;
-#endif
-}
+#include "TLS_Support.h"
 extern uintptr_t threadLocalHazardSlot_offset;
 #define threadLocalHazardSlot (*(void**)((char*)JITEngine_getThreadPointer() + threadLocalHazardSlot_offset))
 #else

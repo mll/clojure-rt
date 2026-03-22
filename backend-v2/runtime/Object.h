@@ -63,19 +63,7 @@ extern _Atomic(uword_t) objectCount[256];
 // bank 7 - 4096
 
 #if defined(COMPILING_RUNTIME_BITCODE) && !defined(__APPLE__)
-static inline void* JITEngine_getThreadPointer() {
-#if defined(__x86_64__)
-    void* ptr;
-    __asm__("movq %%fs:0, %0" : "=r"(ptr));
-    return ptr;
-#elif defined(__aarch64__)
-    void* ptr;
-    __asm__("mrs %0, tpidr_el0" : "=r"(ptr));
-    return ptr;
-#else
-    return (void*)0;
-#endif
-}
+#include "TLS_Support.h"
 extern uintptr_t memoryBank_offset;
 extern uintptr_t memoryBankSize_offset;
 #define memoryBank (*(void***)((char*)JITEngine_getThreadPointer() + memoryBank_offset))

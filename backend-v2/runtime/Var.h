@@ -47,6 +47,8 @@ void Var_initialize();
 void Var_thread_initialize();
 void Var_cleanup();
 
+extern _Thread_local void *threadLocalHazardSlot;
+
 #ifdef __cplusplus
 }
 #endif

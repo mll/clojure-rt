@@ -35,7 +35,7 @@ typedef struct HazardSlot {
 } HazardSlot;
 
 _Atomic(HazardSlot *) hazardHead = NULL;
-static __thread HazardSlot *threadLocalHazardSlot = NULL;
+_Thread_local void *threadLocalHazardSlot = NULL;
 static pthread_key_t cleanup_gatekeeper;
 
 static void *dummy_page = NULL;
@@ -52,7 +52,7 @@ void asymmetric_barrier() {
 void on_thread_exit(void *unused) {
   if (threadLocalHazardSlot != NULL) {
     bool expectedValue = true;
-    atomic_compare_exchange_weak(&(threadLocalHazardSlot->active),
+    atomic_compare_exchange_weak(&(((HazardSlot *)threadLocalHazardSlot)->active),
                                  &expectedValue, false);
   }
 }
@@ -78,14 +78,14 @@ void Var_cleanup() { /* to be run when all other threads are dead */
 
 HazardSlot *getOrCreateSlot() {
   if (threadLocalHazardSlot)
-    return threadLocalHazardSlot;
+    return (HazardSlot *)threadLocalHazardSlot;
 
   // 1. Try to find an inactive slot to recycle
   HazardSlot *curr = atomic_load(&hazardHead);
   while (curr) {
     bool expected = false;
     if (atomic_compare_exchange_strong(&curr->active, &expected, true)) {
-      threadLocalHazardSlot = curr;
+      threadLocalHazardSlot = (void *)curr;
       return curr;
     }
     curr = curr->next;

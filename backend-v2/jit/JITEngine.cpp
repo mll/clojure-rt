@@ -1,10 +1,20 @@
 #include "JITEngine.h"
 #include "../RuntimeHeaders.h"
+#include "../runtime/JITSafety.h"
+
+extern "C" {
+extern _Thread_local rt_jt_SafetyState host_jit_safety_state;
+extern _Thread_local void *threadLocalHazardSlot;
+extern _Thread_local void *memoryBank[8];
+extern _Thread_local int memoryBankSize[8];
+}
 #include "../runtime/Numbers.h"
 #include "../tools/EdnParser.h"
 #include "bridge/Exceptions.h"
 #include "bridge/InstanceCallStub.h"
 #include <llvm/Analysis/InlineAdvisor.h>
+#include "llvm/IR/MDBuilder.h"
+#include "llvm/Transforms/IPO/GlobalDCE.h"
 #include <llvm/Analysis/InlineCost.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/ExecutionEngine/Orc/DebugObjectManagerPlugin.h>
@@ -544,6 +554,7 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(absoluteSymbol("JITEngine_slowPath_leave",
                                        (void *)JITEngine_slowPath_leave));
 
+#ifdef __APPLE__
   // On macOS (arm64), native TLS uses TLV descriptors.
   // The JITed code (with EmulatedTLS=false) expects a pointer to a descriptor
   // whose first element is a thunk that returns the actual TLS address.
@@ -556,13 +567,51 @@ void JITEngine::registerRuntimeSymbols() {
   static auto thunk = [](MachOTLVDescriptor*) -> void* {
     return (void*)&host_jit_safety_state;
   };
-
   static MachOTLVDescriptor host_jit_safety_state_TLV = {
     thunk, 0, 0
   };
 
+  static auto bank_thunk = [](MachOTLVDescriptor*) -> void* {
+    return (void*)&memoryBank;
+  };
+  static MachOTLVDescriptor memoryBank_TLV = {
+    bank_thunk, 0, 0
+  };
+
+  static auto bank_size_thunk = [](MachOTLVDescriptor*) -> void* {
+    return (void*)&memoryBankSize;
+  };
+  static MachOTLVDescriptor memoryBankSize_TLV = {
+    bank_size_thunk, 0, 0
+  };
+
+  static auto hazard_thunk = [](MachOTLVDescriptor*) -> void* {
+    return (void*)&threadLocalHazardSlot;
+  };
+  static MachOTLVDescriptor threadLocalHazardSlot_TLV = {
+    hazard_thunk, 0, 0
+  };
+
   runtimeSymbols.insert(absoluteSymbol("host_jit_safety_state",
                                        (void *)&host_jit_safety_state_TLV));
+  runtimeSymbols.insert(absoluteSymbol("memoryBank",
+                                       (void *)&memoryBank_TLV));
+  runtimeSymbols.insert(absoluteSymbol("memoryBankSize",
+                                       (void *)&memoryBankSize_TLV));
+  runtimeSymbols.insert(absoluteSymbol("threadLocalHazardSlot",
+                                       (void *)&threadLocalHazardSlot_TLV));
+#else
+  // On Linux/others, we provide the raw TLS address (or emulated TLS symbol)
+  // ORC JIT handles this differently based on the platform.
+  runtimeSymbols.insert(absoluteSymbol("host_jit_safety_state",
+                                       (void *)&host_jit_safety_state));
+  runtimeSymbols.insert(absoluteSymbol("memoryBank",
+                                       (void *)&memoryBank));
+  runtimeSymbols.insert(absoluteSymbol("memoryBankSize",
+                                       (void *)&memoryBankSize));
+  runtimeSymbols.insert(absoluteSymbol("threadLocalHazardSlot",
+                                       (void *)&threadLocalHazardSlot));
+#endif
 
 
   cantFail(jit->getMainJITDylib().define(
@@ -638,6 +687,15 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
               F.setLinkage(llvm::GlobalValue::InternalLinkage);
             }
           }
+        }
+
+        // Clear llvm.used and llvm.compiler.used to allow GlobalDCE to strip
+        // fully inlined runtime functions.
+        if (auto *Used = M.getGlobalVariable("llvm.used")) {
+          Used->eraseFromParent();
+        }
+        if (auto *CompilerUsed = M.getGlobalVariable("llvm.compiler.used")) {
+          CompilerUsed->eraseFromParent();
         }
       }
     }
@@ -720,6 +778,7 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
   }
 
   MPM.addPass(PB.buildPerModuleDefaultPipeline(Level));
+  MPM.addPass(llvm::GlobalDCEPass());
   MPM.run(M, MAM);
 }
 

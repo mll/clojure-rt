@@ -2,12 +2,7 @@
 #include "../RuntimeHeaders.h"
 #include "../runtime/JITSafety.h"
 
-extern "C" {
-extern _Thread_local rt_jt_SafetyState host_jit_safety_state;
-extern _Thread_local void *threadLocalHazardSlot;
-extern _Thread_local void *memoryBank[8];
-extern _Thread_local int memoryBankSize[8];
-}
+
 #include "../runtime/Numbers.h"
 #include "../tools/EdnParser.h"
 #include "bridge/Exceptions.h"

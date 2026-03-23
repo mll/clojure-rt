@@ -40,6 +40,7 @@ set(SOURCES
     JITSafety.c)
 
 add_library(runtime STATIC ${SOURCES})
+target_compile_options(runtime PRIVATE $<$<PLATFORM_ID:Linux>:-femulated-tls>)
 
 # GMP Detection
 find_path(GMP_INCLUDE_DIRS NAMES gmp.h)

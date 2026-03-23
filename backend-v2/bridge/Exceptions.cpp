@@ -28,6 +28,7 @@ struct JitInfo {
   std::string name;
   size_t size;
   std::unique_ptr<llvm::MemoryBuffer> objectBuffer;
+  mutable std::unique_ptr<llvm::object::ObjectFile> objectFile;
 };
 
 static std::mutex gJitMapMutex;
@@ -40,7 +41,7 @@ extern "C" void registerJitFunction_C(uword_t addr, size_t size,
   auto buffer = llvm::MemoryBuffer::getMemBufferCopy(
       llvm::StringRef(static_cast<const char *>(objData), objSize),
       name ? name : "jit_object");
-  gJitFunctions[addr] = {name ? name : "", size, std::move(buffer)};
+  gJitFunctions[addr] = {name ? name : "", size, std::move(buffer), nullptr};
 }
 
 std::shared_ptr<CapturedStack> captureCurrentStack() {
@@ -170,14 +171,14 @@ static void symbolizeStackChain(std::stringstream &ss,
   auto current = stack;
   bool isFirst = true;
   while (current) {
-    bool found = !isFirst;
-    int skipCount = 0;
+    bool found = (mode == StackTraceMode::Debug) || !isFirst;
 
     for (uword_t addr : current->addresses) {
       std::string currentModule = "";
       uword_t lookupAddr = addr;
       uword_t symbolizeAddr = 0;
       std::string dlSymbolName = "";
+      bool addrHandled = false;
 
       // 1. Check JIT map first
       {
@@ -187,47 +188,57 @@ static void symbolizeStackChain(std::stringstream &ss,
           auto entry = (it != gJitFunctions.end() && it->first == addr) ? it : std::prev(it);
           if (addr >= entry->first && addr < entry->first + entry->second.size) {
             if (entry->second.objectBuffer) {
-              uword_t jitSymbolizeAddr = addr - entry->first;
+              if (!entry->second.objectFile) {
+                auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
+                    entry->second.objectBuffer->getMemBufferRef());
+                if (ObjOrErr) {
+                  entry->second.objectFile = std::move(ObjOrErr.get());
+                } else {
+                  llvm::consumeError(ObjOrErr.takeError());
+                }
+              }
+
+              if (entry->second.objectFile) {
+                uword_t jitSymbolizeAddr = addr - entry->first;
 #if defined(__aarch64__) || defined(__arm64__)
-              if (jitSymbolizeAddr >= 4) jitSymbolizeAddr -= 4;
+                if (jitSymbolizeAddr >= 4) jitSymbolizeAddr -= 4;
 #else
-              if (jitSymbolizeAddr > 0) jitSymbolizeAddr -= 1;
+                if (jitSymbolizeAddr > 0) jitSymbolizeAddr -= 1;
 #endif
-              auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
-                  entry->second.objectBuffer->getMemBufferRef());
-              if (ObjOrErr) {
-                auto &Obj = *ObjOrErr.get();
+                auto &Obj = *entry->second.objectFile;
                 auto resOrErrJit = symbolizer.symbolizeCode(Obj, {jitSymbolizeAddr, llvm::object::SectionedAddress::UndefSection});
                 if (resOrErrJit) {
                   auto &info = resOrErrJit.get();
                   if (info.FileName != "<invalid>") {
-                    if (found) {
-                        std::string demangled = llvm::demangle(info.FunctionName);
-                        if (mode == StackTraceMode::Debug || !isInfrastructureFrame(demangled, info.FileName)) {
-                            ss << "  at " << demangled << " [" << info.FileName << ":" << info.Line << "]\n";
-                        }
+                    std::string demangled = llvm::demangle(info.FunctionName);
+                    bool isInfra = isInfrastructureFrame(demangled, info.FileName);
+                    if (!found && !isInfra) found = true;
+                    if (found && (mode == StackTraceMode::Debug || !isInfra)) {
+                      ss << "  at " << demangled << " [" << info.FileName << ":" << info.Line << "]\n";
+                      addrHandled = true;
+                    } else if (isInfra && !found) {
+                      // Skip infra at the top
+                      addrHandled = true;
                     }
-                    found = true;
-                    continue;
                   }
                 } else {
                   llvm::consumeError(resOrErrJit.takeError());
                 }
-              } else {
-                llvm::consumeError(ObjOrErr.takeError());
               }
             }
 
-            if (found || (!found && !entry->second.name.empty())) {
-              if (found) {
-                std::string demangled = llvm::demangle(entry->second.name);
-                if (mode == StackTraceMode::Debug || !isInfrastructureFrame(demangled, "")) {
-                  ss << "  at " << demangled << " [JIT:0x" << std::hex << entry->first << std::dec << "]\n";
-                }
+            if (!addrHandled && !entry->second.name.empty()) {
+              std::string demangled = llvm::demangle(entry->second.name);
+              bool isInfra = isInfrastructureFrame(demangled, "");
+              if (!found && !isInfra) found = true;
+              if (found && (mode == StackTraceMode::Debug || !isInfra)) {
+                ss << "  at " << demangled << " [JIT:0x" << std::hex << entry->first << std::dec << "]\n";
+                addrHandled = true;
+              } else if (isInfra && !found) {
+                addrHandled = true;
               }
-              found = true;
             }
-            continue;
+            if (addrHandled) continue;
           }
         }
       }
@@ -243,12 +254,9 @@ static void symbolizeStackChain(std::stringstream &ss,
         }
 
         if (!found) {
-          bool isSentinel = !dlSymbolName.empty() &&
-                           (dlSymbolName.find("throw") != std::string::npos ||
-                            dlSymbolName.find("Exception") != std::string::npos);
-          if (isSentinel || ++skipCount > 20) {
+          std::string demangled = llvm::demangle(dlSymbolName);
+          if (!isInfrastructureFrame(demangled, dlinfo.dli_fname ? dlinfo.dli_fname : "")) {
             found = true;
-            if (isSentinel) continue;
           }
         }
 
@@ -289,28 +297,28 @@ static void symbolizeStackChain(std::stringstream &ss,
       auto resOrErr = symbolizer.symbolizeCode(currentModule, {symbolizeAddr, llvm::object::SectionedAddress::UndefSection});
       if (resOrErr) {
         auto &info = resOrErr.get();
-        if (found) {
-          std::string rawFn = (info.FunctionName != "<invalid>") ? info.FunctionName : dlSymbolName;
-          std::string demangled = llvm::demangle(rawFn);
-          if (mode == StackTraceMode::Debug || !isInfrastructureFrame(demangled, info.FileName)) {
-            ss << "  at " << demangled;
-            if (info.FileName != "<invalid>") ss << " [" << info.FileName << ":" << info.Line << "]";
-            else if (!currentModule.empty()) {
-              size_t lastSlash = currentModule.find_last_of('/');
-              std::string base = (lastSlash != std::string::npos) ? currentModule.substr(lastSlash + 1) : currentModule;
-              ss << " [" << base << " + 0x" << std::hex << lookupAddr << std::dec << "]";
-            }
-            ss << "\n";
+        std::string rawFn = (info.FunctionName != "<invalid>") ? info.FunctionName : dlSymbolName;
+        std::string demangled = llvm::demangle(rawFn);
+        bool isInfra = isInfrastructureFrame(demangled, info.FileName);
+        if (!found && !isInfra) found = true;
+        if (found && (mode == StackTraceMode::Debug || !isInfra)) {
+          ss << "  at " << demangled;
+          if (info.FileName != "<invalid>") ss << " [" << info.FileName << ":" << info.Line << "]";
+          else if (!currentModule.empty()) {
+            size_t lastSlash = currentModule.find_last_of('/');
+            std::string base = (lastSlash != std::string::npos) ? currentModule.substr(lastSlash + 1) : currentModule;
+            ss << " [" << base << " + 0x" << std::hex << lookupAddr << std::dec << "]";
           }
+          ss << "\n";
         }
       } else {
         llvm::consumeError(resOrErr.takeError());
-        if (found) {
-          std::string demangled = llvm::demangle(dlSymbolName);
-          if (mode == StackTraceMode::Debug || !isInfrastructureFrame(demangled, currentModule)) {
-            if (!dlSymbolName.empty()) ss << "  at " << demangled << " [" << currentModule << "]\n";
-            else ss << "  at 0x" << std::hex << addr << std::dec << " [" << currentModule << "]\n";
-          }
+        std::string demangled = llvm::demangle(dlSymbolName);
+        bool isInfra = isInfrastructureFrame(demangled, currentModule);
+        if (!found && !isInfra) found = true;
+        if (found && (mode == StackTraceMode::Debug || !isInfra)) {
+          if (!dlSymbolName.empty()) ss << "  at " << demangled << " [" << currentModule << "]\n";
+          else ss << "  at 0x" << std::hex << addr << std::dec << " [" << currentModule << "]\n";
         }
       }
     }

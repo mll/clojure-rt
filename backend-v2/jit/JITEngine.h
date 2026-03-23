@@ -48,6 +48,7 @@ namespace rt {
 struct JITResult {
   llvm::orc::ExecutorAddr address;
   std::string optimizedIR;
+  std::string symbolName;
 };
 
 class JITEngine {

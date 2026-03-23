@@ -23,6 +23,7 @@ set(TEST_MODULES
     codegen/DCE_test
     codegen/O3_DebugInfo_test
     codegen/AsyncStackTrace_test
+    codegen/DeepStackSymbolization_test
     VarUAF_repro_test
     JITSafety_test
 )

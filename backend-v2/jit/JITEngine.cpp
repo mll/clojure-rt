@@ -185,7 +185,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
       auto Sym = jit->lookup(moduleName);
       if (Sym) {
         std::promise<JITResult> p;
-        p.set_value({*Sym, ""});
+        p.set_value({*Sym, "", moduleName});
         return p.get_future().share();
       }
     }
@@ -293,7 +293,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                 activeCompilations.erase(moduleName);
               }
 
-              return JITResult{*Sym, std::move(ir)};
+              return JITResult{*Sym, std::move(ir), fName};
             } catch (...) {
               std::lock_guard<std::mutex> lock(compilationMutex);
               activeCompilations.erase(moduleName);

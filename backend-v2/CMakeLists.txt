@@ -244,16 +244,16 @@ if(APPLE)
     if(DSYMUTIL_TOOL)
         add_custom_command(TARGET clojure-rt POST_BUILD
             COMMAND ${DSYMUTIL_TOOL} $<TARGET_FILE:clojure-rt>
-            COMMENT "Generowanie pliku .dSYM dla clojure-rt..."
+            COMMENT "Generating the .dSYM file for clojure-rt..."
             VERBATIM
         )
     endif()
 
-    # Opcjonalnie: jeśli chcesz, aby binarka po wyciągnięciu symboli była mniejsza:
+    # Optional: if you want the binary to be smaller after stripping symbols:
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         add_custom_command(TARGET clojure-rt POST_BUILD
             COMMAND strip -x $<TARGET_FILE:clojure-rt>
-            COMMENT "Stripping binarki (usuwanie zbędnych symboli)..."
+            COMMENT "Stripping the binary (removing unnecessary symbols)..."
             DEPENDS clojure-rt
         )
     endif()

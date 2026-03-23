@@ -3,6 +3,7 @@
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/Object/ObjectFile.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <map>
@@ -22,10 +23,12 @@ thread_local std::shared_ptr<CapturedStack> gCurrentAsyncStack = nullptr;
 struct JitFunctionEntry {
   uword_t size;
   std::string name;
+  std::vector<uint8_t> objectData;
 };
 
 static std::map<uword_t, JitFunctionEntry> gJitFunctions;
 static std::mutex gJitMapMutex;
+static std::mutex gSymbolizerMutex;
 
 void registerJitFunction(uword_t address, uword_t size, const char *name,
                          const void *objectData, size_t objectSize) {
@@ -33,6 +36,10 @@ void registerJitFunction(uword_t address, uword_t size, const char *name,
   JitFunctionEntry entry;
   entry.size = size;
   entry.name = name ? name : "unknown";
+  if (objectData && objectSize > 0) {
+    entry.objectData.assign(static_cast<const uint8_t *>(objectData),
+                             static_cast<const uint8_t *>(objectData) + objectSize);
+  }
   gJitFunctions[address] = std::move(entry);
 }
 
@@ -110,19 +117,78 @@ void symbolizeStackChain(std::stringstream &ss,
           if (addr >= entryStart && addr < entryStart + entry.size) {
             std::string demangled = llvm::demangle(entry.name);
             bool isInfra = isInfrastructureFrame(demangled, "");
+            
             if (!foundFirstUserFrame && !isInfra)
               foundFirstUserFrame = true;
 
             if (foundFirstUserFrame || mode == StackTraceMode::Debug) {
-              std::stringstream frameSs;
-              frameSs << "  at " << demangled << " [JIT:0x" << std::hex
-                      << entryStart << std::dec << "]";
-              if (mode == StackTraceMode::Debug) {
-                frameSs << " [+0x" << std::hex << (addr - entryStart)
-                        << std::dec << "] @ 0x" << std::hex << addr << std::dec;
+              if (mode == StackTraceMode::Debug || !isInfra) {
+                // Try to get detailed info from objectData if present
+                bool detailedInfoFound = false;
+                if (!entry.objectData.empty()) {
+                  auto buffer = llvm::MemoryBuffer::getMemBuffer(
+                      llvm::StringRef(reinterpret_cast<const char*>(entry.objectData.data()), 
+                                    entry.objectData.size()),
+                      entry.name, false);
+                  auto objOrErr = llvm::object::ObjectFile::createObjectFile(buffer->getMemBufferRef());
+                  if (objOrErr) {
+                    uword_t offset = addr - entryStart;
+                    if (offset >= 4) offset -= 4;
+                    
+                    // Use a LOCAL symbolizer for each JIT frame to be absolutely sure about lifetime and thread safety
+                    llvm::symbolize::LLVMSymbolizer localSymbolizer;
+                    auto resOrErr = localSymbolizer.symbolizeInlinedCode(
+                        *objOrErr.get(), 
+                        {offset, llvm::object::SectionedAddress::UndefSection});
+                    
+                    if (resOrErr) {
+                      auto &inlinedInfo = resOrErr.get();
+                      for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames(); ++i) {
+                        auto &info = inlinedInfo.getFrame(i);
+                        std::string fnName = (info.FunctionName != "<invalid>") 
+                                               ? llvm::demangle(info.FunctionName) 
+                                               : demangled;
+                        
+                        std::stringstream frameSs;
+                        frameSs << "  at " << fnName;
+                        if (info.FileName != "<invalid>")
+                          frameSs << " [" << info.FileName << ":" << info.Line << "]";
+                        else
+                          frameSs << " [JIT:0x" << std::hex << entryStart << std::dec << "]";
+                        
+                        if (mode == StackTraceMode::Debug && i > 0)
+                          frameSs << " (inlined)";
+                        if (mode == StackTraceMode::Debug)
+                          frameSs << " @ 0x" << std::hex << addr << std::dec;
+                        
+                        frameSs << "\n";
+                        
+                        // Deduplicate with previous lines
+                        if (currentAddrLines.empty() || currentAddrLines.back() != frameSs.str()) {
+                          currentAddrLines.push_back(frameSs.str());
+                        }
+                        detailedInfoFound = true;
+                      }
+                    } else {
+                      llvm::consumeError(resOrErr.takeError());
+                    }
+                  } else {
+                    llvm::consumeError(objOrErr.takeError());
+                  }
+                }
+
+                if (!detailedInfoFound) {
+                  std::stringstream frameSs;
+                  frameSs << "  at " << demangled << " [JIT:0x" << std::hex
+                          << entryStart << std::dec << "]";
+                  if (mode == StackTraceMode::Debug) {
+                    frameSs << " [+0x" << std::hex << (addr - entryStart)
+                            << std::dec << "] @ 0x" << std::hex << addr << std::dec;
+                  }
+                  frameSs << "\n";
+                  currentAddrLines.push_back(frameSs.str());
+                }
               }
-              frameSs << "\n";
-              currentAddrLines.push_back(frameSs.str());
             }
             addrHandled = true;
           }
@@ -166,6 +232,7 @@ void symbolizeStackChain(std::stringstream &ss,
             if (symbolizeAddr >= 4)
               symbolizeAddr -= 4;
 
+            std::lock_guard<std::mutex> sLock(gSymbolizerMutex);
             auto resOrErr = symbolizer.symbolizeInlinedCode(
                 currentModule,
                 {symbolizeAddr, llvm::object::SectionedAddress::UndefSection});
@@ -216,7 +283,7 @@ void symbolizeStackChain(std::stringstream &ss,
             bool isInfra = isInfrastructureFrame(demangled, "");
             if (!foundFirstUserFrame && !isInfra)
               foundFirstUserFrame = true;
-            if (foundFirstUserFrame || mode == StackTraceMode::Debug) {
+            if ((foundFirstUserFrame && (mode == StackTraceMode::Debug || !isInfra)) || mode == StackTraceMode::Debug) {
               std::stringstream frameSs;
               if (!dlSymbolName.empty()) {
                 frameSs << "  at " << demangled << " ["
@@ -254,7 +321,10 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
 
 LanguageException::LanguageException(const LanguageException &other)
     : name(other.name), message(other.message), payload(other.payload),
-      capturedStack(other.capturedStack) {}
+      capturedStack(other.capturedStack) {
+  retain(message);
+  retain(payload);
+}
 
 LanguageException &
 LanguageException::operator=(const LanguageException &other) {

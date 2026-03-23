@@ -79,7 +79,7 @@ public:
     TheModule->addModuleFlag(llvm::Module::Warning, "Debug Info Version",
                              llvm::DEBUG_METADATA_VERSION);
 #ifdef __APPLE__
-    TheModule->addModuleFlag(llvm::Module::Warning, "Dwarf Version", 4);
+    TheModule->addModuleFlag(llvm::Module::Warning, "Dwarf Version", 5);
 #endif
     DIB = std::make_unique<llvm::DIBuilder>(*TheModule);
     CU = DIB->createCompileUnit(llvm::dwarf::DW_LANG_C,

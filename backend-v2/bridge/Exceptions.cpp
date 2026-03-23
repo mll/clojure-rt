@@ -22,8 +22,6 @@ thread_local std::shared_ptr<CapturedStack> gCurrentAsyncStack = nullptr;
 struct JitFunctionEntry {
   uword_t size;
   std::string name;
-  std::unique_ptr<llvm::MemoryBuffer> objectBuffer;
-  mutable std::unique_ptr<llvm::object::ObjectFile> objectFile;
 };
 
 static std::map<uword_t, JitFunctionEntry> gJitFunctions;
@@ -34,11 +32,7 @@ void registerJitFunction(uword_t address, uword_t size, const char *name,
   std::lock_guard<std::mutex> lock(gJitMapMutex);
   JitFunctionEntry entry;
   entry.size = size;
-  entry.name = name;
-  if (objectData && objectSize > 0) {
-    entry.objectBuffer = llvm::MemoryBuffer::getMemBufferCopy(llvm::StringRef(
-        reinterpret_cast<const char *>(objectData), objectSize));
-  }
+  entry.name = name ? name : "unknown";
   gJitFunctions[address] = std::move(entry);
 }
 
@@ -96,117 +90,39 @@ void symbolizeStackChain(std::stringstream &ss,
     bool foundFirstUserFrame = (mode == StackTraceMode::Debug) || !isFirstStack;
 
     for (uword_t addr : current->addresses) {
+      if (addr == 0)
+        continue;
       bool addrHandled = false;
       std::vector<std::string> currentAddrLines;
 
-      // 1. Check JIT map
+      // 1. Check JIT functions
       {
         std::lock_guard<std::mutex> lock(gJitMapMutex);
         auto it = gJitFunctions.lower_bound(addr);
-        if (it != gJitFunctions.begin() ||
-            (it != gJitFunctions.end() && it->first == addr)) {
-          auto &entry = (it != gJitFunctions.end() && it->first == addr)
-                            ? it->second
-                            : std::prev(it)->second;
-          uword_t entryStart = (it != gJitFunctions.end() && it->first == addr)
-                                   ? it->first
-                                   : std::prev(it)->first;
+        if (it != gJitFunctions.begin() &&
+            (it == gJitFunctions.end() || it->first > addr)) {
+          --it;
+        }
 
+        if (it != gJitFunctions.end()) {
+          uword_t entryStart = it->first;
+          const JitFunctionEntry &entry = it->second;
           if (addr >= entryStart && addr < entryStart + entry.size) {
-            uword_t jitSymbolizeAddr = addr - entryStart;
-#if defined(__aarch64__) || defined(__arm64__)
-            if (jitSymbolizeAddr >= 4)
-              jitSymbolizeAddr -= 4;
-#else
-            if (jitSymbolizeAddr > 0)
-              jitSymbolizeAddr -= 1;
-#endif
+            std::string demangled = llvm::demangle(entry.name);
+            bool isInfra = isInfrastructureFrame(demangled, "");
+            if (!foundFirstUserFrame && !isInfra)
+              foundFirstUserFrame = true;
 
-            bool jitInliningProcessed = false;
-            if (entry.objectBuffer) {
-              if (!entry.objectFile) {
-                auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
-                    entry.objectBuffer->getMemBufferRef());
-                if (ObjOrErr)
-                  entry.objectFile = std::move(ObjOrErr.get());
-                else
-                  llvm::consumeError(ObjOrErr.takeError());
+            if (foundFirstUserFrame || mode == StackTraceMode::Debug) {
+              std::stringstream frameSs;
+              frameSs << "  at " << demangled << " [JIT:0x" << std::hex
+                      << entryStart << std::dec << "]";
+              if (mode == StackTraceMode::Debug) {
+                frameSs << " [+0x" << std::hex << (addr - entryStart)
+                        << std::dec << "] @ 0x" << std::hex << addr << std::dec;
               }
-
-              if (entry.objectFile) {
-                auto resOrErrJit = symbolizer.symbolizeInlinedCode(
-                    *entry.objectFile,
-                    {jitSymbolizeAddr,
-                     llvm::object::SectionedAddress::UndefSection});
-                if (resOrErrJit) {
-                  auto &inlinedInfo = resOrErrJit.get();
-                  for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames();
-                       ++i) {
-                    auto &info = inlinedInfo.getFrame(i);
-                    std::string fnName = (info.FunctionName != "<invalid>")
-                                             ? info.FunctionName
-                                             : entry.name;
-                    std::string demangled = llvm::demangle(fnName);
-                    bool isInfra =
-                        isInfrastructureFrame(demangled, info.FileName);
-
-                    if (!foundFirstUserFrame && !isInfra)
-                      foundFirstUserFrame = true;
-
-                    if (foundFirstUserFrame && !isInfra) {
-                      std::stringstream frameSs;
-                      frameSs << "  at " << demangled;
-                      if (info.FileName != "<invalid>")
-                        frameSs << " [" << info.FileName << ":" << info.Line
-                                << "]";
-                      else
-                        frameSs << " [JIT:0x" << std::hex << entryStart
-                                << std::dec << "]";
-                      frameSs << "\n";
-                      currentAddrLines.push_back(frameSs.str());
-                    } else if (mode == StackTraceMode::Debug) {
-                      std::stringstream frameSs;
-                      frameSs << "  at " << demangled;
-                      if (info.FileName != "<invalid>")
-                        frameSs << " [" << info.FileName << ":" << info.Line
-                                << "]";
-                      else
-                        frameSs << " [JIT:0x" << std::hex << entryStart
-                                << std::dec << "]";
-
-                      frameSs << " [+0x" << std::hex << (addr - entryStart)
-                              << std::dec << "]";
-                      if (i > 0)
-                        frameSs << " (inlined)";
-                      frameSs << " @ 0x" << std::hex << addr << std::dec;
-                      frameSs << "\n";
-                      currentAddrLines.push_back(frameSs.str());
-                    }
-                    jitInliningProcessed = true;
-                  }
-                } else {
-                  llvm::consumeError(resOrErrJit.takeError());
-                }
-              }
-            }
-
-            if (!jitInliningProcessed && !entry.name.empty()) {
-              std::string demangled = llvm::demangle(entry.name);
-              bool isInfra = isInfrastructureFrame(demangled, "");
-              if (!foundFirstUserFrame && !isInfra)
-                foundFirstUserFrame = true;
-              if (foundFirstUserFrame || mode == StackTraceMode::Debug) {
-                std::stringstream frameSs;
-                frameSs << "  at " << demangled << " [JIT:0x" << std::hex
-                        << entryStart << std::dec << "]";
-                if (mode == StackTraceMode::Debug) {
-                  frameSs << " [+0x" << std::hex << (addr - entryStart)
-                          << std::dec << "] @ 0x" << std::hex << addr
-                          << std::dec;
-                }
-                frameSs << "\n";
-                currentAddrLines.push_back(frameSs.str());
-              }
+              frameSs << "\n";
+              currentAddrLines.push_back(frameSs.str());
             }
             addrHandled = true;
           }
@@ -216,14 +132,9 @@ void symbolizeStackChain(std::stringstream &ss,
       // 2. Check non-JIT symbols
       if (!addrHandled) {
         Dl_info dlinfo;
-        bool hasDlInfo = dladdr(reinterpret_cast<void *>(addr), &dlinfo);
-        std::string currentModule = "";
-        uword_t symbolizeAddr = 0;
-        std::string dlSymbolName = "";
-
-        if (hasDlInfo) {
-          if (dlinfo.dli_sname)
-            dlSymbolName = dlinfo.dli_sname;
+        if (dladdr(reinterpret_cast<void *>(addr), &dlinfo)) {
+          std::string dlSymbolName = dlinfo.dli_sname ? dlinfo.dli_sname : "";
+          std::string demangledDl = llvm::demangle(dlSymbolName);
 
           // Skip thread entry points if we have a parent to stitch to
           if (current->parent &&
@@ -232,6 +143,9 @@ void symbolizeStackChain(std::stringstream &ss,
                dlSymbolName == "asan_thread_start")) {
             continue;
           }
+
+          std::string currentModule = "";
+          uword_t symbolizeAddr = 0;
 
 #ifdef __APPLE__
           if (dlinfo.dli_fbase == _dyld_get_image_header(0)) {
@@ -247,92 +161,75 @@ void symbolizeStackChain(std::stringstream &ss,
             symbolizeAddr = addr - reinterpret_cast<uword_t>(dlinfo.dli_fbase);
           }
 #endif
-        }
 
-        if (symbolizeAddr >= 4)
-          symbolizeAddr -= 4;
+          if (!currentModule.empty()) {
+            if (symbolizeAddr >= 4)
+              symbolizeAddr -= 4;
 
-        auto resOrErr = symbolizer.symbolizeInlinedCode(
-            currentModule,
-            {symbolizeAddr, llvm::object::SectionedAddress::UndefSection});
-        bool inliningSuccess = false;
-        if (resOrErr) {
-          auto &inlinedInfo = resOrErr.get();
-          for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames(); ++i) {
-            auto &info = inlinedInfo.getFrame(i);
-            std::string rawFn = (info.FunctionName != "<invalid>")
-                                    ? info.FunctionName
-                                    : dlSymbolName;
-            std::string demangled = llvm::demangle(rawFn);
-            bool isInfra = isInfrastructureFrame(demangled, info.FileName);
+            auto resOrErr = symbolizer.symbolizeInlinedCode(
+                currentModule,
+                {symbolizeAddr, llvm::object::SectionedAddress::UndefSection});
 
+            if (resOrErr) {
+              auto &inlinedInfo = resOrErr.get();
+              for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames(); ++i) {
+                auto &info = inlinedInfo.getFrame(i);
+                std::string rawFn = (info.FunctionName != "<invalid>")
+                                        ? info.FunctionName
+                                        : dlSymbolName;
+                std::string demangled = llvm::demangle(rawFn);
+                bool isInfra = isInfrastructureFrame(demangled, info.FileName);
+
+                if (!foundFirstUserFrame && !isInfra)
+                  foundFirstUserFrame = true;
+
+                if (foundFirstUserFrame && !isInfra) {
+                  std::stringstream frameSs;
+                  frameSs << "  at " << demangled;
+                  if (info.FileName != "<invalid>")
+                    frameSs << " [" << info.FileName << ":" << info.Line << "]";
+                  else
+                    frameSs << " [" << currentModule << "]";
+                  frameSs << "\n";
+                  currentAddrLines.push_back(frameSs.str());
+                } else if (mode == StackTraceMode::Debug) {
+                  std::stringstream frameSs;
+                  frameSs << "  at " << demangled;
+                  if (info.FileName != "<invalid>")
+                    frameSs << " [" << info.FileName << ":" << info.Line << "]";
+                  else
+                    frameSs << " [" << currentModule << "]";
+                  if (i > 0)
+                    frameSs << " (inlined)";
+                  frameSs << " @ 0x" << std::hex << addr << std::dec;
+                  frameSs << "\n";
+                  currentAddrLines.push_back(frameSs.str());
+                }
+              }
+            } else {
+              llvm::consumeError(resOrErr.takeError());
+            }
+          }
+
+          if (currentAddrLines.empty()) {
+            std::string demangled = llvm::demangle(dlSymbolName);
+            bool isInfra = isInfrastructureFrame(demangled, "");
             if (!foundFirstUserFrame && !isInfra)
               foundFirstUserFrame = true;
-
-            if (foundFirstUserFrame && !isInfra) {
+            if (foundFirstUserFrame || mode == StackTraceMode::Debug) {
               std::stringstream frameSs;
-              frameSs << "  at " << demangled;
-              if (info.FileName != "<invalid>")
-                frameSs << " [" << info.FileName << ":" << info.Line << "]";
-              else if (!currentModule.empty()) {
-                size_t lastSlash = currentModule.find_last_of('/');
-                std::string base = (lastSlash != std::string::npos)
-                                       ? currentModule.substr(lastSlash + 1)
-                                       : currentModule;
-                frameSs << " [" << base << "]";
+              if (!dlSymbolName.empty()) {
+                frameSs << "  at " << demangled << " ["
+                        << (dlinfo.dli_fname ? dlinfo.dli_fname : "unknown")
+                        << "]";
+              } else {
+                frameSs << "  at 0x" << std::hex << addr << std::dec << " ["
+                        << (dlinfo.dli_fname ? dlinfo.dli_fname : "unknown")
+                        << "]";
               }
               frameSs << "\n";
               currentAddrLines.push_back(frameSs.str());
-            } else if (mode == StackTraceMode::Debug) {
-              std::stringstream frameSs;
-              frameSs << "  at " << demangled;
-              if (info.FileName != "<invalid>")
-                frameSs << " [" << info.FileName << ":" << info.Line << "]";
-              else if (!currentModule.empty()) {
-                size_t lastSlash = currentModule.find_last_of('/');
-                std::string base = (lastSlash != std::string::npos)
-                                       ? currentModule.substr(lastSlash + 1)
-                                       : currentModule;
-                frameSs << " [" << base << "]";
-              }
-              if (i > 0)
-                frameSs << " (inlined)";
-              frameSs << " @ 0x" << std::hex << addr << std::dec;
-              frameSs << "\n";
-              currentAddrLines.push_back(frameSs.str());
             }
-            inliningSuccess = true;
-          }
-        } else {
-          llvm::consumeError(resOrErr.takeError());
-        }
-
-        if (!inliningSuccess) {
-          std::string demangled = llvm::demangle(dlSymbolName);
-          bool isInfra = isInfrastructureFrame(demangled, currentModule);
-          if (!foundFirstUserFrame && !isInfra)
-            foundFirstUserFrame = true;
-          if (foundFirstUserFrame && !isInfra) {
-            std::stringstream frameSs;
-            if (!dlSymbolName.empty()) {
-              frameSs << "  at " << demangled << " [" << currentModule << "]";
-            } else {
-              frameSs << "  at 0x" << std::hex << addr << std::dec << " ["
-                      << currentModule << "]";
-            }
-            frameSs << "\n";
-            currentAddrLines.push_back(frameSs.str());
-          } else if (mode == StackTraceMode::Debug) {
-            std::stringstream frameSs;
-            if (!dlSymbolName.empty()) {
-              frameSs << "  at " << demangled << " [" << currentModule << "]";
-            } else {
-              frameSs << "  at 0x" << std::hex << addr << std::dec << " ["
-                      << currentModule << "]";
-            }
-            frameSs << " @ 0x" << std::hex << addr << std::dec;
-            frameSs << "\n";
-            currentAddrLines.push_back(frameSs.str());
           }
         }
       }
@@ -353,16 +250,11 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
                                      RTValue payload)
     : name(name), message(message), payload(payload) {
   capturedStack = captureCurrentStack();
-  retain(message);
-  retain(payload);
 }
 
 LanguageException::LanguageException(const LanguageException &other)
     : name(other.name), message(other.message), payload(other.payload),
-      capturedStack(other.capturedStack) {
-  retain(message);
-  retain(payload);
-}
+      capturedStack(other.capturedStack) {}
 
 LanguageException &
 LanguageException::operator=(const LanguageException &other) {
@@ -391,18 +283,14 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
   std::stringstream ss;
   ss << "Exception: " << name << "\n";
 
-  String *rawMsg = ::toString(message);
-  String *msgStr = String_compactify(rawMsg);
+  retain(message);
+  String *msgStr = String_compactify(::toString(message));
   ss << "Message: " << String_c_str(msgStr) << "\n";
-  if (msgStr != rawMsg)
-    Ptr_release(rawMsg);
   Ptr_release(msgStr);
 
-  String *rawPay = ::toString(payload);
-  String *payStr = String_compactify(rawPay);
+  retain(payload);
+  String *payStr = String_compactify(::toString(payload));
   ss << "Payload: " << (payload == 0 ? "nil" : String_c_str(payStr)) << "\n";
-  if (payStr != rawPay)
-    Ptr_release(rawPay);
   Ptr_release(payStr);
 
   ss << "Stack Trace:\n";
@@ -478,7 +366,7 @@ throwNoMatchingOverloadException_C(const char *className,
   std::stringstream ss;
   ss << "No matching overload found for " << className << "::" << methodName;
   throw rt::LanguageException(
-      "InternalInconsistencyException",
+      "NoMatchingOverloadException",
       RT_boxPtr(::String_createDynamicStr(ss.str().c_str())), RT_boxNil());
 }
 

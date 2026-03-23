@@ -125,7 +125,8 @@ static void test_instance_call_ic_hit_miss(void **state) {
       auto resF = engine
                       .compileAST(callNode, "__test_ic_dynamic",
                                   llvm::OptimizationLevel::O0, true)
-                      .get().address;
+                      .get()
+                      .address;
       auto fn = resF.toPtr<RTValue (*)()>();
 
       // --- Phase 1: Call with TypeA (Vector) ---
@@ -194,14 +195,16 @@ static void test_instance_call_ic_atomicity(void **state) {
     inst->mutable_subnode()->mutable_var()->set_var("#'user/my-var");
     auto *arg = ic->add_args();
     arg->set_op(opConst);
-    arg->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    arg->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
     arg->mutable_subnode()->mutable_const_()->set_val("10");
     arg->set_tag("long");
 
     auto resF = engine
                     .compileAST(callNode, "__test_ic_atomicity",
                                 llvm::OptimizationLevel::O0, false)
-                    .get().address;
+                    .get()
+                    .address;
     auto fn = resF.toPtr<RTValue (*)()>();
 
     // --- Pre-compilation phase ---
@@ -230,7 +233,8 @@ static void test_instance_call_ic_atomicity(void **state) {
 
     auto switcherFn = [&]() {
       readyCount++;
-      while (!start) std::this_thread::yield();
+      while (!start)
+        std::this_thread::yield();
 
       RTValue vec = RT_boxPtr(PersistentVector_create());
       RTValue list = RT_boxPtr(PersistentList_empty());
@@ -243,7 +247,7 @@ static void test_instance_call_ic_atomicity(void **state) {
         // Give time for observers to hit the IC
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
       }
-      
+
       stop = true;
       release(vec);
       release(list);
@@ -251,16 +255,17 @@ static void test_instance_call_ic_atomicity(void **state) {
 
     auto observerFn = [&](int threadId) {
       readyCount++;
-      while (!start) std::this_thread::yield();
+      while (!start)
+        std::this_thread::yield();
 
       JITEngine::SafetySection safety(engine);
       for (int i = 0; i < iterationsForObservers && !failed && !stop; ++i) {
         RTValue res = fn();
         int32_t val = RT_unboxInt32(res);
-        
+
         if (val != 1010 && val != 2010) {
-            fprintf(stderr, "Thread %d: Unexpected result %d\n", threadId, val);
-            failed = true;
+          fprintf(stderr, "Thread %d: Unexpected result %d\n", threadId, val);
+          failed = true;
         }
         release(res);
       }
@@ -272,7 +277,8 @@ static void test_instance_call_ic_atomicity(void **state) {
       threads.emplace_back(observerFn, i);
     }
 
-    while (readyCount < numThreads) std::this_thread::yield();
+    while (readyCount < numThreads)
+      std::this_thread::yield();
     start = true;
 
     for (auto &t : threads) {
@@ -289,10 +295,6 @@ static void test_instance_call_ic_atomicity(void **state) {
 
 int main(void) {
   initialise_memory();
-  RuntimeInterface_initialise();
-  PersistentVector_initialise();
-  PersistentList_empty();
-
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_instance_call_ic_hit_miss),
       cmocka_unit_test(test_instance_call_ic_atomicity),

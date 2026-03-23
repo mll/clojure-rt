@@ -182,6 +182,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set(CMAKE_REQUIRED_FLAGS "-mcx16")
     endif()
 
+    add_compile_options(-femulated-tls)
+
     include(CheckCXXSourceCompiles)
     
     # Check if we can use 128-bit atomics without libatomic

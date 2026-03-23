@@ -74,7 +74,11 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
   if (!JTMB)
     throw std::runtime_error("Failed to detect host");
 
+#ifdef __linux__
+  JTMB->getOptions().EmulatedTLS = true;
+#else
   JTMB->getOptions().EmulatedTLS = false;
+#endif
 
   auto TMTmp = JTMB->createTargetMachine();
   if (!TMTmp)
@@ -606,9 +610,7 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
             G.setInitializer(nullptr);
             G.setLinkage(llvm::GlobalValue::ExternalLinkage);
             if (G.isThreadLocal()) {
-              if (TM->getTargetTriple().isOSLinux()) {
-                G.setThreadLocalMode(llvm::GlobalValue::InitialExecTLSModel);
-              } else {
+              if (!TM->getTargetTriple().isOSLinux()) {
                 G.setThreadLocalMode(llvm::GlobalValue::LocalExecTLSModel);
               }
             }

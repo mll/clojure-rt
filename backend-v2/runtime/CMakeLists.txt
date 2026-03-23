@@ -78,6 +78,11 @@ find_program(LLVM_LINK_EXECUTABLE llvm-link
 
 set(BITCODE_OUTPUTS "")
 
+set(EMULATED_TLS_FLAG "-fno-emulated-tls")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(EMULATED_TLS_FLAG "-femulated-tls")
+endif()
+
 # 2. Compile each source file to an individual .bc file
 foreach(src ${SOURCES})
     get_filename_component(basename ${src} NAME_WE)
@@ -88,7 +93,7 @@ foreach(src ${SOURCES})
         COMMAND ${CLANG_EXECUTABLE} -emit-llvm -c 
                 ${CMAKE_CURRENT_SOURCE_DIR}/${src}
                 -iquote ${CMAKE_CURRENT_SOURCE_DIR} -I${GMP_INCLUDE_DIRS}
-                -O3 -fPIC -fno-emulated-tls 
+                -O3 -fPIC ${EMULATED_TLS_FLAG} 
                 -o ${bc_output}
         DEPENDS ${src}
         COMMENT "Generating LLVM Bitcode for ${src}"

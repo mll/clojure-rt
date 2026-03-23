@@ -31,6 +31,7 @@ void initialise_memory() {
   /* poolInitialize(&globalPool3, 64, 100000); */
   PersistentVector_initialise();
   PersistentArrayMap_initialise();
+  PersistentList_initialise();
   RuntimeInterface_initialise();
 }
 

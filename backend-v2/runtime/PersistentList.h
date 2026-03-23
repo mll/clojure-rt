@@ -18,6 +18,7 @@ struct PersistentList {
   uint64_t count;
 };
 
+void PersistentList_initialise();
 PersistentList *PersistentList_empty();
 void PersistentList_cleanup();
 

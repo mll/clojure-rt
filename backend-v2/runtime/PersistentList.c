@@ -6,9 +6,12 @@
 static PersistentList *EMPTY = NULL;
 // How to mark
 /* mem done */
-PersistentList *PersistentList_empty() {
+void PersistentList_initialise() {
   if (EMPTY == NULL)
     EMPTY = PersistentList_create(RT_boxNull(), NULL);
+}
+
+PersistentList *PersistentList_empty() {
   Ptr_retain(EMPTY);
   return EMPTY;
 }

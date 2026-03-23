@@ -21,6 +21,7 @@ set(TEST_MODULES
     codegen/InstanceCallIC_test
     codegen/VoidInvokeRepro_test
     codegen/DCE_test
+    codegen/O3_DebugInfo_test
     VarUAF_repro_test
     JITSafety_test
 )

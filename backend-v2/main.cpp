@@ -94,16 +94,17 @@ int main(int argc, char *argv[]) {
     RTValue interfaces = engine
                              .compileAST(astInterfaces.nodes(0), "__interfaces",
                                          llvm::OptimizationLevel::O0, false)
-                             .get().address
-                             .toPtr<RTValue (*)()>()();
+                             .get()
+                             .address.toPtr<RTValue (*)()>()();
     cout << "Storing interfaces..." << endl;
     state.storeInternalProtocols(interfaces);
 
     cout << "Compiling classes..." << endl;
-    RTValue classes = engine.compileAST(astClasses.nodes(0), "__classes",
-                                        llvm::OptimizationLevel::O0, false)
-                          .get().address
-                          .toPtr<RTValue (*)()>()();
+    RTValue classes = engine
+                          .compileAST(astClasses.nodes(0), "__classes",
+                                      llvm::OptimizationLevel::O0, false)
+                          .get()
+                          .address.toPtr<RTValue (*)()>()();
     cout << "Storing classes..." << endl;
     state.storeInternalClasses(classes);
 
@@ -113,7 +114,8 @@ int main(int argc, char *argv[]) {
       cout << "=============================" << endl;
       cout << "Compiling!!!" << endl;
       std::string moduleName = "__repl__" + std::to_string(j);
-      auto res = engine.compileAST(topLevelNode, moduleName, optLevel, true).get();
+      auto res =
+          engine.compileAST(topLevelNode, moduleName, optLevel, true).get();
 
       if (!res.optimizedIR.empty()) {
         cout << "\n=== Optimized LLVM IR for: '" << moduleName << "' ===\n";

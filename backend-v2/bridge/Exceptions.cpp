@@ -115,6 +115,58 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
     uword_t symbolizeAddr = 0;
     std::string dlSymbolName = "";
 
+    // 1. Check JIT map first. JIT addresses are specifically registered and
+    // should take precedence over static module identification (especially on
+    // macOS where dladdr can be over-eager).
+    {
+      std::lock_guard<std::mutex> lock(gJitMapMutex);
+      auto it = gJitFunctions.lower_bound(addr);
+      if (it != gJitFunctions.begin() || (it != gJitFunctions.end() && it->first == addr)) {
+        auto entry = (it != gJitFunctions.end() && it->first == addr) ? it : std::prev(it);
+        if (addr >= entry->first && addr < entry->first + entry->second.size) {
+          // printf("Symbolizer: Found %p in JIT map entry %p (size %zu)\n", (void*)addr, (void*)entry->first, entry->second.size);
+          if (entry->second.objectBuffer) {
+            uword_t jitSymbolizeAddr = addr - entry->first;
+#if defined(__aarch64__) || defined(__arm64__)
+            if (jitSymbolizeAddr >= 4)
+              jitSymbolizeAddr -= 4;
+#else
+            if (jitSymbolizeAddr > 0)
+              jitSymbolizeAddr -= 1;
+#endif
+            auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
+                entry->second.objectBuffer->getMemBufferRef());
+            if (ObjOrErr) {
+              auto &Obj = *ObjOrErr.get();
+              auto resOrErrJit = symbolizer.symbolizeCode(
+                  Obj, {jitSymbolizeAddr,
+                        llvm::object::SectionedAddress::UndefSection});
+              if (resOrErrJit) {
+                auto &info = resOrErrJit.get();
+                if (info.FileName != "<invalid>") {
+                  ss << "  at " << info.FunctionName << " [" << info.FileName
+                     << ":" << info.Line << "]\n";
+                  found = true;
+                  continue;
+                }
+              } else {
+                llvm::consumeError(resOrErrJit.takeError());
+              }
+            } else {
+              llvm::consumeError(ObjOrErr.takeError());
+            }
+          }
+
+          if (found || (!found && !entry->second.name.empty())) {
+            ss << "  at " << entry->second.name << " [JIT:0x" << std::hex
+               << entry->first << std::dec << "]\n";
+            found = true;
+          }
+          continue;
+        }
+      }
+    }
+
     Dl_info dlinfo;
     bool hasDlInfo = dladdr(reinterpret_cast<void *>(addr), &dlinfo);
     if (hasDlInfo) {
@@ -122,7 +174,7 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
         dlSymbolName = dlinfo.dli_sname;
       }
 
-      // 1. Check if we should start the trace (Found logic)
+      // Check if we should start the trace (Found logic)
       if (!found && !dlSymbolName.empty() &&
           dlSymbolName.find("throw") != std::string::npos &&
           dlSymbolName.find("Exception") != std::string::npos) {
@@ -146,52 +198,6 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
         lookupAddr = addr - reinterpret_cast<uword_t>(dlinfo.dli_fbase);
       }
 #endif
-    } else {
-      // Check JIT map
-      std::lock_guard<std::mutex> lock(gJitMapMutex);
-      auto it = gJitFunctions.lower_bound(addr);
-      if (it != gJitFunctions.begin()) {
-        auto prev = std::prev(it);
-        if (addr >= prev->first && addr < prev->first + prev->second.size) {
-          if (prev->second.objectBuffer) {
-            uword_t jitSymbolizeAddr = addr - prev->first;
-#if defined(__aarch64__) || defined(__arm64__)
-            if (jitSymbolizeAddr >= 4)
-              jitSymbolizeAddr -= 4;
-#else
-            if (jitSymbolizeAddr > 0)
-              jitSymbolizeAddr -= 1;
-#endif
-            auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
-                prev->second.objectBuffer->getMemBufferRef());
-            if (ObjOrErr) {
-              auto &Obj = *ObjOrErr.get();
-              auto resOrErrJit = symbolizer.symbolizeCode(
-                  Obj, {jitSymbolizeAddr,
-                        llvm::object::SectionedAddress::UndefSection});
-              if (resOrErrJit) {
-                auto &info = resOrErrJit.get();
-                if (info.FileName != "<invalid>") {
-                  ss << "  at " << info.FunctionName << " [" << info.FileName
-                     << ":" << info.Line << "]\n";
-                  found = true;
-                  continue;
-                }
-              } else {
-                llvm::consumeError(resOrErrJit.takeError());
-              }
-            } else {
-              llvm::consumeError(ObjOrErr.takeError());
-            }
-          }
-
-          if (found) {
-            ss << "  at " << prev->second.name << " [JIT:0x" << std::hex
-               << prev->first << std::dec << "]\n";
-          }
-          continue;
-        }
-      }
     }
 
     if (!found)

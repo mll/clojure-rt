@@ -19,9 +19,6 @@ using namespace clojure::rt::protobuf::bytecode;
 namespace rt {
 class ThreadsafeCompilerState {
 public:
-  ThreadsafeInlineCacheManager objectFieldIndexAccessInlineCache;
-  ThreadsafeInlineCacheManager methodCallInlineCache;
-
   ThreadsafeRegistry<::Class> classRegistry;
   ThreadsafeRegistry<const Node> functionAstRegistry;
   ThreadsafeRegistry<::Var> varRegistry;

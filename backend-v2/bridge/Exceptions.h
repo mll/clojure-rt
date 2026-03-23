@@ -19,11 +19,22 @@ using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
 
+enum class StackTraceMode { Friendly, Debug };
+
+struct CapturedStack {
+  std::vector<uword_t> addresses;
+  std::shared_ptr<CapturedStack> parent;
+};
+
+extern thread_local std::shared_ptr<CapturedStack> gCurrentAsyncStack;
+
+std::shared_ptr<CapturedStack> captureCurrentStack();
+
 class LanguageException : public std::exception {
   std::string name;
   RTValue message;
   RTValue payload;
-  std::vector<uword_t> stackAddresses;
+  std::shared_ptr<CapturedStack> capturedStack;
 
 public:
   LanguageException(const std::string &name, RTValue message, RTValue payload);
@@ -31,12 +42,15 @@ public:
   LanguageException &operator=(const LanguageException &other);
   ~LanguageException() noexcept override;
   void printRawTrace() const;
+  
   std::string toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
                        const std::string &moduleName = "JITMemoryBuffer",
-                       const intptr_t slide = 0x0) const;
+                       const intptr_t slide = 0x0,
+                       StackTraceMode mode = StackTraceMode::Friendly) const;
 };
 
-std::string getExceptionString(const LanguageException &e);
+std::string getExceptionString(const LanguageException &e,
+                               StackTraceMode mode = StackTraceMode::Friendly);
 
 } // namespace rt
 

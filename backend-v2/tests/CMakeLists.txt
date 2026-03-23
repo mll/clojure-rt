@@ -22,6 +22,7 @@ set(TEST_MODULES
     codegen/VoidInvokeRepro_test
     codegen/DCE_test
     codegen/O3_DebugInfo_test
+    codegen/AsyncStackTrace_test
     VarUAF_repro_test
     JITSafety_test
 )

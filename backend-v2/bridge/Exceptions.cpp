@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <llvm/Demangle/Demangle.h>
 #include <llvm/Object/ObjectFile.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <stdio.h>
@@ -20,6 +21,8 @@
 #include <mutex>
 
 namespace rt {
+
+thread_local std::shared_ptr<CapturedStack> gCurrentAsyncStack = nullptr;
 
 struct JitInfo {
   std::string name;
@@ -40,26 +43,32 @@ extern "C" void registerJitFunction_C(uword_t addr, size_t size,
   gJitFunctions[addr] = {name ? name : "", size, std::move(buffer)};
 }
 
-// Removing redundant namespace rt {
+std::shared_ptr<CapturedStack> captureCurrentStack() {
+  auto stack = std::make_shared<CapturedStack>();
+  void *buffer[128];
+  int size = backtrace(buffer, 128);
+  stack->addresses.reserve(size);
+  // Skip 2 frames to bypass captureCurrentStack and its direct caller (wrapper)
+  for (int i = 2; i < size; i++) {
+    stack->addresses.push_back(reinterpret_cast<uword_t>(buffer[i]));
+  }
+  stack->parent = gCurrentAsyncStack;
+  return stack;
+}
 
 LanguageException::LanguageException(const std::string &name, RTValue message,
                                      RTValue payload) {
   this->payload = payload;
   this->name = name;
   this->message = message;
-  void *buffer[128];
-  int size = backtrace(buffer, 128);
-  stackAddresses.reserve(size);
-  for (int i = 0; i < size; i++) {
-    stackAddresses.push_back(reinterpret_cast<uword_t>(buffer[i]));
-  }
+  this->capturedStack = captureCurrentStack();
 }
 
 LanguageException::LanguageException(const LanguageException &other) {
   this->name = other.name;
   this->message = other.message;
   this->payload = other.payload;
-  this->stackAddresses = other.stackAddresses;
+  this->capturedStack = other.capturedStack;
   retain(this->message);
   retain(this->payload);
 }
@@ -72,7 +81,7 @@ LanguageException::operator=(const LanguageException &other) {
     this->name = other.name;
     this->message = other.message;
     this->payload = other.payload;
-    this->stackAddresses = other.stackAddresses;
+    this->capturedStack = other.capturedStack;
     retain(this->message);
     retain(this->payload);
   }
@@ -85,15 +94,237 @@ LanguageException::~LanguageException() noexcept {
 }
 
 void LanguageException::printRawTrace() const {
-  for (uword_t addr : stackAddresses) {
+  if (!capturedStack) return;
+  for (uword_t addr : capturedStack->addresses) {
     printf("  [JIT ADDR] %p\n", (void *)addr);
+  }
+}
+
+static bool isInfrastructureFrame(const std::string &fnName,
+                                   const std::string &fileName) {
+  if (fnName.empty())
+    return false;
+
+  // Patterns to skip in Friendly mode
+  static const char *skipPatterns[] = {
+      "std::__1",
+      "rt::InvokeManager",
+      "rt::CodeGen",
+      "rt::JITEngine",
+      "rt::ThreadPool",
+      "rt::CleanupChain",
+      "rt::InstanceCallStub",
+      "InstanceCallSlowPath",
+      "throwInternalInconsistencyException",
+      "throwNoMatchingOverloadException",
+      "throwLanguageException",
+      "throwArityException",
+      "throwIllegalArgumentException",
+      "throwIllegalStateException",
+      "throwUnsupportedOperationException",
+      "throwArithmeticException",
+      "throwIndexOutOfBoundsException",
+      "throwCodeGenerationException",
+      "asan_thread_start",
+      "__packaged_task",
+      "__invoke",
+      "__function",
+      "__alloc_func",
+      "__value_func",
+      "__packaged_task_func",
+      "__thread_proxy",
+      "__thread_execute",
+      "future",
+      "decltype",
+      "std::declval",
+      "cmocka_",
+      "_cmocka_"};
+
+  for (const char *p : skipPatterns) {
+    if (fnName.find(p) != std::string::npos)
+      return true;
+  }
+
+  // System headers / ASan libs / C++ machinery
+  if (fileName.find("/usr/include/c++/") != std::string::npos)
+    return true;
+  if (fileName.find("libclang_rt.asan") != std::string::npos)
+    return true;
+  if (fileName.find("__functional") != std::string::npos)
+    return true;
+  if (fileName.find("__type_traits") != std::string::npos)
+    return true;
+  if (fileName.find("/c++/v1/") != std::string::npos)
+    return true;
+
+  return false;
+}
+
+static void symbolizeStackChain(std::stringstream &ss,
+                               const std::shared_ptr<CapturedStack> &stack,
+                               llvm::symbolize::LLVMSymbolizer &symbolizer,
+                               const std::string &moduleName,
+                               const intptr_t slide, StackTraceMode mode) {
+  if (!stack) return;
+
+  auto current = stack;
+  bool isFirst = true;
+  while (current) {
+    bool found = !isFirst;
+    int skipCount = 0;
+
+    for (uword_t addr : current->addresses) {
+      std::string currentModule = "";
+      uword_t lookupAddr = addr;
+      uword_t symbolizeAddr = 0;
+      std::string dlSymbolName = "";
+
+      // 1. Check JIT map first
+      {
+        std::lock_guard<std::mutex> lock(gJitMapMutex);
+        auto it = gJitFunctions.lower_bound(addr);
+        if (it != gJitFunctions.begin() || (it != gJitFunctions.end() && it->first == addr)) {
+          auto entry = (it != gJitFunctions.end() && it->first == addr) ? it : std::prev(it);
+          if (addr >= entry->first && addr < entry->first + entry->second.size) {
+            if (entry->second.objectBuffer) {
+              uword_t jitSymbolizeAddr = addr - entry->first;
+#if defined(__aarch64__) || defined(__arm64__)
+              if (jitSymbolizeAddr >= 4) jitSymbolizeAddr -= 4;
+#else
+              if (jitSymbolizeAddr > 0) jitSymbolizeAddr -= 1;
+#endif
+              auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
+                  entry->second.objectBuffer->getMemBufferRef());
+              if (ObjOrErr) {
+                auto &Obj = *ObjOrErr.get();
+                auto resOrErrJit = symbolizer.symbolizeCode(Obj, {jitSymbolizeAddr, llvm::object::SectionedAddress::UndefSection});
+                if (resOrErrJit) {
+                  auto &info = resOrErrJit.get();
+                  if (info.FileName != "<invalid>") {
+                    if (found) {
+                        std::string demangled = llvm::demangle(info.FunctionName);
+                        if (mode == StackTraceMode::Debug || !isInfrastructureFrame(demangled, info.FileName)) {
+                            ss << "  at " << demangled << " [" << info.FileName << ":" << info.Line << "]\n";
+                        }
+                    }
+                    found = true;
+                    continue;
+                  }
+                } else {
+                  llvm::consumeError(resOrErrJit.takeError());
+                }
+              } else {
+                llvm::consumeError(ObjOrErr.takeError());
+              }
+            }
+
+            if (found || (!found && !entry->second.name.empty())) {
+              if (found) {
+                std::string demangled = llvm::demangle(entry->second.name);
+                if (mode == StackTraceMode::Debug || !isInfrastructureFrame(demangled, "")) {
+                  ss << "  at " << demangled << " [JIT:0x" << std::hex << entry->first << std::dec << "]\n";
+                }
+              }
+              found = true;
+            }
+            continue;
+          }
+        }
+      }
+
+      Dl_info dlinfo;
+      bool hasDlInfo = dladdr(reinterpret_cast<void *>(addr), &dlinfo);
+      if (hasDlInfo) {
+        if (dlinfo.dli_sname) dlSymbolName = dlinfo.dli_sname;
+
+        // Skip thread entry points if we have a parent to stitch to
+        if (current->parent && (dlSymbolName == "thread_start" || dlSymbolName == "_pthread_start" || dlSymbolName == "start" || dlSymbolName == "asan_thread_start")) {
+          continue;
+        }
+
+        if (!found) {
+          bool isSentinel = !dlSymbolName.empty() &&
+                           (dlSymbolName.find("throw") != std::string::npos ||
+                            dlSymbolName.find("Exception") != std::string::npos);
+          if (isSentinel || ++skipCount > 20) {
+            found = true;
+            if (isSentinel) continue;
+          }
+        }
+
+#ifdef __APPLE__
+        if (dlinfo.dli_fbase == _dyld_get_image_header(0)) {
+          currentModule = moduleName;
+          lookupAddr = addr - slide;
+        } else if (dlinfo.dli_fname) {
+          currentModule = dlinfo.dli_fname;
+          lookupAddr = addr - reinterpret_cast<uword_t>(dlinfo.dli_fbase);
+        }
+#else
+        if (dlinfo.dli_fname) {
+          currentModule = dlinfo.dli_fname;
+          lookupAddr = addr - reinterpret_cast<uword_t>(dlinfo.dli_fbase);
+        }
+#endif
+      }
+
+      if (!found) continue;
+
+      symbolizeAddr = lookupAddr;
+#if defined(__aarch64__) || defined(__arm64__)
+      if (symbolizeAddr >= 4) symbolizeAddr -= 4;
+#else
+      if (symbolizeAddr > 0) symbolizeAddr -= 1;
+#endif
+
+      if (currentModule.empty()) {
+        currentModule = moduleName;
+#if defined(__aarch64__) || defined(__arm64__)
+        symbolizeAddr = (addr - slide) - 4;
+#else
+        symbolizeAddr = (addr - slide) - 1;
+#endif
+      }
+
+      auto resOrErr = symbolizer.symbolizeCode(currentModule, {symbolizeAddr, llvm::object::SectionedAddress::UndefSection});
+      if (resOrErr) {
+        auto &info = resOrErr.get();
+        if (found) {
+          std::string rawFn = (info.FunctionName != "<invalid>") ? info.FunctionName : dlSymbolName;
+          std::string demangled = llvm::demangle(rawFn);
+          if (mode == StackTraceMode::Debug || !isInfrastructureFrame(demangled, info.FileName)) {
+            ss << "  at " << demangled;
+            if (info.FileName != "<invalid>") ss << " [" << info.FileName << ":" << info.Line << "]";
+            else if (!currentModule.empty()) {
+              size_t lastSlash = currentModule.find_last_of('/');
+              std::string base = (lastSlash != std::string::npos) ? currentModule.substr(lastSlash + 1) : currentModule;
+              ss << " [" << base << " + 0x" << std::hex << lookupAddr << std::dec << "]";
+            }
+            ss << "\n";
+          }
+        }
+      } else {
+        llvm::consumeError(resOrErr.takeError());
+        if (found) {
+          std::string demangled = llvm::demangle(dlSymbolName);
+          if (mode == StackTraceMode::Debug || !isInfrastructureFrame(demangled, currentModule)) {
+            if (!dlSymbolName.empty()) ss << "  at " << demangled << " [" << currentModule << "]\n";
+            else ss << "  at 0x" << std::hex << addr << std::dec << " [" << currentModule << "]\n";
+          }
+        }
+      }
+    }
+    
+    current = current->parent;
+    isFirst = false;
   }
 }
 
 std::string
 LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
                             const std::string &defaultModuleName,
-                            const intptr_t defaultSlide) const {
+                            const intptr_t defaultSlide,
+                            StackTraceMode mode) const {
   std::stringstream ss;
 
   ss << "Exception: " << name << "\n";
@@ -108,169 +339,7 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
   Ptr_release(payloadString);
 
   ss << "Stack Trace:\n";
-  bool found = false;
-  for (uword_t addr : stackAddresses) {
-    std::string currentModule = "";
-    uword_t lookupAddr = addr;
-    uword_t symbolizeAddr = 0;
-    std::string dlSymbolName = "";
-
-    // 1. Check JIT map first. JIT addresses are specifically registered and
-    // should take precedence over static module identification (especially on
-    // macOS where dladdr can be over-eager).
-    {
-      std::lock_guard<std::mutex> lock(gJitMapMutex);
-      auto it = gJitFunctions.lower_bound(addr);
-      if (it != gJitFunctions.begin() || (it != gJitFunctions.end() && it->first == addr)) {
-        auto entry = (it != gJitFunctions.end() && it->first == addr) ? it : std::prev(it);
-        if (addr >= entry->first && addr < entry->first + entry->second.size) {
-          // printf("Symbolizer: Found %p in JIT map entry %p (size %zu)\n", (void*)addr, (void*)entry->first, entry->second.size);
-          if (entry->second.objectBuffer) {
-            uword_t jitSymbolizeAddr = addr - entry->first;
-#if defined(__aarch64__) || defined(__arm64__)
-            if (jitSymbolizeAddr >= 4)
-              jitSymbolizeAddr -= 4;
-#else
-            if (jitSymbolizeAddr > 0)
-              jitSymbolizeAddr -= 1;
-#endif
-            auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
-                entry->second.objectBuffer->getMemBufferRef());
-            if (ObjOrErr) {
-              auto &Obj = *ObjOrErr.get();
-              auto resOrErrJit = symbolizer.symbolizeCode(
-                  Obj, {jitSymbolizeAddr,
-                        llvm::object::SectionedAddress::UndefSection});
-              if (resOrErrJit) {
-                auto &info = resOrErrJit.get();
-                if (info.FileName != "<invalid>") {
-                  ss << "  at " << info.FunctionName << " [" << info.FileName
-                     << ":" << info.Line << "]\n";
-                  found = true;
-                  continue;
-                }
-              } else {
-                llvm::consumeError(resOrErrJit.takeError());
-              }
-            } else {
-              llvm::consumeError(ObjOrErr.takeError());
-            }
-          }
-
-          if (found || (!found && !entry->second.name.empty())) {
-            ss << "  at " << entry->second.name << " [JIT:0x" << std::hex
-               << entry->first << std::dec << "]\n";
-            found = true;
-          }
-          continue;
-        }
-      }
-    }
-
-    Dl_info dlinfo;
-    bool hasDlInfo = dladdr(reinterpret_cast<void *>(addr), &dlinfo);
-    if (hasDlInfo) {
-      if (dlinfo.dli_sname) {
-        dlSymbolName = dlinfo.dli_sname;
-      }
-
-      // Check if we should start the trace (Found logic)
-      if (!found && !dlSymbolName.empty() &&
-          dlSymbolName.find("throw") != std::string::npos &&
-          dlSymbolName.find("Exception") != std::string::npos) {
-        found = true;
-        continue;
-      }
-
-#ifdef __APPLE__
-      // 2. Identify module and offset
-      if (dlinfo.dli_fbase == _dyld_get_image_header(0)) {
-        // Main executable - must use dSYM and slide
-        currentModule = defaultModuleName;
-        lookupAddr = addr - defaultSlide;
-      } else if (dlinfo.dli_fname) {
-        currentModule = dlinfo.dli_fname;
-        lookupAddr = addr - reinterpret_cast<uword_t>(dlinfo.dli_fbase);
-      }
-#else
-      if (dlinfo.dli_fname) {
-        currentModule = dlinfo.dli_fname;
-        lookupAddr = addr - reinterpret_cast<uword_t>(dlinfo.dli_fbase);
-      }
-#endif
-    }
-
-    if (!found)
-      continue;
-
-    // Adjust address back to get the call site line instead of return site.
-    symbolizeAddr = lookupAddr;
-#if defined(__aarch64__) || defined(__arm64__)
-    if (symbolizeAddr >= 4)
-      symbolizeAddr -= 4;
-#else
-    if (symbolizeAddr > 0)
-      symbolizeAddr -= 1;
-#endif
-
-    if (currentModule.empty()) {
-      currentModule = defaultModuleName;
-#if defined(__aarch64__) || defined(__arm64__)
-      symbolizeAddr = (addr - defaultSlide) - 4;
-#else
-      symbolizeAddr = (addr - defaultSlide) - 1;
-#endif
-    }
-
-    auto resOrErr = symbolizer.symbolizeCode(
-        currentModule,
-        {symbolizeAddr, llvm::object::SectionedAddress::UndefSection});
-
-    if (resOrErr) {
-      auto &info = resOrErr.get();
-      // Second chance for found (if dladdr failed somehow)
-      if (!found &&
-          (info.FunctionName.find("throw") != std::string::npos &&
-           info.FunctionName.find("Exception") != std::string::npos)) {
-        found = true;
-        continue;
-      }
-
-      if (found) {
-        ss << "  at ";
-
-        if (info.FunctionName != "<invalid>") {
-          ss << info.FunctionName;
-        } else if (!dlSymbolName.empty()) {
-          ss << dlSymbolName;
-        } else if (!currentModule.empty()) {
-          size_t lastSlash = currentModule.find_last_of('/');
-          std::string base = (lastSlash != std::string::npos)
-                                 ? currentModule.substr(lastSlash + 1)
-                                 : currentModule;
-          ss << base << " + 0x" << std::hex << lookupAddr << std::dec;
-        } else {
-          ss << "0x" << std::hex << std::setw(sizeof(uword_t) * 2)
-             << std::setfill('0') << addr << std::dec;
-        }
-
-        if (info.FileName != "<invalid>") {
-          ss << " [" << info.FileName << ":" << info.Line << "]";
-        }
-        ss << "\n";
-      }
-    } else {
-      llvm::consumeError(resOrErr.takeError());
-      if (found) {
-        if (!dlSymbolName.empty()) {
-          ss << "  at " << dlSymbolName << " [" << currentModule << "]\n";
-        } else {
-          ss << "  at 0x" << std::hex << addr << std::dec << " ["
-             << currentModule << "]\n";
-        }
-      }
-    }
-  }
+  symbolizeStackChain(ss, capturedStack, symbolizer, defaultModuleName, defaultSlide, mode);
 
   return ss.str();
 }
@@ -291,7 +360,7 @@ std::string getSelfExecutablePath() {
   return "";
 }
 
-std::string getExceptionString(const LanguageException &e) {
+std::string getExceptionString(const LanguageException &e, StackTraceMode mode) {
   llvm::symbolize::LLVMSymbolizer::Options options;
   options.Demangle = true;
   options.PrintFunctions = llvm::symbolize::FunctionNameKind::LinkageName;
@@ -311,7 +380,7 @@ std::string getExceptionString(const LanguageException &e) {
   intptr_t slide = 0;
 #endif
 
-  return e.toString(symbolizer, moduleName, slide);
+  return e.toString(symbolizer, moduleName, slide, mode);
 }
 
 } // namespace rt

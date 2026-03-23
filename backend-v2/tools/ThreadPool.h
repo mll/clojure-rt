@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <functional>
 #include <future>
+#include <memory>
 #include <vector>
 
 #ifdef _WIN32
@@ -24,6 +25,10 @@ namespace rt {
 
   enum class Priority { Low, High };
 
+  struct CapturedStack;
+  extern thread_local std::shared_ptr<CapturedStack> gCurrentAsyncStack;
+  std::shared_ptr<CapturedStack> captureCurrentStack();
+
   class ThreadPool {
     std::vector<std::thread> workers;
     std::queue<std::function<void()>> tasks;
@@ -38,13 +43,21 @@ namespace rt {
     template <class F>
     auto enqueue(F &&f) -> std::future<std::invoke_result_t<F>> {
       using return_type = std::invoke_result_t<F>;
+      
+      auto currentStack = captureCurrentStack();
+
       auto task =
         std::make_shared<std::packaged_task<return_type()>>(std::forward<F>(f));
       std::future<return_type> res = task->get_future();
       {
         std::unique_lock<std::mutex> lock(queueMutex);
         if (!stop)
-          tasks.emplace([task]() { (*task)(); });
+          tasks.emplace([task, currentStack]() { 
+            auto old = gCurrentAsyncStack;
+            gCurrentAsyncStack = currentStack;
+            (*task)(); 
+            gCurrentAsyncStack = old;
+          });
       }
       condition.notify_one();
       return res;

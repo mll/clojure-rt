@@ -6,6 +6,7 @@
 #include "../tools/EdnParser.h"
 #include "bridge/Exceptions.h"
 #include "bridge/InstanceCallStub.h"
+#include "bridge/SourceLocation.h"
 #include "llvm/IR/MDBuilder.h"
 #include "llvm/Transforms/IPO/GlobalDCE.h"
 #include <cstdint>
@@ -216,6 +217,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               auto context = std::move(result.context);
               auto module = std::move(result.module);
               auto constants = std::move(result.constants);
+              auto formMap = std::move(result.formMap);
 
               this->optimize(*module, level, fName);
 
@@ -277,10 +279,10 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                   auto &captured = this->capturedObjectBuffers[foundIdx];
                   // printf("JIT: Found buffer for %s (size %zu)\n",
                   // fName.c_str(), captured.buffer->getBufferSize());
-                  registerJitFunction_C(
+                  registerJitFunction(
                       Sym->getValue(), captured.buffer->getBufferSize(),
                       fName.c_str(), captured.buffer->getBufferStart(),
-                      captured.buffer->getBufferSize());
+                      captured.buffer->getBufferSize(), std::move(formMap));
                   this->capturedObjectBuffers.erase(
                       this->capturedObjectBuffers.begin() + foundIdx);
                 } else {
@@ -289,8 +291,8 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                   // this->capturedObjectBuffers.size()); Fallback for cases
                   // where symbol might not be in the dynamic symbol table of
                   // the object (though for JIT it usually is).
-                  registerJitFunction_C(Sym->getValue(), 1024 * 1024,
-                                        fName.c_str(), nullptr, 0);
+                  registerJitFunction(Sym->getValue(), 1024 * 1024,
+                                        fName.c_str(), nullptr, 0, std::move(formMap));
                 }
               }
 

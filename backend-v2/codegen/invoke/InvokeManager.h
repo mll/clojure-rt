@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "bytecode.pb.h"
 
 #include "../../types/ObjectTypeSet.h"
 #include "../LLVMTypes.h"

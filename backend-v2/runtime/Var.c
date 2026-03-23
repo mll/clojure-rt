@@ -59,8 +59,12 @@ void on_thread_exit(void *unused) {
   }
 }
 
+static bool var_initialised = false;
 void Var_initialize() {
+  if (var_initialised)
+    return;
   pthread_key_create(&cleanup_gatekeeper, on_thread_exit);
+  var_initialised = true;
 }
 
 void Var_thread_initialize() {

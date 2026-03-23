@@ -88,8 +88,7 @@ static void test_instance_call_ic_hit_miss(void **state) {
   (void)state;
 
   // Pre-populate shared constants outside the balance check
-  PersistentVector_initialise();
-  PersistentList_empty();
+  // (already initialized in main)
 
   ASSERT_MEMORY_ALL_BALANCED({
     rt::ThreadsafeCompilerState compState;
@@ -172,8 +171,7 @@ static void test_instance_call_ic_atomicity(void **state) {
   (void)state;
 
   // Pre-populate shared constants
-  PersistentVector_initialise();
-  PersistentList_empty();
+  // (already initialized in main)
 
   ASSERT_MEMORY_ALL_BALANCED({
     rt::ThreadsafeCompilerState compState;

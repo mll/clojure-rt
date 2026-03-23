@@ -25,6 +25,8 @@ extern void printReferenceCounts();
 extern uint64_t avalanche_64(uint64_t h);
 
 void RuntimeInterface_initialise() {
+  if (keywords)
+    return;
   keywords = ConcurrentHashMap_create(10);         // 2^10
   keywordsInverted = ConcurrentHashMap_create(10); // 2^10
   vars = ConcurrentHashMap_create(10);             // 2^10

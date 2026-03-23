@@ -14,7 +14,11 @@ PersistentArrayMap *PersistentArrayMap_empty() {
   return EMPTY;
 }
 
-void PersistentArrayMap_initialise() { EMPTY = PersistentArrayMap_create(); }
+void PersistentArrayMap_initialise() {
+  if (EMPTY)
+    return;
+  EMPTY = PersistentArrayMap_create();
+}
 
 void PersistentArrayMap_cleanup() {
   if (EMPTY) {

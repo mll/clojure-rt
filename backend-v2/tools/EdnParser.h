@@ -13,6 +13,8 @@ struct Class;
 namespace rt {
 
 class TemporaryClassData {
+  void scanMetadata(RTValue from);
+
 public:
   unordered_map<string, PersistentArrayMap *> classesByName;
   unordered_map<uword_t, PersistentArrayMap *> classesById;
@@ -28,14 +30,21 @@ public:
   CallType type;
   string symbol;
   ObjectTypeSet returnType;
+  ObjectTypeSet thisType;
+  bool isInstance;
   IntrinsicDescription() = default;
-  IntrinsicDescription(RTValue from, TemporaryClassData &classData);
+  IntrinsicDescription(RTValue from, TemporaryClassData &classData,
+                       const ObjectTypeSet &thisType = ObjectTypeSet::all(),
+                       bool isInstance = false);
+  std::string toString() const;
 };
 
 class ClassDescription {
   unordered_map<string, RTValue> parseStaticFields(RTValue from);
   unordered_map<string, vector<IntrinsicDescription>>
-  parseIntrinsics(RTValue from, TemporaryClassData &classData);
+  parseIntrinsics(RTValue from, TemporaryClassData &classData,
+                  const ObjectTypeSet &thisType = ObjectTypeSet::all(),
+                  bool isInstance = false);
 
 public:
   ObjectTypeSet type;
@@ -60,6 +69,7 @@ public:
   ClassDescription(ClassDescription &&other) noexcept = default;
   ClassDescription &operator=(ClassDescription &&other) noexcept = default;
   ~ClassDescription();
+  std::string toString() const;
 };
 
 extern "C" {

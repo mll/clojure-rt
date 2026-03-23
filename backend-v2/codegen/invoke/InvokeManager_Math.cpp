@@ -13,7 +13,6 @@ void registerMathIntrinsics(InvokeManager &mgr) {
   auto &intrinsics = mgr.intrinsics;
   auto &genericIntrinsics = mgr.genericIntrinsics;
   auto &types = mgr.types;
-  auto &valueEncoder = mgr.valueEncoder;
   auto &theModule = mgr.theModule;
 
   auto regUnaryMath = [&](const string &intrinsicName,
@@ -52,8 +51,7 @@ void registerMathIntrinsics(InvokeManager &mgr) {
       }
       FunctionType *ft =
           FunctionType::get(types.doubleTy, {types.doubleTy}, false);
-      FunctionCallee fn = mgr.theModule.getOrInsertFunction(stdName, ft);
-      return b.CreateCall(fn, {val});
+      return mgr.invokeRaw(stdName, ft, {val});
     };
   };
 
@@ -73,8 +71,7 @@ void registerMathIntrinsics(InvokeManager &mgr) {
       }
       FunctionType *ft = FunctionType::get(
           types.doubleTy, {types.doubleTy, types.doubleTy}, false);
-      FunctionCallee fn = mgr.theModule.getOrInsertFunction(stdName, ft);
-      return b.CreateCall(fn, {val1, val2});
+      return mgr.invokeRaw(stdName, ft, {val1, val2});
     };
   };
 
@@ -510,10 +507,8 @@ void registerMathIntrinsics(InvokeManager &mgr) {
       b.SetInsertPoint(overflowBB);
       FunctionType *throwFnTy =
           FunctionType::get(types.voidTy, {mgr.types.ptrTy}, false);
-      FunctionCallee throwFn = theModule.getOrInsertFunction(
-          "throwArithmeticException_C", throwFnTy);
       Value *msg = b.CreateGlobalString(errorMessage);
-      b.CreateCall(throwFn, {msg});
+      mgr.invokeRaw("throwArithmeticException_C", throwFnTy, {msg});
       b.CreateUnreachable();
 
       b.SetInsertPoint(continueBB);

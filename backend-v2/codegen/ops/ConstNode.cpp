@@ -99,6 +99,19 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     memoryManagement.dynamicRetain(retVal);
     break;
   }
+  case persistentVectorType:
+    if (subnode.val() == "[]") {
+      std::vector<TypedValue> items;
+      retVal = dynamicConstructor.createVector(items);
+      // No dynamicRetain here, createVector already returns a fresh vector with refcount 1
+      // which will be consumed by the callee or released by the CleanupChainGuard.
+    } else {
+      throwCodeGenerationException(
+          string("Compiler does not support non-empty vector constants yet: ") +
+              subnode.val(),
+          node);
+    }
+    break;
   default:
     throwCodeGenerationException(
         string("Compiler does not support the following const type yet: ") +
@@ -191,6 +204,8 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
         .restriction(typeRestrictions);
   // case ConstNode_ConstType_constTypeClass:
   //   return ObjectTypeSet(classType).restriction(typeRestrictions);
+  case ConstNode_ConstType_constTypeVector:
+    return ObjectTypeSet(persistentVectorType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeVar:
     return ObjectTypeSet(varType).restriction(typeRestrictions);
   default:

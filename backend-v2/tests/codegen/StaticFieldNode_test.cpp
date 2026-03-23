@@ -65,7 +65,7 @@ static void test_static_field_const_int(void **state) {
     sf->set_field("constInt");
 
     try {
-        auto res = engine.compileAST(node, "__test_sf_int", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(node, "__test_sf_int", llvm::OptimizationLevel::O0, true).get().address;
         RTValue result = resPtrToValue(res);
         assert_true(RT_isInt32(result));
         assert_int_equal(123, RT_unboxInt32(result));
@@ -92,7 +92,7 @@ static void test_static_field_const_double(void **state) {
     sf->set_field("constDouble");
 
     try {
-        auto res = engine.compileAST(node, "__test_sf_double", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(node, "__test_sf_double", llvm::OptimizationLevel::O0, true).get().address;
         RTValue result = resPtrToValue(res);
         assert_true(RT_isDouble(result));
         assert_double_equal(45.6, RT_unboxDouble(result), 0.001);
@@ -116,7 +116,7 @@ static void test_static_field_const_bool(void **state) {
     sf->set_field("constBool");
 
     try {
-        auto res = engine.compileAST(node, "__test_sf_bool", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(node, "__test_sf_bool", llvm::OptimizationLevel::O0, true).get().address;
         RTValue result = resPtrToValue(res);
         assert_true(RT_isBool(result));
         assert_true(RT_unboxBool(result));
@@ -140,7 +140,7 @@ static void test_static_field_runtime_lookup(void **state) {
     sf->set_field("runtimeInt");
 
     try {
-        auto res = engine.compileAST(node, "__test_sf_runtime", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(node, "__test_sf_runtime", llvm::OptimizationLevel::O0, true).get().address;
         RTValue result = resPtrToValue(res);
         assert_true(RT_isInt32(result));
         assert_int_equal(999, RT_unboxInt32(result));

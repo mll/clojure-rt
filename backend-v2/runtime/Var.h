@@ -47,6 +47,14 @@ void Var_initialize();
 void Var_thread_initialize();
 void Var_cleanup();
 
+#if defined(COMPILING_RUNTIME_BITCODE) && !defined(__APPLE__)
+#include "TLS_Support.h"
+extern uintptr_t threadLocalHazardSlot_offset;
+#define threadLocalHazardSlot (*(void**)((char*)JITEngine_getThreadPointer() + threadLocalHazardSlot_offset))
+#else
+extern _Thread_local void *threadLocalHazardSlot;
+#endif
+
 #ifdef __cplusplus
 }
 #endif

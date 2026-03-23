@@ -8,6 +8,7 @@
 
 _Atomic(uword_t) allocationCount[256];
 _Atomic(uword_t) objectCount[256];
+
 _Thread_local void *memoryBank[8] = {0};
 _Thread_local int memoryBankSize[8] = {0};
 
@@ -20,6 +21,7 @@ _Thread_local int memoryBankSize[8] = {0};
 #define BLOCK_SIZE 8 * 40
 
 void PersistentVector_initialise();
+void PersistentArrayMap_initialise();
 
 void initialise_memory() {
   for (int i = 0; i < 200; i++)
@@ -28,6 +30,8 @@ void initialise_memory() {
   /* poolInitialize(&globalPool2, 128, 100000); */
   /* poolInitialize(&globalPool3, 64, 100000); */
   PersistentVector_initialise();
+  PersistentArrayMap_initialise();
+  PersistentList_initialise();
   RuntimeInterface_initialise();
 }
 

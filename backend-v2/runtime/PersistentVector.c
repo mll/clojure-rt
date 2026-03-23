@@ -52,6 +52,8 @@ PersistentVector *PersistentVector_createMany(int32_t objCount, ...) {
 
 /* mem done */
 void PersistentVector_initialise() {
+  if (EMPTY_VECTOR)
+    return;
   EMPTY_VECTOR = PersistentVector_allocate(PERSISTENT);
   EMPTY_VECTOR->tail =
       PersistentVectorNode_allocate(RRB_BRANCHING, leafNode, PERSISTENT);

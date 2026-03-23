@@ -62,8 +62,16 @@ extern _Atomic(uword_t) objectCount[256];
 // bank 6 - 2048
 // bank 7 - 4096
 
+#if defined(COMPILING_RUNTIME_BITCODE) && !defined(__APPLE__)
+#include "TLS_Support.h"
+extern uintptr_t memoryBank_offset;
+extern uintptr_t memoryBankSize_offset;
+#define memoryBank (*(void***)((char*)JITEngine_getThreadPointer() + memoryBank_offset))
+#define memoryBankSize (*(int**)((char*)JITEngine_getThreadPointer() + memoryBankSize_offset))
+#else
 extern _Thread_local void *memoryBank[8];
 extern _Thread_local int memoryBankSize[8];
+#endif
 
 void initialise_memory();
 inline void retain(RTValue self);

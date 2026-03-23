@@ -1,6 +1,6 @@
 #include "RuntimeInterface.h"
 #include "ConcurrentHashMap.h"
-#include "Keyword.h"
+#include "PersistentArrayMap.h"
 #include "PersistentVector.h"
 #include "Symbol.h"
 #include "Var.h"
@@ -25,6 +25,8 @@ extern void printReferenceCounts();
 extern uint64_t avalanche_64(uint64_t h);
 
 void RuntimeInterface_initialise() {
+  if (keywords)
+    return;
   keywords = ConcurrentHashMap_create(10);         // 2^10
   keywordsInverted = ConcurrentHashMap_create(10); // 2^10
   vars = ConcurrentHashMap_create(10);             // 2^10
@@ -56,6 +58,7 @@ void RuntimeInterface_cleanup() {
   }
   PersistentList_cleanup();
   PersistentVector_cleanup();
+  PersistentArrayMap_cleanup();
   Var_cleanup();
 }
 

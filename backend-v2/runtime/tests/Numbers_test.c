@@ -1,6 +1,7 @@
-#include "TestTools.h"
 #include "../Numbers.h"
 #include "../Object.h"
+#include "TestTools.h"
+#include "runtime/ObjectProto.h"
 #include <cmocka.h>
 #include <stdio.h>
 
@@ -16,10 +17,10 @@ static void test_numbers_add_basic(void **state) {
     assert_true(RT_isDouble(res));
     assert_double_equal(RT_unboxDouble(res), 12.5, 0.0001);
 
-    // Int + BigInt (Overflow)
-    res = Numbers_add(RT_boxInt32(2000000000), RT_boxInt32(2000000000));
-    assert_true(getType(res) == bigIntegerType);
-    Ptr_release(RT_unboxPtr(res));
+    // Int + Int (Overflow)
+    ASSERT_THROWS("ArithmeticException", {
+      Numbers_add(RT_boxInt32(2000000000), RT_boxInt32(2000000000));
+    });
   });
 }
 
@@ -43,7 +44,7 @@ static void test_numbers_cmp_cross_type(void **state) {
     assert_true(Numbers_lt(RT_boxInt32(10), RT_boxDouble(10.5)));
     // Double < Int
     assert_false(Numbers_lt(RT_boxDouble(10.5), RT_boxInt32(10)));
-    
+
     // Int == Double
     assert_true(Numbers_equiv(RT_boxInt32(10), RT_boxDouble(10.0)));
   });
@@ -52,13 +53,11 @@ static void test_numbers_cmp_cross_type(void **state) {
 static void test_numbers_invalid_args(void **state) {
   ASSERT_MEMORY_ALL_BALANCED({
     RTValue s = RT_boxPtr(String_create("not a number"));
-    ASSERT_THROWS("IllegalArgumentException", {
-      Numbers_add(RT_boxInt32(10), s);
-    });
-    
-    ASSERT_THROWS("IllegalArgumentException", {
-      Numbers_lt(RT_boxInt32(10), RT_boxNil());
-    });
+    ASSERT_THROWS("IllegalArgumentException",
+                  { Numbers_add(RT_boxInt32(10), s); });
+
+    ASSERT_THROWS("IllegalArgumentException",
+                  { Numbers_lt(RT_boxInt32(10), RT_boxNil()); });
   });
 }
 

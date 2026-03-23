@@ -108,6 +108,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(BACKEND_SOURCES
       bridge/Exceptions.cpp
+      bridge/InstanceCallStub.cpp
       types/ObjectTypeSet.cpp
       tools/ThreadPool.cpp
       jit/JITEngine.cpp
@@ -120,6 +121,7 @@ set(BACKEND_SOURCES
       codegen/invoke/InvokeManager.cpp
       codegen/invoke/InvokeManager_Math.cpp
       codegen/invoke/InvokeManager_Cmp.cpp
+      codegen/invoke/InvokeManager_InstanceCall.cpp
 
       codegen/MemoryManagement.cpp
       codegen/ops/ConstNode.cpp
@@ -135,7 +137,9 @@ set(BACKEND_SOURCES
       codegen/ops/VarNode.cpp
       codegen/ops/LetNode.cpp
       codegen/ops/LocalNode.cpp
-      codegen/ops/WithMetaNode.cpp)
+      codegen/ops/WithMetaNode.cpp
+      codegen/ops/InstanceCallNode.cpp
+      codegen/ops/HostInteropNode.cpp)
 
 add_subdirectory(runtime)
 
@@ -156,6 +160,62 @@ else()
     protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ../model/bytecode.proto)
 endif()
 
+# 3. GMP Detection
+find_path(GMP_INCLUDE_DIRS NAMES gmp.h)
+find_library(GMP_LIBRARY_PATH NAMES gmp libgmp)
+if(GMP_LIBRARY_PATH)
+    set(GMP_LIBRARY ${GMP_LIBRARY_PATH})
+else()
+    set(GMP_LIBRARY "")
+endif()
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
+mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
+include_directories(${GMP_INCLUDE_DIRS})
+
+# 4. Atomic Detection (needed for 128-bit atomics on standard Linux)
+set(ATOMIC_LIBRARY "")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # On x86_64 Linux, we need -mcx16 for 16-byte atomics (cmpxchg16b)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+        add_compile_options(-mcx16)
+        set(CMAKE_REQUIRED_FLAGS "-mcx16")
+    endif()
+
+
+
+    include(CheckCXXSourceCompiles)
+    
+    # Check if we can use 128-bit atomics without libatomic
+    set(CMAKE_REQUIRED_FLAGS "-std=c++20")
+    check_cxx_source_compiles("
+        #include <atomic>
+        #include <cstdint>
+        struct dummy { uint64_t a, b; };
+        int main() {
+            std::atomic<dummy> x;
+            dummy d = x.load();
+            x.store(d);
+            return 0;
+        }
+    " ATOMIC_128_BUILTIN)
+    # Don't let CMAKE_REQUIRED_FLAGS leak into other checks if we don't want it to, 
+    # but here we actually want it for the rest of the build if on x86_64.
+    # unset(CMAKE_REQUIRED_FLAGS)
+
+    if(NOT ATOMIC_128_BUILTIN)
+        find_library(ATOMIC_LIBRARY_PATH NAMES atomic libatomic.so.1 libatomic.so)
+        if(ATOMIC_LIBRARY_PATH)
+            set(ATOMIC_LIBRARY ${ATOMIC_LIBRARY_PATH})
+            message(STATUS "Found libatomic at ${ATOMIC_LIBRARY}")
+        else()
+            message(FATAL_ERROR "128-bit atomics require libatomic on Linux, but it was not found. Please install libatomic1 (Debian/Ubuntu) or libatomic (RHEL/CentOS).")
+        endif()
+    else()
+        message(STATUS "128-bit atomics are builtin, libatomic not needed.")
+    endif()
+endif()
+
 add_library(backend_lib STATIC ${BACKEND_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
 # Use target-based linking for Protobuf to handle Abseil dependencies automatically
 if(TARGET protobuf::libprotobuf)
@@ -164,22 +224,14 @@ else()
     set(PROTOBUF_LINK_TARGET ${Protobuf_LIBRARIES})
 endif()
 
-target_link_libraries(backend_lib PUBLIC runtime ${LLVM_LIBS} ${PROTOBUF_LINK_TARGET} ${GMP_LIBRARY})
+target_link_libraries(backend_lib PUBLIC runtime ${LLVM_LIBS} ${PROTOBUF_LINK_TARGET} ${GMP_LIBRARY} ${ATOMIC_LIBRARY})
 
 add_executable(clojure-rt main.cpp)
 target_link_libraries(clojure-rt PUBLIC backend_lib)
 
 # On Linux, export symbols so the JIT can find runtime functions
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_link_options(clojure-rt PRIVATE -rdynamic)
-endif()
+target_link_options(clojure-rt PRIVATE -rdynamic)
 
-find_path(GMP_INCLUDE_DIRS NAMES gmp.h)
-find_library(GMP_LIBRARY NAMES gmp libgmp)
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
-mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
-include_directories(${GMP_INCLUDE_DIRS})
 
 enable_testing()
 find_package(Cmocka REQUIRED)

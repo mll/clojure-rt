@@ -27,7 +27,6 @@ static void test_do_statement_leak(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
 
     // (do (+ 1N 2N) 42)
     Node root;
@@ -78,7 +77,7 @@ static void test_do_statement_leak(void **state) {
     cout << "=== Do Statement Leak Test (Should NOT leak) ===" << endl;
     try {
       rt::JITEngine engine(compState);
-      auto res = engine.compileAST(root, "__test_do_leak", llvm::OptimizationLevel::O0, true).get();
+      auto res = engine.compileAST(root, "__test_do_leak", llvm::OptimizationLevel::O0, true).get().address;
       
       RTValue val = res.toPtr<RTValue (*)()>()();
       assert_int_equal(42, RT_unboxInt32(val));

@@ -185,18 +185,20 @@ String *String_compactify(String *self) {
   PersistentVector *v = getVec(self);
 
   int start = 0;
+  PersistentVectorIterator it = PersistentVector_iterator(v);
   for (uword_t i = 0; i < v->count; i++) {
-    /* TODO - use vector iterator */
-    Ptr_retain(v);
-    String *block = RT_unboxPtr(PersistentVector_nth(v, i));
+    RTValue val = PersistentVector_iteratorGet(&it);
+    // Iterator get DOES NOT consume val, but we need to unbox it.
+    String *block = (String *)RT_unboxPtr(val);
     assert(block->specialisation != compoundString);
     char *blockPtr = getStatDyn(block);
     memcpy(output + start, blockPtr, block->count);
     start += block->count;
-    Ptr_release(block);
+    PersistentVector_iteratorNext(&it);
   }
   output[self->count] = 0;
   out->hash = String_computeHash(output);
+  
   Ptr_release(self);
   return out;
 }

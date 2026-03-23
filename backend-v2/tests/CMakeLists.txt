@@ -17,8 +17,12 @@ set(TEST_MODULES
     codegen/DoNode_test
     codegen/LetNode_test
     codegen/MathIntrinsicsRepro_test
-#    codegen/MathSpecialization_test
+    codegen/InstanceCallNode_test
+    codegen/InstanceCallIC_test
+    codegen/VoidInvokeRepro_test
+    codegen/DCE_test
     VarUAF_repro_test
+    JITSafety_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})
@@ -28,9 +32,7 @@ foreach(TEST_MODULE ${TEST_MODULES})
     target_link_libraries(${EXEC_NAME} PUBLIC backend_lib runtime ${CMOCKA_LIBRARIES} ${GMP_LIBRARY})
     
     # On Linux, export symbols so the JIT can find runtime functions
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        target_link_options(${EXEC_NAME} PRIVATE -rdynamic)
-    endif()
+    target_link_options(${EXEC_NAME} PRIVATE -rdynamic)
 
     add_test(
         NAME ${EXEC_NAME} 

@@ -99,9 +99,9 @@ static void test_double_release_uaf_repro(void **state_arg) {
     arg2->mutable_subnode()->mutable_var()->set_var("#'user/v2");
 
     printf("Compiling repro AST...\n");
-    auto addr = engine.compileAST(topCall, "repro_module", llvm::OptimizationLevel::O0, true).get();
+    auto res = engine.compileAST(topCall, "repro", llvm::OptimizationLevel::O0, true).get().address;
     typedef RTValue (*FnPtr)();
-    FnPtr func = (FnPtr)addr.getValue();
+    FnPtr func = (FnPtr)res.getValue();
     
     printf("Executing JIT function (expecting double release crash if not fixed)...\n");
     bool thrown = false;

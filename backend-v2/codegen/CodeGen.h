@@ -63,7 +63,8 @@ class CodeGen {
   llvm::FunctionCallee personalityFn;
 
 public:
-  CodeGen(std::string_view ModuleName, ThreadsafeCompilerState &state)
+  void* jitEnginePtr;
+  CodeGen(std::string_view ModuleName, ThreadsafeCompilerState &state, void* jitEngine = nullptr)
       : TSContext(std::make_unique<llvm::orc::ThreadSafeContext>(
             std::make_unique<llvm::LLVMContext>())),
         TheContext(*(TSContext->getContext())),
@@ -74,7 +75,7 @@ public:
         dynamicConstructor(types, invokeManager, generatedConstants),
         memoryManagement(TheContext, Builder, *TheModule, valueEncoder, types,
                          variableBindingStack, invokeManager),
-        compilerState(state) {
+        compilerState(state), jitEnginePtr(jitEngine) {
     TheModule->addModuleFlag(llvm::Module::Warning, "Debug Info Version",
                              llvm::DEBUG_METADATA_VERSION);
 #ifdef __APPLE__
@@ -91,6 +92,11 @@ public:
   CodeGenResult release() &&;
 
   std::string codegenTopLevel(const Node &node);
+  std::string generateInstanceCallBridge(
+      const std::string &methodName,
+      const ObjectTypeSet &instanceType,
+      const std::vector<ObjectTypeSet> &argTypes,
+      void* callSiteId = nullptr);
 
   TypedValue codegen(const Node &node, const ObjectTypeSet &typeRestrictions);
 
@@ -123,6 +129,8 @@ public:
   TypedValue codegen(const Node &node, const LocalNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const InstanceCallNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const HostInteropNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
 
   ObjectTypeSet getType(const Node &node,
@@ -158,6 +166,8 @@ public:
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const InstanceCallNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const HostInteropNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
 
   Var *getOrCreateVar(std::string_view name);
   bool canThrow(const clojure::rt::protobuf::bytecode::Node &node);
@@ -173,6 +183,7 @@ public:
     return memoryManagement.hasPushedResources();
   }
   MemoryManagement &getMemoryManagement() { return memoryManagement; }
+  DynamicConstructor &getDynamicConstructor() { return dynamicConstructor; }
 };
 
 } // namespace rt

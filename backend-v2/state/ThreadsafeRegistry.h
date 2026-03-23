@@ -66,7 +66,7 @@ public:
     T *newDef = factory();
     registry[key] = newDef;
     if (manageRuntimeMemory)
-      Ptr_retain(newDef);
+      Ptr_retain(newDef); // Still need to return a fresh reference if it's being returned
     return newDef;
   }
 

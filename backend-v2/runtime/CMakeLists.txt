@@ -36,12 +36,21 @@ set(SOURCES
     RuntimeInterface.c
     PersistentArrayMap.c
     Var.c
-    Numbers.c)
+    Numbers.c
+    JITSafety.c)
 
 add_library(runtime STATIC ${SOURCES})
+target_compile_options(runtime PRIVATE $<$<PLATFORM_ID:Linux>:-femulated-tls>)
 
+# GMP Detection
 find_path(GMP_INCLUDE_DIRS NAMES gmp.h)
-find_library(GMP_LIBRARY NAMES gmp libgmp)
+find_library(GMP_LIBRARY_PATH NAMES gmp libgmp)
+if(GMP_LIBRARY_PATH)
+    set(GMP_LIBRARY ${GMP_LIBRARY_PATH})
+else()
+    set(GMP_LIBRARY "")
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
 mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
@@ -70,6 +79,11 @@ find_program(LLVM_LINK_EXECUTABLE llvm-link
 
 set(BITCODE_OUTPUTS "")
 
+set(EMULATED_TLS_FLAG "-fno-emulated-tls")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(EMULATED_TLS_FLAG "-femulated-tls")
+endif()
+
 # 2. Compile each source file to an individual .bc file
 foreach(src ${SOURCES})
     get_filename_component(basename ${src} NAME_WE)
@@ -80,7 +94,7 @@ foreach(src ${SOURCES})
         COMMAND ${CLANG_EXECUTABLE} -emit-llvm -c 
                 ${CMAKE_CURRENT_SOURCE_DIR}/${src}
                 -iquote ${CMAKE_CURRENT_SOURCE_DIR} -I${GMP_INCLUDE_DIRS}
-                -O3 -fPIC
+                -O3 -fPIC ${EMULATED_TLS_FLAG} 
                 -o ${bc_output}
         DEPENDS ${src}
         COMMENT "Generating LLVM Bitcode for ${src}"

@@ -1,21 +1,21 @@
 #ifndef INVOKE_MANAGER_H
 #define INVOKE_MANAGER_H
 
+#include <functional>
+#include <gmp.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
-#include <unordered_map>
-#include <functional>
-#include <vector>
 #include <string>
-#include <gmp.h>
+#include <unordered_map>
+#include <vector>
 
+#include "../../types/ObjectTypeSet.h"
+#include "../LLVMTypes.h"
 #include "../TypedValue.h"
 #include "../ValueEncoder.h"
-#include "../LLVMTypes.h"
-#include "../../types/ObjectTypeSet.h"
 
 namespace rt {
 
@@ -35,15 +35,29 @@ class InvokeManager {
   friend void registerMathIntrinsics(InvokeManager &mgr);
   friend void registerCmpIntrinsics(InvokeManager &mgr);
 
-private:
+public:
   llvm::IRBuilder<> &builder;
   llvm::Module &theModule;
   ValueEncoder &valueEncoder;
   LLVMTypes &types;
   CodeGen &codeGen;
+  ThreadsafeCompilerState &compilerState;
+
+private:
   std::unordered_map<std::string, IntrinsicCall> intrinsics;
   std::unordered_map<std::string, GenericIntrinsicCall> genericIntrinsics;
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
+  size_t icCounter = 0;
+
+  TypedValue generateDeterminedInstanceCall(
+      const std::string &methodName, TypedValue instance,
+      const std::vector<TypedValue> &args, CleanupChainGuard *guard = nullptr,
+      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+
+  TypedValue generateDynamicInstanceCall(
+      const std::string &methodName, TypedValue instance,
+      const std::vector<TypedValue> &args, CleanupChainGuard *guard = nullptr,
+      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
 
   // Folding Helpers
   mpz_ptr getZ(const ObjectTypeSet &t);
@@ -57,6 +71,16 @@ public:
   explicit InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m, ValueEncoder &v,
                          LLVMTypes &t, ThreadsafeCompilerState &s, CodeGen &cg);
 
+  llvm::Module &getLLVMModule() { return theModule; }
+
+  llvm::Value *invokeRaw(const std::string &fname, llvm::FunctionType *type,
+                         const std::vector<llvm::Value *> &args,
+                         CleanupChainGuard *guard = nullptr);
+
+  llvm::Value *invokeRaw(llvm::Value *fpointer, llvm::FunctionType *type,
+                         const std::vector<llvm::Value *> &args,
+                         CleanupChainGuard *guard = nullptr);
+
   TypedValue invokeRuntime(const std::string &fname,
                            const ObjectTypeSet *retValType,
                            const std::vector<ObjectTypeSet> &argTypes,
@@ -68,10 +92,18 @@ public:
                                const std::vector<TypedValue> &args,
                                CleanupChainGuard *guard = nullptr);
 
+  TypedValue generateInstanceCall(
+      const std::string &methodName, TypedValue instance,
+      const std::vector<TypedValue> &args, CleanupChainGuard *guard = nullptr,
+      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+
+  ObjectTypeSet predictInstanceCallType(const std::string &methodName,
+                                        const ObjectTypeSet &instanceType,
+                                        const std::vector<ObjectTypeSet> &args);
+
   ObjectTypeSet foldIntrinsic(const IntrinsicDescription &id,
                               const std::vector<ObjectTypeSet> &args);
 };
-
 
 } // namespace rt
 

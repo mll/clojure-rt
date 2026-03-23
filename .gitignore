@@ -17,6 +17,8 @@ backend/runtime/cmake_install*
 backend/Makefile
 backend/runtime/Makefile
 
+backend-v2/runtime/*.bc
+backend-v2/runtime/*.ll
 backend-v2/clojure-rt*
 backend-v2/runtime/libruntime.a
 backend-v2/runtime/runtime-tests

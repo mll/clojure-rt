@@ -32,6 +32,7 @@ MemoryManagement::MemoryManagement(llvm::LLVMContext &c, IRBuilder<> &b,
 void MemoryManagement::initFunction(llvm::Function *F) {
   exceptionSlot = nullptr;
   terminalResumeBB = nullptr;
+  jitEnginePtr = nullptr;
   clear();
 }
 
@@ -41,13 +42,18 @@ void MemoryManagement::ensureExceptionInfrastructure(llvm::Function *F) {
 
   auto currentIP = builder.saveIP();
 
-  // Create alloca in entry block if possible, or just here
-  exceptionSlot = builder.CreateAlloca(
+  // Create alloca in entry block for proper dominance and SROA optimization
+  llvm::BasicBlock &entryBB = F->getEntryBlock();
+  llvm::IRBuilder<> entryBuilder(&entryBB, entryBB.begin());
+  entryBuilder.SetCurrentDebugLocation(builder.getCurrentDebugLocation());
+
+  exceptionSlot = entryBuilder.CreateAlloca(
       llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), nullptr,
       "exception_slot");
   terminalResumeBB = llvm::BasicBlock::Create(context, "terminal_resume", F);
 
   builder.SetInsertPoint(terminalResumeBB);
+  leaveSafetySection(jitEnginePtr);
   llvm::Value *exVal = builder.CreateLoad(
       llvm::StructType::get(context, {types.ptrTy, types.i32Ty}), exceptionSlot,
       "exception_to_resume");
@@ -94,9 +100,6 @@ llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
     }
   }
 
-  if (neededSurvivors == 0 && !hasGuidance) {
-    return nullptr;
-  }
 
   // 3. Ensure infrastructure
   IRBuilder<>::InsertPointGuard guard(builder);
@@ -227,6 +230,29 @@ TypedValue MemoryManagement::dynamicRelease(TypedValue &target) {
     i->setMetadata("memory_management", meta);
   }
   return release;
+}
+
+void MemoryManagement::enterSafetySection(void *enginePtr) {
+  jitEnginePtr = enginePtr;
+  FunctionType *safeSig = FunctionType::get(types.voidTy, {types.ptrTy}, false);
+  FunctionCallee enterFn =
+      invoke.getLLVMModule().getOrInsertFunction("JITEngine_enterSafeSection", safeSig);
+
+  Value *engineVal = ConstantInt::get(types.i64Ty, (uintptr_t)jitEnginePtr);
+  engineVal = builder.CreateIntToPtr(engineVal, types.ptrTy);
+
+  builder.CreateCall(enterFn, {engineVal});
+}
+
+void MemoryManagement::leaveSafetySection(void *enginePtr) {
+  FunctionType *safeSig = FunctionType::get(types.voidTy, {types.ptrTy}, false);
+  FunctionCallee leaveFn =
+      invoke.getLLVMModule().getOrInsertFunction("JITEngine_leaveSafeSection", safeSig);
+
+  Value *engineVal = ConstantInt::get(types.i64Ty, (uintptr_t)enginePtr);
+  engineVal = builder.CreateIntToPtr(engineVal, types.ptrTy);
+
+  builder.CreateCall(leaveFn, {engineVal});
 }
 
 void MemoryManagement::dynamicIsReusable(TypedValue &target) {}

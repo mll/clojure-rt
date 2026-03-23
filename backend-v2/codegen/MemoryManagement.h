@@ -31,6 +31,9 @@ public:
   TypedValue dynamicRelease(TypedValue &target);
   void dynamicIsReusable(TypedValue &target);
 
+  void enterSafetySection(void *enginePtr);
+  void leaveSafetySection(void *enginePtr);
+
   // Exception safety / Resource management
   void pushResource(TypedValue val);
   void popResource();
@@ -82,6 +85,7 @@ private:
   std::map<size_t, llvm::BasicBlock *> lpadCache;
 
   const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* activeUnwindGuidance = nullptr;
+  void *jitEnginePtr = nullptr;
 
   void ensureExceptionInfrastructure(llvm::Function *F);
 };

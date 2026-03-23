@@ -28,7 +28,8 @@ void registerCmpIntrinsics(InvokeManager &mgr);
 InvokeManager::InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m,
                              ValueEncoder &v, LLVMTypes &t,
                              ThreadsafeCompilerState &s, CodeGen &cg)
-    : builder(b), theModule(m), valueEncoder(v), types(t), codeGen(cg) {
+    : builder(b), theModule(m), valueEncoder(v), types(t), codeGen(cg),
+      compilerState(s) {
 
   // Register domain intrinsics
   registerMathIntrinsics(*this);
@@ -175,7 +176,6 @@ bool InvokeManager::canThrow(const std::string &fname) const {
       "BigInteger_add",
       "BigInteger_sub",
       "BigInteger_mul",
-      "BigInteger_div",
       "BigInteger_gte",
       "BigInteger_gt",
       "BigInteger_lt",
@@ -188,7 +188,6 @@ bool InvokeManager::canThrow(const std::string &fname) const {
       "Ratio_add",
       "Ratio_sub",
       "Ratio_mul",
-      "Ratio_div",
       "Ratio_gte",
       "Ratio_gt",
       "Ratio_lt",
@@ -196,6 +195,74 @@ bool InvokeManager::canThrow(const std::string &fname) const {
       "Ratio_toString",
   };
   return safeFunctions.find(fname) == safeFunctions.end();
+}
+
+llvm::Value *InvokeManager::invokeRaw(llvm::Value *fpointer,
+                                      llvm::FunctionType *type,
+                                      const std::vector<llvm::Value *> &args,
+                                      CleanupChainGuard *guard) {
+  BasicBlock *lpadToUse =
+      codeGen.getMemoryManagement().getLandingPad(guard ? guard->size() : 0);
+  Value *callResult;
+  bool isVoid = type->getReturnType()->isVoidTy();
+  if (lpadToUse) {
+    BasicBlock *normalBB =
+        BasicBlock::Create(theModule.getContext(), "invoke_normal",
+                           builder.GetInsertBlock()->getParent());
+    InvokeInst *inv = builder.CreateInvoke(
+        type, fpointer, normalBB, lpadToUse, args,
+        isVoid ? std::string("") : std::string("inv_pointer"));
+    callResult = inv;
+
+    // Attach branch weights to mark landing pad as cold.
+    // normal path: 1000000, unwind path: 1
+    MDBuilder mdb(theModule.getContext());
+    inv->setMetadata(LLVMContext::MD_prof, mdb.createBranchWeights(1000000, 1));
+
+    builder.SetInsertPoint(normalBB);
+  } else {
+    callResult = builder.CreateCall(
+        type, fpointer, args,
+        isVoid ? std::string("") : std::string("call_pointer"));
+  }
+  return callResult;
+}
+
+llvm::Value *InvokeManager::invokeRaw(const std::string &fname,
+                                      llvm::FunctionType *type,
+                                      const std::vector<llvm::Value *> &args,
+                                      CleanupChainGuard *guard) {
+  Function *toCall = theModule.getFunction(fname);
+  if (!toCall) {
+    toCall =
+        Function::Create(type, Function::ExternalLinkage, fname, theModule);
+  }
+  BasicBlock *lpadToUse = canThrow(fname)
+                              ? codeGen.getMemoryManagement().getLandingPad(
+                                    guard ? guard->size() : 0)
+                              : nullptr;
+  Value *callResult;
+  bool isVoid = type->getReturnType()->isVoidTy();
+  if (lpadToUse) {
+    BasicBlock *normalBB =
+        BasicBlock::Create(theModule.getContext(), "invoke_normal",
+                           builder.GetInsertBlock()->getParent());
+    InvokeInst *inv =
+        builder.CreateInvoke(toCall, normalBB, lpadToUse, args,
+                             isVoid ? std::string("") : std::string("inv_") + fname);
+    callResult = inv;
+
+    // Attach branch weights to mark landing pad as cold.
+    // normal path: 1000000, unwind path: 1
+    MDBuilder mdb(theModule.getContext());
+    inv->setMetadata(LLVMContext::MD_prof, mdb.createBranchWeights(1000000, 1));
+
+    builder.SetInsertPoint(normalBB);
+  } else {
+    callResult = builder.CreateCall(
+        toCall, args, isVoid ? std::string("") : std::string("call_") + fname);
+  }
+  return callResult;
 }
 
 TypedValue
@@ -219,13 +286,7 @@ InvokeManager::invokeRuntime(const std::string &fname,
           : types.RT_valueTy,
       llvmTypes, isVariadic);
 
-  Function *toCall = theModule.getFunction(fname);
-  if (!toCall) {
-    toCall = Function::Create(functionType, Function::ExternalLinkage, fname,
-                              theModule);
-  }
-
-  vector<llvm::Value *> argVals;
+  std::vector<llvm::Value *> argVals;
   for (size_t i = 0; i < args.size(); i++) {
     auto &arg = args[i];
     if (i < argTypes.size()) {
@@ -250,33 +311,8 @@ InvokeManager::invokeRuntime(const std::string &fname,
     }
   }
 
-  Value *callResult = nullptr;
-  BasicBlock *lpadToUse = canThrow(fname)
-                              ? codeGen.getMemoryManagement().getLandingPad(
-                                    guard ? guard->size() : 0)
-                              : nullptr;
-
-  if (lpadToUse) {
-    BasicBlock *normalBB =
-        BasicBlock::Create(theModule.getContext(), "invoke_normal",
-                           builder.GetInsertBlock()->getParent());
-    InvokeInst *inv = builder.CreateInvoke(toCall, normalBB, lpadToUse, argVals,
-                                           std::string("inv_") + fname);
-    callResult = inv;
-
-    // Attach branch weights to mark landing pad as cold.
-    // normal path: 1000000, unwind path: 1
-    MDBuilder mdb(theModule.getContext());
-    inv->setMetadata(LLVMContext::MD_prof, mdb.createBranchWeights(1000000, 1));
-
-    builder.SetInsertPoint(normalBB);
-  } else {
-    callResult =
-        builder.CreateCall(toCall, argVals, std::string("call_") + fname);
-  }
-
   return TypedValue(retValType ? *retValType : ObjectTypeSet::all(),
-                    callResult);
+                    invokeRaw(fname, functionType, argVals, guard));
 }
 
 } // namespace rt

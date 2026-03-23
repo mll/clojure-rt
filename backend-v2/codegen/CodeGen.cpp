@@ -64,6 +64,7 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   Builder.SetInsertPoint(BB);
 
   memoryManagement.initFunction(F);
+  memoryManagement.enterSafetySection(jitEnginePtr);
 
   // Declare personality function
   FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
@@ -75,12 +76,97 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   Builder.SetCurrentDebugLocation(
       llvm::DILocation::get(TheContext, env.line(), env.column(), SP));
 
-  Builder.CreateRet(
-      valueEncoder.box(codegen(node, ObjectTypeSet::all())).value);
+  TypedValue result = codegen(node, ObjectTypeSet::all());
+  memoryManagement.leaveSafetySection(jitEnginePtr);
+  Builder.CreateRet(valueEncoder.box(result).value);
 
   LexicalBlocks.pop_back();
   verifyFunction(*F);
   return fname;
+}
+
+std::string CodeGen::generateInstanceCallBridge(
+    const std::string &methodName, const ObjectTypeSet &instanceType,
+    const std::vector<ObjectTypeSet> &argTypes, void *callSiteId) {
+  CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
+
+  // 1. Create a unique function name
+  std::string funcName = "__bridge_" + methodName + "_" +
+                         std::to_string((int)instanceType.determinedType());
+  if (callSiteId) {
+    // Use the call site pointer for uniqueness if provided
+    char buf[32];
+    snprintf(buf, sizeof(buf), "_%p", callSiteId);
+    funcName += buf;
+  }
+
+  // 2. Define Signature: (Instance, Arg1, ...) -> RTValue
+  // Specialized arguments use natural LLVM types for unboxed primitives
+  std::vector<llvm::Type *> llvmArgTypes;
+  llvmArgTypes.push_back(types.RT_valueTy); // Instance
+  for (size_t i = 0; i < argTypes.size(); i++) {
+    const auto &t = argTypes[i];
+    if (t.isDetermined() && !t.isBoxedType()) {
+      objectType type = t.determinedType();
+      if (type == integerType)
+        llvmArgTypes.push_back(types.i32Ty);
+      else if (type == doubleType)
+        llvmArgTypes.push_back(types.doubleTy);
+      else if (type == booleanType)
+        llvmArgTypes.push_back(types.i1Ty);
+      else if (type == keywordType || type == symbolType || type == nilType)
+        llvmArgTypes.push_back(types.RT_valueTy);
+      else
+        llvmArgTypes.push_back(types.ptrTy);
+    } else {
+      llvmArgTypes.push_back(types.RT_valueTy);
+    }
+  }
+
+  llvm::FunctionType *FT =
+      llvm::FunctionType::get(types.RT_valueTy, llvmArgTypes, false);
+  llvm::Function *F = llvm::Function::Create(
+      FT, llvm::Function::ExternalLinkage, funcName, *TheModule);
+
+  // Enforce frame pointers for reliable stack traces
+  F->addFnAttr("frame-pointer", "all");
+
+  // Set personality function for exception handling
+  FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
+  personalityFn =
+      TheModule->getOrInsertFunction("__gxx_personality_v0", personalityFnTy);
+  F->setPersonalityFn(cast<Function>(personalityFn.getCallee()));
+
+  // 3. Create entry block
+  llvm::BasicBlock *BB = llvm::BasicBlock::Create(TheContext, "entry", F);
+  Builder.SetInsertPoint(BB);
+
+  memoryManagement.initFunction(F);
+  memoryManagement.enterSafetySection(jitEnginePtr);
+
+  // 4. Prepare TypedValues for the call
+  auto it = F->arg_begin();
+
+  // First argument is the instance, specialized to the known type from IC
+  TypedValue instanceTV(instanceType.boxed(), it++);
+
+  std::vector<TypedValue> callArgs;
+  for (const auto &t : argTypes) {
+    // Subsequent arguments use the types provided by the bouncer/call-site
+    callArgs.push_back(TypedValue(t, it++));
+  }
+
+  // 5. Generate the specialized instance call
+  // This will emit direct calls or a dispatch tree based on the provided types.
+  TypedValue result =
+      invokeManager.generateInstanceCall(methodName, instanceTV, callArgs);
+
+  // 6. Ensure result is boxed and return
+  memoryManagement.leaveSafetySection(jitEnginePtr);
+  Builder.CreateRet(valueEncoder.box(result).value);
+
+  verifyFunction(*F);
+  return funcName;
 }
 
 TypedValue CodeGen::codegen(const Node &node,
@@ -133,22 +219,22 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().fn(), typeRestrictions);
   // case opFnMethod:
   //   return codegen(node, node.subnode().fnmethod(), typeRestrictions);
-  // case opHostInterop:
-  //   return codegen(node, node.subnode().hostinterop(), typeRestrictions);
+  case opHostInterop:
+    return codegen(node, node.subnode().hostinterop(), typeRestrictions);
   case opIf:
     return codegen(node, node.subnode().if_(), typeRestrictions);
   // case opImport:
   //   return codegen(node, node.subnode().import(), typeRestrictions);
-  //case opInstanceCall:
-//    return codegen(node, node.subnode().instancecall(), typeRestrictions);
-  // case opInstanceField:
-  //   return codegen(node, node.subnode().instancefield(), typeRestrictions);
-  // case opIsInstance:
-  //   return codegen(node, node.subnode().isinstance(), typeRestrictions);
-  // case opInvoke:
-  //   return codegen(node, node.subnode().invoke(), typeRestrictions);
-  // case opKeywordInvoke:
-  //   return codegen(node, node.subnode().keywordinvoke(), typeRestrictions);
+  case opInstanceCall:
+    return codegen(node, node.subnode().instancecall(), typeRestrictions);
+    // case opInstanceField:
+    //   return codegen(node, node.subnode().instancefield(), typeRestrictions);
+    // case opIsInstance:
+    //   return codegen(node, node.subnode().isinstance(), typeRestrictions);
+    // case opInvoke:
+    //   return codegen(node, node.subnode().invoke(), typeRestrictions);
+    // case opKeywordInvoke:
+    //   return codegen(node, node.subnode().keywordinvoke(), typeRestrictions);
   case opLet:
     return codegen(node, node.subnode().let(), typeRestrictions);
   // case opLetfn:
@@ -233,14 +319,14 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().fn(), typeRestrictions);
   // case opFnMethod:
   //   return getType(node, node.subnode().fnmethod(), typeRestrictions);
-  // case opHostInterop:
-  //   return getType(node, node.subnode().hostinterop(), typeRestrictions);
+  case opHostInterop:
+    return getType(node, node.subnode().hostinterop(), typeRestrictions);
   case opIf:
     return getType(node, node.subnode().if_(), typeRestrictions);
   // case opImport:
   //   return getType(node, node.subnode().import(), typeRestrictions);
-  //case opInstanceCall:
-//    return getType(node, node.subnode().instancecall(), typeRestrictions);
+  case opInstanceCall:
+    return getType(node, node.subnode().instancecall(), typeRestrictions);
   // case opInstanceField:
   //   return getType(node, node.subnode().instancefield(), typeRestrictions);
   // case opIsInstance:

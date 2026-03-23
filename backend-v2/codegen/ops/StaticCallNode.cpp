@@ -243,16 +243,11 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
         this->Builder.CreateGlobalString(name, "static_call_class");
     Value *methName = this->Builder.CreateGlobalString(m, "static_call_method");
 
-    std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType(),
-                                            ObjectTypeSet::dynamicType()};
-    std::vector<TypedValue> pArgVals = {
-        TypedValue(ObjectTypeSet::dynamicType(), clsName),
-        TypedValue(ObjectTypeSet::dynamicType(), methName)};
-
-    // No manual release here - landing pad will handle it via shadow stack
-
-    this->invokeManager.invokeRuntime("throwNoMatchingOverloadException_C",
-                                      nullptr, pArgTypes, pArgVals);
+    FunctionType *fnTy = FunctionType::get(this->types.voidTy,
+                                          {this->types.ptrTy, this->types.ptrTy},
+                                          false);
+    this->invokeManager.invokeRaw("throwNoMatchingOverloadException_C", fnTy,
+                                  {clsName, methName});
     this->Builder.CreateUnreachable();
   }
 

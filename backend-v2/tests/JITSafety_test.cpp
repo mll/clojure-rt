@@ -199,6 +199,7 @@ static void test_compilation_error_concurrency(void **state_arg) {
             RTValue search = RT_boxPtr(String_create("e"));
             RTValue args[2] = { strObj, search };
             void* res = InstanceCallSlowPath(&icSlotOk, "indexOf", 1, args, 1, &engine);
+            release(search);
             
             // res is the address of the specialized bridge
             if (res != 0) {

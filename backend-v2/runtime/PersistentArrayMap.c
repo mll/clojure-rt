@@ -1,6 +1,5 @@
 #include "PersistentArrayMap.h"
 #include "Exceptions.h"
-#include "Nil.h"
 #include "Object.h"
 #include "RTValue.h"
 #include "defines.h"

@@ -80,8 +80,17 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
     // Double check if another thread already updated it for our type
     InlineCache currentIC;
     if constexpr (K_WORD_SIZE == 8) {
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Watomic-alignment"
+#endif
+      // 16-byte atomic load. We have alignas(16) on InlineCache and ensure 
+      // alignment in the JIT. On x86_64, this requires cmpxchg16b.
       __atomic_load((unsigned __int128 *)ic, (unsigned __int128 *)&currentIC,
                     __ATOMIC_ACQUIRE);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
     } else {
       __atomic_load((uint64_t *)ic, (uint64_t *)&currentIC, __ATOMIC_ACQUIRE);
     }
@@ -92,8 +101,15 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
 
     InlineCache newCache = {(word_t)instanceType, bridgePtr};
     if constexpr (K_WORD_SIZE == 8) {
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Watomic-alignment"
+#endif
       __atomic_store((unsigned __int128 *)ic, (unsigned __int128 *)&newCache,
                      __ATOMIC_RELEASE);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
     } else {
       __atomic_store((uint64_t *)ic, (uint64_t *)&newCache, __ATOMIC_RELEASE);
     }

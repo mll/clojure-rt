@@ -606,7 +606,11 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
             G.setInitializer(nullptr);
             G.setLinkage(llvm::GlobalValue::ExternalLinkage);
             if (G.isThreadLocal()) {
-              G.setThreadLocalMode(llvm::GlobalValue::LocalExecTLSModel);
+              if (TM->getTargetTriple().isOSLinux()) {
+                G.setThreadLocalMode(llvm::GlobalValue::InitialExecTLSModel);
+              } else {
+                G.setThreadLocalMode(llvm::GlobalValue::LocalExecTLSModel);
+              }
             }
           }
         }

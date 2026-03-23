@@ -47,6 +47,11 @@ public:
                        const std::string &moduleName = "JITMemoryBuffer",
                        const intptr_t slide = 0x0,
                        StackTraceMode mode = StackTraceMode::Friendly) const;
+
+  const std::string &getName() const { return name; }
+  RTValue getMessage() const { return message; }
+  RTValue getPayload() const { return payload; }
+  std::shared_ptr<CapturedStack> getCapturedStack() const { return capturedStack; }
 };
 
 std::string getExceptionString(const LanguageException &e,

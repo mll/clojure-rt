@@ -2,7 +2,6 @@
 #include "../RuntimeHeaders.h"
 #include "../runtime/JITSafety.h"
 
-
 #include "../runtime/Numbers.h"
 #include "../tools/EdnParser.h"
 #include "bridge/Exceptions.h"
@@ -54,14 +53,15 @@ void JITEngine::unregisterThread() {
 
 std::atomic<bool> JITEngine::instanceExists{false};
 
-
-JITEngine::CapturedObject JITEngine::captureObject(const llvm::MemoryBuffer &Obj) {
+JITEngine::CapturedObject
+JITEngine::captureObject(const llvm::MemoryBuffer &Obj) {
   std::string id = Obj.getBufferIdentifier().str();
   CapturedObject captured;
   captured.buffer = llvm::MemoryBuffer::getMemBufferCopy(Obj.getBuffer(), id);
 
   // Pre-parse symbols to make lookup in compileGeneric O(1) per buffer
-  auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(captured.buffer->getMemBufferRef());
+  auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
+      captured.buffer->getMemBufferRef());
   if (ObjOrErr) {
     auto &ParsedObj = *ObjOrErr.get();
     for (auto const &SymEntry : ParsedObj.symbols()) {
@@ -261,11 +261,12 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
 
               {
                 std::lock_guard<std::mutex> lock(this->engineMutex);
-                
+
                 // Find the object buffer that contains our symbol.
                 // This is much more robust than name-based matching.
                 size_t foundIdx = std::string::npos;
-                for (size_t i = 0; i < this->capturedObjectBuffers.size(); ++i) {
+                for (size_t i = 0; i < this->capturedObjectBuffers.size();
+                     ++i) {
                   if (this->capturedObjectBuffers[i].symbols.count(fName)) {
                     foundIdx = i;
                     break;
@@ -274,17 +275,22 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
 
                 if (foundIdx != std::string::npos) {
                   auto &captured = this->capturedObjectBuffers[foundIdx];
-                  // printf("JIT: Found buffer for %s (size %zu)\n", fName.c_str(), captured.buffer->getBufferSize());
-                  registerJitFunction_C(Sym->getValue(), captured.buffer->getBufferSize(), fName.c_str(),
-                                        captured.buffer->getBufferStart(),
-                                        captured.buffer->getBufferSize());
-                  this->capturedObjectBuffers.erase(this->capturedObjectBuffers.begin() + foundIdx);
+                  // printf("JIT: Found buffer for %s (size %zu)\n",
+                  // fName.c_str(), captured.buffer->getBufferSize());
+                  registerJitFunction_C(
+                      Sym->getValue(), captured.buffer->getBufferSize(),
+                      fName.c_str(), captured.buffer->getBufferStart(),
+                      captured.buffer->getBufferSize());
+                  this->capturedObjectBuffers.erase(
+                      this->capturedObjectBuffers.begin() + foundIdx);
                 } else {
-                  // printf("JIT: FAILED to find buffer for %s among %zu candidates\n", fName.c_str(), this->capturedObjectBuffers.size());
-                  // Fallback for cases where symbol might not be in the dynamic symbol table
-                  // of the object (though for JIT it usually is).
-                  registerJitFunction_C(Sym->getValue(), 1024*1024, fName.c_str(),
-                                        nullptr, 0);
+                  // printf("JIT: FAILED to find buffer for %s among %zu
+                  // candidates\n", fName.c_str(),
+                  // this->capturedObjectBuffers.size()); Fallback for cases
+                  // where symbol might not be in the dynamic symbol table of
+                  // the object (though for JIT it usually is).
+                  registerJitFunction_C(Sym->getValue(), 1024 * 1024,
+                                        fName.c_str(), nullptr, 0);
                 }
               }
 
@@ -607,7 +613,6 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
   }
 
   if (Level != llvm::OptimizationLevel::O0 && runtimeBitcodeBuffer) {
-
     auto runtimeModuleOrErr =
         llvm::parseBitcodeFile(*runtimeBitcodeBuffer, M.getContext());
     if (!runtimeModuleOrErr) {

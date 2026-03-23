@@ -8,10 +8,9 @@
 
 _Atomic(uword_t) allocationCount[256];
 _Atomic(uword_t) objectCount[256];
-#ifndef COMPILING_RUNTIME_BITCODE
+
 _Thread_local void *memoryBank[8] = {0};
 _Thread_local int memoryBankSize[8] = {0};
-#endif
 
 /* pool globalPool1; */
 /* pool globalPool2; */

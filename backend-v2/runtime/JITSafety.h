@@ -11,17 +11,9 @@ typedef uintptr_t rt_jt_epoch_t;
 
 // Safety state tracked per JIT instance on the host
 typedef struct {
-    int depth;
-    rt_jt_epoch_t threadLocalEpoch;
+  int depth;
+  rt_jt_epoch_t threadLocalEpoch;
 } rt_jt_SafetyState;
-
-#if defined(COMPILING_RUNTIME_BITCODE) && !defined(__APPLE__)
-#include "TLS_Support.h"
-extern uintptr_t host_jit_safety_state_offset;
-#define host_jit_safety_state (*(rt_jt_SafetyState*)((char*)JITEngine_getThreadPointer() + host_jit_safety_state_offset))
-#else
-extern _Thread_local rt_jt_SafetyState host_jit_safety_state;
-#endif
 
 // Fast-path safety section signals (inlineable)
 void JITEngine_enterSafeSection(void *engine);

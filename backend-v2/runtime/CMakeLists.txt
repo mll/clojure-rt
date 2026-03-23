@@ -88,7 +88,7 @@ foreach(src ${SOURCES})
         COMMAND ${CLANG_EXECUTABLE} -emit-llvm -c 
                 ${CMAKE_CURRENT_SOURCE_DIR}/${src}
                 -iquote ${CMAKE_CURRENT_SOURCE_DIR} -I${GMP_INCLUDE_DIRS}
-                -O3 -fPIC -fno-emulated-tls -DCOMPILING_RUNTIME_BITCODE
+                -O3 -fPIC -fno-emulated-tls 
                 -o ${bc_output}
         DEPENDS ${src}
         COMMENT "Generating LLVM Bitcode for ${src}"

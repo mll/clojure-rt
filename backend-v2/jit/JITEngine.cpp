@@ -25,23 +25,6 @@ extern _Thread_local int memoryBankSize[8];
 #include <llvm/Transforms/IPO/Inliner.h>
 #include <llvm/Transforms/IPO/ModuleInliner.h>
 
-[[maybe_unused]] static inline void *get_thread_pointer() {
-#if defined(__x86_64__)
-  void *ptr;
-  __asm__("movq %%fs:0, %0" : "=r"(ptr));
-  return ptr;
-#elif defined(__aarch64__)
-  void *ptr;
-  __asm__("mrs %0, tpidr_el0" : "=r"(ptr));
-  return ptr;
-#else
-  return nullptr;
-#endif
-}
-
-// Host-side safety state for EBR operations
-extern "C" _Thread_local rt_jt_SafetyState host_jit_safety_state;
-
 extern "C" void JITEngine_slowPath_enter(void *engine,
                                          rt_jt_epoch_t *epochPtr) {
   if (engine)
@@ -91,7 +74,6 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
   if (!JTMB)
     throw std::runtime_error("Failed to detect host");
 
-  // Modern macOS uses native TLS (TLVs). JIT should match the host.
   JTMB->getOptions().EmulatedTLS = false;
 
   auto TMTmp = JTMB->createTargetMachine();
@@ -554,79 +536,14 @@ void JITEngine::registerRuntimeSymbols() {
       absoluteSymbol("ClassExtension_resolveInstanceCall",
                      (void *)ClassExtension_resolveInstanceCall));
 
-  // Dynamic Instance Call Bouncer
+  // The bridge:
   runtimeSymbols.insert(
       absoluteSymbol("InstanceCallSlowPath", (void *)InstanceCallSlowPath));
 
-  // JIT Safety Sections
   runtimeSymbols.insert(absoluteSymbol("JITEngine_slowPath_enter",
                                        (void *)JITEngine_slowPath_enter));
   runtimeSymbols.insert(absoluteSymbol("JITEngine_slowPath_leave",
                                        (void *)JITEngine_slowPath_leave));
-
-#ifdef __APPLE__
-  // On macOS (arm64), native TLS uses TLV descriptors.
-  // The JITed code (with EmulatedTLS=false) expects a pointer to a descriptor
-  // whose first element is a thunk that returns the actual TLS address.
-  struct MachOTLVDescriptor {
-    void *(*thunk)(MachOTLVDescriptor *);
-    unsigned long key;
-    unsigned long offset;
-  };
-
-  static auto thunk = [](MachOTLVDescriptor *) -> void * {
-    return (void *)&host_jit_safety_state;
-  };
-  static MachOTLVDescriptor host_jit_safety_state_TLV = {thunk, 0, 0};
-
-  static auto bank_thunk = [](MachOTLVDescriptor *) -> void * {
-    return (void *)&memoryBank;
-  };
-  static MachOTLVDescriptor memoryBank_TLV = {bank_thunk, 0, 0};
-
-  static auto bank_size_thunk = [](MachOTLVDescriptor *) -> void * {
-    return (void *)&memoryBankSize;
-  };
-  static MachOTLVDescriptor memoryBankSize_TLV = {bank_size_thunk, 0, 0};
-
-  static auto hazard_thunk = [](MachOTLVDescriptor *) -> void * {
-    return (void *)&threadLocalHazardSlot;
-  };
-  static MachOTLVDescriptor threadLocalHazardSlot_TLV = {hazard_thunk, 0, 0};
-
-  runtimeSymbols.insert(absoluteSymbol("host_jit_safety_state",
-                                       (void *)&host_jit_safety_state_TLV));
-  runtimeSymbols.insert(absoluteSymbol("memoryBank", (void *)&memoryBank_TLV));
-  runtimeSymbols.insert(
-      absoluteSymbol("memoryBankSize", (void *)&memoryBankSize_TLV));
-  runtimeSymbols.insert(absoluteSymbol("threadLocalHazardSlot",
-                                       (void *)&threadLocalHazardSlot_TLV));
-#else
-  // On Linux/others, we provide the OFFSET from the Thread Pointer.
-  // The JIT-ed code uses inline assembly to get the TP and then adds this
-  // offset. This is 100% inlined and matches 'Local Exec' TLS performance.
-  // CRITICAL: We must provide the ADDRESS of a variable that holds the offset,
-  // NOT the offset itself as an absolute symbol value.
-  static uintptr_t safety_offset_static = 0;
-  static uintptr_t bank_offset_static = 0;
-  static uintptr_t bank_size_offset_static = 0;
-  static uintptr_t hazard_offset_static = 0;
-
-  char *tp = (char *)get_thread_pointer();
-  safety_offset_static = (char *)&host_jit_safety_state - tp;
-  bank_offset_static = (char *)&memoryBank - tp;
-  bank_size_offset_static = (char *)&memoryBankSize - tp;
-  hazard_offset_static = (char *)&threadLocalHazardSlot - tp;
-
-  runtimeSymbols.insert(absoluteSymbol("host_jit_safety_state_offset",
-                                       (void *)&safety_offset_static));
-  runtimeSymbols.insert(
-      absoluteSymbol("memoryBank_offset", (void *)&bank_offset_static));
-  runtimeSymbols.insert(absoluteSymbol("memoryBankSize_offset",
-                                       (void *)&bank_size_offset_static));
-  runtimeSymbols.insert(absoluteSymbol("threadLocalHazardSlot_offset",
-                                       (void *)&hazard_offset_static));
-#endif
 
   cantFail(jit->getMainJITDylib().define(
       absoluteSymbols(std::move(runtimeSymbols))));
@@ -688,6 +605,9 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
           if (!G.isDeclaration() && G.hasExternalLinkage()) {
             G.setInitializer(nullptr);
             G.setLinkage(llvm::GlobalValue::ExternalLinkage);
+            if (G.isThreadLocal()) {
+              G.setThreadLocalMode(llvm::GlobalValue::LocalExecTLSModel);
+            }
           }
         }
 

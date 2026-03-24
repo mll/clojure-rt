@@ -7,7 +7,6 @@
 #include <fstream>
 #include <iostream>
 
-extern "C" {
 #include "../../runtime/Keyword.h"
 #include "../../runtime/PersistentList.h"
 #include "../../runtime/PersistentVector.h"
@@ -17,7 +16,10 @@ extern "C" {
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+extern "C" {
 #include <cmocka.h>
+}
+}
 }
 
 #include <atomic>
@@ -30,7 +32,6 @@ using namespace rt;
 using namespace clojure::rt::protobuf::bytecode;
 
 // Mock implementations for instance methods
-extern "C" {
 int32_t mock_TypeA_foo(PersistentVector *instance, int32_t x) {
   Ptr_release(instance);
   return 1000 + x;

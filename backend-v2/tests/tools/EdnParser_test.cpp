@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-extern "C" {
 #include "../../runtime/Keyword.h"
 #include "../../runtime/PersistentArrayMap.h"
 #include "../../runtime/PersistentVector.h"
@@ -17,6 +16,7 @@ extern "C" {
 #include "../../runtime/Symbol.h"
 #include "../../runtime/tests/TestTools.h"
 #include <cmocka.h>
+}
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>

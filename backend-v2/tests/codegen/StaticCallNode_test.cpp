@@ -7,12 +7,13 @@
 #include <fstream>
 #include <iostream>
 
-extern "C" {
 #include "../../runtime/tests/TestTools.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+extern "C" {
 #include <cmocka.h>
+}
 }
 
 using namespace std;
@@ -20,7 +21,6 @@ using namespace rt;
 using namespace clojure::rt::protobuf::bytecode;
 
 // Mock implementations for dispatch to call
-extern "C" {
 int32_t mock_add_int(int32_t a, int32_t b) {
   return a + b + 1000; // Offset to verify this was called
 }

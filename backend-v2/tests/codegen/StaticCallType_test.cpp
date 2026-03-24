@@ -14,7 +14,6 @@
 #include "../../runtime/Object.h"
 #include "../../runtime/RuntimeInterface.h"
 
-extern "C" {
 // Minimal declarations for functions provided by runtime_helpers.c
 void test_initialise_memory();
 void test_RuntimeInterface_cleanup();
@@ -27,7 +26,10 @@ void test_release(RTValue v);
 #include <stddef.h>
 #include <setjmp.h>
 #include <stdint.h>
+extern "C" {
 #include <cmocka.h>
+}
+}
 }
 
 using namespace std;

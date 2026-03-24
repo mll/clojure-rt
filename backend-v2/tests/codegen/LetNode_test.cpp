@@ -5,20 +5,21 @@
 #include "bytecode.pb.h"
 #include <iostream>
 
-extern "C" {
 #include "../../runtime/RuntimeInterface.h"
 #include "../../runtime/tests/TestTools.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+extern "C" {
 #include <cmocka.h>
+}
+}
 }
 
 using namespace std;
 using namespace rt;
 using namespace clojure::rt::protobuf::bytecode;
 
-extern "C" {
 RTValue mock_add_bigint(RTValue a, RTValue b) {
   // We don't really care about the result value, just that it's a BigInt
   // that needs to be released.

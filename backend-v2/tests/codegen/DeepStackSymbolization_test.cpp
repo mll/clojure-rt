@@ -7,7 +7,6 @@
 #include <fstream>
 #include <iostream>
 
-extern "C" {
 #include "../../runtime/Class.h"
 #include "../../runtime/Keyword.h"
 #include "../../runtime/Var.h"
@@ -15,7 +14,10 @@ extern "C" {
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+extern "C" {
 #include <cmocka.h>
+}
+}
 }
 
 using namespace std;

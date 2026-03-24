@@ -6,14 +6,16 @@
 #include <iostream>
 #include <chrono>
 
-extern "C" {
 #include "../runtime/RuntimeInterface.h"
 #include "../runtime/tests/TestTools.h"
 #include "../bridge/InstanceCallStub.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+extern "C" {
 #include <cmocka.h>
+}
+}
 }
 
 using namespace rt;

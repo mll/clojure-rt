@@ -7,12 +7,13 @@
 #include <fstream>
 #include <iostream>
 
-extern "C" {
 #include "../../runtime/tests/TestTools.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+extern "C" {
 #include <cmocka.h>
+}
 }
 
 using namespace std;
@@ -20,7 +21,6 @@ using namespace rt;
 using namespace clojure::rt::protobuf::bytecode;
 
 // Mock implementation for instance call
-extern "C" {
 int32_t mock_instance_get_value(RTValue instance, int32_t offset) {
   // We can't easily check 'instance' here without a full class setup,
   // but we can verify the argument passing and that it was called.

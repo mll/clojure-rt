@@ -5,13 +5,15 @@
 #include "bytecode.pb.h"
 #include <iostream>
 
-extern "C" {
 #include "../../runtime/RuntimeInterface.h"
 #include "../../runtime/tests/TestTools.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+extern "C" {
 #include <cmocka.h>
+}
+}
 }
 
 using namespace std;

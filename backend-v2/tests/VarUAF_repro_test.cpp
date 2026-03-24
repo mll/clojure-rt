@@ -7,14 +7,16 @@
 #include <iostream>
 #include <string>
 
-extern "C" {
 #include "../runtime/RuntimeInterface.h"
 #include "../runtime/tests/TestTools.h"
 #include "../runtime/Var.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+extern "C" {
 #include <cmocka.h>
+}
+}
 }
 
 #include "../bridge/Exceptions.h"

@@ -3,13 +3,13 @@
 #include "../../jit/JITEngine.h"
 #include "../../state/ThreadsafeCompilerState.h"
 #include "bytecode.pb.h"
-#include <cmocka.h>
 #include <fstream>
 #include <iostream>
 
 extern "C" {
 #include "../../runtime/RuntimeInterface.h"
 #include "../../runtime/tests/TestTools.h"
+#include <cmocka.h>
 }
 
 using namespace rt;

@@ -258,8 +258,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().monitorenter(), typeRestrictions);
   // case opMonitorExit:
   //   return codegen(node, node.subnode().monitorexit(), typeRestrictions);
-  // case opNew:
-  //   return codegen(node, node.subnode().new_(), typeRestrictions);
+  case opNew:
+    return codegen(node, node.subnode().new_(), typeRestrictions);
   // case opPrimInvoke:
   //   return codegen(node, node.subnode().priminvoke(), typeRestrictions);
   // case opProtocolInvoke:
@@ -360,8 +360,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().monitorenter(), typeRestrictions);
   // case opMonitorExit:
   //   return getType(node, node.subnode().monitorexit(), typeRestrictions);
-  // case opNew:
-  //   return getType(node, node.subnode().new_(), typeRestrictions);
+  case opNew:
+    return getType(node, node.subnode().new_(), typeRestrictions);
   // case opPrimInvoke:
   //   return getType(node, node.subnode().priminvoke(), typeRestrictions);
   // case opProtocolInvoke:

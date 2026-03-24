@@ -57,13 +57,17 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     retVal = dynamicConstructor.createSymbol(name.c_str());
     break;
   case classType: {
-    ::Class *cls = compilerState.classRegistry.getCurrent(name.c_str());
+    string className = name;
+    if (className.find("class ") == 0) {
+      className = className.substr(6);
+    }
+    ::Class *cls = compilerState.classRegistry.getCurrent(className.c_str());
     if (!cls) {
-      throwCodeGenerationException(string("Unable to resolve class: ") + name +
-                                       " in this context",
+      throwCodeGenerationException(string("Unable to resolve class: ") +
+                                       className + " in this context",
                                    node);
     }
-    dynamicConstructor.createClass(cls, name);
+    retVal = dynamicConstructor.createClass(cls, className);
     memoryManagement.dynamicRetain(retVal);
   } break;
   // case deftypeType:
@@ -204,9 +208,15 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
   case ConstNode_ConstType_constTypeKeyword:
     return ObjectTypeSet(keywordType, false, new ConstantKeyword(subnode.val()))
         .restriction(typeRestrictions);
-  case ConstNode_ConstType_constTypeClass:
-    return ObjectTypeSet(classType, false, new ConstantClass(subnode.val()))
+  case ConstNode_ConstType_constTypeClass: {
+    string className = subnode.val();
+    if (className.find("class ") == 0) {
+      className = className.substr(6);
+    }
+    return ObjectTypeSet(classType, false, new ConstantClass(className))
         .restriction(typeRestrictions);
+  }
+
   case ConstNode_ConstType_constTypeVector:
     return ObjectTypeSet(persistentVectorType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeVar:

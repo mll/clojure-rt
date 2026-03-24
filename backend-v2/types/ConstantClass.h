@@ -10,7 +10,7 @@ class ConstantClass : public ObjectTypeConstant {
 public:
   std::string value;
   ConstantClass(std::string val)
-      : ObjectTypeConstant(functionType), value(val) {}
+      : ObjectTypeConstant(classType), value(val) {}
   virtual ObjectTypeConstant *copy() {
     return static_cast<ObjectTypeConstant *>(new ConstantClass(value));
   }

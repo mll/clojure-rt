@@ -26,6 +26,7 @@ set(TEST_MODULES
     codegen/DeepStackSymbolization_test
     codegen/ExceptionForm_test
     codegen/ExceptionColor_test
+    codegen/NewNode_test
     VarUAF_repro_test
     JITSafety_test
 )

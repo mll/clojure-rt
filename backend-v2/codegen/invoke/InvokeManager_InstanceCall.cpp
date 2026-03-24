@@ -189,20 +189,6 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
   ::Class *targetClass =
       this->compilerState.classRegistry.getCurrent((int32_t)objType);
 
-  if (objType == classType && instance.type.getConstant()) {
-    if (auto *cc = dynamic_cast<ConstantClass *>(instance.type.getConstant())) {
-      ::Class *constantClassPtr = (::Class *)cc->value;
-      if (targetClass && targetClass != constantClassPtr) {
-        Ptr_release(targetClass);
-        targetClass = constantClassPtr;
-        Ptr_retain(targetClass);
-      } else if (!targetClass) {
-        targetClass = constantClassPtr;
-        Ptr_retain(targetClass);
-      }
-    }
-  }
-
   PtrWrapper<Class> cls(targetClass);
   if (!cls) {
     std::ostringstream oss;
@@ -457,9 +443,8 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
     Value *methNameVal =
         this->builder.CreateGlobalString(methodName, "instance_call_method");
 
-    FunctionType *fnTy = FunctionType::get(this->types.voidTy,
-                                          {this->types.ptrTy, this->types.ptrTy},
-                                          false);
+    FunctionType *fnTy = FunctionType::get(
+        this->types.voidTy, {this->types.ptrTy, this->types.ptrTy}, false);
     this->invokeRaw("throwNoMatchingOverloadException_C", fnTy,
                     {classNameVal, methNameVal}, guard);
     this->builder.CreateUnreachable();
@@ -485,25 +470,6 @@ InvokeManager::predictInstanceCallType(const std::string &methodName,
   auto objType = instanceType.determinedType();
   ::Class *targetClass =
       compilerState.classRegistry.getCurrent((int32_t)objType);
-
-  if (objType == classType && instanceType.getConstant()) {
-    if (auto *cc = dynamic_cast<ConstantClass *>(instanceType.getConstant())) {
-      ::Class *constantClassPtr = (::Class *)cc->value;
-      if (targetClass && targetClass != constantClassPtr) {
-        Ptr_release(targetClass);
-        targetClass = constantClassPtr;
-        Ptr_retain(targetClass);
-      } else if (!targetClass) {
-        targetClass = constantClassPtr;
-        Ptr_retain(targetClass);
-      }
-    }
-  }
-
-  if (!targetClass) {
-    string name = ObjectTypeSet::toHumanReadableName(objType);
-    targetClass = compilerState.classRegistry.getCurrent(name.c_str());
-  }
 
   PtrWrapper<Class> cls(targetClass);
   if (!cls)

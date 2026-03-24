@@ -1,9 +1,9 @@
 #include "DynamicConstructor.h"
-#include "CodeGen.h"
 #include "../RuntimeHeaders.h"
 #include "../bridge/Exceptions.h"
 #include "../cljassert.h"
 #include "../runtime/word.h"
+#include "CodeGen.h"
 #include "LLVMTypes.h"
 #include "TypedValue.h"
 #include "ValueEncoder.h"
@@ -74,6 +74,14 @@ TypedValue DynamicConstructor::createString(const char *s) {
                                 types.ptrTy));
 }
 
+TypedValue DynamicConstructor::createClass(::Class *cls, std::string &name) {
+  generatedConstants.push_back(RT_boxPtr((void *)cls));
+  uintptr_t address = reinterpret_cast<uintptr_t>(cls);
+  return TypedValue(ObjectTypeSet(classType, false, new ConstantClass(name)),
+                    ConstantExpr::getIntToPtr(
+                        ConstantInt::get(types.i64Ty, address), types.ptrTy));
+}
+
 TypedValue DynamicConstructor::createKeyword(const char *s) {
   String *str = String_createDynamicStr(s);
   RTValue kwVal = Keyword_create(str);
@@ -112,7 +120,7 @@ TypedValue DynamicConstructor::createRatio(const char *s) {
 }
 
 TypedValue DynamicConstructor::createVector(std::vector<TypedValue> &items,
-                                          CleanupChainGuard *guard) {
+                                            CleanupChainGuard *guard) {
   auto retValType = ObjectTypeSet(persistentVectorType, false);
   std::vector<TypedValue> allArgs;
   allArgs.push_back(createInt32(items.size()));
@@ -149,7 +157,7 @@ TypedValue DynamicConstructor::createArrayMap(std::vector<TypedValue> &keys,
 }
 
 TypedValue DynamicConstructor::createList(std::vector<TypedValue> &items,
-                                        CleanupChainGuard *guard) {
+                                          CleanupChainGuard *guard) {
   auto retValType = ObjectTypeSet(persistentListType, false);
   std::vector<TypedValue> allArgs;
   allArgs.push_back(createInt32(items.size()));

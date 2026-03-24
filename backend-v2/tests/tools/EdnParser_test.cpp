@@ -1512,6 +1512,119 @@ static void test_cross_class_references(void **state) {
                "test_cross_class_references");
 }
 
+static void test_constructors_impl(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    // Test 1: Constructor with explicit returns
+    // {com.foo/A {:object-type 100, :constructor [{:args [], :type :call, :symbol "A_create", :returns com.foo/A}]}}
+    PersistentVector *ctorArgs = PersistentVector_create();
+
+    PersistentArrayMap *ctorMap = PersistentArrayMap_empty();
+    ctorMap = PersistentArrayMap_assoc(
+        ctorMap, Keyword_create(String_create("args")), RT_boxPtr(ctorArgs));
+    ctorMap = PersistentArrayMap_assoc(
+        ctorMap, Keyword_create(String_create("type")),
+        Keyword_create(String_create("call")));
+    ctorMap = PersistentArrayMap_assoc(
+        ctorMap, Keyword_create(String_create("symbol")),
+        RT_boxPtr(String_create("A_create")));
+    ctorMap = PersistentArrayMap_assoc(
+        ctorMap, Keyword_create(String_create("returns")),
+        Symbol_create(String_create("com.foo/A")));
+
+    // Test 2: Constructor without explicit returns (should default to com.foo/A)
+    PersistentArrayMap *ctorMap2 = PersistentArrayMap_empty();
+    ctorMap2 = PersistentArrayMap_assoc(
+        ctorMap2, Keyword_create(String_create("args")), RT_boxPtr(PersistentVector_create()));
+    ctorMap2 = PersistentArrayMap_assoc(
+        ctorMap2, Keyword_create(String_create("type")),
+        Keyword_create(String_create("call")));
+    ctorMap2 = PersistentArrayMap_assoc(
+        ctorMap2, Keyword_create(String_create("symbol")),
+        RT_boxPtr(String_create("A_create2")));
+
+    PersistentVector *ctorsVec = PersistentVector_create();
+    ctorsVec = PersistentVector_conj(ctorsVec, RT_boxPtr(ctorMap));
+    ctorsVec = PersistentVector_conj(ctorsVec, RT_boxPtr(ctorMap2));
+
+    PersistentArrayMap *classMap = PersistentArrayMap_empty();
+    classMap = PersistentArrayMap_assoc(
+        classMap, Keyword_create(String_create("object-type")), RT_boxInt32(100));
+    classMap = PersistentArrayMap_assoc(
+        classMap, Keyword_create(String_create("constructor")),
+        RT_boxPtr(ctorsVec));
+
+    PersistentArrayMap *rootMap = PersistentArrayMap_empty();
+    rootMap = PersistentArrayMap_assoc(
+        rootMap, Symbol_create(String_create("com.foo/A")),
+        RT_boxPtr(classMap));
+
+    auto classes = buildClasses(RT_boxPtr(rootMap));
+    assert_int_equal(1, classes.size());
+
+    auto &c = *classes[0];
+    assert_int_equal(2, c.constructors.size());
+    
+    // Check first (explicit)
+    assert_string_equal("A_create", c.constructors[0].symbol.c_str());
+    assert_true(c.constructors[0].returnsProvided);
+    assert_true(c.constructors[0].returnType.contains((objectType)100));
+
+    // Check second (defaulted)
+    assert_string_equal("A_create2", c.constructors[1].symbol.c_str());
+    assert_false(c.constructors[1].returnsProvided);
+    assert_true(c.constructors[1].returnType.contains((objectType)100));
+  });
+}
+
+static void test_constructors(void **state) {
+  execute_test(test_constructors_impl, state, "test_constructors");
+}
+
+static void test_constructor_return_type_impl(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    // Test returning :any (explicitly) should fail
+    // {com.foo/A {:object-type 100, :constructor [{:args [], :type :call, :symbol "A_create", :returns :any}]}}
+    PersistentVector *ctorArgs = PersistentVector_create();
+
+    PersistentArrayMap *ctorMap = PersistentArrayMap_empty();
+    ctorMap = PersistentArrayMap_assoc(
+        ctorMap, Keyword_create(String_create("args")), RT_boxPtr(ctorArgs));
+    ctorMap = PersistentArrayMap_assoc(
+        ctorMap, Keyword_create(String_create("type")),
+        Keyword_create(String_create("call")));
+    ctorMap = PersistentArrayMap_assoc(
+        ctorMap, Keyword_create(String_create("symbol")),
+        RT_boxPtr(String_create("A_create")));
+    ctorMap = PersistentArrayMap_assoc(
+        ctorMap, Keyword_create(String_create("returns")),
+        Keyword_create(String_create("any")));
+
+    PersistentVector *ctorsVec = PersistentVector_create();
+    ctorsVec = PersistentVector_conj(ctorsVec, RT_boxPtr(ctorMap));
+
+    PersistentArrayMap *classMap = PersistentArrayMap_empty();
+    classMap = PersistentArrayMap_assoc(
+        classMap, Keyword_create(String_create("object-type")), RT_boxInt32(100));
+    classMap = PersistentArrayMap_assoc(
+        classMap, Keyword_create(String_create("constructor")),
+        RT_boxPtr(ctorsVec));
+
+    PersistentArrayMap *rootMap = PersistentArrayMap_empty();
+    rootMap = PersistentArrayMap_assoc(
+        rootMap, Symbol_create(String_create("com.foo/A")),
+        RT_boxPtr(classMap));
+
+    auto classes = buildClasses(RT_boxPtr(rootMap));
+  });
+}
+
+static void test_constructor_return_type(void **state) {
+  execute_negative_test(test_constructor_return_type_impl, state,
+                        "test_constructor_return_type");
+}
+
 int main(int argc, char **argv) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
@@ -1542,6 +1655,8 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_overload_symbols),
       cmocka_unit_test(test_cross_class_references),
       cmocka_unit_test(test_toString),
+      cmocka_unit_test(test_constructors),
+      cmocka_unit_test(test_constructor_return_type),
   };
   int result = cmocka_run_group_tests(tests, NULL, NULL);
   RuntimeInterface_cleanup();

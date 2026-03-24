@@ -46,6 +46,7 @@ String *String_createDynamicStr(const char *str);
 String *String_createStaticOptimised(char *string, uword_t len, uword_t hash);
 String *String_create(const char *string);
 String *String_createDynamic(size_t size);
+String *String_createEmpty();
 String *String_createStatic(const char *string);
 
 StringIterator String_iterator(String *self);

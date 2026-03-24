@@ -242,6 +242,17 @@ ClassDescription::ClassDescription(RTValue from,
   } else if (getType(ifnsWrapper.get()) != nilType) {
     throwInternalInconsistencyException(":instance-fns must be a map.");
   }
+
+  retain(root.get());
+  ConsumedValue ctorWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("constructor"))));
+
+  if (getType(ctorWrapper.get()) == persistentVectorType) {
+    this->constructors =
+        parseConstructorDescriptions(ctorWrapper.take(), classData, this->type);
+  } else if (getType(ctorWrapper.get()) != nilType) {
+    throwInternalInconsistencyException(":constructor must be a vector.");
+  }
 }
 
 extern "C" {
@@ -408,12 +419,45 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
   return retVal;
 }
 
-IntrinsicDescription::IntrinsicDescription(RTValue from,
-                                           TemporaryClassData &classData,
-                                           const ObjectTypeSet &thisType,
-                                           bool isInstance) {
+vector<IntrinsicDescription> ClassDescription::parseConstructorDescriptions(
+    RTValue from, TemporaryClassData &classData, const ObjectTypeSet &thisType) {
+  ConsumedValue root(from);
+  vector<IntrinsicDescription> retVal;
+  if (getType(root.get()) != persistentVectorType) {
+    throwInternalInconsistencyException("Constructor collection is not a vector");
+  }
+
+  PersistentVector *vec = (PersistentVector *)RT_unboxPtr(root.get());
+  uword_t count = vec->count;
+  PersistentVectorIterator it = PersistentVector_iterator(vec);
+
+  for (uword_t j = 0; j < count; j++) {
+    RTValue intrinsicRaw = PersistentVector_iteratorGet(&it);
+    retain(intrinsicRaw);
+    IntrinsicDescription desc(intrinsicRaw, classData, thisType, false,
+                              thisType);
+
+    // Validation: If returns was provided explicitly, it MUST be exactly thisType.
+    if (desc.returnsProvided && desc.returnType != thisType) {
+      throwInternalInconsistencyException(
+          "Constructor must return exactly the class type it belongs to. "
+          "Expected: " +
+          thisType.toString() + " Got: " + desc.returnType.toString());
+    }
+
+    retVal.push_back(desc);
+    PersistentVector_iteratorNext(&it);
+  }
+
+  return retVal;
+}
+
+IntrinsicDescription::IntrinsicDescription(
+    RTValue from, TemporaryClassData &classData, const ObjectTypeSet &thisType,
+    bool isInstance, const ObjectTypeSet &defaultReturnType) {
   this->thisType = thisType;
   this->isInstance = isInstance;
+  this->returnsProvided = false;
   ConsumedValue root(from);
   if (getType(root.get()) != persistentArrayMapType) {
     throwInternalInconsistencyException("Intrinsic description is not a map");
@@ -548,6 +592,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
   ConsumedValue returnsWrapper(returnsRaw);
 
   if (getType(returnsWrapper.get()) != nilType) {
+    this->returnsProvided = true;
     // toString consumes.
     String *retStr = String_compactify(::toString(returnsWrapper.take()));
     string sRetKey = String_c_str(retStr);
@@ -576,7 +621,7 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
       throwInternalInconsistencyException("Unknown return type: " + sRetKey);
     }
   } else {
-    this->returnType = ObjectTypeSet::dynamicType();
+    this->returnType = defaultReturnType;
   }
 }
 
@@ -686,6 +731,15 @@ string ClassDescription::toString() const {
       ss << "]" << (std::next(it) == instanceFns.end() ? "" : ", ");
     }
     ss << "}";
+  }
+
+  if (!constructors.empty()) {
+    ss << ",\n   :constructor [";
+    for (size_t i = 0; i < constructors.size(); ++i) {
+      ss << constructors[i].toString()
+         << (i == constructors.size() - 1 ? "" : " ");
+    }
+    ss << "]";
   }
 
   ss << "}}";

@@ -266,6 +266,7 @@
 
   java.lang.String
   {:object-type 7
+    :constructor [{:args [] :type :call :symbol "String_createEmpty" :returns java.lang.String}]
    :static-fns
    {print [{:args [:any] :type :call :symbol "print" :returns :nil}]}
    :instance-fns

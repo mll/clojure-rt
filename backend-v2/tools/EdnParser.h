@@ -32,10 +32,13 @@ public:
   ObjectTypeSet returnType;
   ObjectTypeSet thisType;
   bool isInstance;
+  bool returnsProvided;
   IntrinsicDescription() = default;
-  IntrinsicDescription(RTValue from, TemporaryClassData &classData,
-                       const ObjectTypeSet &thisType = ObjectTypeSet::all(),
-                       bool isInstance = false);
+  IntrinsicDescription(
+      RTValue from, TemporaryClassData &classData,
+      const ObjectTypeSet &thisType = ObjectTypeSet::all(),
+      bool isInstance = false,
+      const ObjectTypeSet &defaultReturnType = ObjectTypeSet::dynamicType());
   std::string toString() const;
 };
 
@@ -45,6 +48,9 @@ class ClassDescription {
   parseIntrinsics(RTValue from, TemporaryClassData &classData,
                   const ObjectTypeSet &thisType = ObjectTypeSet::all(),
                   bool isInstance = false);
+  vector<IntrinsicDescription>
+  parseConstructorDescriptions(RTValue from, TemporaryClassData &classData,
+                               const ObjectTypeSet &thisType);
 
 public:
   ObjectTypeSet type;
@@ -57,6 +63,7 @@ public:
 
   unordered_map<string, int32_t> instanceFields;
 
+  vector<IntrinsicDescription> constructors;
   unordered_map<string, vector<IntrinsicDescription>> staticFns;
   unordered_map<string, vector<IntrinsicDescription>> instanceFns;
 

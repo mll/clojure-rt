@@ -6,6 +6,7 @@
 #include "runtime/Object.h"
 #include "runtime/RTValue.h"
 #include "runtime/String.h"
+#include "../bridge/SourceLocation.h"
 
 using namespace llvm;
 using namespace clojure::rt::protobuf::bytecode;
@@ -22,7 +23,7 @@ CodeGenResult CodeGen::release() && {
   DIB->finalize();
   auto constants = std::move(generatedConstants);
   generatedConstants.clear(); // Ensure destructor doesn't re-release
-  return {std::move(TSContext), std::move(TheModule), std::move(constants)};
+  return {std::move(TSContext), std::move(TheModule), std::move(constants), std::move(formMap)};
 }
 
 std::string CodeGen::codegenTopLevel(const Node &node) {
@@ -177,6 +178,14 @@ TypedValue CodeGen::codegen(const Node &node,
                                                       &node.unwindmemory());
 
   auto env = node.env();
+  
+  // Record form for exception reporting
+  SourceLocation loc;
+  loc.file = env.file();
+  loc.line = env.line();
+  loc.column = env.column();
+  formMap[loc] = node.form();
+
   if (!LexicalBlocks.empty()) {
     Builder.SetCurrentDebugLocation(llvm::DILocation::get(
         TheContext, env.line(), env.column(), LexicalBlocks.back()));
@@ -275,11 +284,13 @@ TypedValue CodeGen::codegen(const Node &node,
     return codegen(node, node.subnode().var(), typeRestrictions);
   case opWithMeta:
     return codegen(node, node.subnode().withmeta(), typeRestrictions);
-  default:
+  default: {
+    auto env = node.env();
     throwCodeGenerationException(
         std::string("Compiler does not support the following op yet: ") +
             Op_Name(node.op()),
-        node);
+        node.form(), env.file(), env.line(), env.column());
+  }
   }
   return TypedValue(ObjectTypeSet::all(), nullptr);
 }
@@ -375,11 +386,13 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().var(), typeRestrictions);
   case opWithMeta:
     return getType(node, node.subnode().withmeta(), typeRestrictions);
-  default:
+  default: {
+    auto env = node.env();
     throwCodeGenerationException(
         std::string("Compiler does not support the following op yet: ") +
             Op_Name(node.op()),
-        node);
+        node.form(), env.file(), env.line(), env.column());
+  }
   }
   return ObjectTypeSet::all();
 }

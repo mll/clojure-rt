@@ -21,6 +21,11 @@ set(TEST_MODULES
     codegen/InstanceCallIC_test
     codegen/VoidInvokeRepro_test
     codegen/DCE_test
+    codegen/O3_DebugInfo_test
+    codegen/AsyncStackTrace_test
+    codegen/DeepStackSymbolization_test
+    codegen/ExceptionForm_test
+    codegen/ExceptionColor_test
     VarUAF_repro_test
     JITSafety_test
 )

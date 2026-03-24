@@ -48,6 +48,7 @@ namespace rt {
 struct JITResult {
   llvm::orc::ExecutorAddr address;
   std::string optimizedIR;
+  std::string symbolName;
 };
 
 class JITEngine {
@@ -66,7 +67,11 @@ private:
   std::mutex engineMutex;
   std::map<std::string, llvm::orc::ResourceTrackerSP> functionTrackers;
   std::map<std::string, std::vector<RTValue>> moduleConstants;
-  std::map<std::string, std::unique_ptr<llvm::MemoryBuffer>> capturedObjectBuffers;
+  struct CapturedObject {
+    std::unique_ptr<llvm::MemoryBuffer> buffer;
+    std::unordered_set<std::string> symbols;
+  };
+  std::vector<CapturedObject> capturedObjectBuffers;
 
   // Epoch-based Reclamation (EBR)
   struct ZombieTracker {
@@ -148,6 +153,7 @@ public:
   uint64_t getGlobalEpoch() const { return globalEpoch.load(std::memory_order_relaxed); }
 
 private:
+  static CapturedObject captureObject(const llvm::MemoryBuffer &Obj);
   static std::atomic<bool> instanceExists;
 };
 

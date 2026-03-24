@@ -2,11 +2,11 @@
 #include "../RuntimeHeaders.h"
 #include "../runtime/JITSafety.h"
 
-
 #include "../runtime/Numbers.h"
 #include "../tools/EdnParser.h"
 #include "bridge/Exceptions.h"
 #include "bridge/InstanceCallStub.h"
+#include "bridge/SourceLocation.h"
 #include "llvm/IR/MDBuilder.h"
 #include "llvm/Transforms/IPO/GlobalDCE.h"
 #include <cstdint>
@@ -53,6 +53,34 @@ void JITEngine::unregisterThread() {
 }
 
 std::atomic<bool> JITEngine::instanceExists{false};
+
+JITEngine::CapturedObject
+JITEngine::captureObject(const llvm::MemoryBuffer &Obj) {
+  std::string id = Obj.getBufferIdentifier().str();
+  CapturedObject captured;
+  captured.buffer = llvm::MemoryBuffer::getMemBufferCopy(Obj.getBuffer(), id);
+
+  // Pre-parse symbols to make lookup in compileGeneric O(1) per buffer
+  auto ObjOrErr = llvm::object::ObjectFile::createObjectFile(
+      captured.buffer->getMemBufferRef());
+  if (ObjOrErr) {
+    auto &ParsedObj = *ObjOrErr.get();
+    for (auto const &SymEntry : ParsedObj.symbols()) {
+      auto NameOrErr = SymEntry.getName();
+      if (NameOrErr) {
+        llvm::StringRef symName = NameOrErr.get();
+        captured.symbols.insert(symName.str());
+        // Also store without the leading underscore for Mach-O targets
+        if (symName.starts_with("_")) {
+          captured.symbols.insert(symName.drop_front(1).str());
+        }
+      }
+    }
+  } else {
+    llvm::consumeError(ObjOrErr.takeError());
+  }
+  return captured;
+}
 
 JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
     : pool(std::max(numThreads / 4, size_t(1)), Priority::Low),
@@ -108,10 +136,7 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
       [this](std::unique_ptr<llvm::MemoryBuffer> Obj)
           -> llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> {
         std::lock_guard<std::mutex> lock(this->engineMutex);
-        std::string id = Obj->getBufferIdentifier().str();
-        // Store a copy of the buffer content
-        this->capturedObjectBuffers[id] =
-            llvm::MemoryBuffer::getMemBufferCopy(Obj->getBuffer(), id);
+        this->capturedObjectBuffers.push_back(JITEngine::captureObject(*Obj));
         return std::move(Obj);
       });
 
@@ -161,7 +186,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
       auto Sym = jit->lookup(moduleName);
       if (Sym) {
         std::promise<JITResult> p;
-        p.set_value({*Sym, ""});
+        p.set_value({*Sym, "", moduleName});
         return p.get_future().share();
       }
     }
@@ -192,6 +217,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               auto context = std::move(result.context);
               auto module = std::move(result.module);
               auto constants = std::move(result.constants);
+              auto formMap = std::move(result.formMap);
 
               this->optimize(*module, level, fName);
 
@@ -229,6 +255,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               sweep();
 
               auto Sym = jit->lookup(fName);
+
               if (!Sym) {
                 throwInternalInconsistencyException("Symbol Lookup Failed: " +
                                                     fName);
@@ -236,30 +263,36 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
 
               {
                 std::lock_guard<std::mutex> lock(this->engineMutex);
-                auto itBuf = this->capturedObjectBuffers.find(moduleName);
-                if (itBuf == this->capturedObjectBuffers.end()) {
-                  itBuf = this->capturedObjectBuffers.find(
-                      moduleName + "-jitted-objectbuffer");
-                }
-                if (itBuf == this->capturedObjectBuffers.end()) {
-                  for (auto searchIt = this->capturedObjectBuffers.begin();
-                       searchIt != this->capturedObjectBuffers.end();
-                       ++searchIt) {
-                    if (searchIt->first.find(moduleName) != std::string::npos) {
-                      itBuf = searchIt;
-                      break;
-                    }
+
+                // Find the object buffer that contains our symbol.
+                // This is much more robust than name-based matching.
+                size_t foundIdx = std::string::npos;
+                for (size_t i = 0; i < this->capturedObjectBuffers.size();
+                     ++i) {
+                  if (this->capturedObjectBuffers[i].symbols.count(fName)) {
+                    foundIdx = i;
+                    break;
                   }
                 }
 
-                if (itBuf != this->capturedObjectBuffers.end()) {
-                  registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(),
-                                        itBuf->second->getBufferStart(),
-                                        itBuf->second->getBufferSize());
-                  this->capturedObjectBuffers.erase(itBuf);
+                if (foundIdx != std::string::npos) {
+                  auto &captured = this->capturedObjectBuffers[foundIdx];
+                  // printf("JIT: Found buffer for %s (size %zu)\n",
+                  // fName.c_str(), captured.buffer->getBufferSize());
+                  registerJitFunction(
+                      Sym->getValue(), captured.buffer->getBufferSize(),
+                      fName.c_str(), captured.buffer->getBufferStart(),
+                      captured.buffer->getBufferSize(), std::move(formMap));
+                  this->capturedObjectBuffers.erase(
+                      this->capturedObjectBuffers.begin() + foundIdx);
                 } else {
-                  registerJitFunction_C(Sym->getValue(), 4096, fName.c_str(),
-                                        nullptr, 0);
+                  // printf("JIT: FAILED to find buffer for %s among %zu
+                  // candidates\n", fName.c_str(),
+                  // this->capturedObjectBuffers.size()); Fallback for cases
+                  // where symbol might not be in the dynamic symbol table of
+                  // the object (though for JIT it usually is).
+                  registerJitFunction(Sym->getValue(), 1024 * 1024,
+                                        fName.c_str(), nullptr, 0, std::move(formMap));
                 }
               }
 
@@ -268,7 +301,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                 activeCompilations.erase(moduleName);
               }
 
-              return JITResult{*Sym, std::move(ir)};
+              return JITResult{*Sym, std::move(ir), fName};
             } catch (...) {
               std::lock_guard<std::mutex> lock(compilationMutex);
               activeCompilations.erase(moduleName);
@@ -582,7 +615,6 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
   }
 
   if (Level != llvm::OptimizationLevel::O0 && runtimeBitcodeBuffer) {
-
     auto runtimeModuleOrErr =
         llvm::parseBitcodeFile(*runtimeBitcodeBuffer, M.getContext());
     if (!runtimeModuleOrErr) {

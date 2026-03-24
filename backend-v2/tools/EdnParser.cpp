@@ -1,6 +1,7 @@
 #include "EdnParser.h"
 #include "RTValueWrapper.h"
 #include "bridge/Exceptions.h"
+#include <unordered_set>
 
 namespace rt {
 
@@ -579,7 +580,6 @@ IntrinsicDescription::IntrinsicDescription(RTValue from,
   }
 }
 
-#include <unordered_set>
 vector<unique_ptr<ClassDescription>> buildClasses(RTValue from) {
   // from is consumed by TemporaryClassData
   TemporaryClassData classData(from);

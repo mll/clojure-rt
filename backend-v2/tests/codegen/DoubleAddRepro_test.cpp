@@ -12,6 +12,9 @@ extern "C" {
 #include "../../runtime/BigInteger.h"
 #include "../../runtime/String.h"
 #include "../../runtime/tests/TestTools.h"
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
 #include <cmocka.h>
 
 void delete_class_description(void *ptr);

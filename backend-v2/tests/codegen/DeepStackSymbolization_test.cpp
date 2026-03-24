@@ -12,6 +12,9 @@ extern "C" {
 #include "../../runtime/Keyword.h"
 #include "../../runtime/Var.h"
 #include "../../runtime/tests/TestTools.h"
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
 #include <cmocka.h>
 }
 

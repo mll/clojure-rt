@@ -3,6 +3,9 @@
 #include "../../jit/JITEngine.h"
 #include "../../state/ThreadsafeCompilerState.h"
 #include "bytecode.pb.h"
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
 #include <cmocka.h>
 #include <fstream>
 #include <iostream>

@@ -79,16 +79,8 @@ public:
   std::string toString() const;
 };
 
-extern "C" {
-void delete_class_description(void *p);
-int32_t ClassExtension_fieldIndex(void *ext, RTValue field);
-int32_t ClassExtension_staticFieldIndex(void *ext, RTValue staticField);
-RTValue ClassExtension_getIndexedStaticField(void *ext, int32_t i);
-RTValue ClassExtension_setIndexedStaticField(void *ext, int32_t i,
-                                             RTValue value);
-ClojureFunction *ClassExtension_resolveInstanceCall(void *ext, RTValue name,
-                                                    int32_t argCount);
-}
+#include "../bridge/ClassExtension.h"
+extern "C" void delete_class_description(void *p);
 
 vector<unique_ptr<ClassDescription>> buildClasses(RTValue from);
 } // namespace rt

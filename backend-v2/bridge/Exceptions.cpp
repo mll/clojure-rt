@@ -510,6 +510,23 @@ LanguageException::~LanguageException() noexcept {
   release(payload);
 }
 
+const char *LanguageException::what() const noexcept {
+  static thread_local std::string whatBuffer;
+  try {
+    whatBuffer = name;
+    if (message != 0) {
+      String *s = ::toString(message);
+      String *msgStr = String_compactify(s);
+      whatBuffer += ": ";
+      whatBuffer += String_c_str(msgStr);
+      Ptr_release(msgStr);
+    }
+    return whatBuffer.c_str();
+  } catch (...) {
+    return "LanguageException (what() failed)";
+  }
+}
+
 std::string
 LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
                             const std::string &moduleName, const intptr_t slide,

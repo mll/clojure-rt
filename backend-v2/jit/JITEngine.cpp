@@ -18,6 +18,8 @@
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Transforms/IPO/Inliner.h>
 #include <llvm/Transforms/IPO/ModuleInliner.h>
+#include <llvm/ExecutionEngine/Orc/EHFrameRegistrationPlugin.h>
+#include <llvm/ExecutionEngine/JITLink/EHFrameSupport.h>
 
 // Bridge functions are now in bridge/JITEngineBridge.cpp and bridge/JITSafety.cpp
 
@@ -113,6 +115,11 @@ JITEngine::JITEngine(ThreadsafeCompilerState &state, size_t numThreads)
                       std::make_unique<llvm::orc::DebugObjectManagerPlugin>(
                           ES, std::move(*Registrar)));
                 }
+
+                ObjLinkingLayer->addPlugin(
+                    std::make_unique<llvm::orc::EHFrameRegistrationPlugin>(
+                        ES, std::make_unique<
+                                llvm::jitlink::InProcessEHFrameRegistrar>()));
 
                 return ObjLinkingLayer;
               })

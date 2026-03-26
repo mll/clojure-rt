@@ -111,6 +111,7 @@ set(BACKEND_SOURCES
       bridge/InstanceCallStub.cpp
       bridge/ClassLookup.cpp
       bridge/JITEngineBridge.cpp
+      bridge/ClassExtension.cpp
       types/ObjectTypeSet.cpp
       tools/ThreadPool.cpp
       jit/JITEngine.cpp

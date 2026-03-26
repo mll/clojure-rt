@@ -51,6 +51,9 @@ int32_t Class_hash(Class *self);
 String *Class_toString(Class *self);
 void Class_destroy(Class *self);
 
+bool Class_isInstanceObjectType(Class *current, int32_t targetRegisterId);
+bool Class_isInstance(Class *current, RTValue instance);
+
 int32_t Class_fieldIndex(Class *self, /* Keyword */ RTValue field);
 int32_t Class_staticFieldIndex(Class *self, /* Keyword */ RTValue staticField);
 RTValue Class_setIndexedStaticField(Class *self, int32_t i, RTValue value);

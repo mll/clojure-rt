@@ -158,3 +158,23 @@ ClojureFunction *Class_resolveInstanceCall(Class *self, RTValue name,
   /* NULL signals the function was not found. */
   return retVal;
 }
+
+/* outside refcount system */
+/* TODO: This is not yet done for interfaces */
+bool Class_isInstanceObjectType(Class *current, int32_t targetRegisterId) {
+  if (current->registerId == targetRegisterId) {
+    return true;
+  }
+  for (int i = 0; i < current->superclassCount; i++) {
+    if (Class_isInstanceObjectType(current->superclasses[i],
+                                   targetRegisterId)) {
+      return true;
+    }
+  }
+  return false;
+}
+/* outside refcount system */
+bool Class_isInstance(Class *current, RTValue instance) {
+  objectType type = getType(instance);
+  return Class_isInstanceObjectType(current, type);
+}

@@ -140,7 +140,8 @@ set(BACKEND_SOURCES
       codegen/ops/WithMetaNode.cpp
       codegen/ops/InstanceCallNode.cpp
       codegen/ops/HostInteropNode.cpp
-      codegen/ops/NewNode.cpp)
+      codegen/ops/NewNode.cpp
+      codegen/ops/IsInstanceNode.cpp)
 
 add_subdirectory(runtime)
 

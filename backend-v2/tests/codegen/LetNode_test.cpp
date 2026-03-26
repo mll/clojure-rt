@@ -339,6 +339,11 @@ static void test_let_nested_redundancy(void **state) {
         innerNode->set_op(opLet);
         auto *innerLet = innerNode->mutable_subnode()->mutable_let();
 
+        // Guidance for the INNER let node: RELEASE x_outer.
+        auto *g = innerNode->add_dropmemory();
+        g->set_variablename("x_outer");
+        g->set_requiredrefcountchange(-1);
+
         // Inner binding y = 200
         auto *bx2 = innerLet->add_bindings();
         bx2->set_op(opBinding);
@@ -348,11 +353,6 @@ static void test_let_nested_redundancy(void **state) {
         bxc2->mutable_init()->mutable_subnode()->mutable_const_()->set_val("200");
         bxc2->mutable_init()->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
         bxc2->mutable_init()->set_tag("long");
-
-        // Guidance for the INNER let node: RELEASE x_outer.
-        auto *g = innerNode->add_dropmemory();
-        g->set_variablename("x_outer");
-        g->set_requiredrefcountchange(-1);
 
         // Body: 42
         auto *innerBody = innerLet->mutable_body();

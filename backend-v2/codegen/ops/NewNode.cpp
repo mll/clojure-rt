@@ -28,6 +28,9 @@ TypedValue CodeGen::codegen(const Node &node, const NewNode &subnode,
     throwCodeGenerationException("Unable to resolve classname for new", node);
   }
   string className = classConst->value;
+  if (className.find("class ") == 0) {
+    className = className.substr(6);
+  }
 
   // 2. Resolve class and its description
   ::Class *cls =
@@ -89,8 +92,10 @@ ObjectTypeSet CodeGen::getType(const Node &node, const NewNode &subnode,
   }
 
   string className = classConst->value;
-  ::Class *cls =
-      this->compilerState.classRegistry.getCurrent(className.c_str());
+  if (className.find("class ") == 0) {
+    className = className.substr(6);
+  }
+  ScopedRef<::Class> cls(this->compilerState.classRegistry.getCurrent(className.c_str()));
   if (!cls)
     return ObjectTypeSet::dynamicType();
 

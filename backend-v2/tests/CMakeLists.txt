@@ -27,6 +27,7 @@ set(TEST_MODULES
     codegen/ExceptionForm_test
     codegen/ExceptionColor_test
     codegen/NewNode_test
+    codegen/IsInstanceNode_test
     VarUAF_repro_test
     JITSafety_test
 )

@@ -19,6 +19,9 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
     ::Class *c = Class_create(nameStr, classNameStr, 0, NULL);
     Ptr_retain(c); // Local reference for this function's logic
     localMap[desc->name] = c;
+    if (desc->type.isDetermined()) {
+      c->registerId = desc->type.determinedType();
+    }
 
     c->compilerExtension = desc.release();
     c->compilerExtensionDestructor = delete_class_description;

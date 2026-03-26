@@ -22,7 +22,8 @@ TypedValue CodeGen::codegen(const Node &node, const LocalNode &subnode,
   }
   default:
     throwCodeGenerationException(
-        string("Compiler does not fully support the following local type yet: ") +
+        string(
+            "Compiler does not fully support the following local type yet: ") +
             to_string(subnode.local()),
         node);
   }
@@ -44,7 +45,8 @@ ObjectTypeSet CodeGen::getType(const Node &node, const LocalNode &subnode,
   }
   default:
     throwCodeGenerationException(
-        string("Compiler does not fully support the following local type yet: ") +
+        string(
+            "Compiler does not fully support the following local type yet: ") +
             to_string(subnode.local()),
         node);
   }

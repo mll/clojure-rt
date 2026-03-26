@@ -159,6 +159,15 @@ ClojureFunction *Class_resolveInstanceCall(Class *self, RTValue name,
   return retVal;
 }
 
+bool Class_isInstanceClassName(const char *className, void *jitEngine,
+                               RTValue instance) {
+  // Throws when class cannot be found.
+  Class *cls = ClassLookup(className, jitEngine);
+  bool retVal = Class_isInstance(cls, instance);
+  Ptr_release(cls);
+  return retVal;
+}
+
 /* outside refcount system */
 /* TODO: This is not yet done for interfaces */
 bool Class_isInstanceObjectType(Class *current, int32_t targetRegisterId) {

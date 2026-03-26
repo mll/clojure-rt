@@ -123,7 +123,7 @@ include_directories(${CMOCKA_INCLUDE_DIRS})
 
 set(COMMON_TEST_SOURCES 
     tests/TestTools.c
-    tests/ExceptionsMock.c
+    tests/BridgeMocks.c
 )
 
 set(TEST_MODULES

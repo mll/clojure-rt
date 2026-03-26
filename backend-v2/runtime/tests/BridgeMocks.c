@@ -65,3 +65,16 @@ void throwInternalInconsistencyException_C(const char *errorMessage) {
   fprintf(stderr, "InternalInconsistencyException: %s\n", errorMessage);
   abort();
 }
+ 
+void JITEngine_slowPath_enter(void *engine, void *epochPtr) {
+   // No-op for tests
+}
+ 
+void JITEngine_slowPath_leave(void *engine) {
+   // No-op for tests
+}
+ 
+Class *ClassLookup(const char *className, void *jitEngine) {
+   fprintf(stderr, "Mock ClassLookup called for: %s\n", className);
+   abort();
+}

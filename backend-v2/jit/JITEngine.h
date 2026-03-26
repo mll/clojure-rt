@@ -10,8 +10,8 @@
 // LLVM JIT (ORC v2)
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
-#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/ExecutionEngine/Orc/ObjectTransformLayer.h"
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 
 // LLVM Optimization (New Pass Manager)
@@ -31,17 +31,16 @@
 #include "bytecode.pb.h"
 #include <algorithm>
 #include <bitset>
+#include <cstdint>
+#include <functional>
 #include <future>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <functional>
 #include <unordered_map>
-#include <cstdint>
 
 #include "../runtime/JITSafety.h"
-
 
 namespace rt {
 
@@ -53,7 +52,6 @@ struct JITResult {
 
 class JITEngine {
 public:
-
   struct SafetySection {
     JITEngine &engine;
     SafetySection(JITEngine &e);
@@ -86,30 +84,28 @@ private:
   std::atomic<uint64_t> globalEpoch{1};
   std::vector<ZombieTracker> zombieTrackers;
   std::map<std::string, std::vector<LimboTracker>> limboTrackers;
-  std::map<std::thread::id, std::atomic<uint64_t>*> activeThreads;
+  std::map<std::thread::id, std::atomic<uint64_t> *> activeThreads;
   mutable std::mutex zombieMutex;
-
-  ThreadsafeCompilerState &threadsafeState;
 
   // Active compilation tracking
   std::unordered_map<std::string, std::shared_future<JITResult>>
       activeCompilations;
   std::mutex compilationMutex;
-  
+
   std::unique_ptr<llvm::MemoryBuffer> runtimeBitcodeBuffer;
-  
-  void optimize(llvm::Module &M, llvm::OptimizationLevel Level, const std::string &entryPoint);
+
+  void optimize(llvm::Module &M, llvm::OptimizationLevel Level,
+                const std::string &entryPoint);
   void registerRuntimeSymbols();
 
   // Private helper for common JIT logic
-  std::shared_future<JITResult> compileGeneric(
-      std::function<std::string(CodeGen&)> codegenFunc,
-      const std::string &moduleName,
-      llvm::OptimizationLevel Level,
-      bool printModule,
-      bool reuseIfExists = false);
+  std::shared_future<JITResult>
+  compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
+                 const std::string &moduleName, llvm::OptimizationLevel Level,
+                 bool printModule, bool reuseIfExists = false);
 
 public:
+  ThreadsafeCompilerState &threadsafeState;
   JITEngine(ThreadsafeCompilerState &state,
             size_t numThreads = std::thread::hardware_concurrency());
   ~JITEngine();
@@ -118,23 +114,20 @@ public:
    * Returns a future that resolves to the function address once compiled.
    */
   std::shared_future<JITResult> compileAST(const Node &AST,
-                                                  const std::string &moduleName,
-                                                  llvm::OptimizationLevel Level,
-                                                  bool printModule = false);
+                                           const std::string &moduleName,
+                                           llvm::OptimizationLevel Level,
+                                           bool printModule = false);
 
   /**
    * Compiles a specialized bridge for an instance call.
    */
   std::shared_future<JITResult> compileInstanceCallBridge(
-      const std::string &methodName,
-      const ObjectTypeSet &instanceType,
-      const std::vector<ObjectTypeSet> &argTypes,
-      void* callSiteId,
-      llvm::OptimizationLevel Level,
-      bool printModule = false);
+      const std::string &methodName, const ObjectTypeSet &instanceType,
+      const std::vector<ObjectTypeSet> &argTypes, void *callSiteId,
+      llvm::OptimizationLevel Level, bool printModule = false);
 
   void invalidate(const std::string &name);
-  
+
   /**
    * EBR management
    */
@@ -144,13 +137,16 @@ public:
   void sweep();
 
   // Testing helpers
+
   size_t getLimboCount() const;
   size_t getZombieCount() const;
 
   void registerThread(rt_jt_epoch_t *epochPtr);
   void unregisterThread();
 
-  uint64_t getGlobalEpoch() const { return globalEpoch.load(std::memory_order_relaxed); }
+  uint64_t getGlobalEpoch() const {
+    return globalEpoch.load(std::memory_order_relaxed);
+  }
 
 private:
   static CapturedObject captureObject(const llvm::MemoryBuffer &Obj);

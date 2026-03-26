@@ -3,13 +3,14 @@
 #include "../../types/ObjectTypeSet.h"
 #include "../CleanupChainGuard.h"
 #include "../CodeGen.h"
+#include "runtime/Class.h"
+#include "runtime/ObjectProto.h"
 
 using namespace std;
 using namespace llvm;
 using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
-
 TypedValue CodeGen::codegen(const Node &node, const IsInstanceNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
   CleanupChainGuard guard(*this);
@@ -34,19 +35,16 @@ TypedValue CodeGen::codegen(const Node &node, const IsInstanceNode &subnode,
   if (!cls) {
     throwCodeGenerationException("Class " + className + " not found", node);
   }
-  uint32_t registerId = (uint32_t)cls->registerId;
-  Value *regIdVal = Builder.getInt32(registerId);
 
   // 3. Fallback to runtime check
-  // getType does not consume the target
+  // Class_isInstance does not consume the target
   ObjectTypeSet getTypeRetType(integerType, false);
-  TypedValue res = invokeManager.invokeRuntime("getType", &getTypeRetType,
-                                               {ObjectTypeSet::all()}, {target},
-                                               false, nullptr);
-  ObjectTypeSet resultType(booleanType, false);
-  auto retVal = Builder.CreateICmpEQ(res.value, regIdVal);
+  TypedValue res = invokeManager.invokeRuntime(
+      "Class_isInstance", &getTypeRetType,
+      {ObjectTypeSet(classType, false), ObjectTypeSet::dynamicType()},
+      {cls, target}, false, nullptr);
   memoryManagement.dynamicRelease(target);
-  return TypedValue(resultType, retVal);
+  return res;
 }
 
 ObjectTypeSet CodeGen::getType(const Node &node, const IsInstanceNode &subnode,
@@ -61,13 +59,13 @@ ObjectTypeSet CodeGen::getType(const Node &node, const IsInstanceNode &subnode,
   if (!cls) {
     throwCodeGenerationException("Class " + className + " not found", node);
   }
-  uint32_t registerId = (uint32_t)cls->registerId;
 
   ObjectTypeSet targetType = getType(subnode.target(), ObjectTypeSet::all());
+
   if (targetType.isDetermined()) {
     return ObjectTypeSet(booleanType, false,
-                         new ConstantBoolean(targetType.determinedType() ==
-                                             (objectType)registerId));
+                         new ConstantBoolean(Class_isInstanceObjectType(
+                             cls.get(), targetType.determinedType())));
   }
   return ObjectTypeSet(booleanType, false);
 }

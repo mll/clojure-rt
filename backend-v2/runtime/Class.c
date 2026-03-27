@@ -4,6 +4,8 @@
 #include "word.h"
 #include <stdarg.h>
 
+Class *ClassLookup(const char *className, void *jitEngine);
+
 Class *Class_createInterface(String *name, String *className,
                              int32_t extendsInterfaceCount,
                              Class **extendsInterfaces) {

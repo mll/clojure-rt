@@ -56,13 +56,6 @@ bool Class_isInstance(Class *current, RTValue instance);
 bool Class_isInstanceClassName(const char *className, void *jitEngine,
                                RTValue instance);
 
-int32_t Class_fieldIndex(Class *self, /* Keyword */ RTValue field);
-int32_t Class_staticFieldIndex(Class *self, /* Keyword */ RTValue staticField);
-RTValue Class_setIndexedStaticField(Class *self, int32_t i, RTValue value);
-RTValue Class_getIndexedStaticField(Class *self, int32_t i);
-ClojureFunction *Class_resolveInstanceCall(Class *self, RTValue name,
-                                           int32_t argCount);
-
 Class *ClassLookup(const char *className, void *jitEngine);
 
 #ifdef __cplusplus

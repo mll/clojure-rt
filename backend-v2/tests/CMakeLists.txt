@@ -36,7 +36,7 @@ foreach(TEST_MODULE ${TEST_MODULES})
     string(REPLACE "/" "_" SAFE_TEST_MODULE ${TEST_MODULE})
     set(EXEC_NAME backend_${SAFE_TEST_MODULE})
     add_executable(${EXEC_NAME} ${TEST_MODULE}.cpp ${COMMON_TEST_SOURCES})
-    target_link_libraries(${EXEC_NAME} PUBLIC runtime backend_lib ${CMOCKA_LIBRARIES} ${GMP_LIBRARY})
+    target_link_libraries(${EXEC_NAME} PUBLIC backend_lib ${CMOCKA_LIBRARIES})
     
     # On Linux, export symbols so the JIT can find runtime functions
     target_link_options(${EXEC_NAME} PRIVATE -rdynamic)

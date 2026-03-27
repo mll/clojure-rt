@@ -30,21 +30,19 @@ TypedValue CodeGen::codegen(const Node &node, const IsInstanceNode &subnode,
   if (className.find("class ") == 0) {
     className = className.substr(6);
   }
-  ScopedRef<::Class> cls(
-      this->compilerState.classRegistry.getCurrent(className.c_str()));
-  if (!cls) {
-    throwCodeGenerationException("Class " + className + " not found", node);
-  }
 
-  // 3. Fallback to runtime check
-  // Class_isInstance does not consume the target
-  ObjectTypeSet getTypeRetType(integerType, false);
-  TypedValue res = invokeManager.invokeRuntime(
-      "Class_isInstance", &getTypeRetType,
-      {ObjectTypeSet(classType, false), ObjectTypeSet::dynamicType()},
-      {cls, target}, false, nullptr);
-  memoryManagement.dynamicRelease(target);
-  return res;
+  Value *classNameGlobal =
+      Builder.CreateGlobalString(className, "is_instance_class");
+  Value *jitEngineVal = ConstantInt::get(types.i64Ty, (uintptr_t)jitEnginePtr);
+  jitEngineVal = Builder.CreateIntToPtr(jitEngineVal, types.ptrTy);
+
+  FunctionType *isInstSig = FunctionType::get(
+      types.i1Ty, {types.ptrTy, types.ptrTy, types.RT_valueTy}, false);
+  Value *isInstVal = invokeManager.invokeRaw(
+      "Class_isInstanceClassName", isInstSig,
+      {classNameGlobal, jitEngineVal, valueEncoder.box(target).value}, &guard);
+
+  return TypedValue(retType, isInstVal);
 }
 
 ObjectTypeSet CodeGen::getType(const Node &node, const IsInstanceNode &subnode,

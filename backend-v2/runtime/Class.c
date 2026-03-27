@@ -64,107 +64,13 @@ void Class_destroy(Class *self) {
   }
 }
 
-// Bridge declarations (implemented in C++ side)
-__attribute__((weak)) int32_t ClassExtension_fieldIndex(void *ext,
-                                                        RTValue field) {
-  return -1;
-}
-__attribute__((weak)) int32_t
-ClassExtension_staticFieldIndex(void *ext, RTValue staticField) {
-  return -1;
-}
-__attribute__((weak)) RTValue ClassExtension_getIndexedStaticField(void *ext,
-                                                                   int32_t i) {
-  return RT_boxNil();
-}
-__attribute__((weak)) RTValue
-ClassExtension_setIndexedStaticField(void *ext, int32_t i, RTValue value) {
-  return value;
-}
-__attribute__((weak)) ClojureFunction *
-ClassExtension_resolveInstanceCall(void *ext, RTValue name, int32_t argCount) {
-  return NULL;
-}
-
-int32_t Class_fieldIndex(Class *self, RTValue field) {
-  int32_t retVal = -1;
-  if (self->compilerExtension) {
-    retVal = ClassExtension_fieldIndex(self->compilerExtension, field);
-  }
-  Ptr_release(self);
-  release(field);
-  return retVal;
-}
-
-int32_t Class_staticFieldIndex(Class *self, RTValue staticField) {
-  int32_t retVal = -1;
-  if (self->compilerExtension) {
-    retVal =
-        ClassExtension_staticFieldIndex(self->compilerExtension, staticField);
-  }
-  Ptr_release(self);
-  release(staticField);
-  return retVal;
-}
-
-RTValue Class_setIndexedStaticField(Class *self, int32_t i, RTValue value) {
-  RTValue retVal = value;
-  if (self->compilerExtension) {
-    retVal =
-        ClassExtension_setIndexedStaticField(self->compilerExtension, i, value);
-  }
-  Ptr_release(self);
-  return retVal;
-}
-
-RTValue Class_getIndexedStaticField(Class *self, int32_t i) {
-  RTValue retVal = RT_boxNil();
-  if (self->compilerExtension) {
-    retVal = ClassExtension_getIndexedStaticField(self->compilerExtension, i);
-  }
-  Ptr_release(self);
-  return retVal;
-}
-
-ClojureFunction *Class_resolveInstanceCall(Class *self, RTValue name,
-                                           int32_t argCount) {
-  ClojureFunction *retVal = NULL;
-
-  if (self->compilerExtension) {
-    retVal = ClassExtension_resolveInstanceCall(self->compilerExtension, name,
-                                                argCount);
-    if (retVal) {
-      Ptr_retain(retVal);
-      Ptr_release(self);
-      release(name);
-      return retVal;
-    }
-  }
-
-  // Resolve in superclasses (still needed in C if extension doesn't handle
-  // hierarchy)
-  for (int32_t i = 0; i < self->superclassCount; i++) {
-    Ptr_retain(self->superclasses[i]);
-    retVal = Class_resolveInstanceCall(self->superclasses[i], name, argCount);
-    if (retVal) {
-      Ptr_release(self);
-      return retVal;
-    }
-  }
-
-  Ptr_release(self);
-  release(name);
-
-  /* NULL signals the function was not found. */
-  return retVal;
-}
-
 bool Class_isInstanceClassName(const char *className, void *jitEngine,
                                RTValue instance) {
   // Throws when class cannot be found.
   Class *cls = ClassLookup(className, jitEngine);
   bool retVal = Class_isInstance(cls, instance);
   Ptr_release(cls);
+  release(instance);
   return retVal;
 }
 

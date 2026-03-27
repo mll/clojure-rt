@@ -1,5 +1,6 @@
 set(COMMON_TEST_SOURCES 
     ../runtime/tests/TestTools.c
+    ../runtime/tests/BridgeMocks.c
     codegen/runtime_helpers.c
 )
 

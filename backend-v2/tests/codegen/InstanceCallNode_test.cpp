@@ -4,8 +4,11 @@
 #include "../../state/ThreadsafeCompilerState.h"
 #include "../../tools/EdnParser.h"
 #include "bytecode.pb.h"
+#include "../../runtime/Exceptions.h"
+#include "../../runtime/PersistentVector.h"
 #include <fstream>
 #include <iostream>
+#include <cstring>
 
 extern "C" {
 #include "../../runtime/tests/TestTools.h"
@@ -228,12 +231,93 @@ static void test_dynamic_instance_call(void **state) {
   });
 }
 
+static void test_instance_call_slow_path_error(void **state) {
+  (void)state;
+  auto logic = [&]() {
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_instance_metadata(compState);
+    JITEngine engine(compState);
+
+    Node callNode;
+    callNode.set_op(opInstanceCall);
+    auto *ic = callNode.mutable_subnode()->mutable_instancecall();
+    ic->set_method("nonExistentMethod");
+
+    auto *inst = ic->mutable_instance();
+    inst->set_op(opConst);
+    inst->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    inst->mutable_subnode()->mutable_const_()->set_val("0");
+    inst->set_tag("long");
+
+    try {
+      auto resCall = engine.compileAST(callNode, "test_slow_error", llvm::OptimizationLevel::O0, true).get().address;
+      resPtrToValue(resCall);
+      assert_true(false); // Should not reach here
+    } catch (const rt::LanguageException &e) {}
+  };
+  ASSERT_MEMORY_ALL_BALANCED(logic(););
+}
+
+static void test_instance_call_fast_path_error(void **state) {
+  (void)state;
+  auto logic = [&]() {
+    rt::ThreadsafeCompilerState compState;
+    setup_mock_instance_metadata(compState);
+    {
+       ::Class* cls = compState.classRegistry.getCurrent("Vector");
+       ClassDescription* ext = (ClassDescription*)cls->compilerExtension;
+       ext->instanceFns["pop"].clear();
+       IntrinsicDescription pop;
+       pop.symbol = "PersistentVector_pop";
+       pop.type = CallType::Call;
+       pop.argTypes.push_back(ObjectTypeSet(persistentVectorType));
+       pop.returnType = ObjectTypeSet(persistentVectorType);
+       ext->instanceFns["pop"].push_back(pop);
+       Ptr_release(cls);
+    }
+    JITEngine engine(compState);
+    RTValue vk = Keyword_create(String_create("user/my-vec"));
+    Var *myVar = Var_create(vk);
+    compState.varRegistry.registerObject("user/my-vec", myVar);
+
+    Node callNode;
+    callNode.set_op(opInstanceCall);
+    auto *ic = callNode.mutable_subnode()->mutable_instancecall();
+    ic->set_method("pop");
+    auto *inst = ic->mutable_instance();
+    inst->set_op(opVar);
+    inst->mutable_subnode()->mutable_var()->set_var("#'user/my-vec");
+
+    auto resCall = engine.compileAST(callNode, "test_fast_error", llvm::OptimizationLevel::O0, true).get().address;
+    auto fn = resCall.toPtr<RTValue (*)()>();
+    PersistentVector* v = PersistentVector_create();
+    v = PersistentVector_conj(v, RT_boxInt32(42));
+    Ptr_retain(myVar);
+    Var_bindRoot(myVar, RT_boxPtr(v));
+    release(fn());
+
+    Ptr_retain(myVar);
+    Var_bindRoot(myVar, RT_boxPtr(PersistentVector_create()));
+    try {
+      fn();
+      assert_true(false);
+    } catch (const rt::LanguageException &e) {
+      assert_non_null(strstr(rt::getExceptionString(e).c_str(), "Can't pop empty vector"));
+    }
+    Ptr_retain(myVar);
+    Var_bindRoot(myVar, RT_boxNil());
+  };
+  ASSERT_MEMORY_ALL_BALANCED(logic(););
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_static_instance_call),
       cmocka_unit_test(test_vector_pop_call),
       cmocka_unit_test(test_dynamic_instance_call),
+      cmocka_unit_test(test_instance_call_slow_path_error),
+      cmocka_unit_test(test_instance_call_fast_path_error),
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);

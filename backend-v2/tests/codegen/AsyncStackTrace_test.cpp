@@ -71,61 +71,59 @@ static int teardown_test_group(void **state) {
 
 static void test_async_stack_trace_friendly(void **state) {
   (void)state;
-
-  RTValue strObj = RT_boxPtr(String_create("test"));
-  retain(strObj);
-
   InlineCache icSlot = {0, nullptr};
+  ASSERT_MEMORY_ALL_BALANCED({
+    RTValue strObj = RT_boxPtr(String_create("test"));
 
-  try {
-    RTValue args[1] = {strObj};
-    InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, gEngine);
-    fail_msg("Expected an exception from .contas");
-  } catch (const LanguageException &e) {
-    string trace = getExceptionString(e, StackTraceMode::Friendly);
-    cout << "Friendly Exception String:\n" << trace << endl;
+    try {
+      RTValue args[1] = {strObj};
+      // Slow path has a peculiar semantics. It does not consume when successful
+      // and it does when throws.
+      InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, gEngine);
+      fail_msg("Expected an exception from .contas");
+    } catch (const LanguageException &e) {
+      string trace = getExceptionString(e, StackTraceMode::Friendly);
+      cout << "Friendly Exception String:\n" << trace << endl;
 
-    // 1. Check for the error message
-    assert_non_null(
-        strstr(trace.c_str(), "does not have an instance method contas"));
+      // 1. Check for the error message
+      assert_non_null(
+          strstr(trace.c_str(), "does not have an instance method contas"));
 
-    // 2. Friendly mode should CULL infrastructure
-    assert_null(strstr(trace.c_str(), "rt::InvokeManager"));
-    assert_null(strstr(trace.c_str(), "rt::JITEngine"));
-    assert_null(strstr(trace.c_str(), "InstanceCallSlowPath"));
-    assert_null(strstr(trace.c_str(), "std::__1"));
-    assert_null(strstr(trace.c_str(), "throwInternalInconsistencyException"));
+      // 2. Friendly mode should CULL infrastructure
+      assert_null(strstr(trace.c_str(), "rt::InvokeManager"));
+      assert_null(strstr(trace.c_str(), "rt::JITEngine"));
+      assert_null(strstr(trace.c_str(), "InstanceCallSlowPath"));
+      assert_null(strstr(trace.c_str(), "std::__1"));
+      assert_null(strstr(trace.c_str(), "throwInternalInconsistencyException"));
 
-    // 3. But it should show the main test thread (the end of the chain)
-    assert_non_null(strstr(trace.c_str(), "test_async_stack_trace_friendly"));
-  }
-
-  release(strObj);
+      // 3. But it should show the main test thread (the end of the chain)
+      assert_non_null(strstr(trace.c_str(), "test_async_stack_trace_friendly"));
+    }
+  });
 }
 
 static void test_async_stack_trace_debug(void **state) {
   (void)state;
-
-  RTValue strObj = RT_boxPtr(String_create("test"));
-  retain(strObj);
-
   InlineCache icSlot = {0, nullptr};
+  ASSERT_MEMORY_ALL_BALANCED({
+    RTValue strObj = RT_boxPtr(String_create("test"));
 
-  try {
-    RTValue args[1] = {strObj};
-    InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, gEngine);
-    fail_msg("Expected an exception from .contas");
-  } catch (const LanguageException &e) {
-    string trace = getExceptionString(e, StackTraceMode::Debug);
-    cout << "Debug Exception String:\n" << trace << endl;
+    try {
+      RTValue args[1] = {strObj};
+      // Slow path has a peculiar semantics. It does not consume when successful
+      // and it does when throws.
+      InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, gEngine);
+      fail_msg("Expected an exception from .contas");
+    } catch (const LanguageException &e) {
+      string trace = getExceptionString(e, StackTraceMode::Debug);
+      cout << "Debug Exception String:\n" << trace << endl;
 
-    // 1. Debug mode should show EVERYTHING
-    assert_non_null(strstr(trace.c_str(), "rt::InvokeManager"));
-    assert_non_null(strstr(trace.c_str(), "InstanceCallSlowPath"));
-    assert_non_null(strstr(trace.c_str(), "test_async_stack_trace_debug"));
-  }
-
-  release(strObj);
+      // 1. Debug mode should show EVERYTHING
+      assert_non_null(strstr(trace.c_str(), "rt::InvokeManager"));
+      assert_non_null(strstr(trace.c_str(), "InstanceCallSlowPath"));
+      assert_non_null(strstr(trace.c_str(), "test_async_stack_trace_debug"));
+    }
+  });
 }
 
 int main() {

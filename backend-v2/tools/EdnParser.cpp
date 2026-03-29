@@ -1,6 +1,9 @@
 #include "EdnParser.h"
 #include "RTValueWrapper.h"
 #include "bridge/Exceptions.h"
+#include "runtime/Object.h"
+#include "runtime/String.h"
+#include <ostream>
 #include <unordered_set>
 
 namespace rt {
@@ -54,38 +57,43 @@ void TemporaryClassData::scanMetadata(RTValue from) {
                                  Keyword_create(String_create("name")), key));
 
     // updatedValue has refcount 1. wrapped in valWrapper for cleanup.
-    ConsumedValue valWrapper(updatedValue);
+
+    PersistentArrayMap *pMap = (PersistentArrayMap *)RT_unboxPtr(updatedValue);
 
     // PersistentArrayMap_get consumes its arguments.
     // Protect valWrapper for multiple gets.
-    retain(valWrapper.get());
+    Ptr_retain(pMap);
     RTValue classId = PersistentArrayMap_get(
-        (PersistentArrayMap *)RT_unboxPtr(valWrapper.get()),
-        Keyword_create(String_create("object-type")));
+        pMap, Keyword_create(String_create("object-type")));
+
+    if (getType(classId) == nilType) {
+      release(classId);
+      classId = RT_boxInt32(nextClassId++);
+      retain(classId);
+      pMap = PersistentArrayMap_assoc(
+          pMap, Keyword_create(String_create("object-type")), classId);
+      updatedValue = RT_boxPtr(pMap);
+    }
+    ConsumedValue valWrapper(updatedValue);
     ConsumedValue classIdWrapper(classId);
 
-    if (getType(classIdWrapper.get()) == integerType) {
-      PersistentArrayMap *pMap =
-          (PersistentArrayMap *)RT_unboxPtr(valWrapper.get());
-      classesById[RT_unboxInt32(classIdWrapper.get())] = pMap;
-      Ptr_retain(pMap); // for storage
-    } else if (getType(classIdWrapper.get()) != nilType) {
+    if (getType(classIdWrapper.get()) != integerType) {
       throwInternalInconsistencyException(":object-type must be an integer.");
     }
 
-    retain(valWrapper.get()); // for get
-    RTValue alias = PersistentArrayMap_get(
-        (PersistentArrayMap *)RT_unboxPtr(valWrapper.get()),
-        Keyword_create(String_create("alias")));
+    Ptr_retain(pMap); // for storage
+    classesById[RT_unboxInt32(classIdWrapper.get())] = pMap;
+
+    Ptr_retain(pMap); // for get
+    RTValue alias =
+        PersistentArrayMap_get(pMap, Keyword_create(String_create("alias")));
     ConsumedValue aliasWrapper(alias);
 
     if (getType(aliasWrapper.get()) == keywordType) {
       // toString consumes.
       String *ss = String_compactify(::toString(aliasWrapper.take()));
-      PersistentArrayMap *pMap =
-          (PersistentArrayMap *)RT_unboxPtr(valWrapper.get());
-      classesByName[string(String_c_str(ss))] = pMap;
       Ptr_retain(pMap); // for storage
+      classesByName[string(String_c_str(ss))] = pMap;
       Ptr_release(ss);
     } else if (getType(aliasWrapper.get()) != nilType) {
       throwInternalInconsistencyException(":alias must be a keyword.");
@@ -94,10 +102,8 @@ void TemporaryClassData::scanMetadata(RTValue from) {
     // toString consumes. Protect borrowed key.
     retain(key);
     String *s = String_compactify(::toString(key));
-    PersistentArrayMap *pMap =
-        (PersistentArrayMap *)RT_unboxPtr(valWrapper.get());
-    classesByName[string(String_c_str(s))] = pMap;
     Ptr_retain(pMap); // for storage
+    classesByName[string(String_c_str(s))] = pMap;
     Ptr_release(s);
   }
 }
@@ -123,9 +129,7 @@ ClassDescription::ClassDescription(RTValue from,
     string sAlias = String_c_str(s);
     Ptr_release(s);
 
-    if (sAlias == ":any") {
-      this->type = ObjectTypeSet::all();
-    } else if (sAlias == ":nil") {
+    if (sAlias == ":nil") {
       this->type = nilType;
     } else {
       // Fallback to integerType if it has one, or classType
@@ -146,21 +150,9 @@ ClassDescription::ClassDescription(RTValue from,
 
     if (getType(typeWrapper.get()) == integerType) {
       this->type = (objectType)RT_unboxInt32(typeWrapper.get());
-    } else if (getType(typeWrapper.get()) == nilType) {
-      this->type = classType;
-    } else {
+    } else if (getType(typeWrapper.get()) != nilType) {
       throwInternalInconsistencyException("Object-type is not an integer");
     }
-  }
-
-  retain(root.get());
-  ConsumedValue extendsWrapper(PersistentArrayMap_get(
-      description, Keyword_create(String_create("extends"))));
-  if (getType(extendsWrapper.get()) == symbolType ||
-      getType(extendsWrapper.get()) == stringType) {
-    String *sParent = String_compactify(::toString(extendsWrapper.take()));
-    this->parentName = String_c_str(sParent);
-    Ptr_release(sParent);
   }
 
   retain(root.get());
@@ -176,6 +168,16 @@ ClassDescription::ClassDescription(RTValue from,
   String *compactifiedName = String_compactify(::toString(nameWrapper.take()));
   this->name = String_c_str(compactifiedName);
   Ptr_release(compactifiedName);
+
+  retain(root.get());
+  ConsumedValue extendsWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("extends"))));
+  if (getType(extendsWrapper.get()) == symbolType ||
+      getType(extendsWrapper.get()) == stringType) {
+    String *sParent = String_compactify(::toString(extendsWrapper.take()));
+    this->parentName = String_c_str(sParent);
+    Ptr_release(sParent);
+  }
 
   retain(root.get());
   ConsumedValue sfWrapper(PersistentArrayMap_get(
@@ -419,12 +421,15 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
   return retVal;
 }
 
-vector<IntrinsicDescription> ClassDescription::parseConstructorDescriptions(
-    RTValue from, TemporaryClassData &classData, const ObjectTypeSet &thisType) {
+vector<IntrinsicDescription>
+ClassDescription::parseConstructorDescriptions(RTValue from,
+                                               TemporaryClassData &classData,
+                                               const ObjectTypeSet &thisType) {
   ConsumedValue root(from);
   vector<IntrinsicDescription> retVal;
   if (getType(root.get()) != persistentVectorType) {
-    throwInternalInconsistencyException("Constructor collection is not a vector");
+    throwInternalInconsistencyException(
+        "Constructor collection is not a vector");
   }
 
   PersistentVector *vec = (PersistentVector *)RT_unboxPtr(root.get());
@@ -437,7 +442,8 @@ vector<IntrinsicDescription> ClassDescription::parseConstructorDescriptions(
     IntrinsicDescription desc(intrinsicRaw, classData, thisType, false,
                               thisType);
 
-    // Validation: If returns was provided explicitly, it MUST be exactly thisType.
+    // Validation: If returns was provided explicitly, it MUST be exactly
+    // thisType.
     if (desc.returnsProvided && desc.returnType != thisType) {
       throwInternalInconsistencyException(
           "Constructor must return exactly the class type it belongs to. "
@@ -642,7 +648,6 @@ vector<unique_ptr<ClassDescription>> buildClasses(RTValue from) {
       retVal.push_back(std::move(desc));
     }
   }
-
   return retVal;
 }
 

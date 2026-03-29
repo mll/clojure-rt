@@ -17,7 +17,6 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
     String *classNameStr = String_createDynamicStr(desc->name.c_str());
 
     ::Class *c = Class_create(nameStr, classNameStr, 0, NULL);
-    Ptr_retain(c); // Local reference for this function's logic
     localMap[desc->name] = c;
     if (desc->type.isDetermined()) {
       c->registerId = desc->type.determinedType();
@@ -46,7 +45,19 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
       }
 
       if (parentClass) {
+        Ptr_retain(parentClass); // desc release parentClass as well.
         desc->extends = parentClass;
+
+        // Populate runtime Class superclasses (currently support single
+        // inheritance)
+        c->superclassCount = 1;
+        c->superclasses = (::Class **)allocate(sizeof(::Class *));
+        c->superclasses[0] = parentClass;
+      } else {
+        for (auto const &p2 : localMap)
+          Ptr_release(p2.second);
+        throwInternalInconsistencyException("Parent class not found: " +
+                                            desc->parentName);
       }
     }
   }
@@ -58,16 +69,17 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
         static_cast<ClassDescription *>(c->compilerExtension);
 
     // Give our local reference to the registry (registerObject name-based)
+    Ptr_retain(c);
     classRegistry.registerObject(desc->name.c_str(), c);
 
     if (desc->type.isDetermined()) {
       // If we register by ID too, we need another reference because the ID
       // registry also releases on its own.
-      Ptr_retain(c);
-      classRegistry.registerObject(c, (int32_t)desc->type.determinedType());
+      c->registerId = (int32_t)desc->type.determinedType();
+      classRegistry.registerObject(c, c->registerId);
+    } else {
+      c->registerId = classRegistry.registerObject(c, -1);
     }
-
-    Ptr_release(c); // Release the local reference
   }
 }
 

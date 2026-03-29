@@ -4,7 +4,8 @@
 #include "word.h"
 #include <stdarg.h>
 
-Class *ClassLookup(const char *className, void *jitEngine);
+Class *ClassLookupByName(const char *className, void *jitEngine);
+Class *ClassLookupByRegisterId(int32_t registerId, void *jitEngine);
 
 Class *Class_createInterface(String *name, String *className,
                              int32_t extendsInterfaceCount,
@@ -55,8 +56,10 @@ String *Class_toString(Class *self) {
 void Class_destroy(Class *self) {
   Ptr_release(self->name);
   Ptr_release(self->className);
-  for (int32_t i = 0; i < self->superclassCount; i++)
-    Ptr_release(self->superclasses[i]);
+  if (self->superclasses) {
+    for (int32_t i = 0; i < self->superclassCount; i++)
+      Ptr_release(self->superclasses[i]);
+  }
 
   if (self->superclasses)
     deallocate(self->superclasses);
@@ -69,29 +72,29 @@ void Class_destroy(Class *self) {
 bool Class_isInstanceClassName(const char *className, void *jitEngine,
                                RTValue instance) {
   // Throws when class cannot be found.
-  Class *cls = ClassLookup(className, jitEngine);
-  bool retVal = Class_isInstance(cls, instance);
+  Class *cls = ClassLookupByName(className, jitEngine);
+  assert(cls && "cls must not be null");
+  Class *targetClass = ClassLookupByRegisterId(getType(instance), jitEngine);
+  assert(targetClass && "targetClass must not be null");
+  bool retVal = Class_isInstance(cls, targetClass);
   Ptr_release(cls);
+  Ptr_release(targetClass);
   release(instance);
   return retVal;
 }
 
 /* outside refcount system */
 /* TODO: This is not yet done for interfaces */
-bool Class_isInstanceObjectType(Class *current, int32_t targetRegisterId) {
-  if (current->registerId == targetRegisterId) {
+bool Class_isInstance(Class *current, Class *target) {
+  assert(target && "Target must not be null");
+  assert(current && "Current must not be null");
+  if (current->registerId == target->registerId) {
     return true;
   }
-  for (int i = 0; i < current->superclassCount; i++) {
-    if (Class_isInstanceObjectType(current->superclasses[i],
-                                   targetRegisterId)) {
+  for (int32_t i = 0; i < target->superclassCount; i++) {
+    if (Class_isInstance(current, target->superclasses[i])) {
       return true;
     }
   }
   return false;
-}
-/* outside refcount system */
-bool Class_isInstance(Class *current, RTValue instance) {
-  objectType type = getType(instance);
-  return Class_isInstanceObjectType(current, type);
 }

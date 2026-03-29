@@ -51,12 +51,9 @@ int32_t Class_hash(Class *self);
 String *Class_toString(Class *self);
 void Class_destroy(Class *self);
 
-bool Class_isInstanceObjectType(Class *current, int32_t targetRegisterId);
-bool Class_isInstance(Class *current, RTValue instance);
 bool Class_isInstanceClassName(const char *className, void *jitEngine,
                                RTValue instance);
-
-Class *ClassLookup(const char *className, void *jitEngine);
+bool Class_isInstance(Class *current, Class *target);
 
 #ifdef __cplusplus
 }

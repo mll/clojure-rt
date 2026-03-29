@@ -18,6 +18,7 @@ class TemporaryClassData {
 public:
   unordered_map<string, PersistentArrayMap *> classesByName;
   unordered_map<uword_t, PersistentArrayMap *> classesById;
+  uint32_t nextClassId = 1000;
   TemporaryClassData(RTValue from);
   ~TemporaryClassData();
 };

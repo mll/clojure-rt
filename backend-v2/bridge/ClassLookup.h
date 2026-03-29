@@ -5,10 +5,14 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 struct Class;
 
 __attribute__((visibility("default"))) ::Class *
-ClassLookup(const char *className, void *jitEngine);
+ClassLookupByName(const char *className, void *jitEngine);
+__attribute__((visibility("default"))) ::Class *
+ClassLookupByRegisterId(int32_t registerId, void *jitEngine);
 
 #ifdef __cplusplus
 }

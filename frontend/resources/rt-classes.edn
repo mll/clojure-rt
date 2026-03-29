@@ -7,6 +7,10 @@
   {:object-type 15
    :extends java.lang.Object}
 
+  java.lang.Nil
+  {:object-type 3
+   :extends java.lang.Object}
+
   java.lang.Long
   {:object-type 1
    :alias :int
@@ -265,7 +269,8 @@
            {:args [:any :any]       :type :intrinsic :symbol "Math_hypot"    :returns :double}]}}
 
   java.lang.String
-  {:object-type 7
+  {:extends java.lang.Object
+   :object-type 7
     :constructor [{:args [] :type :call :symbol "String_createEmpty" :returns java.lang.String}]
    :static-fns
    {print [{:args [:any] :type :call :symbol "print" :returns :nil}]}
@@ -293,6 +298,7 @@
 
   clojure.lang.PersistentVector
   {:object-type 9
+   :extends java.lang.Object
    :instance-fns
    {asTransient [{:args [:this] :type :call :symbol "PersistentVector_transient" :returns clojure.lang.PersistentVector}]
     persistent [{:args [:this] :type :call :symbol "PersistentVector_persistent_BANG_" :returns clojure.lang.PersistentVector}]

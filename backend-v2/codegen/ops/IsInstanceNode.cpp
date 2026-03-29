@@ -5,6 +5,7 @@
 #include "../CodeGen.h"
 #include "runtime/Class.h"
 #include "runtime/ObjectProto.h"
+#include <string>
 
 using namespace std;
 using namespace llvm;
@@ -47,6 +48,10 @@ TypedValue CodeGen::codegen(const Node &node, const IsInstanceNode &subnode,
 
 ObjectTypeSet CodeGen::getType(const Node &node, const IsInstanceNode &subnode,
                                const ObjectTypeSet &typeRestrictions) {
+  ObjectTypeSet targetType = getType(subnode.target(), ObjectTypeSet::all());
+  if (!targetType.isDetermined()) {
+    return ObjectTypeSet(booleanType);
+  }
   // 1. Resolve class name
   string className = subnode.class_();
   if (className.find("class ") == 0) {
@@ -58,14 +63,17 @@ ObjectTypeSet CodeGen::getType(const Node &node, const IsInstanceNode &subnode,
     throwCodeGenerationException("Class " + className + " not found", node);
   }
 
-  ObjectTypeSet targetType = getType(subnode.target(), ObjectTypeSet::all());
-
-  if (targetType.isDetermined()) {
-    return ObjectTypeSet(booleanType, false,
-                         new ConstantBoolean(Class_isInstanceObjectType(
-                             cls.get(), targetType.determinedType())));
+  ScopedRef<::Class> target(this->compilerState.classRegistry.getCurrent(
+      targetType.determinedType()));
+  if (!target) {
+    throwCodeGenerationException("Class with registerId '" +
+                                     to_string(targetType.determinedType()) +
+                                     "' not found",
+                                 node);
   }
-  return ObjectTypeSet(booleanType, false);
+  return ObjectTypeSet(
+      booleanType, false,
+      new ConstantBoolean(Class_isInstance(cls.get(), target.get())));
 }
 
 } // namespace rt

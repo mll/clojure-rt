@@ -19,7 +19,8 @@
 #include <llvm/Transforms/IPO/Inliner.h>
 #include <llvm/Transforms/IPO/ModuleInliner.h>
 
-// Bridge functions are now in bridge/JITEngineBridge.cpp and bridge/JITSafety.cpp
+// Bridge functions are now in bridge/JITEngineBridge.cpp and
+// bridge/JITSafety.cpp
 
 extern "C" void JITEngine_enterSafeSection(void *engine);
 extern "C" void JITEngine_leaveSafeSection(void *engine);
@@ -563,7 +564,10 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(
       absoluteSymbol("InstanceCallSlowPath", (void *)InstanceCallSlowPath));
 
-  runtimeSymbols.insert(absoluteSymbol("ClassLookup", (void *)ClassLookup));
+  runtimeSymbols.insert(
+      absoluteSymbol("ClassLookupByName", (void *)ClassLookupByName));
+  runtimeSymbols.insert(absoluteSymbol("ClassLookupByRegisterId",
+                                       (void *)ClassLookupByRegisterId));
 
   runtimeSymbols.insert(absoluteSymbol("JITEngine_slowPath_enter",
                                        (void *)JITEngine_slowPath_enter));

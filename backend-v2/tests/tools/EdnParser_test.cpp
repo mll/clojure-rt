@@ -572,8 +572,9 @@ static void test_object_type_not_int(void **state) {
 
 static void test_alias_not_keyword(void **state) {
   (void)state;
-  try {
-    ASSERT_MEMORY_ALL_BALANCED({
+  ASSERT_MEMORY_ALL_BALANCED({
+    try {
+
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
           classMap, Keyword_create(String_create("alias")),
@@ -582,15 +583,15 @@ static void test_alias_not_keyword(void **state) {
       rootMap = PersistentArrayMap_assoc(
           rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
-    });
-    fail_msg("Expected LanguageException for test_alias_not_keyword but none "
-             "was thrown");
-  } catch (const LanguageException &e) {
-    // Expected
-  } catch (...) {
-    fail_msg("Expected LanguageException for test_alias_not_keyword but "
-             "unknown exception caught");
-  }
+
+      fail_msg("Expected LanguageException for test_alias_not_keyword but none "
+               "was thrown");
+    } catch (const LanguageException &e) {
+    } catch (...) {
+      fail_msg("Expected LanguageException for test_alias_not_keyword but "
+               "unknown exception caught");
+    }
+  });
 }
 
 // --- Group 2: ClassDescription ---

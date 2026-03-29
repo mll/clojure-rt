@@ -55,7 +55,6 @@ void TemporaryClassData::scanMetadata(RTValue from) {
     RTValue updatedValue = RT_boxPtr(
         PersistentArrayMap_assoc((PersistentArrayMap *)RT_unboxPtr(value),
                                  Keyword_create(String_create("name")), key));
-
     // updatedValue has refcount 1. wrapped in valWrapper for cleanup.
 
     PersistentArrayMap *pMap = (PersistentArrayMap *)RT_unboxPtr(updatedValue);
@@ -74,15 +73,13 @@ void TemporaryClassData::scanMetadata(RTValue from) {
           pMap, Keyword_create(String_create("object-type")), classId);
       updatedValue = RT_boxPtr(pMap);
     }
-    ConsumedValue valWrapper(updatedValue);
+
     ConsumedValue classIdWrapper(classId);
+    ConsumedValue valWrapper(updatedValue);
 
     if (getType(classIdWrapper.get()) != integerType) {
       throwInternalInconsistencyException(":object-type must be an integer.");
     }
-
-    Ptr_retain(pMap); // for storage
-    classesById[RT_unboxInt32(classIdWrapper.get())] = pMap;
 
     Ptr_retain(pMap); // for get
     RTValue alias =
@@ -98,6 +95,9 @@ void TemporaryClassData::scanMetadata(RTValue from) {
     } else if (getType(aliasWrapper.get()) != nilType) {
       throwInternalInconsistencyException(":alias must be a keyword.");
     }
+
+    Ptr_retain(pMap); // for storage
+    classesById[RT_unboxInt32(classIdWrapper.get())] = pMap;
 
     // toString consumes. Protect borrowed key.
     retain(key);
@@ -545,7 +545,8 @@ IntrinsicDescription::IntrinsicDescription(
           throwInternalInconsistencyException(
               ":this must be the first argument.");
         }
-        if (thisType.isDetermined() && thisType.determinedType() == objectRootType) {
+        if (thisType.isDetermined() &&
+            thisType.determinedType() == objectRootType) {
           this->argTypes.push_back(ObjectTypeSet::dynamicType());
         } else {
           this->argTypes.push_back(thisType);

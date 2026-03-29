@@ -24,7 +24,8 @@ public:
   ThreadsafeRegistry<::Var> varRegistry;
 
   ThreadsafeCompilerState()
-      : classRegistry(true), functionAstRegistry(false), varRegistry(true) {}
+      : classRegistry(true, 1000), functionAstRegistry(false),
+        varRegistry(true) {}
 
   void storeInternalClasses(RTValue from);
   void storeInternalProtocols(RTValue from);

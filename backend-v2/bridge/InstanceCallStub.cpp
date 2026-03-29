@@ -25,53 +25,52 @@ void releaseInstanceStubArgs(int32_t argCount, RTValue *args) {
  * key.
  * 4. Executes the bridge and returns the result.
  */
+
+// Slow path has peculiar semantics. It does not consume when successful
+// but it does when it throws.
 extern "C" __attribute__((visibility("default"))) void *
 InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
                      RTValue *args, uint64_t boxedMask, void *jitEngine) {
-
-  if (!jitEngine) {
-    releaseInstanceStubArgs(argCount, args);
-    throwInternalInconsistencyException(
-        "InstanceCallSlowPath: jitEngine is null");
-  }
-  if (!slot) {
-    releaseInstanceStubArgs(argCount, args);
-    throwInternalInconsistencyException(
-        "InstanceCallSlowPath: IC slot is null");
-  }
-  if (argCount >= 64) {
-    releaseInstanceStubArgs(argCount, args);
-    throwInternalInconsistencyException(
-        "InstanceCallSlowPath: argCount >= 64 is not supported due to "
-        "boxedMask limitation");
-  }
-
-  JITEngine *engine = static_cast<JITEngine *>(jitEngine);
-  InlineCache *ic = static_cast<InlineCache *>(slot);
-
-  // 1. Determine the actual type of the instance at runtime
-  RTValue instance = args[0];
-  objectType instanceType = getType(instance);
-
-  // 2. Prepare the argument types for JIT specialization
-  std::vector<ObjectTypeSet> argTypes;
-  for (int i = 0; i < argCount; i++) {
-    // bit i of boxedMask corresponds to args[i+1] (the i-th method argument)
-    bool isBoxed = (boxedMask >> i) & 1;
-    if (isBoxed) {
-      argTypes.push_back(ObjectTypeSet::dynamicType());
-    } else {
-      // For unboxed arguments, we specialize to the actual runtime type
-      argTypes.push_back(ObjectTypeSet(getType(args[i + 1])));
-    }
-  }
-
-  // 3. Trigger JIT compilation of a specialized bridge stub
-  auto future = engine->compileInstanceCallBridge(
-      methodName ? methodName : "unknown", ObjectTypeSet(instanceType),
-      argTypes, slot, llvm::OptimizationLevel::O0, true);
-
   try {
+    if (!jitEngine) {
+      throwInternalInconsistencyException(
+          "InstanceCallSlowPath: jitEngine is null");
+    }
+    if (!slot) {
+      throwInternalInconsistencyException(
+          "InstanceCallSlowPath: IC slot is null");
+    }
+    if (argCount >= 64) {
+      throwInternalInconsistencyException(
+          "InstanceCallSlowPath: argCount >= 64 is not supported due to "
+          "boxedMask limitation");
+    }
+
+    JITEngine *engine = static_cast<JITEngine *>(jitEngine);
+    InlineCache *ic = static_cast<InlineCache *>(slot);
+
+    // 1. Determine the actual type of the instance at runtime
+    RTValue instance = args[0];
+    objectType instanceType = getType(instance);
+
+    // 2. Prepare the argument types for JIT specialization
+    std::vector<ObjectTypeSet> argTypes;
+    for (int i = 0; i < argCount; i++) {
+      // bit i of boxedMask corresponds to args[i+1] (the i-th method argument)
+      bool isBoxed = (boxedMask >> i) & 1;
+      if (isBoxed) {
+        argTypes.push_back(ObjectTypeSet::dynamicType());
+      } else {
+        // For unboxed arguments, we specialize to the actual runtime type
+        argTypes.push_back(ObjectTypeSet(getType(args[i + 1])));
+      }
+    }
+
+    // 3. Trigger JIT compilation of a specialized bridge stub
+    auto future = engine->compileInstanceCallBridge(
+        methodName ? methodName : "unknown", ObjectTypeSet(instanceType),
+        argTypes, slot, llvm::OptimizationLevel::O0, true);
+
     // Block until the JIT compilation is finished and get the executable
     // address
     llvm::orc::ExecutorAddr bridgeAddr = future.get().address;
@@ -84,7 +83,7 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Watomic-alignment"
 #endif
-      // 16-byte atomic load. We have alignas(16) on InlineCache and ensure 
+      // 16-byte atomic load. We have alignas(16) on InlineCache and ensure
       // alignment in the JIT. On x86_64, this requires cmpxchg16b.
       __atomic_load((unsigned __int128 *)ic, (unsigned __int128 *)&currentIC,
                     __ATOMIC_ACQUIRE);

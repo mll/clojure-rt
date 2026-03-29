@@ -51,12 +51,9 @@ int32_t Class_hash(Class *self);
 String *Class_toString(Class *self);
 void Class_destroy(Class *self);
 
-int32_t Class_fieldIndex(Class *self, /* Keyword */ RTValue field);
-int32_t Class_staticFieldIndex(Class *self, /* Keyword */ RTValue staticField);
-RTValue Class_setIndexedStaticField(Class *self, int32_t i, RTValue value);
-RTValue Class_getIndexedStaticField(Class *self, int32_t i);
-ClojureFunction *Class_resolveInstanceCall(Class *self, RTValue name,
-                                           int32_t argCount);
+bool Class_isInstanceClassName(const char *className, void *jitEngine,
+                               RTValue instance);
+bool Class_isInstance(Class *current, Class *target);
 
 #ifdef __cplusplus
 }

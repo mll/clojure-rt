@@ -3,6 +3,7 @@
 
 #include "../runtime/ObjectProto.h"
 #include "../runtime/defines.h"
+#include <cstdint>
 #include <algorithm>
 #include <set>
 #include <vector>
@@ -29,14 +30,15 @@ namespace rt {
 
 class ObjectTypeSet {
 private:
-  std::set<objectType> internal;
+  std::set<uint32_t> internal;
   ObjectTypeConstant *constant = nullptr;
-  bool isBoxed;
+  bool isBoxed = false;
+  bool allTypes = false;
 
 public:
   ObjectTypeConstant *getConstant() const { return constant; }
 
-  ObjectTypeSet(objectType type, bool isBoxed = false,
+  ObjectTypeSet(uint32_t type, bool isBoxed = false,
                 ObjectTypeConstant *cons = nullptr)
       : constant(cons), isBoxed(isBoxed) {
     internal.insert(type);
@@ -46,6 +48,7 @@ public:
   }
 
   ObjectTypeSet() {}
+
   ~ObjectTypeSet() {
     if (constant)
       delete constant;
@@ -53,43 +56,37 @@ public:
   }
 
   ObjectTypeSet(const ObjectTypeSet &other)
-      : internal(other.internal), isBoxed(other.isBoxed) {
+      : internal(other.internal), isBoxed(other.isBoxed), allTypes(other.allTypes) {
     if (other.constant)
       constant = other.constant->copy();
     else
       constant = nullptr;
   }
 
-  std::set<objectType>::const_iterator internalBegin() const {
-    return internal.begin();
-  }
+  void insert(uint32_t type) { internal.emplace(type); }
 
-  std::set<objectType>::const_iterator internalEnd() const {
-    return internal.end();
-  }
-
-  void insert(objectType type) { internal.emplace(type); }
-
-  bool isEmpty() const { return internal.size() == 0; }
+  bool isEmpty() const { return internal.size() == 0 && !allTypes; }
 
   int size() const { return internal.size(); }
 
-  bool contains(objectType type) const {
+  bool contains(uint32_t type) const {
+    if (allTypes)
+      return true;
     return internal.find(type) != internal.end();
   }
 
-  bool isBoxedType(objectType type) const {
-    return contains(type) && internal.size() == 1 && isBoxed;
+  bool isBoxedType(uint32_t type) const {
+    return contains(type) && internal.size() == 1 && isBoxed && !allTypes;
   }
 
-  bool isUnboxedType(objectType type) const {
-    return contains(type) && internal.size() == 1 && !isBoxed;
+  bool isUnboxedType(uint32_t type) const {
+    return contains(type) && internal.size() == 1 && !isBoxed && !allTypes;
   }
 
-  bool isDetermined() const { return internal.size() == 1; }
+  bool isDetermined() const { return internal.size() == 1 && !allTypes; }
 
   bool isDynamic() const {
-    if (internal.size() > 1) {
+    if (internal.size() > 1 || allTypes) {
       return true;
     }
     return false;
@@ -154,14 +151,14 @@ public:
     }
   }
 
-  objectType determinedType() const {
+  uint32_t determinedType() const {
     if (!isDetermined()) {
       throwInternalInconsistencyException("Type not determined");
     }
     return *(internal.begin());
   }
 
-  void remove(objectType type) {
+  void remove(uint32_t type) {
     auto pos = internal.find(type);
     if (pos == internal.end())
       return;
@@ -171,6 +168,10 @@ public:
   ObjectTypeSet expansion(const ObjectTypeSet &other) const {
     /* Expansion removes all constants */
     auto retVal = ObjectTypeSet(*this);
+    if (other.allTypes) {
+      retVal.allTypes = true;
+      return retVal;
+    }
     retVal.internal.insert(other.internal.begin(), other.internal.end());
     retVal.isBoxed = (isBoxed && !isEmpty()) ||
                      (other.isBoxed && !other.isEmpty()) || retVal.size() > 1;
@@ -189,6 +190,9 @@ public:
   }
 
   ObjectTypeSet restriction(const ObjectTypeSet &other) const {
+    if (other.allTypes) {
+      return *this;
+    }
     /* Restriction preserves constant type for this */
     auto retVal = ObjectTypeSet();
     std::set_intersection(
@@ -205,8 +209,11 @@ public:
   }
 
   ObjectTypeSet &operator=(const ObjectTypeSet &other) {
+    if (this == &other)
+      return *this;
     isBoxed = other.isBoxed;
     internal = other.internal;
+    allTypes = other.allTypes;
     if (constant)
       delete constant;
     constant = nullptr;
@@ -245,11 +252,13 @@ public:
     retVal.insert(classType);
     retVal.insert(persistentArrayMapType);
     retVal.insert(varType);
+    retVal.insert(objectRootType);
+    retVal.allTypes = true;
     retVal.isBoxed = true;
     return retVal;
   }
 
-  static ObjectTypeSet fromVector(std::vector<objectType> types) {
+  static ObjectTypeSet fromVector(std::vector<uint32_t> types) {
     assert((types.size() > 1) &&
            "ObjectTypeSet::fromVector requires vector of length at least 2");
     ObjectTypeSet retVal;
@@ -298,6 +307,10 @@ public:
         return "LA";
       case varType:
         return "LQ";
+      case objectRootType:
+        return "LO";
+      default:
+        return "LR";
       }
   }
 
@@ -322,7 +335,7 @@ public:
     return name + "_" + typeStringForArgs(args);
   }
 
-  static std::string toHumanReadableName(objectType type) {
+  static std::string toHumanReadableName(uint32_t type) {
     switch (type) {
     case integerType:
       return ":int";
@@ -358,8 +371,10 @@ public:
       return ":chm";
     case varType:
       return ":var";
+    case objectRootType:
+      return ":any";
     default:
-      return ":unknown";
+      return ":custom(" + std::to_string(type) + ")";
     }
   }
 

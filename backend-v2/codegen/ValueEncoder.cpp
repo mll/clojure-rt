@@ -369,7 +369,7 @@ TypedValue ValueEncoder::unboxPointer(TypedValue boxedVal) {
 }
 
 TypedValue ValueEncoder::unboxKeyword(TypedValue boxedVal) {
-  if (boxedVal.type.isBoxedType(keywordType))
+  if (boxedVal.type.isUnboxedType(keywordType))
     return boxedVal;
   // Strip the tag and return the ID (usually i32 is enough for enum IDs)
   return TypedValue(
@@ -378,7 +378,7 @@ TypedValue ValueEncoder::unboxKeyword(TypedValue boxedVal) {
 }
 
 TypedValue ValueEncoder::unboxSymbol(TypedValue boxedVal) {
-  if (boxedVal.type.isBoxedType(symbolType))
+  if (boxedVal.type.isUnboxedType(symbolType))
     return boxedVal;
   // Strip the tag and return the ID (usually i32 is enough for enum IDs)
   return TypedValue(

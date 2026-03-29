@@ -1,10 +1,10 @@
 #include "String.h"
+#include "Exceptions.h"
 #include "Hash.h"
 #include "Object.h"
 #include "PersistentVector.h"
 #include "RTValue.h"
 #include <string.h>
-#include "Exceptions.h"
 
 /* outside refcount system */
 uword_t String_computeHash(const char *str) {
@@ -55,6 +55,8 @@ String *String_createStatic(const char *string) {
 String *String_create(const char *string) {
   return String_createStatic(string);
 }
+
+String *String_createEmpty() { return String_createStatic(""); }
 
 /* mem done */
 String *String_createDynamic(size_t size) {
@@ -198,7 +200,7 @@ String *String_compactify(String *self) {
   }
   output[self->count] = 0;
   out->hash = String_computeHash(output);
-  
+
   Ptr_release(self);
   return out;
 }

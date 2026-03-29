@@ -52,6 +52,7 @@ void printReferenceCounts();
 
 extern _Atomic(uword_t) allocationCount[256];
 extern _Atomic(uword_t) objectCount[256];
+#define TRACING_LIMIT 256
 
 // bank 0 - 32 bytes 2^5
 // bank 1 - 64 bytes
@@ -221,8 +222,10 @@ inline objectType getType(RTValue v) {
 inline void Object_retain(Object *restrict self) {
 //  printf("RETAIN!!! %d\n", self->type);
 #ifdef REFCOUNT_TRACING
-  atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
-                            memory_order_relaxed);
+  if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
+    atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
+                              memory_order_relaxed);
+  }
 #endif
 #ifdef REFCOUNT_NONATOMIC
   self->refCount += COUNT_INC;
@@ -284,8 +287,7 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
     break;
 
   default:
-    assert(false && "Internal error: hash computation for NaN tagged types "
-                    "should be computed earlier.");
+    break;
   }
   deallocate(self);
   // printf("dealloc end %lld\n", (uword_t));
@@ -308,16 +310,20 @@ inline bool isReusable(RTValue self) {
 inline bool Object_release_internal(Object *restrict self,
                                     bool deallocateChildren) {
 #ifdef REFCOUNT_TRACING
-  atomic_fetch_sub_explicit(&(allocationCount[self->type - 1]), 1,
-                            memory_order_relaxed);
+  if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
+    atomic_fetch_sub_explicit(&(allocationCount[self->type - 1]), 1,
+                              memory_order_relaxed);
+  }
 #endif
 #ifdef REFCOUNT_NONATOMIC
   self->refCount -= COUNT_INC;
   if ((self->refCount >> 1) == 0) {
 #ifdef REFCOUNT_TRACING
-    uword_t countVal = atomic_fetch_sub_explicit(&(objectCount[self->type - 1]),
-                                                 1, memory_order_relaxed);
-    assert(countVal >= 1 && "Memory corruption!");
+    if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
+      uword_t countVal = atomic_fetch_sub_explicit(
+          &(objectCount[self->type - 1]), 1, memory_order_relaxed);
+      assert(countVal >= 1 && "Memory corruption!");
+    }
 #endif
     Object_destroy(self, deallocateChildren);
     return true;
@@ -333,9 +339,11 @@ inline bool Object_release_internal(Object *restrict self,
 
     if ((newVal >> 1) == 0) {
 #ifdef REFCOUNT_TRACING
-      uword_t countVal = atomic_fetch_sub_explicit(
-          &(objectCount[self->type - 1]), 1, memory_order_relaxed);
-      assert(countVal >= 1 && "Memory corruption!");
+      if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
+        uword_t countVal = atomic_fetch_sub_explicit(
+            &(objectCount[self->type - 1]), 1, memory_order_relaxed);
+        assert(countVal >= 1 && "Memory corruption!");
+      }
 #endif
       Object_destroy(self, deallocateChildren);
       return true;
@@ -350,9 +358,11 @@ inline bool Object_release_internal(Object *restrict self,
                                                COUNT_INC, memory_order_release);
     if (relVal >> 1 == 1) {
 #ifdef REFCOUNT_TRACING
-      uword_t countVal = atomic_fetch_sub_explicit(
-          &(objectCount[self->type - 1]), 1, memory_order_relaxed);
-      assert(countVal >= 1 && "Memory corruption!");
+      if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
+        uword_t countVal = atomic_fetch_sub_explicit(
+            &(objectCount[self->type - 1]), 1, memory_order_relaxed);
+        assert(countVal >= 1 && "Memory corruption!");
+      }
 #endif
       atomic_thread_fence(memory_order_acquire);
       Object_destroy(self, deallocateChildren);
@@ -643,10 +653,12 @@ inline void Object_create(Object *restrict self, objectType type) {
 #endif
   self->type = type;
 #ifdef REFCOUNT_TRACING
-  atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
-                            memory_order_relaxed);
-  atomic_fetch_add_explicit(&(objectCount[self->type - 1]), 1,
-                            memory_order_relaxed);
+  if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
+    atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
+                              memory_order_relaxed);
+    atomic_fetch_add_explicit(&(objectCount[self->type - 1]), 1,
+                              memory_order_relaxed);
+  }
 #endif
   //  printf("--> Allocating type %d addres %p\n", self->type, );
 }

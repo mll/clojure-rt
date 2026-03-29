@@ -24,7 +24,7 @@ void PersistentVector_initialise();
 void PersistentArrayMap_initialise();
 
 void initialise_memory() {
-  for (int i = 0; i < 200; i++)
+  for (int i = 0; i < 256; i++)
     atomic_exchange(&(allocationCount[i]), 0);
   /* poolInitialize(&globalPool1, BLOCK_SIZE, 100000); */
   /* poolInitialize(&globalPool2, 128, 100000); */

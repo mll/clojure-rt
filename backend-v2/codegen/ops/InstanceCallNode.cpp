@@ -15,8 +15,11 @@ using namespace clojure::rt::protobuf::bytecode;
 
 namespace rt {
 
+/* The node currently supports only the simplest case - no inheritance, no
+ * interfaces. TODO: implement full support for inheritance and interfaces.
+ */
 TypedValue CodeGen::codegen(const Node &node, const InstanceCallNode &subnode,
-                             const ObjectTypeSet &typeRestrictions) {
+                            const ObjectTypeSet &typeRestrictions) {
   CleanupChainGuard guard(*this);
 
   // 1. Codegen instance
@@ -31,7 +34,8 @@ TypedValue CodeGen::codegen(const Node &node, const InstanceCallNode &subnode,
     guard.push(t);
   }
 
-  return this->invokeManager.generateInstanceCall(subnode.method(), instanceVal, args, &guard, &node);
+  return this->invokeManager.generateInstanceCall(subnode.method(), instanceVal,
+                                                  args, &guard, &node);
 }
 
 ObjectTypeSet CodeGen::getType(const Node &node,
@@ -43,7 +47,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     args.push_back(getType(subnode.args(i), ObjectTypeSet::all()).unboxed());
   }
 
-  return this->invokeManager.predictInstanceCallType(subnode.method(), instanceType, args);
+  return this->invokeManager.predictInstanceCallType(subnode.method(),
+                                                     instanceType, args);
 }
 
 } // namespace rt

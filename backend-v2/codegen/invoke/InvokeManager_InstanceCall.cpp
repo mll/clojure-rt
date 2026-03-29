@@ -5,6 +5,7 @@
 #include "../CodeGen.h"
 #include "InvokeManager.h"
 #include "llvm/IR/MDBuilder.h"
+#include <cstdint>
 #include <sstream>
 
 using namespace llvm;
@@ -60,7 +61,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
   uint64_t boxedMask = 0;
   for (size_t i = 0; i < args.size(); i++) {
     if (args[i].type.isDetermined()) {
-      objectType t = args[i].type.determinedType();
+      uint32_t t = args[i].type.determinedType();
       if (t == integerType)
         llvmArgTypes.push_back(types.i32Ty);
       else if (t == doubleType)
@@ -160,7 +161,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
   bridgeArgs.push_back(boxedInstance.value);
   for (size_t i = 0; i < args.size(); i++) {
     if (args[i].type.isDetermined()) {
-      objectType t = args[i].type.determinedType();
+      uint32_t t = args[i].type.determinedType();
       if (t == integerType)
         bridgeArgs.push_back(valueEncoder.unboxInt32(args[i]).value);
       else if (t == doubleType)
@@ -188,20 +189,6 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
 
   ::Class *targetClass =
       this->compilerState.classRegistry.getCurrent((int32_t)objType);
-
-  if (objType == classType && instance.type.getConstant()) {
-    if (auto *cc = dynamic_cast<ConstantClass *>(instance.type.getConstant())) {
-      ::Class *constantClassPtr = (::Class *)cc->value;
-      if (targetClass && targetClass != constantClassPtr) {
-        Ptr_release(targetClass);
-        targetClass = constantClassPtr;
-        Ptr_retain(targetClass);
-      } else if (!targetClass) {
-        targetClass = constantClassPtr;
-        Ptr_retain(targetClass);
-      }
-    }
-  }
 
   PtrWrapper<Class> cls(targetClass);
   if (!cls) {
@@ -388,7 +375,7 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
           argRuntimeTypes[i] = typeVal.value;
         }
 
-        objectType target = fid->argTypes[i].determinedType();
+        uint32_t target = fid->argTypes[i].determinedType();
         Value *targetVal =
             ConstantInt::get(this->types.i32Ty, (uint32_t)target);
         Value *isType =
@@ -412,7 +399,7 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
     std::vector<TypedValue> specializedArgs;
     for (size_t i = 0; i < allArgs.size(); i++) {
       if (fid->argTypes[i].isDetermined()) {
-        objectType target = fid->argTypes[i].determinedType();
+        uint32_t target = fid->argTypes[i].determinedType();
         llvm::Value *unboxedVal = nullptr;
         if (target == integerType)
           unboxedVal = this->valueEncoder.unboxInt32(allArgs[i]).value;
@@ -457,9 +444,8 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
     Value *methNameVal =
         this->builder.CreateGlobalString(methodName, "instance_call_method");
 
-    FunctionType *fnTy = FunctionType::get(this->types.voidTy,
-                                          {this->types.ptrTy, this->types.ptrTy},
-                                          false);
+    FunctionType *fnTy = FunctionType::get(
+        this->types.voidTy, {this->types.ptrTy, this->types.ptrTy}, false);
     this->invokeRaw("throwNoMatchingOverloadException_C", fnTy,
                     {classNameVal, methNameVal}, guard);
     this->builder.CreateUnreachable();
@@ -485,25 +471,6 @@ InvokeManager::predictInstanceCallType(const std::string &methodName,
   auto objType = instanceType.determinedType();
   ::Class *targetClass =
       compilerState.classRegistry.getCurrent((int32_t)objType);
-
-  if (objType == classType && instanceType.getConstant()) {
-    if (auto *cc = dynamic_cast<ConstantClass *>(instanceType.getConstant())) {
-      ::Class *constantClassPtr = (::Class *)cc->value;
-      if (targetClass && targetClass != constantClassPtr) {
-        Ptr_release(targetClass);
-        targetClass = constantClassPtr;
-        Ptr_retain(targetClass);
-      } else if (!targetClass) {
-        targetClass = constantClassPtr;
-        Ptr_retain(targetClass);
-      }
-    }
-  }
-
-  if (!targetClass) {
-    string name = ObjectTypeSet::toHumanReadableName(objType);
-    targetClass = compilerState.classRegistry.getCurrent(name.c_str());
-  }
 
   PtrWrapper<Class> cls(targetClass);
   if (!cls)

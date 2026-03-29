@@ -26,6 +26,9 @@ set(TEST_MODULES
     codegen/DeepStackSymbolization_test
     codegen/ExceptionForm_test
     codegen/ExceptionColor_test
+    codegen/NewNode_test
+    codegen/IsInstanceNode_test
+    state/ClassRegistration_test
     VarUAF_repro_test
     JITSafety_test
 )
@@ -34,7 +37,11 @@ foreach(TEST_MODULE ${TEST_MODULES})
     string(REPLACE "/" "_" SAFE_TEST_MODULE ${TEST_MODULE})
     set(EXEC_NAME backend_${SAFE_TEST_MODULE})
     add_executable(${EXEC_NAME} ${TEST_MODULE}.cpp ${COMMON_TEST_SOURCES})
-    target_link_libraries(${EXEC_NAME} PUBLIC backend_lib runtime ${CMOCKA_LIBRARIES} ${GMP_LIBRARY})
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_libraries(${EXEC_NAME} PUBLIC -Wl,--start-group backend_lib runtime -Wl,--end-group ${CMOCKA_LIBRARIES})
+    else()
+        target_link_libraries(${EXEC_NAME} PUBLIC backend_lib ${CMOCKA_LIBRARIES})
+    endif()
     
     # On Linux, export symbols so the JIT can find runtime functions
     target_link_options(${EXEC_NAME} PRIVATE -rdynamic)

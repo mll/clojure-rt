@@ -1,4 +1,5 @@
 #include "Exceptions.h"
+#include "bytecode.pb.h"
 #include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/Object/ObjectFile.h"
@@ -11,7 +12,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "bytecode.pb.h"
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -21,41 +21,45 @@
 namespace rt {
 
 struct Colors {
-    static constexpr const char* RESET = "\033[0m";
-    static constexpr const char* BOLD = "\033[1m";
-    static constexpr const char* DIM = "\033[2m";
-    static constexpr const char* RED = "\033[31m";
-    static constexpr const char* GREEN = "\033[32m";
-    static constexpr const char* YELLOW = "\033[33m";
-    static constexpr const char* BLUE = "\033[34m";
-    static constexpr const char* MAGENTA = "\033[35m";
-    static constexpr const char* CYAN = "\033[36m";
-    static constexpr const char* WHITE = "\033[37m";
-    static constexpr const char* BRIGHT_RED = "\033[91m";
-    static constexpr const char* BRIGHT_GREEN = "\033[92m";
-    static constexpr const char* BRIGHT_YELLOW = "\033[93m";
-    static constexpr const char* BRIGHT_BLUE = "\033[94m";
-    static constexpr const char* BRIGHT_MAGENTA = "\033[95m";
-    static constexpr const char* BRIGHT_CYAN = "\033[96m";
-    static constexpr const char* BRIGHT_WHITE = "\033[97m";
-    
-    // Semantic colors
-    static const char* HEADER(bool e) { return e ? "\033[1;34m" : ""; } // Bold Blue
-    static const char* MSG(bool e) { return e ? "\033[1m" : ""; }      // Bold Default
-    static const char* LOC(bool e) { return e ? "\033[1;35m" : ""; }    // Bold Magenta
-    static const char* CODE(bool e) { return e ? "\033[1m" : ""; }     // Bold Default
-    static const char* MARK(bool e) { return e ? "\033[1;31m" : ""; }   // Bold Red
-    static const char* USER_FN(bool e) { return e ? "\033[1;32m" : ""; } // Bold Green
-    static const char* INFRA(bool e) { return e ? "\033[2m" : ""; }     // Dim
+  static constexpr const char *RESET = "\033[0m";
+  static constexpr const char *BOLD = "\033[1m";
+  static constexpr const char *DIM = "\033[2m";
+  static constexpr const char *RED = "\033[31m";
+  static constexpr const char *GREEN = "\033[32m";
+  static constexpr const char *YELLOW = "\033[33m";
+  static constexpr const char *BLUE = "\033[34m";
+  static constexpr const char *MAGENTA = "\033[35m";
+  static constexpr const char *CYAN = "\033[36m";
+  static constexpr const char *WHITE = "\033[37m";
+  static constexpr const char *BRIGHT_RED = "\033[91m";
+  static constexpr const char *BRIGHT_GREEN = "\033[92m";
+  static constexpr const char *BRIGHT_YELLOW = "\033[93m";
+  static constexpr const char *BRIGHT_BLUE = "\033[94m";
+  static constexpr const char *BRIGHT_MAGENTA = "\033[95m";
+  static constexpr const char *BRIGHT_CYAN = "\033[96m";
+  static constexpr const char *BRIGHT_WHITE = "\033[97m";
+
+  // Semantic colors
+  static const char *HEADER(bool e) {
+    return e ? "\033[1;34m" : "";
+  }                                                             // Bold Blue
+  static const char *MSG(bool e) { return e ? "\033[1m" : ""; } // Bold Default
+  static const char *LOC(bool e) {
+    return e ? "\033[1;35m" : "";
+  }                                                              // Bold Magenta
+  static const char *CODE(bool e) { return e ? "\033[1m" : ""; } // Bold Default
+  static const char *MARK(bool e) { return e ? "\033[1;31m" : ""; } // Bold Red
+  static const char *USER_FN(bool e) {
+    return e ? "\033[1;32m" : "";
+  }                                                               // Bold Green
+  static const char *INFRA(bool e) { return e ? "\033[2m" : ""; } // Dim
 };
 
-inline const char* c(const char* code, bool enabled) {
-    return enabled ? code : "";
+inline const char *c(const char *code, bool enabled) {
+  return enabled ? code : "";
 }
 
-
 thread_local std::shared_ptr<CapturedStack> gCurrentAsyncStack = nullptr;
-
 
 // JitFunctionEntry and SourceLocation are now defined in Exceptions.h
 
@@ -63,16 +67,18 @@ static std::map<uword_t, JitFunctionEntry> gJitFunctions;
 static std::mutex gJitMapMutex;
 static std::mutex gSymbolizerMutex;
 
-void registerJitFunction(uword_t address, uword_t size, const char *name,
-                         const void *objectData, size_t objectSize,
-                         std::map<rt::SourceLocation, std::string> locationToForm) {
+void registerJitFunction(
+    uword_t address, uword_t size, const char *name, const void *objectData,
+    size_t objectSize,
+    std::map<rt::SourceLocation, std::string> locationToForm) {
   std::lock_guard<std::mutex> lock(gJitMapMutex);
   JitFunctionEntry entry;
   entry.size = size;
   entry.name = name ? name : "unknown";
   if (objectData && objectSize > 0) {
     entry.objectData.assign(static_cast<const uint8_t *>(objectData),
-                             static_cast<const uint8_t *>(objectData) + objectSize);
+                            static_cast<const uint8_t *>(objectData) +
+                                objectSize);
   }
   entry.locationToForm = std::move(locationToForm);
   gJitFunctions[address] = std::move(entry);
@@ -158,7 +164,7 @@ void symbolizeStackChain(std::stringstream &ss,
           if (addr >= entryStart && addr < entryStart + entry.size) {
             std::string demangled = llvm::demangle(entry.name);
             bool isInfra = isInfrastructureFrame(demangled, "");
-            
+
             if (!foundFirstUserFrame && !isInfra)
               foundFirstUserFrame = true;
 
@@ -168,58 +174,73 @@ void symbolizeStackChain(std::stringstream &ss,
                 bool detailedInfoFound = false;
                 if (!entry.objectData.empty()) {
                   auto buffer = llvm::MemoryBuffer::getMemBuffer(
-                      llvm::StringRef(reinterpret_cast<const char*>(entry.objectData.data()), 
-                                    entry.objectData.size()),
+                      llvm::StringRef(reinterpret_cast<const char *>(
+                                          entry.objectData.data()),
+                                      entry.objectData.size()),
                       entry.name, false);
-                  auto objOrErr = llvm::object::ObjectFile::createObjectFile(buffer->getMemBufferRef());
+                  auto objOrErr = llvm::object::ObjectFile::createObjectFile(
+                      buffer->getMemBufferRef());
                   if (objOrErr) {
                     uword_t offset = addr - entryStart;
-                    if (offset >= 4) offset -= 4;
-                    
-                    // Use a LOCAL symbolizer for each JIT frame to be absolutely sure about lifetime and thread safety
+                    if (offset >= 4)
+                      offset -= 4;
+
+                    // Use a LOCAL symbolizer for each JIT frame to be
+                    // absolutely sure about lifetime and thread safety
                     llvm::symbolize::LLVMSymbolizer localSymbolizer;
                     auto resOrErr = localSymbolizer.symbolizeInlinedCode(
-                        *objOrErr.get(), 
+                        *objOrErr.get(),
                         {offset, llvm::object::SectionedAddress::UndefSection});
-                    
+
                     if (resOrErr) {
                       auto &inlinedInfo = resOrErr.get();
-                      for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames(); ++i) {
+                      for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames();
+                           ++i) {
                         auto &info = inlinedInfo.getFrame(i);
-                        std::string fnName = (info.FunctionName != "<invalid>") 
-                                               ? llvm::demangle(info.FunctionName) 
-                                               : demangled;
-                        
+                        std::string fnName =
+                            (info.FunctionName != "<invalid>")
+                                ? llvm::demangle(info.FunctionName)
+                                : demangled;
+
                         std::stringstream frameSs;
-                        frameSs << "  " << Colors::INFRA(useColor) << "at " << c(Colors::RESET, useColor)
-                                << Colors::USER_FN(useColor) << fnName << c(Colors::RESET, useColor);
+                        frameSs << "  " << Colors::INFRA(useColor) << "at "
+                                << c(Colors::RESET, useColor)
+                                << Colors::USER_FN(useColor) << fnName
+                                << c(Colors::RESET, useColor);
                         if (info.FileName != "<invalid>")
-                          frameSs << " [" << Colors::LOC(useColor) << info.FileName << ":" << info.Line << c(Colors::RESET, useColor) << "]";
+                          frameSs << " [" << Colors::LOC(useColor)
+                                  << info.FileName << ":" << info.Line
+                                  << c(Colors::RESET, useColor) << "]";
                         else
-                          frameSs << " [JIT:0x" << std::hex << entryStart << std::dec << "]";
-                        
+                          frameSs << " [JIT:0x" << std::hex << entryStart
+                                  << std::dec << "]";
+
                         if (mode == StackTraceMode::Debug && i > 0)
                           frameSs << " (inlined)";
                         if (mode == StackTraceMode::Debug)
                           frameSs << " @ 0x" << std::hex << addr << std::dec;
-                        
+
                         frameSs << "\n";
 
-                        // NEW: If this is the first user frame or we're looking for the form, check the locationToForm map
-                        if (!entry.locationToForm.empty() && info.FileName != "<invalid>") {
-                             SourceLocation loc;
-                             loc.file = info.FileName;
-                             loc.line = info.Line;
-                             loc.column = info.Column;
-                             auto formIt = entry.locationToForm.find(loc);
-                             if (formIt != entry.locationToForm.end()) {
-                                 // This is a candidate for the exception's form
-                                 // We'll handle this in the constructor's eager symbolization
-                             }
+                        // NEW: If this is the first user frame or we're looking
+                        // for the form, check the locationToForm map
+                        if (!entry.locationToForm.empty() &&
+                            info.FileName != "<invalid>") {
+                          SourceLocation loc;
+                          loc.file = info.FileName;
+                          loc.line = info.Line;
+                          loc.column = info.Column;
+                          auto formIt = entry.locationToForm.find(loc);
+                          if (formIt != entry.locationToForm.end()) {
+                            // This is a candidate for the exception's form
+                            // We'll handle this in the constructor's eager
+                            // symbolization
+                          }
                         }
-                        
+
                         // Deduplicate with previous lines
-                        if (currentAddrLines.empty() || currentAddrLines.back() != frameSs.str()) {
+                        if (currentAddrLines.empty() ||
+                            currentAddrLines.back() != frameSs.str()) {
                           currentAddrLines.push_back(frameSs.str());
                         }
                         detailedInfoFound = true;
@@ -234,12 +255,16 @@ void symbolizeStackChain(std::stringstream &ss,
 
                 if (!detailedInfoFound) {
                   std::stringstream frameSs;
-                  frameSs << "  " << c(Colors::DIM, useColor) << "at " << c(Colors::RESET, useColor)
-                          << c(Colors::BRIGHT_GREEN, useColor) << c(Colors::BOLD, useColor) << demangled << c(Colors::RESET, useColor)
-                          << " [JIT:0x" << std::hex << entryStart << std::dec << "]";
+                  frameSs << "  " << c(Colors::DIM, useColor) << "at "
+                          << c(Colors::RESET, useColor)
+                          << c(Colors::BRIGHT_GREEN, useColor)
+                          << c(Colors::BOLD, useColor) << demangled
+                          << c(Colors::RESET, useColor) << " [JIT:0x"
+                          << std::hex << entryStart << std::dec << "]";
                   if (mode == StackTraceMode::Debug) {
                     frameSs << " [+0x" << std::hex << (addr - entryStart)
-                            << std::dec << "] @ 0x" << std::hex << addr << std::dec;
+                            << std::dec << "] @ 0x" << std::hex << addr
+                            << std::dec;
                   }
                   frameSs << "\n";
                   currentAddrLines.push_back(frameSs.str());
@@ -308,10 +333,14 @@ void symbolizeStackChain(std::stringstream &ss,
 
                 if (foundFirstUserFrame && !isInfra) {
                   std::stringstream frameSs;
-                  frameSs << "  " << Colors::INFRA(useColor) << "at " << c(Colors::RESET, useColor)
-                          << Colors::USER_FN(useColor) << demangled << c(Colors::RESET, useColor);
+                  frameSs << "  " << Colors::INFRA(useColor) << "at "
+                          << c(Colors::RESET, useColor)
+                          << Colors::USER_FN(useColor) << demangled
+                          << c(Colors::RESET, useColor);
                   if (info.FileName != "<invalid>")
-                    frameSs << " [" << Colors::LOC(useColor) << info.FileName << ":" << info.Line << c(Colors::RESET, useColor) << "]";
+                    frameSs << " [" << Colors::LOC(useColor) << info.FileName
+                            << ":" << info.Line << c(Colors::RESET, useColor)
+                            << "]";
                   else
                     frameSs << " [" << currentModule << "]";
                   frameSs << "\n";
@@ -340,16 +369,20 @@ void symbolizeStackChain(std::stringstream &ss,
             bool isInfra = isInfrastructureFrame(demangled, "");
             if (!foundFirstUserFrame && !isInfra)
               foundFirstUserFrame = true;
-            if ((foundFirstUserFrame && (mode == StackTraceMode::Debug || !isInfra)) || mode == StackTraceMode::Debug) {
+            if ((foundFirstUserFrame &&
+                 (mode == StackTraceMode::Debug || !isInfra)) ||
+                mode == StackTraceMode::Debug) {
               std::stringstream frameSs;
               if (!dlSymbolName.empty()) {
-                frameSs << "  " << Colors::INFRA(useColor) << "at " << c(Colors::RESET, useColor)
-                        << Colors::INFRA(useColor) << demangled << c(Colors::RESET, useColor) << " ["
+                frameSs << "  " << Colors::INFRA(useColor) << "at "
+                        << c(Colors::RESET, useColor) << Colors::INFRA(useColor)
+                        << demangled << c(Colors::RESET, useColor) << " ["
                         << (dlinfo.dli_fname ? dlinfo.dli_fname : "unknown")
                         << "]";
               } else {
-                frameSs << "  " << Colors::INFRA(useColor) << "at " << c(Colors::RESET, useColor)
-                        << "0x" << std::hex << addr << std::dec << " ["
+                frameSs << "  " << Colors::INFRA(useColor) << "at "
+                        << c(Colors::RESET, useColor) << "0x" << std::hex
+                        << addr << std::dec << " ["
                         << (dlinfo.dli_fname ? dlinfo.dli_fname : "unknown")
                         << "]";
               }
@@ -376,7 +409,7 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
                                      RTValue payload)
     : name(name), message(message), payload(payload) {
   capturedStack = captureCurrentStack();
-  
+
   // Eager symbolization for form lookup
 #ifdef __APPLE__
   char path[1024];
@@ -386,8 +419,9 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
 
   bool foundForm = false;
   for (uword_t addr : capturedStack->addresses) {
-    if (addr == 0) continue;
-    
+    if (addr == 0)
+      continue;
+
     // Check JIT functions for form
     if (!foundForm) {
       std::lock_guard<std::mutex> lock(gJitMapMutex);
@@ -403,19 +437,22 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
         if (addr >= entryStart && addr < entryStart + entry.size) {
           if (!entry.objectData.empty()) {
             auto buffer = llvm::MemoryBuffer::getMemBuffer(
-                llvm::StringRef(reinterpret_cast<const char*>(entry.objectData.data()), 
-                              entry.objectData.size()),
+                llvm::StringRef(
+                    reinterpret_cast<const char *>(entry.objectData.data()),
+                    entry.objectData.size()),
                 entry.name, false);
-            auto objOrErr = llvm::object::ObjectFile::createObjectFile(buffer->getMemBufferRef());
+            auto objOrErr = llvm::object::ObjectFile::createObjectFile(
+                buffer->getMemBufferRef());
             if (objOrErr) {
               uword_t offset = addr - entryStart;
-              if (offset >= 4) offset -= 4;
-              
+              if (offset >= 4)
+                offset -= 4;
+
               llvm::symbolize::LLVMSymbolizer localSymbolizer;
               auto resOrErr = localSymbolizer.symbolizeInlinedCode(
-                  *objOrErr.get(), 
+                  *objOrErr.get(),
                   {offset, llvm::object::SectionedAddress::UndefSection});
-              
+
               if (resOrErr) {
                 auto &inlinedInfo = resOrErr.get();
                 for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames(); ++i) {
@@ -426,23 +463,28 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
                     loc.line = info.Line;
                     loc.column = info.Column;
                     auto formIt = entry.locationToForm.find(loc);
-                    
-                    if (formIt == entry.locationToForm.end() && !entry.locationToForm.empty()) {
+
+                    if (formIt == entry.locationToForm.end() &&
+                        !entry.locationToForm.empty()) {
                       // Try a fuzzy match based on basename and line
                       std::string base = info.FileName;
                       size_t lastS = base.find_last_of('/');
-                      if (lastS != std::string::npos) base = base.substr(lastS + 1);
-                      
-                      for (auto const& [k, v] : entry.locationToForm) {
+                      if (lastS != std::string::npos)
+                        base = base.substr(lastS + 1);
+
+                      for (auto const &[k, v] : entry.locationToForm) {
                         std::string kBase = k.file;
                         size_t kLastS = kBase.find_last_of('/');
-                        if (kLastS != std::string::npos) kBase = kBase.substr(kLastS + 1);
-                        
+                        if (kLastS != std::string::npos)
+                          kBase = kBase.substr(kLastS + 1);
+
                         // If line is 0, we take the first match for the file
-                        if (kBase == base && (k.line == (int)info.Line || info.Line == 0)) {
+                        if (kBase == base &&
+                            (k.line == (int)info.Line || info.Line == 0)) {
                           this->form = v;
                           std::stringstream locSs;
-                          locSs << info.FileName << ":" << k.line << ":" << k.column;
+                          locSs << info.FileName << ":" << k.line << ":"
+                                << k.column;
                           this->sourceLocation = locSs.str();
                           foundForm = true;
                           break;
@@ -451,7 +493,8 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
                     } else if (formIt != entry.locationToForm.end()) {
                       this->form = formIt->second;
                       std::stringstream locSs;
-                      locSs << info.FileName << ":" << info.Line << ":" << info.Column;
+                      locSs << info.FileName << ":" << info.Line << ":"
+                            << info.Column;
                       this->sourceLocation = locSs.str();
                       foundForm = true;
                       break;
@@ -468,7 +511,8 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
         }
       }
     }
-    if (foundForm) break;
+    if (foundForm)
+      break;
   }
 }
 
@@ -510,46 +554,60 @@ LanguageException::~LanguageException() noexcept {
   release(payload);
 }
 
+const char *LanguageException::what() const noexcept {
+  cachedMessage = getExceptionString(*this, StackTraceMode::Debug, false);
+  return cachedMessage.c_str();
+}
+
 std::string
 LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
                             const std::string &moduleName, const intptr_t slide,
                             StackTraceMode mode, bool useColor) const {
   std::stringstream ss;
-  
+
   if (useColor) {
-      const char* force = getenv("CLOJURE_RT_FORCE_COLOR");
-      if (force && std::string(force) == "1") {
-          useColor = true;
-      } else {
-          useColor = isatty(STDERR_FILENO);
-      }
+    const char *force = getenv("CLOJURE_RT_FORCE_COLOR");
+    if (force && std::string(force) == "1") {
+      useColor = true;
+    } else {
+      useColor = isatty(STDERR_FILENO);
+    }
   }
 
   ss << "\n " << Colors::MARK(useColor) << "[!] " << c(Colors::RESET, useColor)
-     << Colors::HEADER(useColor) << "Exception: " << name << c(Colors::RESET, useColor) << "\n";
+     << Colors::HEADER(useColor) << "Exception: " << name
+     << c(Colors::RESET, useColor) << "\n";
 
   retain(message);
   String *msgStr = String_compactify(::toString(message));
-  ss << "     " << Colors::MSG(useColor) 
-     << "Message: " << String_c_str(msgStr) << c(Colors::RESET, useColor) << "\n";
+  ss << "     " << Colors::MSG(useColor) << "Message: " << String_c_str(msgStr)
+     << c(Colors::RESET, useColor) << "\n";
   Ptr_release(msgStr);
 
   retain(payload);
   if (payload != 0) {
-      String *payStr = String_compactify(::toString(payload));
-      ss << "     " << c(Colors::WHITE, useColor) << "Payload: " << String_c_str(payStr) << c(Colors::RESET, useColor) << "\n";
-      Ptr_release(payStr);
+    String *payStr = String_compactify(::toString(payload));
+    ss << "     " << c(Colors::WHITE, useColor)
+       << "Payload: " << String_c_str(payStr) << c(Colors::RESET, useColor)
+       << "\n";
+    Ptr_release(payStr);
   }
 
   if (!form.empty()) {
-    ss << "\n " << c(Colors::BOLD, useColor) << "Source context:" << c(Colors::RESET, useColor) << "\n";
-    ss << "  " << Colors::LOC(useColor) << sourceLocation << c(Colors::RESET, useColor) << ":\n";
-    ss << "    " << Colors::CODE(useColor) << form << c(Colors::RESET, useColor) << "\n";
-    ss << "    " << Colors::MARK(useColor) << std::string(form.length(), '^') << c(Colors::RESET, useColor) << "\n";
+    ss << "\n " << c(Colors::BOLD, useColor)
+       << "Source context:" << c(Colors::RESET, useColor) << "\n";
+    ss << "  " << Colors::LOC(useColor) << sourceLocation
+       << c(Colors::RESET, useColor) << ":\n";
+    ss << "    " << Colors::CODE(useColor) << form << c(Colors::RESET, useColor)
+       << "\n";
+    ss << "    " << Colors::MARK(useColor) << std::string(form.length(), '^')
+       << c(Colors::RESET, useColor) << "\n";
   }
 
-  ss << "\n " << c(Colors::BOLD, useColor) << "Stack Trace:" << c(Colors::RESET, useColor) << "\n";
-  symbolizeStackChain(ss, capturedStack, symbolizer, moduleName, slide, mode, useColor);
+  ss << "\n " << c(Colors::BOLD, useColor)
+     << "Stack Trace:" << c(Colors::RESET, useColor) << "\n";
+  symbolizeStackChain(ss, capturedStack, symbolizer, moduleName, slide, mode,
+                      useColor);
   return ss.str();
 }
 
@@ -576,8 +634,8 @@ void printReferenceCounts() {
   }
 }
 
-std::string getExceptionString(const LanguageException &e,
-                               StackTraceMode mode, bool useColor) {
+std::string getExceptionString(const LanguageException &e, StackTraceMode mode,
+                               bool useColor) {
   static llvm::symbolize::LLVMSymbolizer symbolizer;
 
 #ifdef __APPLE__
@@ -599,7 +657,6 @@ std::string getExceptionString(const LanguageException &e,
 
   return e.toString(symbolizer, moduleName, slide, mode, useColor);
 }
-
 
 void throwInternalInconsistencyException(const std::string &errorMessage) {
   throw rt::LanguageException(
@@ -671,25 +728,26 @@ extern "C" void throwIndexOutOfBoundsException_C(uword_t index, uword_t count) {
 
 void throwCodeGenerationException(const std::string &errorMessage,
                                   const std::string &form,
-                                  const std::string &file,
-                                  int line, int column) {
+                                  const std::string &file, int line,
+                                  int column) {
   std::stringstream retval;
-  retval << file << ":" << line << ":" << column
-         << ": error: " << errorMessage << "\n";
+  retval << file << ":" << line << ":" << column << ": error: " << errorMessage
+         << "\n";
   retval << form << "\n";
   retval << std::string(form.length(), '^') << "\n";
-  
+
   std::stringstream locSs;
   locSs << file << ":" << line << ":" << column;
-  
-  throw rt::LanguageException("CodeGenerationException",
-                               RT_boxPtr(::String_createDynamicStr(retval.str().c_str())), 
-                               RT_boxNil(),
-                               form, locSs.str());
+
+  throw rt::LanguageException(
+      "CodeGenerationException",
+      RT_boxPtr(::String_createDynamicStr(retval.str().c_str())), RT_boxNil(),
+      form, locSs.str());
 }
 
-void throwCodeGenerationException(const std::string &errorMessage,
-                                  const clojure::rt::protobuf::bytecode::Node &node) {
+void throwCodeGenerationException(
+    const std::string &errorMessage,
+    const clojure::rt::protobuf::bytecode::Node &node) {
   std::string file = "unknown";
   int line = 0;
   int column = 0;

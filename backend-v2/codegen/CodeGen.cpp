@@ -1,12 +1,12 @@
 #include "CodeGen.h"
 #include "../bridge/Exceptions.h"
+#include "../bridge/SourceLocation.h"
 #include "../cljassert.h"
 #include "CleanupChainGuard.h"
 #include "TypedValue.h"
 #include "runtime/Object.h"
 #include "runtime/RTValue.h"
 #include "runtime/String.h"
-#include "../bridge/SourceLocation.h"
 
 using namespace llvm;
 using namespace clojure::rt::protobuf::bytecode;
@@ -23,7 +23,8 @@ CodeGenResult CodeGen::release() && {
   DIB->finalize();
   auto constants = std::move(generatedConstants);
   generatedConstants.clear(); // Ensure destructor doesn't re-release
-  return {std::move(TSContext), std::move(TheModule), std::move(constants), std::move(formMap)};
+  return {std::move(TSContext), std::move(TheModule), std::move(constants),
+          std::move(formMap)};
 }
 
 std::string CodeGen::codegenTopLevel(const Node &node) {
@@ -108,7 +109,7 @@ std::string CodeGen::generateInstanceCallBridge(
   for (size_t i = 0; i < argTypes.size(); i++) {
     const auto &t = argTypes[i];
     if (t.isDetermined() && !t.isBoxedType()) {
-      objectType type = t.determinedType();
+      uint32_t type = t.determinedType();
       if (type == integerType)
         llvmArgTypes.push_back(types.i32Ty);
       else if (type == doubleType)
@@ -178,7 +179,7 @@ TypedValue CodeGen::codegen(const Node &node,
                                                       &node.unwindmemory());
 
   auto env = node.env();
-  
+
   // Record form for exception reporting
   SourceLocation loc;
   loc.file = env.file();
@@ -236,10 +237,10 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().import(), typeRestrictions);
   case opInstanceCall:
     return codegen(node, node.subnode().instancecall(), typeRestrictions);
-    // case opInstanceField:
-    //   return codegen(node, node.subnode().instancefield(), typeRestrictions);
-    // case opIsInstance:
-    //   return codegen(node, node.subnode().isinstance(), typeRestrictions);
+  // case opInstanceField:
+  //   return codegen(node, node.subnode().instancefield(), typeRestrictions);
+  case opIsInstance:
+    return codegen(node, node.subnode().isinstance(), typeRestrictions);
     // case opInvoke:
     //   return codegen(node, node.subnode().invoke(), typeRestrictions);
     // case opKeywordInvoke:
@@ -258,8 +259,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().monitorenter(), typeRestrictions);
   // case opMonitorExit:
   //   return codegen(node, node.subnode().monitorexit(), typeRestrictions);
-  // case opNew:
-  //   return codegen(node, node.subnode().new_(), typeRestrictions);
+  case opNew:
+    return codegen(node, node.subnode().new_(), typeRestrictions);
   // case opPrimInvoke:
   //   return codegen(node, node.subnode().priminvoke(), typeRestrictions);
   // case opProtocolInvoke:
@@ -340,8 +341,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().instancecall(), typeRestrictions);
   // case opInstanceField:
   //   return getType(node, node.subnode().instancefield(), typeRestrictions);
-  // case opIsInstance:
-  //   return getType(node, node.subnode().isinstance(), typeRestrictions);
+  case opIsInstance:
+    return getType(node, node.subnode().isinstance(), typeRestrictions);
   // case opInvoke:
   //   return getType(node, node.subnode().invoke(), typeRestrictions);
   // case opKeywordInvoke:
@@ -360,8 +361,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().monitorenter(), typeRestrictions);
   // case opMonitorExit:
   //   return getType(node, node.subnode().monitorexit(), typeRestrictions);
-  // case opNew:
-  //   return getType(node, node.subnode().new_(), typeRestrictions);
+  case opNew:
+    return getType(node, node.subnode().new_(), typeRestrictions);
   // case opPrimInvoke:
   //   return getType(node, node.subnode().priminvoke(), typeRestrictions);
   // case opProtocolInvoke:

@@ -15,12 +15,12 @@ private:
   mutable std::mutex registryMutex;
   std::unordered_map<std::string, T *> registry;
   std::unordered_map<int32_t, T *> indexedRegistry;
-  int32_t currentIndex = 10000;
+  int32_t currentIndex;
   bool manageRuntimeMemory;
 
 public:
-  ThreadsafeRegistry(bool _manageRuntimeMemory)
-      : manageRuntimeMemory(_manageRuntimeMemory) {}
+  ThreadsafeRegistry(bool _manageRuntimeMemory, int32_t startIndex = 1000)
+      : currentIndex(startIndex), manageRuntimeMemory(_manageRuntimeMemory) {}
 
   uword_t registerObject(T *newDef, int32_t requiredIndex = -1) {
     std::lock_guard<std::mutex> lock(registryMutex);

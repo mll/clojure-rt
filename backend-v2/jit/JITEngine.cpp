@@ -1,9 +1,8 @@
 #include "JITEngine.h"
 #include "../RuntimeHeaders.h"
-#include "../runtime/JITSafety.h"
-
 #include "../runtime/Numbers.h"
 #include "../tools/EdnParser.h"
+#include "bridge/ClassLookup.h"
 #include "bridge/Exceptions.h"
 #include "bridge/InstanceCallStub.h"
 #include "bridge/SourceLocation.h"
@@ -20,16 +19,8 @@
 #include <llvm/Transforms/IPO/Inliner.h>
 #include <llvm/Transforms/IPO/ModuleInliner.h>
 
-extern "C" void JITEngine_slowPath_enter(void *engine,
-                                         rt_jt_epoch_t *epochPtr) {
-  if (engine)
-    static_cast<rt::JITEngine *>(engine)->registerThread(epochPtr);
-}
-
-extern "C" void JITEngine_slowPath_leave(void *engine) {
-  if (engine)
-    static_cast<rt::JITEngine *>(engine)->unregisterThread();
-}
+// Bridge functions are now in bridge/JITEngineBridge.cpp and
+// bridge/JITSafety.cpp
 
 extern "C" void JITEngine_enterSafeSection(void *engine);
 extern "C" void JITEngine_leaveSafeSection(void *engine);
@@ -292,7 +283,8 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                   // where symbol might not be in the dynamic symbol table of
                   // the object (though for JIT it usually is).
                   registerJitFunction(Sym->getValue(), 1024 * 1024,
-                                        fName.c_str(), nullptr, 0, std::move(formMap));
+                                      fName.c_str(), nullptr, 0,
+                                      std::move(formMap));
                 }
               }
 
@@ -571,6 +563,11 @@ void JITEngine::registerRuntimeSymbols() {
   // The bridge:
   runtimeSymbols.insert(
       absoluteSymbol("InstanceCallSlowPath", (void *)InstanceCallSlowPath));
+
+  runtimeSymbols.insert(
+      absoluteSymbol("ClassLookupByName", (void *)ClassLookupByName));
+  runtimeSymbols.insert(absoluteSymbol("ClassLookupByRegisterId",
+                                       (void *)ClassLookupByRegisterId));
 
   runtimeSymbols.insert(absoluteSymbol("JITEngine_slowPath_enter",
                                        (void *)JITEngine_slowPath_enter));

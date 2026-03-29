@@ -41,6 +41,7 @@ public:
   TypedValue createSymbol(const char *s);
   TypedValue createBigInteger(const char *s);
   TypedValue createRatio(const char *s);
+  TypedValue createClass(::Class *cls, std::string &name);
 
   /*
    * It is currently assumed the runtime constructors never throw

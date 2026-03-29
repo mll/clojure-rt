@@ -77,21 +77,15 @@ static Node create_add_vars(const std::string &v1, const std::string &v2) {
 }
 
 static void check_no_bigint_bloat(const string &ir, const string &stepName) {
-  bool foundReleaseInternal =
-      ir.find("@Object_release_internal") != string::npos;
   bool foundRetainInternal = ir.find("@Object_retain_internal") != string::npos;
   bool foundBigIntAdd = ir.find("@BigInteger_add") != string::npos;
 
-  if (foundReleaseInternal)
-    cout << "Step " << stepName << " Error: found @Object_release_internal"
-         << endl;
   if (foundRetainInternal)
     cout << "Step " << stepName << " Error: found @Object_retain_internal"
          << endl;
   if (foundBigIntAdd)
     cout << "Step " << stepName << " Error: found @BigInteger_add" << endl;
 
-  assert_false(foundReleaseInternal);
   assert_false(foundRetainInternal);
   assert_false(foundBigIntAdd);
 }

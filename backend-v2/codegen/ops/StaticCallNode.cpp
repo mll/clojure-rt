@@ -7,6 +7,7 @@
 #include "bridge/Exceptions.h"
 #include "bytecode.pb.h"
 #include "codegen/TypedValue.h"
+#include <cstdint>
 #include <sstream>
 
 using namespace std;
@@ -174,8 +175,9 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
           argRuntimeTypes[i] = typeVal.value;
         }
 
-        objectType target = fid->argTypes[i].determinedType();
-        Value *targetVal = ConstantInt::get(this->types.i32Ty, (uint32_t)target);
+        uint32_t target = fid->argTypes[i].determinedType();
+        Value *targetVal =
+            ConstantInt::get(this->types.i32Ty, (uint32_t)target);
         Value *isType =
             this->Builder.CreateICmpEQ(argRuntimeTypes[i], targetVal);
 
@@ -197,7 +199,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     std::vector<TypedValue> specializedArgs;
     for (size_t i = 0; i < args.size(); i++) {
       if (fid->argTypes[i].isDetermined()) {
-        objectType target = fid->argTypes[i].determinedType();
+        uint32_t target = fid->argTypes[i].determinedType();
         llvm::Value *unboxedVal = nullptr;
         if (target == integerType)
           unboxedVal = this->valueEncoder.unboxInt32(args[i]).value;
@@ -243,9 +245,8 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
         this->Builder.CreateGlobalString(name, "static_call_class");
     Value *methName = this->Builder.CreateGlobalString(m, "static_call_method");
 
-    FunctionType *fnTy = FunctionType::get(this->types.voidTy,
-                                          {this->types.ptrTy, this->types.ptrTy},
-                                          false);
+    FunctionType *fnTy = FunctionType::get(
+        this->types.voidTy, {this->types.ptrTy, this->types.ptrTy}, false);
     this->invokeManager.invokeRaw("throwNoMatchingOverloadException_C", fnTy,
                                   {clsName, methName});
     this->Builder.CreateUnreachable();

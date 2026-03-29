@@ -109,6 +109,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(BACKEND_SOURCES
       bridge/Exceptions.cpp
       bridge/InstanceCallStub.cpp
+      bridge/ClassLookup.cpp
+      bridge/JITEngineBridge.cpp
       types/ObjectTypeSet.cpp
       tools/ThreadPool.cpp
       jit/JITEngine.cpp
@@ -139,7 +141,9 @@ set(BACKEND_SOURCES
       codegen/ops/LocalNode.cpp
       codegen/ops/WithMetaNode.cpp
       codegen/ops/InstanceCallNode.cpp
-      codegen/ops/HostInteropNode.cpp)
+      codegen/ops/HostInteropNode.cpp
+      codegen/ops/NewNode.cpp
+      codegen/ops/IsInstanceNode.cpp)
 
 add_subdirectory(runtime)
 

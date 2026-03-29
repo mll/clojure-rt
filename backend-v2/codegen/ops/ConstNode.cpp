@@ -2,6 +2,8 @@
 #include "../../tools/RTValueWrapper.h"
 #include "../CodeGen.h"
 #include "codegen/TypedValue.h"
+#include "state/ThreadsafeCompilerState.h"
+#include "types/ConstantClass.h"
 #include <string>
 
 using namespace std;
@@ -54,17 +56,20 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
   case symbolType:
     retVal = dynamicConstructor.createSymbol(name.c_str());
     break;
-  // case classType:
-  //   {
-  //     Value *className = dynamicString(subnode.val().c_str());
-  //     dynamicRetain(className);
-  //     Value *statePtr =
-  //     Builder->CreateBitOrPointerCast(ConstantInt::get(Type::getInt64Ty(*TheContext),
-  //     APInt(64, (uint64_t) &*TheProgramme, false)), ptrT); retVal =
-  //     callRuntimeFun("getClassByName", ptrT, {ptrT, ptrT}, {statePtr,
-  //     className});
-  //   }
-  //   break;
+  case classType: {
+    string className = name;
+    if (className.find("class ") == 0) {
+      className = className.substr(6);
+    }
+    ::Class *cls = compilerState.classRegistry.getCurrent(className.c_str());
+    if (!cls) {
+      throwCodeGenerationException(string("Unable to resolve class: ") +
+                                       className + " in this context",
+                                   node);
+    }
+    retVal = dynamicConstructor.createClass(cls, className);
+    memoryManagement.dynamicRetain(retVal);
+  } break;
   // case deftypeType:
   //   throwCodeGenerationException(
   //                                string("Not possible to create const of
@@ -103,8 +108,9 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     if (subnode.val() == "[]") {
       std::vector<TypedValue> items;
       retVal = dynamicConstructor.createVector(items);
-      // No dynamicRetain here, createVector already returns a fresh vector with refcount 1
-      // which will be consumed by the callee or released by the CleanupChainGuard.
+      // No dynamicRetain here, createVector already returns a fresh vector with
+      // refcount 1 which will be consumed by the callee or released by the
+      // CleanupChainGuard.
     } else {
       throwCodeGenerationException(
           string("Compiler does not support non-empty vector constants yet: ") +
@@ -202,8 +208,15 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
   case ConstNode_ConstType_constTypeKeyword:
     return ObjectTypeSet(keywordType, false, new ConstantKeyword(subnode.val()))
         .restriction(typeRestrictions);
-  // case ConstNode_ConstType_constTypeClass:
-  //   return ObjectTypeSet(classType).restriction(typeRestrictions);
+  case ConstNode_ConstType_constTypeClass: {
+    string className = subnode.val();
+    if (className.find("class ") == 0) {
+      className = className.substr(6);
+    }
+    return ObjectTypeSet(classType, false, new ConstantClass(className))
+        .restriction(typeRestrictions);
+  }
+
   case ConstNode_ConstType_constTypeVector:
     return ObjectTypeSet(persistentVectorType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeVar:

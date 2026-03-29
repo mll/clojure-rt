@@ -1,7 +1,6 @@
 #ifndef RT_EXCEPTIONS
 #define RT_EXCEPTIONS
 
-
 #include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "llvm/Support/Error.h"
 #include <sstream>
@@ -10,21 +9,25 @@
 #include "../runtime/Exceptions.h"
 #include <gmp.h>
 
+#include "SourceLocation.h"
 #include <exception>
 #include <execinfo.h>
 #include <string>
 #include <vector>
-#include "SourceLocation.h"
 
-
-
-namespace clojure { namespace rt { namespace protobuf { namespace bytecode { class Node; } } } }
+namespace clojure {
+namespace rt {
+namespace protobuf {
+namespace bytecode {
+class Node;
+}
+} // namespace protobuf
+} // namespace rt
+} // namespace clojure
 
 namespace rt {
 
 enum class StackTraceMode { Friendly, Debug };
-
-
 
 struct JitFunctionEntry {
   uword_t size;
@@ -50,6 +53,7 @@ class LanguageException : public std::exception {
   std::string form;
   std::string sourceLocation;
   std::shared_ptr<CapturedStack> capturedStack;
+  mutable std::string cachedMessage;
 
 public:
   LanguageException(const std::string &name, RTValue message, RTValue payload);
@@ -59,7 +63,8 @@ public:
   LanguageException &operator=(const LanguageException &other);
   ~LanguageException() noexcept override;
   void printRawTrace() const;
-  
+  const char *what() const noexcept override;
+
   std::string toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
                        const std::string &moduleName = "JITMemoryBuffer",
                        const intptr_t slide = 0x0,
@@ -71,7 +76,9 @@ public:
   RTValue getPayload() const { return payload; }
   const std::string &getForm() const { return form; }
   const std::string &getSourceLocation() const { return sourceLocation; }
-  std::shared_ptr<CapturedStack> getCapturedStack() const { return capturedStack; }
+  std::shared_ptr<CapturedStack> getCapturedStack() const {
+    return capturedStack;
+  }
 };
 
 std::string getExceptionString(const LanguageException &e,
@@ -84,13 +91,14 @@ throwInternalInconsistencyException(const std::string &errorMessage);
                                                const std::string &form,
                                                const std::string &file,
                                                int line, int column);
-[[noreturn]] void throwCodeGenerationException(const std::string &errorMessage,
-                                               const clojure::rt::protobuf::bytecode::Node &node);
+[[noreturn]] void
+throwCodeGenerationException(const std::string &errorMessage,
+                             const clojure::rt::protobuf::bytecode::Node &node);
 
 // New registration function with form mapping
-void registerJitFunction(uword_t addr, size_t size, const char *name,
-                        const void *objData, size_t objSize,
-                        std::map<rt::SourceLocation, std::string> locationToForm);
+void registerJitFunction(
+    uword_t addr, size_t size, const char *name, const void *objData,
+    size_t objSize, std::map<rt::SourceLocation, std::string> locationToForm);
 
 } // namespace rt
 

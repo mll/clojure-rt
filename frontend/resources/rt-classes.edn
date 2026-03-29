@@ -1,5 +1,6 @@
 '{java.lang.Object
   {:alias :any
+   :object-type 18
    :instance-fns
    {toString [{:args [:this] :type :call :symbol "toString" :returns java.lang.String}]}}
 

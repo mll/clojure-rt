@@ -56,7 +56,7 @@ public:
   }
 
   ObjectTypeSet(const ObjectTypeSet &other)
-      : internal(other.internal), isBoxed(other.isBoxed) {
+      : internal(other.internal), isBoxed(other.isBoxed), allTypes(other.allTypes) {
     if (other.constant)
       constant = other.constant->copy();
     else
@@ -252,6 +252,7 @@ public:
     retVal.insert(classType);
     retVal.insert(persistentArrayMapType);
     retVal.insert(varType);
+    retVal.insert(objectRootType);
     retVal.allTypes = true;
     retVal.isBoxed = true;
     return retVal;
@@ -306,6 +307,8 @@ public:
         return "LA";
       case varType:
         return "LQ";
+      case objectRootType:
+        return "LO";
       default:
         return "LR";
       }
@@ -368,6 +371,8 @@ public:
       return ":chm";
     case varType:
       return ":var";
+    case objectRootType:
+      return ":any";
     default:
       return ":custom(" + std::to_string(type) + ")";
     }

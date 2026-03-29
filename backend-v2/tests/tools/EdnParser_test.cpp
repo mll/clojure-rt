@@ -125,7 +125,7 @@ static void test_edn_parser_class_parsing_memory(void **state) {
         // Verify java.lang.Object
         assert_non_null(objDesc);
         assert_true(objDesc->type.isDetermined());
-        assert_true(objDesc->type.contains(1000));
+        assert_true(objDesc->type.contains(objectRootType));
 
         // Verify java.lang.Long
         assert_non_null(longDesc);

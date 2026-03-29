@@ -545,10 +545,14 @@ IntrinsicDescription::IntrinsicDescription(
           throwInternalInconsistencyException(
               ":this must be the first argument.");
         }
-        this->argTypes.push_back(thisType);
+        if (thisType.isDetermined() && thisType.determinedType() == objectRootType) {
+          this->argTypes.push_back(ObjectTypeSet::dynamicType());
+        } else {
+          this->argTypes.push_back(thisType);
+        }
         firstArgIsThis = true;
       } else if (sArgKey == ":any") {
-        this->argTypes.push_back(ObjectTypeSet::all());
+        this->argTypes.push_back(ObjectTypeSet::dynamicType());
       } else if (sArgKey == ":nil") {
         this->argTypes.push_back(ObjectTypeSet(nilType));
       } else {
@@ -565,7 +569,11 @@ IntrinsicDescription::IntrinsicDescription(
 
         if (getType(atWrapper.get()) == integerType) {
           objectType t = (objectType)RT_unboxInt32(atWrapper.get());
-          this->argTypes.push_back(ObjectTypeSet(t));
+          if (t == objectRootType) {
+            this->argTypes.push_back(ObjectTypeSet::dynamicType());
+          } else {
+            this->argTypes.push_back(ObjectTypeSet(t));
+          }
         } else {
           this->argTypes.push_back(ObjectTypeSet(classType));
         }
@@ -605,7 +613,7 @@ IntrinsicDescription::IntrinsicDescription(
     Ptr_release(retStr);
 
     if (sRetKey == ":any") {
-      this->returnType = ObjectTypeSet::all();
+      this->returnType = ObjectTypeSet::dynamicType();
     } else if (sRetKey == ":nil") {
       this->returnType = ObjectTypeSet(nilType);
     } else if (classData.classesByName.find(sRetKey) !=
@@ -619,7 +627,11 @@ IntrinsicDescription::IntrinsicDescription(
 
       if (getType(rtWrapper.get()) == integerType) {
         objectType t = (objectType)RT_unboxInt32(rtWrapper.get());
-        this->returnType = ObjectTypeSet(t);
+        if (t == objectRootType) {
+          this->returnType = ObjectTypeSet::dynamicType();
+        } else {
+          this->returnType = ObjectTypeSet(t);
+        }
       } else {
         this->returnType = ObjectTypeSet(classType);
       }

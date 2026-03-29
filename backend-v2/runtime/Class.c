@@ -88,7 +88,7 @@ bool Class_isInstanceClassName(const char *className, void *jitEngine,
 bool Class_isInstance(Class *current, Class *target) {
   assert(target && "Target must not be null");
   assert(current && "Current must not be null");
-  if (current->registerId == target->registerId) {
+  if (current->registerId == target->registerId || current->registerId == objectRootType) {
     return true;
   }
   for (int32_t i = 0; i < target->superclassCount; i++) {

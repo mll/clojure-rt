@@ -3,7 +3,7 @@
 
 #include "../runtime/ObjectProto.h"
 #include "../runtime/defines.h"
-#include <_types/_uint32_t.h>
+#include <cstdint>
 #include <algorithm>
 #include <set>
 #include <vector>

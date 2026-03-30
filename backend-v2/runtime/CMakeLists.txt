@@ -37,6 +37,7 @@ set(SOURCES
     PersistentArrayMap.c
     Var.c
     Numbers.c
+    Exception.c
     JITSafety.c)
 
 add_library(runtime STATIC ${SOURCES})
@@ -142,6 +143,7 @@ set(TEST_MODULES
     Var_Race_test
     RefcountPerf_test
     Numbers_test
+    Exception_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

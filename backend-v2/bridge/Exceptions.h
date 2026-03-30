@@ -110,4 +110,10 @@ extern "C" [[noreturn]] void
 throwNoMatchingOverloadException_C(const char *className,
                                    const char *methodName);
 
+extern "C" String *exceptionToString_C(void *exception);
+extern "C" void *createException_C(const char *className, String *message,
+                                   RTValue payload);
+extern "C" [[noreturn]] void throwException_C(RTValue exceptionBoxed);
+extern "C" void deleteException_C(void *exception);
+
 #endif

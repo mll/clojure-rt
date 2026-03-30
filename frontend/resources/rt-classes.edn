@@ -8,6 +8,13 @@
   {:object-type 15
    :extends java.lang.Object}
 
+
+;; Assertion error is here just to enable assert.
+  java.lang.AssertionError 
+  {:object-type 19
+   :extends java.lang.Object
+   :constructor [{:args [java.lang.String] :type :call :symbol "Exception_createAssertionErrorWithMessage"}]}
+
   java.lang.Nil
   {:object-type 3
    :extends java.lang.Object}

@@ -6,11 +6,14 @@
 
 #ifdef __cplusplus
 extern "C" {
+#include "runtime/String.h"
+
 #endif
 
 // Base throw function compatible with LanguageException
 [[noreturn]] void throwLanguageException_C(const char *name, RTValue message,
                                            RTValue payload);
+[[noreturn]] void throwException_C(RTValue exceptionBoxed);
 
 // Standard Clojure-like exceptions
 [[noreturn]] void throwArityException_C(int expected, int actual);
@@ -20,8 +23,7 @@ extern "C" {
 [[noreturn]] void throwArithmeticException_C(const char *message);
 [[noreturn]] void throwIndexOutOfBoundsException_C(uword_t index,
                                                    uword_t count);
-[[noreturn]] void
-throwInternalInconsistencyException_C(const char *errorMessage);
+[[noreturn]] void throwInternalInconsistencyException_C(String *errorMessage);
 
 #ifdef __cplusplus
 }

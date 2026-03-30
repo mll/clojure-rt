@@ -1,4 +1,5 @@
 #include "../CodeGen.h"
+#include <string>
 
 using namespace std;
 using namespace llvm;
@@ -246,9 +247,9 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
                  "value that does not match allowed types: ") +
           typeRestrictions.toString();
       TypedValue msg = dynamicConstructor.createString(errMsg.c_str());
-      TypedValue rawPtr = valueEncoder.unboxPointer(msg);
+      memoryManagement.dynamicRetain(msg);
       invokeManager.invokeRuntime("throwInternalInconsistencyException_C",
-                                  nullptr, {ObjectTypeSet::all()}, {rawPtr});
+                                  nullptr, {ObjectTypeSet(stringType)}, {msg});
 
       Builder.CreateUnreachable();
 
@@ -271,9 +272,9 @@ TypedValue CodeGen::codegen(const Node &node, const IfNode &subnode,
                  "value that does not match allowed types: ") +
           typeRestrictions.toString();
       TypedValue msg = dynamicConstructor.createString(errMsg.c_str());
-      TypedValue rawPtr = valueEncoder.unboxPointer(msg);
+      memoryManagement.dynamicRetain(msg);
       invokeManager.invokeRuntime("throwInternalInconsistencyException_C",
-                                  nullptr, {ObjectTypeSet::all()}, {rawPtr});
+                                  nullptr, {ObjectTypeSet(stringType)}, {msg});
 
       Builder.CreateUnreachable();
 

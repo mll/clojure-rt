@@ -49,7 +49,7 @@ else
 fi
 mv $BINARY ../$BACKEND
 cd ../$BACKEND
-make -j 8
+make -j 8 clojure-rt
 echo "Executing..."
 # lldb ./clojure-rt 
 ./clojure-rt $BINARY

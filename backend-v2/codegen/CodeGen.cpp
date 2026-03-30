@@ -277,9 +277,9 @@ TypedValue CodeGen::codegen(const Node &node,
     return codegen(node, node.subnode().staticfield(), typeRestrictions);
   case opTheVar:
     return codegen(node, node.subnode().thevar(), typeRestrictions);
-  // case opThrow:
-  //   return codegen(node, node.subnode().throw_(), typeRestrictions);
-  // case opTry:
+  case opThrow:
+     return this->codegen(node, static_cast<const clojure::rt::protobuf::bytecode::ThrowNode &>(node.subnode().throw_()), typeRestrictions);
+  case opTry:
   //   return codegen(node, node.subnode().try_(), typeRestrictions);
   case opVar:
     return codegen(node, node.subnode().var(), typeRestrictions);
@@ -379,9 +379,9 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().staticfield(), typeRestrictions);
   case opTheVar:
     return getType(node, node.subnode().thevar(), typeRestrictions);
-  // case opThrow:
-  //   return getType(node, node.subnode().throw_(), typeRestrictions);
-  // case opTry:
+  case opThrow:
+    return this->getType(node, static_cast<const clojure::rt::protobuf::bytecode::ThrowNode &>(node.subnode().throw_()), typeRestrictions);
+  case opTry:
   //   return getType(node, node.subnode().try_(), typeRestrictions);
   case opVar:
     return getType(node, node.subnode().var(), typeRestrictions);
@@ -492,8 +492,10 @@ bool CodeGen::canThrow(const Node &node) {
   case opHostInterop:
     return true;
 
+  case opThrow:
+  case opInvoke:
+    return true;
   default:
-    // Safer to assume it can throw if we don't know the node type
     return true;
   }
 }

@@ -1,4 +1,6 @@
 #include "TestTools.h"
+#include "runtime/Object.h"
+#include "runtime/String.h"
 
 jmp_buf exception_env;
 char *last_exception_name = NULL;
@@ -63,10 +65,11 @@ __attribute__((weak)) void throwIndexOutOfBoundsException_C(uword_t index,
   abort();
 }
 
-__attribute__((weak)) void
-throwInternalInconsistencyException_C(const char *errorMessage) {
+__attribute__((weak)) void throwInternalInconsistencyException_C(String *msg) {
   handle_exception("InternalInconsistencyException");
-  fprintf(stderr, "InternalInconsistencyException: %s\n", errorMessage);
+  String *s = String_compactify(msg);
+  fprintf(stderr, "InternalInconsistencyException: %s\n", String_c_str(s));
+  Ptr_release(s);
   abort();
 }
 
@@ -90,3 +93,16 @@ __attribute__((weak)) Class *ClassLookupByRegisterId(int32_t registerId,
   fprintf(stderr, "Mock ClassLookup called for: %d\n", registerId);
   abort();
 }
+
+__attribute__((weak)) String *exceptionToString_C(void *exception) {
+  return String_createStatic("Exception");
+}
+
+__attribute__((weak)) void *
+createException_C(const char *className, String *message, RTValue payload) {
+  Ptr_release(message);
+  release(payload);
+  return (void *)0x1;
+}
+
+__attribute__((weak)) void deleteException_C(void *exception) {}

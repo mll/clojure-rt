@@ -1,5 +1,7 @@
 #include "Exceptions.h"
+#include "../runtime/Exception.h"
 #include "bytecode.pb.h"
+#include "runtime/ObjectProto.h"
 #include "llvm/DebugInfo/Symbolize/Symbolize.h"
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/Object/ObjectFile.h"
@@ -664,11 +666,9 @@ void throwInternalInconsistencyException(const std::string &errorMessage) {
       RT_boxPtr(::String_createDynamicStr(errorMessage.c_str())), RT_boxNil());
 }
 
-extern "C" void
-throwInternalInconsistencyException_C(const char *errorMessage) {
-  throw rt::LanguageException(
-      "InternalInconsistencyException",
-      RT_boxPtr(::String_createDynamicStr(errorMessage)), RT_boxNil());
+extern "C" void throwInternalInconsistencyException_C(String *errorMessage) {
+  throw rt::LanguageException("InternalInconsistencyException",
+                              RT_boxPtr(errorMessage), RT_boxNil());
 }
 
 extern "C" [[noreturn]] void
@@ -757,6 +757,34 @@ void throwCodeGenerationException(
     column = node.env().column();
   }
   throwCodeGenerationException(errorMessage, node.form(), file, line, column);
+}
+
+extern "C" String *exceptionToString_C(void *exception) {
+  rt::LanguageException *ex = (rt::LanguageException *)exception;
+  auto str = getExceptionString(*ex, StackTraceMode::Friendly, true);
+  return ::String_createDynamicStr(str.c_str());
+}
+
+extern "C" void *createException_C(const char *className, String *message,
+                                   RTValue payload) {
+  return new rt::LanguageException(className, RT_boxPtr(message), payload);
+}
+
+extern "C" [[noreturn]] void throwException_C(RTValue exceptionBoxed) {
+  if (getType(exceptionBoxed) != exceptionType) {
+    release(exceptionBoxed);
+    throwInternalInconsistencyException(
+        "throwException_C called with non-exception object");
+  }
+  Exception *ex = (Exception *)RT_unboxPtr(exceptionBoxed);
+  rt::LanguageException *le = (rt::LanguageException *)ex->bridgedData;
+  rt::LanguageException toThrow = *le;
+  release(exceptionBoxed);
+  throw toThrow;
+}
+
+extern "C" void deleteException_C(void *exception) {
+  delete (rt::LanguageException *)exception;
 }
 
 } // namespace rt

@@ -105,6 +105,7 @@ inline bool Ptr_isReusable(void* ptr);
 #include "BigInteger.h"
 #include "Boolean.h"
 #include "Class.h"
+#include "Exception.h"
 #include "ConcurrentHashMap.h"
 #include "Double.h"
 #include "Function.h"
@@ -285,6 +286,9 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   case varType:
     Var_destroy((Var *)self);
     break;
+  case exceptionType:
+    Exception_destroy((Exception *)self);
+    break;
 
   default:
     break;
@@ -455,6 +459,8 @@ inline uword_t Object_hash(Object *restrict self) {
     return PersistentArrayMap_hash((PersistentArrayMap *)self);
   case varType:
     return Var_hash((Var *)self);
+  case exceptionType:
+    return Exception_hash((Exception *)self);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -534,7 +540,8 @@ inline bool Object_equals(Object *self, Object *other) {
   case varType:
     return Var_equals((Var *)self, (Var *)other);
     break;
-
+  case exceptionType:
+    return Exception_equals((Exception *)self, (Exception *)other);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -594,6 +601,8 @@ inline String *Object_toString(Object *restrict self) {
     return PersistentArrayMap_toString((PersistentArrayMap *)self);
   case varType:
     return Var_toString((Var *)self);
+  case exceptionType:
+    return Exception_toString((Exception *)self);
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }

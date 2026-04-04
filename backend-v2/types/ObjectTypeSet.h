@@ -3,8 +3,8 @@
 
 #include "../runtime/ObjectProto.h"
 #include "../runtime/defines.h"
-#include <cstdint>
 #include <algorithm>
+#include <cstdint>
 #include <set>
 #include <vector>
 
@@ -56,7 +56,8 @@ public:
   }
 
   ObjectTypeSet(const ObjectTypeSet &other)
-      : internal(other.internal), isBoxed(other.isBoxed), allTypes(other.allTypes) {
+      : internal(other.internal), isBoxed(other.isBoxed),
+        allTypes(other.allTypes) {
     if (other.constant)
       constant = other.constant->copy();
     else
@@ -253,6 +254,7 @@ public:
     retVal.insert(persistentArrayMapType);
     retVal.insert(varType);
     retVal.insert(objectRootType);
+    retVal.insert(exceptionType);
     retVal.allTypes = true;
     retVal.isBoxed = true;
     return retVal;
@@ -309,6 +311,8 @@ public:
         return "LQ";
       case objectRootType:
         return "LO";
+      case exceptionType:
+        return "LE";
       default:
         return "LR";
       }
@@ -373,6 +377,8 @@ public:
       return ":var";
     case objectRootType:
       return ":any";
+    case exceptionType:
+      return ":exception";
     default:
       return ":custom(" + std::to_string(type) + ")";
     }

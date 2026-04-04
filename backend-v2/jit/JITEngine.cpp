@@ -574,6 +574,13 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(absoluteSymbol("JITEngine_slowPath_leave",
                                        (void *)JITEngine_slowPath_leave));
 
+  runtimeSymbols.insert(
+      absoluteSymbol("exceptionToString_C", (void *)exceptionToString_C));
+  runtimeSymbols.insert(
+      absoluteSymbol("createException_C", (void *)createException_C));
+  runtimeSymbols.insert(
+      absoluteSymbol("deleteException_C", (void *)deleteException_C));
+
   cantFail(jit->getMainJITDylib().define(
       absoluteSymbols(std::move(runtimeSymbols))));
 }

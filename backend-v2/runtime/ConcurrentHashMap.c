@@ -1,44 +1,47 @@
-#include "Object.h"
 #include "ConcurrentHashMap.h"
+#include "Ebr.h"
+#include "Exceptions.h"
 #include "Hash.h"
-#include <stdlib.h>
-#include <stdatomic.h>
 #include "Nil.h"
+#include "Object.h"
 #include "RTValue.h"
 #include "word.h"
 #include <math.h>
-#include "Exceptions.h"
+#include <stdatomic.h>
+#include <stdlib.h>
 
-extern uword_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, RTValue key, RTValue value, uword_t keyHash);
-extern bool tryReplacingEntry(ConcurrentHashMapEntry *entry, RTValue key, RTValue value, uword_t keyHash, uword_t encounteredHash);
-extern bool tryDeletingFromEntry(ConcurrentHashMapEntry *entry, RTValue key, uword_t keyHash);
-extern RTValue tryGettingFromEntry(ConcurrentHashMapEntry *entry, RTValue key, uword_t keyHash);
+extern uword_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, RTValue key,
+                                     RTValue value, uword_t keyHash);
+extern bool tryReplacingEntry(ConcurrentHashMapEntry *entry, RTValue key,
+                              RTValue value, uword_t keyHash,
+                              uword_t encounteredHash);
+extern bool tryDeletingFromEntry(ConcurrentHashMapEntry *entry, RTValue key,
+                                 uword_t keyHash);
+extern RTValue tryGettingFromEntry(ConcurrentHashMapEntry *entry, RTValue key,
+                                   uword_t keyHash);
 extern uword_t avalanche(uword_t h);
 extern unsigned char getLongLeap(unsigned int leaps);
 extern unsigned char getShortLeap(unsigned int leaps);
 extern unsigned int buildLeaps(unsigned char longLeap, unsigned char shortLeap);
 
 /* outside refcount system */
-inline unsigned char getLongLeap(unsigned int leaps) {
-  return leaps >> 8;
-}
+inline unsigned char getLongLeap(unsigned int leaps) { return leaps >> 8; }
 
 /* outside refcount system */
-inline unsigned char getShortLeap(unsigned int leaps) {
-  return leaps & 0xff;
-}
+inline unsigned char getShortLeap(unsigned int leaps) { return leaps & 0xff; }
 
 /* outside refcount system */
-inline unsigned int buildLeaps(unsigned char longLeap, unsigned char shortLeap) {
-  return ((unsigned short)longLeap) << 8 | ((unsigned short) shortLeap);
+inline unsigned int buildLeaps(unsigned char longLeap,
+                               unsigned char shortLeap) {
+  return ((unsigned short)longLeap) << 8 | ((unsigned short)shortLeap);
 }
-
 
 /* mem done */
 ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent) {
-  size_t initialSize = 1<<initialSizeExponent;
-  ConcurrentHashMap *self = allocate(sizeof(ConcurrentHashMap)); 
-  size_t rootSize = sizeof(ConcurrentHashMapNode) + initialSize * sizeof(ConcurrentHashMapEntry);
+  size_t initialSize = 1 << initialSizeExponent;
+  ConcurrentHashMap *self = allocate(sizeof(ConcurrentHashMap));
+  size_t rootSize = sizeof(ConcurrentHashMapNode) +
+                    initialSize * sizeof(ConcurrentHashMapEntry);
   ConcurrentHashMapNode *node = allocate(rootSize);
   memset(node, 0, rootSize);
   node->sizeMask = initialSize - 1ull;
@@ -46,42 +49,52 @@ ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent) {
   for (uword_t i = 0; i < initialSize; i++) {
     atomic_store_explicit(&(node->array[i].key), RT_boxNull(),
                           memory_order_relaxed);
-    atomic_store_explicit(&(node->array[i].value), RT_boxNull(), memory_order_relaxed);    
-  }    
-  atomic_store(&(self->root), node);              
+    atomic_store_explicit(&(node->array[i].value), RT_boxNull(),
+                          memory_order_relaxed);
+  }
+  atomic_store(&(self->root), node);
   Object_create(&(self->super), concurrentHashMapType);
   // Concurrent collections are shared by definition
-  atomic_store_explicit(&self->super.atomicRefCount, COUNT_INC | SHARED_BIT, memory_order_release);
+  atomic_store_explicit(&self->super.atomicRefCount, COUNT_INC | SHARED_BIT,
+                        memory_order_release);
   return self;
 }
 
 /* outside refcount system */
-inline uword_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, RTValue key, RTValue value, uword_t keyHash) { 
+inline uword_t tryReservingEmptyNode(ConcurrentHashMapEntry *entry, RTValue key,
+                                     RTValue value, uword_t keyHash) {
   /* Returns 0 if reservation is successful, otherwise the encountered hash */
-  while(true) {
+  while (true) {
     uword_t encounteredHash =
         atomic_load_explicit(&(entry->keyHash), memory_order_relaxed);
-    if(encounteredHash == 0) {
-      if(atomic_compare_exchange_strong_explicit(&(entry->keyHash), &encounteredHash, keyHash, memory_order_relaxed, memory_order_relaxed)) {
+    if (encounteredHash == 0) {
+      if (atomic_compare_exchange_strong_explicit(
+              &(entry->keyHash), &encounteredHash, keyHash,
+              memory_order_relaxed, memory_order_relaxed)) {
         atomic_store_explicit(&(entry->key), key, memory_order_relaxed);
         atomic_store_explicit(&(entry->value), value, memory_order_relaxed);
         return 0;
       }
       continue;
     }
-    return encounteredHash;  
+    return encounteredHash;
   }
 }
 
 /* outside refcount system */
-inline bool tryReplacingEntry(ConcurrentHashMapEntry *entry, RTValue key, RTValue value, uword_t keyHash, uword_t encounteredHash) {
+inline bool tryReplacingEntry(ConcurrentHashMapEntry *entry, RTValue key,
+                              RTValue value, uword_t keyHash,
+                              uword_t encounteredHash) {
   RTValue encounteredKey = RT_boxNull();
   /* Returns true if successfully replaced, otherwise false */
-  if(encounteredHash == keyHash) {
-    while(RT_isNull(encounteredKey = atomic_load_explicit(&(entry->key), memory_order_relaxed)));
-    if(equals(encounteredKey, key)) {
-      while(true) {
-        RTValue encounteredValue = atomic_load_explicit(&(entry->value), memory_order_relaxed);
+  if (encounteredHash == keyHash) {
+    while (RT_isNull(encounteredKey = atomic_load_explicit(
+                         &(entry->key), memory_order_relaxed)))
+      ;
+    if (equals(encounteredKey, key)) {
+      while (true) {
+        RTValue encounteredValue =
+            atomic_load_explicit(&(entry->value), memory_order_relaxed);
         if (atomic_compare_exchange_strong_explicit(
                 &(entry->value), &encounteredValue, value, memory_order_relaxed,
                 memory_order_relaxed)) {
@@ -89,7 +102,7 @@ inline bool tryReplacingEntry(ConcurrentHashMapEntry *entry, RTValue key, RTValu
           autorelease(encounteredValue);
           release(key);
           return true;
-        } 
+        }
       }
     }
   }
@@ -97,43 +110,50 @@ inline bool tryReplacingEntry(ConcurrentHashMapEntry *entry, RTValue key, RTValu
 }
 
 /* MUTABLE: self is not conusmed. mem done */
-void ConcurrentHashMap_assoc(ConcurrentHashMap *self, RTValue key, RTValue value) {
+void ConcurrentHashMap_assoc(ConcurrentHashMap *self, RTValue key,
+                             RTValue value) {
   promoteToShared(key);
   promoteToShared(value);
 
-  ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
+  ConcurrentHashMapNode *root =
+      atomic_load_explicit(&(self->root), memory_order_relaxed);
 
   uword_t keyHash = avalanche(hash(key));
   uword_t startIndex = keyHash & root->sizeMask;
   uword_t index = startIndex;
   ConcurrentHashMapEntry *entry = &(root->array[index]);
 
-  //printf("keyHash: %u, startindex: %u index: %u\n", keyHash, startIndex, index); 
-  
-  
+  // printf("keyHash: %u, startindex: %u index: %u\n", keyHash, startIndex,
+  // index);
+
   uword_t encounteredHash = tryReservingEmptyNode(entry, key, value, keyHash);
-  if(encounteredHash == 0) { //printf("STORED AT: %d %u\n", index, RT_unboxInt32(key)); 
-    return; 
-  }
-  if (tryReplacingEntry(entry, key, value, keyHash, encounteredHash)) {
-//    printf("REPLACED AT: %u\n", index);     
+  if (encounteredHash ==
+      0) { // printf("STORED AT: %d %u\n", index, RT_unboxInt32(key));
     return;
   }
-  unsigned short lastChainEntryLeaps = atomic_load_explicit(&(entry->leaps), memory_order_relaxed);
+  if (tryReplacingEntry(entry, key, value, keyHash, encounteredHash)) {
+    //    printf("REPLACED AT: %u\n", index);
+    return;
+  }
+  unsigned short lastChainEntryLeaps =
+      atomic_load_explicit(&(entry->leaps), memory_order_relaxed);
   unsigned short jump = getLongLeap(lastChainEntryLeaps);
 
-  while(jump > 0) { /* Let us traverse the chain searching for its end */
+  while (jump > 0) { /* Let us traverse the chain searching for its end */
     index = (index + jump) & root->sizeMask;
     entry = &(root->array[index]);
     /* We wait until the node appears */
-    while((encounteredHash = atomic_load_explicit(&(entry->keyHash), memory_order_relaxed)) == 0); 
+    while ((encounteredHash = atomic_load_explicit(&(entry->keyHash),
+                                                   memory_order_relaxed)) == 0)
+      ;
     /* Maybe it is an existing node with the key? If so we replace the value */
     if (tryReplacingEntry(entry, key, value, keyHash, encounteredHash)) {
-  //    printf("REPLACED2 AT: %u\n", index);           
-      return; 
+      //    printf("REPLACED2 AT: %u\n", index);
+      return;
     }
-    lastChainEntryLeaps = atomic_load_explicit(&(entry->leaps), memory_order_relaxed);
-    jump = getShortLeap(lastChainEntryLeaps);    
+    lastChainEntryLeaps =
+        atomic_load_explicit(&(entry->leaps), memory_order_relaxed);
+    jump = getShortLeap(lastChainEntryLeaps);
   }
 
   ConcurrentHashMapEntry *lastChainEntry = entry;
@@ -142,61 +162,78 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, RTValue key, RTValue value
 
   /* We enter linear scan */
   for (unsigned char i = 1; i < root->resizingThreshold; i++) {
-//    printf("Linear scan %d\n", i);
+    //    printf("Linear scan %d\n", i);
     index = (index + 1) & root->sizeMask;
     entry = &(root->array[index]);
     encounteredHash = tryReservingEmptyNode(entry, key, value, keyHash);
 
     while (encounteredHash == 0) {
-  //        printf("success %d\n", index);     
+      //        printf("success %d\n", index);
       /* We succeeded in reserving the node! We create long or short jumps. */
-      unsigned short newLeaps = lastChainEntryIsFirstEntry ? buildLeaps(i, getShortLeap(lastChainEntryLeaps)) : buildLeaps(getLongLeap(lastChainEntryLeaps), i);
-      if(atomic_compare_exchange_strong_explicit(&(lastChainEntry->leaps), &lastChainEntryLeaps, newLeaps, memory_order_relaxed, memory_order_relaxed)) {
+      unsigned short newLeaps =
+          lastChainEntryIsFirstEntry
+              ? buildLeaps(i, getShortLeap(lastChainEntryLeaps))
+              : buildLeaps(getLongLeap(lastChainEntryLeaps), i);
+      if (atomic_compare_exchange_strong_explicit(
+              &(lastChainEntry->leaps), &lastChainEntryLeaps, newLeaps,
+              memory_order_relaxed, memory_order_relaxed)) {
         return;
-      } 
-      lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
+      }
+      lastChainEntryLeaps =
+          atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
     }
 
-    while((encounteredHash & root->sizeMask)  == startIndex) {
-      /* This is a problem. Another thread is in a process of adding an entry to the same chain! 
-         We need to patch the last chain entry for him */      
-      unsigned short newLeaps = lastChainEntryIsFirstEntry ? buildLeaps(i, getShortLeap(lastChainEntryLeaps)) : buildLeaps(getLongLeap(lastChainEntryLeaps), i);
-      if(atomic_compare_exchange_strong_explicit(&(lastChainEntry->leaps), &lastChainEntryLeaps, newLeaps, memory_order_relaxed, memory_order_relaxed)) {
+    while ((encounteredHash & root->sizeMask) == startIndex) {
+      /* This is a problem. Another thread is in a process of adding an entry to
+         the same chain! We need to patch the last chain entry for him */
+      unsigned short newLeaps =
+          lastChainEntryIsFirstEntry
+              ? buildLeaps(i, getShortLeap(lastChainEntryLeaps))
+              : buildLeaps(getLongLeap(lastChainEntryLeaps), i);
+      if (atomic_compare_exchange_strong_explicit(
+              &(lastChainEntry->leaps), &lastChainEntryLeaps, newLeaps,
+              memory_order_relaxed, memory_order_relaxed)) {
         /* We move the last entry index and start afresh */
         lastChainEntryIndex = index;
         lastChainEntry = entry;
-        lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
+        lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps),
+                                                   memory_order_relaxed);
         lastChainEntryIsFirstEntry = false;
         i = 0;
         break;
-      } 
-      lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
+      }
+      lastChainEntryLeaps =
+          atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
     }
   }
   /* The loop failed - the table is overcrowded and needs a migration */
   release(key);
   release(value);
-  throwIllegalStateException_C("ConcurrentHashMap is overcrowded - resizing not yet supported");
+  throwIllegalStateException_C(
+      "ConcurrentHashMap is overcrowded - resizing not yet supported");
 }
 
 /* outside refcount system */
-inline bool tryDeletingFromEntry(ConcurrentHashMapEntry *entry, RTValue key, uword_t keyHash) {
-  uword_t encounteredHash = atomic_load_explicit(&(entry->keyHash), memory_order_relaxed);
+inline bool tryDeletingFromEntry(ConcurrentHashMapEntry *entry, RTValue key,
+                                 uword_t keyHash) {
+  uword_t encounteredHash =
+      atomic_load_explicit(&(entry->keyHash), memory_order_relaxed);
   RTValue encounteredKey = RT_boxNull();
-  if(encounteredHash == 0) { 
+  if (encounteredHash == 0) {
     release(key);
-    return true;  
+    return true;
   }
-  if(encounteredHash == keyHash) { 
+  if (encounteredHash == keyHash) {
     /* This is a weak dissoc, still leaves dangling key in the table */
     encounteredKey = atomic_load_explicit(&(entry->key), memory_order_relaxed);
-    /* sbd is in the process of insertion, but we ignore it as dissoc works only for what 
-       was already present in the table */
-    if(RT_isNull(key)) { 
+    /* sbd is in the process of insertion, but we ignore it as dissoc works only
+       for what was already present in the table */
+    if (RT_isNull(key)) {
       return true;
     }
-    if(equals(encounteredKey, key)) {
-      RTValue encounteredValue = atomic_load_explicit(&(entry->value), memory_order_relaxed);
+    if (equals(encounteredKey, key)) {
+      RTValue encounteredValue =
+          atomic_load_explicit(&(entry->value), memory_order_relaxed);
       atomic_exchange(&(entry->value), RT_boxNull());
       autorelease(encounteredValue);
       release(key);
@@ -208,84 +245,106 @@ inline bool tryDeletingFromEntry(ConcurrentHashMapEntry *entry, RTValue key, uwo
 
 /* MUTABLE: self is not conusmed. mem done */
 void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, RTValue key) {
-  ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
+  ConcurrentHashMapNode *root =
+      atomic_load_explicit(&(self->root), memory_order_relaxed);
   uword_t keyHash = avalanche(hash(key));
   uword_t startIndex = keyHash & root->sizeMask;
   uword_t index = startIndex;
   ConcurrentHashMapEntry *entry = &(root->array[index]);
-  
-  if(tryDeletingFromEntry(entry, key, keyHash)) { return; }
 
-  unsigned short jump = getLongLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));
-  while(jump > 0) {
+  if (tryDeletingFromEntry(entry, key, keyHash)) {
+    return;
+  }
+
+  unsigned short jump =
+      getLongLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));
+  while (jump > 0) {
     index = (index + jump) & root->sizeMask;
     entry = &(root->array[index]);
-    if(tryDeletingFromEntry(entry, key, keyHash)) { return; }
-    jump = getShortLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  
+    if (tryDeletingFromEntry(entry, key, keyHash)) {
+      return;
+    }
+    jump = getShortLeap(
+        atomic_load_explicit(&(entry->leaps), memory_order_relaxed));
   }
   release(key);
 }
 
 /* outside refcount system */
-inline RTValue tryGettingFromEntry(ConcurrentHashMapEntry *entry, RTValue key, uword_t keyHash) {
+inline RTValue tryGettingFromEntry(ConcurrentHashMapEntry *entry, RTValue key,
+                                   uword_t keyHash) {
   /* NULL return value signifies failure */
-  uword_t encounteredHash = atomic_load_explicit(&(entry->keyHash), memory_order_relaxed);
+  uword_t encounteredHash =
+      atomic_load_explicit(&(entry->keyHash), memory_order_relaxed);
   RTValue encounteredKey = RT_boxNull();
-  
-  if(encounteredHash == 0) { return RT_boxNil(); }
-  if(encounteredHash == keyHash) {
+
+  if (encounteredHash == 0) {
+    return RT_boxNil();
+  }
+  if (encounteredHash == keyHash) {
     encounteredKey = atomic_load_explicit(&(entry->key), memory_order_relaxed);
-    if(!encounteredKey) { return RT_boxNil(); }
-    if(equals(encounteredKey, key)) {
-      RTValue value = atomic_load_explicit(&(entry->value), memory_order_relaxed);
-      if(!RT_isNull(value)) { 
-        retain(value);        
+    if (!encounteredKey) {
+      return RT_boxNil();
+    }
+    if (equals(encounteredKey, key)) {
+      Ebr_enter_critical();
+      RTValue value =
+          atomic_load_explicit(&(entry->value), memory_order_acquire);
+      if (!RT_isNull(value)) {
+        retain(value);
+        Ebr_leave_critical();
         return value;
-      } 
-      return RT_boxNil(); 
+      }
+      Ebr_leave_critical();
+      return RT_boxNil();
     }
   }
-  return RT_boxNull();
+  return RT_boxNil();
 }
 
 /* MUTABLE: self is not conusmed, keyV is consumed. mem done */
 RTValue ConcurrentHashMap_get(ConcurrentHashMap *self, RTValue key) {
-  ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
+  ConcurrentHashMapNode *root =
+      atomic_load_explicit(&(self->root), memory_order_relaxed);
   uword_t keyHash = avalanche(hash(key));
   uword_t startIndex = keyHash & root->sizeMask;
   uword_t index = startIndex;
   ConcurrentHashMapEntry *entry = &(root->array[index]);
-  
+
   RTValue retVal = tryGettingFromEntry(entry, key, keyHash);
- 
-  if(!RT_isNull(retVal)) {
-    release(key); 
+
+  if (!RT_isNull(retVal)) {
+    release(key);
     return retVal;
   }
-  unsigned short jump = getLongLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  
-  while(jump > 0) {
+  unsigned short jump =
+      getLongLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));
+  while (jump > 0) {
     index = (index + jump) & root->sizeMask;
     entry = &(root->array[index]);
     retVal = tryGettingFromEntry(entry, key, keyHash);
-    if(!RT_isNull(retVal)) {
-      release(key); 
+    if (!RT_isNull(retVal)) {
+      release(key);
       return retVal;
     }
-    
-    jump = getShortLeap(atomic_load_explicit(&(entry->leaps), memory_order_relaxed));  
+
+    jump = getShortLeap(
+        atomic_load_explicit(&(entry->leaps), memory_order_relaxed));
   }
 
   release(key);
-  return RT_boxNil();  
+  return RT_boxNil();
 }
 
 /* outside refcount system */
-bool ConcurrentHashMap_equals(ConcurrentHashMap *self, ConcurrentHashMap *other) {
+bool ConcurrentHashMap_equals(ConcurrentHashMap *self,
+                              ConcurrentHashMap *other) {
   /* CHM is equal only on pointer basis */
-  /* Warning!!! 
+  /* Warning!!!
      The key-value pairs would have to be stably ordered to get this function.
-     We leave it out for now - as we do not expect this data structure to be used anywhere
-     outside global ref registers. (and so the hash function is actually redundant) */
+     We leave it out for now - as we do not expect this data structure to be
+     used anywhere outside global ref registers. (and so the hash function is
+     actually redundant) */
 
   return false;
 }
@@ -293,16 +352,18 @@ bool ConcurrentHashMap_equals(ConcurrentHashMap *self, ConcurrentHashMap *other)
 /* outside refcount system */
 uword_t ConcurrentHashMap_hash(ConcurrentHashMap *self) {
   /* CHM has unique hash equal to its pointer */
-  /* Warning!!! 
+  /* Warning!!!
      The key-value pairs would have to be stably ordered to get this function.
-     We leave it out for now - as we do not expect this data structure to be used anywhere
-     outside global ref registers. (and so the hash function is actually redundant) */
+     We leave it out for now - as we do not expect this data structure to be
+     used anywhere outside global ref registers. (and so the hash function is
+     actually redundant) */
 
-  return (uword_t) self;
+  return (uword_t)self;
 }
 
 /* String *ConcurrentHashMap_toDebugString(ConcurrentHashMap *self) { */
-/*   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed); */
+/*   ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root),
+ * memory_order_relaxed); */
 /*   sds retVal = sdsnew("{"); */
 /*   bool found = false; */
 /*   for(uword_t i=0; i<= root->sizeMask; i++) { */
@@ -314,7 +375,9 @@ uword_t ConcurrentHashMap_hash(ConcurrentHashMap *self) {
 /*       found = true;       */
 /*       String *ks = toString(key); */
 /*       String *vs = toString(value); */
-/*       retVal = sdscatprintf(retVal, "Index: %d; hash %lu; Good index: %lu, leap %d:%d --> ", i, entry->keyHash ,  entry->keyHash & root->sizeMask, getLongLeap(entry->leaps), getShortLeap(entry->leaps)); */
+/*       retVal = sdscatprintf(retVal, "Index: %d; hash %lu; Good index: %lu,
+ * leap %d:%d --> ", i, entry->keyHash ,  entry->keyHash & root->sizeMask,
+ * getLongLeap(entry->leaps), getShortLeap(entry->leaps)); */
 /*       retVal = sdscatsds(retVal, ks->value); */
 /*       retVal = sdscat(retVal, " "); */
 /*       retVal = sdscatsds(retVal, vs->value); */
@@ -331,23 +394,24 @@ uword_t ConcurrentHashMap_hash(ConcurrentHashMap *self) {
 
 /* mem done */
 String *ConcurrentHashMap_toString(ConcurrentHashMap *self) {
-  ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
+  ConcurrentHashMapNode *root =
+      atomic_load_explicit(&(self->root), memory_order_relaxed);
   String *retVal = String_create("{");
   String *comma = String_create(", ");
-  String *space = String_create(" "); 
-  String *closing = String_create("}"); 
+  String *space = String_create(" ");
+  String *closing = String_create("}");
 
   bool found = false;
-  for(uword_t i=0; i<= root->sizeMask; i++) {
+  for (uword_t i = 0; i <= root->sizeMask; i++) {
     ConcurrentHashMapEntry *entry = &(root->array[i]);
     RTValue key = entry->key;
     RTValue value = entry->value;
-    if(!RT_isNull(key) && !RT_isNull(value)) {
-      if(found) { 
+    if (!RT_isNull(key) && !RT_isNull(value)) {
+      if (found) {
         Ptr_retain(comma);
         retVal = String_concat(retVal, comma);
       }
-      found = true;      
+      found = true;
       retain(key);
       retain(value);
       String *ks = toString(key);
@@ -356,7 +420,7 @@ String *ConcurrentHashMap_toString(ConcurrentHashMap *self) {
       retVal = String_concat(retVal, ks);
       retVal = String_concat(retVal, space);
       retVal = String_concat(retVal, vs);
-    } 
+    }
   }
   retVal = String_concat(retVal, closing);
   Ptr_release(comma);
@@ -366,20 +430,19 @@ String *ConcurrentHashMap_toString(ConcurrentHashMap *self) {
   return retVal;
 }
 
-
 /* outside refcount system */
 void ConcurrentHashMap_destroy(ConcurrentHashMap *self) {
-    ConcurrentHashMapNode *root = atomic_load_explicit(&(self->root), memory_order_relaxed);
-    atomic_store(&(self->root), NULL);
-    for(uword_t i=0; i<= root->sizeMask; i++) {
-      ConcurrentHashMapEntry *entry = &(root->array[i]);
-      RTValue key = atomic_load_explicit(&(entry->key), memory_order_relaxed);
-      RTValue value =
-          atomic_load_explicit(&(entry->value), memory_order_relaxed);
-      // The special case of 0 is a double which does not need any release, so its fine.
-      release(key);
-      release(value);
-    }
-    deallocate(root);
+  ConcurrentHashMapNode *root =
+      atomic_load_explicit(&(self->root), memory_order_relaxed);
+  atomic_store(&(self->root), NULL);
+  for (uword_t i = 0; i <= root->sizeMask; i++) {
+    ConcurrentHashMapEntry *entry = &(root->array[i]);
+    RTValue key = atomic_load_explicit(&(entry->key), memory_order_relaxed);
+    RTValue value = atomic_load_explicit(&(entry->value), memory_order_relaxed);
+    // The special case of 0 is a double which does not need any release, so its
+    // fine.
+    release(key);
+    autorelease(value);
+  }
+  deallocate(root);
 }
-

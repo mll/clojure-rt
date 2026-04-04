@@ -1,5 +1,7 @@
 #include "RuntimeInterface.h"
 #include "ConcurrentHashMap.h"
+#include "Ebr.h"
+
 #include "PersistentArrayMap.h"
 #include "PersistentVector.h"
 #include "Symbol.h"
@@ -27,6 +29,9 @@ extern uint64_t avalanche_64(uint64_t h);
 void RuntimeInterface_initialise() {
   if (keywords)
     return;
+  Ebr_init();
+  // Registering main thread.
+  Ebr_register_thread();
   keywords = ConcurrentHashMap_create(10);         // 2^10
   keywordsInverted = ConcurrentHashMap_create(10); // 2^10
   vars = ConcurrentHashMap_create(10);             // 2^10
@@ -60,6 +65,9 @@ void RuntimeInterface_cleanup() {
   PersistentVector_cleanup();
   PersistentArrayMap_cleanup();
   Var_cleanup();
+  // Unregistering main thread.
+  Ebr_unregister_thread();
+  Ebr_shutdown();
 }
 
 void printReferenceCounts() {

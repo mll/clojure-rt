@@ -1,7 +1,9 @@
 #include "../ConcurrentHashMap.h"
-#include "../PersistentList.h"
 #include "../Hash.h"
+#include "../PersistentList.h"
 #include "TestTools.h"
+#include "runtime/Object.h"
+#include "runtime/RuntimeInterface.h"
 #include <math.h>
 
 #define THREAD_COUNT 10
@@ -17,6 +19,7 @@ typedef struct HashThreadParams {
 } HashThreadParams;
 
 static void *startThread(void *param) {
+  Ebr_register_thread();
   HashThreadParams *p = (HashThreadParams *)param;
   ConcurrentHashMap *l = p->map;
 
@@ -25,6 +28,7 @@ static void *startThread(void *param) {
     ConcurrentHashMap_assoc(l, n, n);
   }
 
+  Ebr_unregister_thread();
   return NULL;
 }
 
@@ -107,17 +111,17 @@ static void test_concurrent_hash_map_overcrowded(void **state) {
     // Create a very small map to ensure it gets overcrowded quickly
     // initialSizeExponent = 2 -> size 4
     ConcurrentHashMap *m = ConcurrentHashMap_create(2);
-    
+
     // Filling it should eventually trigger the overcrowded exception
-    // resizingThreshold = MIN(round(pow(4, 0.33)), 128) = MIN(1.58, 128) = 1 (approx)
-    // It's very small, so a few assocs should trigger it.
-    
+    // resizingThreshold = MIN(round(pow(4, 0.33)), 128) = MIN(1.58, 128) = 1
+    // (approx) It's very small, so a few assocs should trigger it.
+
     ASSERT_THROWS("IllegalStateException", {
       for (int i = 0; i < 100; i++) {
         ConcurrentHashMap_assoc(m, RT_boxInt32(i), RT_boxInt32(i));
       }
     });
-    
+
     Ptr_release(m);
   });
 }
@@ -133,7 +137,8 @@ static void test_chm_promotion_on_assoc(void **state) {
     assert_true(Ptr_isShared(m));
 
     // 2. Test promotion on assoc
-    PersistentList *l = PersistentList_create(RT_boxInt32(1), PersistentList_empty());
+    PersistentList *l =
+        PersistentList_create(RT_boxInt32(1), PersistentList_empty());
     assert_false(Ptr_isShared(l));
 
     ConcurrentHashMap_assoc(m, RT_boxPtr(l), RT_boxInt32(100));
@@ -153,5 +158,7 @@ int main(void) {
   };
   initialise_memory();
   srand(0);
-  return cmocka_run_group_tests(tests, NULL, NULL);
+  int x = cmocka_run_group_tests(tests, NULL, NULL);
+  RuntimeInterface_cleanup();
+  return x;
 }

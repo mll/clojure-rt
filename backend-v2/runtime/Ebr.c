@@ -118,7 +118,7 @@ void *Ebr_reclaimer_thread_func(void *arg);
 void Ebr_init() {
   EBR_LOG("Initializing EBR system.");
   initialise();
-  atomic_store_explicit(&reclaimer_running, true, memory_order_seq_cst);
+  atomic_store_explicit(&reclaimer_running, true, memory_order_release);
   pthread_create(&reclaimer_thread_id, NULL, Ebr_reclaimer_thread_func, NULL);
 }
 
@@ -154,9 +154,11 @@ void Ebr_register_thread() {
   atomic_init(&s->terminated, false);
   ThreadState *old_head;
   do {
-    old_head = atomic_load(&registry_head);
+    old_head = atomic_load_explicit(&registry_head, memory_order_relaxed);
     s->next = old_head;
-  } while (!atomic_compare_exchange_weak(&registry_head, &old_head, s));
+  } while (!atomic_compare_exchange_weak_explicit(
+      &registry_head, &old_head, s, memory_order_release,
+      memory_order_relaxed));
 
   thread_state = s;
 }
@@ -177,7 +179,7 @@ void Ebr_enter_critical() {
     Ebr_register_thread();
   }
   unsigned int current =
-      atomic_load_explicit(&global_epoch, memory_order_acquire);
+      atomic_load_explicit(&global_epoch, memory_order_relaxed);
   EBR_LOG("Entering critical section (state %p, global_epoch: %u).",
           (void *)thread_state, current);
   atomic_store_explicit(&thread_state->active, true, memory_order_release);
@@ -209,10 +211,11 @@ void autorelease(RTValue value) {
 
   RetiredObject *old_head;
   do {
-    old_head = atomic_load(&pending_reclamation);
+    old_head = atomic_load_explicit(&pending_reclamation, memory_order_relaxed);
     node->next = old_head;
-  } while (
-      !atomic_compare_exchange_weak(&pending_reclamation, &old_head, node));
+  } while (!atomic_compare_exchange_weak_explicit(
+      &pending_reclamation, &old_head, node, memory_order_release,
+      memory_order_relaxed));
 
   size_t count = atomic_fetch_add(&pending_count, 1) + 1;
   EBR_LOG("Object %p retired (epoch: %u, pending: %zu).", RT_unboxPtr(value),
@@ -229,7 +232,7 @@ size_t Ebr_get_pending_count() {
 
 size_t Ebr_synchronize_and_reclaim() {
   unsigned int current_global =
-      atomic_load_explicit(&global_epoch, memory_order_acquire);
+      atomic_load_explicit(&global_epoch, memory_order_relaxed);
 #ifdef EBR_DEBUG
   size_t pending = atomic_load_explicit(&pending_count, memory_order_relaxed);
   EBR_LOG("Sync/Reclaim start (global_epoch: %u, pending_count: %zu).",
@@ -243,9 +246,9 @@ size_t Ebr_synchronize_and_reclaim() {
   ThreadState *curr_thread =
       atomic_load_explicit(&registry_head, memory_order_acquire);
   while (curr_thread) {
-    if (atomic_load_explicit(&curr_thread->active, memory_order_acquire)) {
+    if (atomic_load_explicit(&curr_thread->active, memory_order_relaxed)) {
       unsigned int local_ep =
-          atomic_load_explicit(&curr_thread->local_epoch, memory_order_acquire);
+          atomic_load_explicit(&curr_thread->local_epoch, memory_order_relaxed);
       if (local_ep != current_global) {
         can_advance = false;
 #ifdef EBR_DEBUG
@@ -266,7 +269,8 @@ size_t Ebr_synchronize_and_reclaim() {
     EBR_LOG("Advanced global_epoch to %u.", current_global);
   }
 
-  RetiredObject *retiring = atomic_exchange(&pending_reclamation, NULL);
+  RetiredObject *retiring =
+      atomic_exchange_explicit(&pending_reclamation, NULL, memory_order_acquire);
 
   RetiredObject *to_keep_head = NULL;
   RetiredObject *to_keep_tail = NULL;
@@ -302,10 +306,12 @@ size_t Ebr_synchronize_and_reclaim() {
   if (to_keep_head) {
     RetiredObject *old_head;
     do {
-      old_head = atomic_load(&pending_reclamation);
+      old_head =
+          atomic_load_explicit(&pending_reclamation, memory_order_relaxed);
       to_keep_tail->next = old_head;
-    } while (!atomic_compare_exchange_weak(&pending_reclamation, &old_head,
-                                           to_keep_head));
+    } while (!atomic_compare_exchange_weak_explicit(
+        &pending_reclamation, &old_head, to_keep_head, memory_order_release,
+        memory_order_relaxed));
   }
 
 #ifdef EBR_DEBUG
@@ -323,10 +329,11 @@ void *Ebr_reclaimer_thread_func(void *arg) {
   while (reclaimer_running) {
     pthread_mutex_lock(&reclaimer_mutex);
 
-    while (atomic_load(&pending_count) < EBR_RECLAIM_THRESHOLD &&
+    while (atomic_load_explicit(&pending_count, memory_order_relaxed) <
+               EBR_RECLAIM_THRESHOLD &&
            reclaimer_running) {
       EBR_LOG("Reclaimer thread sleeping (pending: %zu).",
-              atomic_load(&pending_count));
+              atomic_load_explicit(&pending_count, memory_order_relaxed));
       pthread_cond_wait(&reclaimer_cond, &reclaimer_mutex);
     }
 

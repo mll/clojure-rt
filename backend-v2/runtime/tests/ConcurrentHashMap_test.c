@@ -195,27 +195,29 @@ static void *readerThread(void *param) {
 
 static void test_concurrent_read_write(void **state) {
   (void)state;
-  ConcurrentHashMap *m = ConcurrentHashMap_create(10);
-  RWThreadParams params[10];
-  pthread_t threads[10];
+  ASSERT_MEMORY_ALL_BALANCED({
+    ConcurrentHashMap *m = ConcurrentHashMap_create(10);
+    RWThreadParams params[10];
+    pthread_t threads[10];
 
-  for (int i = 0; i < 10; i++) {
-    params[i].map = m;
-    atomic_init(&params[i].running, true);
-    if (i < 5)
-      pthread_create(&threads[i], NULL, writerThread, &params[i]);
-    else
-      pthread_create(&threads[i], NULL, readerThread, &params[i]);
-  }
+    for (int i = 0; i < 10; i++) {
+      params[i].map = m;
+      atomic_init(&params[i].running, true);
+      if (i < 5)
+        pthread_create(&threads[i], NULL, writerThread, &params[i]);
+      else
+        pthread_create(&threads[i], NULL, readerThread, &params[i]);
+    }
 
-  usleep(100000); // Run for 100ms
-  for (int i = 0; i < 10; i++)
-    atomic_store(&params[i].running, false);
+    usleep(100000); // Run for 100ms
+    for (int i = 0; i < 10; i++)
+      atomic_store(&params[i].running, false);
 
-  for (int i = 0; i < 10; i++)
-    pthread_join(threads[i], NULL);
+    for (int i = 0; i < 10; i++)
+      pthread_join(threads[i], NULL);
 
-  Ptr_release(m);
+    Ptr_release(m);
+  });
 }
 
 static void test_chm_with_strings(void **state) {

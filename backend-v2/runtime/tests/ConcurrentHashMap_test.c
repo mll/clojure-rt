@@ -11,6 +11,9 @@
 #include <unistd.h>
 
 #define THREAD_COUNT 10
+#define BATTLE_THREADS 24
+#define BATTLE_KEYS 500
+#define BATTLE_DURATION_MS 2000
 
 static bool Ptr_isShared(void *p) {
   return (Object_getRawRefCount((Object *)p) & SHARED_BIT) != 0;
@@ -161,18 +164,33 @@ static void test_chm_promotion_on_assoc(void **state) {
 typedef struct RWThreadParams {
   ConcurrentHashMap *map;
   atomic_bool running;
+  int workerId;
 } RWThreadParams;
 
 static void *writerThread(void *param) {
   Ebr_register_thread();
   RWThreadParams *p = (RWThreadParams *)param;
-  int i = 0;
+  unsigned int seed = (unsigned int)time(NULL) + p->workerId;
   while (atomic_load(&p->running)) {
-    RTValue k = RT_boxInt32(i % 100);
-    RTValue v = RT_boxInt32(i);
-    Ptr_retain(p->map);
-    ConcurrentHashMap_assoc(p->map, k, v);
-    i++;
+    int k_val = rand_r(&seed) % BATTLE_KEYS;
+    RTValue k = RT_boxInt32(k_val);
+    RTValue v;
+
+    if (rand_r(&seed) % 5 == 0) { // 20% dissoc
+      Ptr_retain(p->map);
+      ConcurrentHashMap_dissoc(p->map, k);
+    } else {
+      // 90% of values are strings to stress EBR
+      if (rand_r(&seed) % 10 != 0) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "val-%d", (k_val ^ 0xDEADC0DE));
+        v = RT_boxPtr(String_createDynamicStr(buf));
+      } else {
+        v = RT_boxInt32(k_val ^ 0xDEADC0DE);
+      }
+      Ptr_retain(p->map);
+      ConcurrentHashMap_assoc(p->map, k, v);
+    }
   }
   Ebr_unregister_thread();
   return NULL;
@@ -181,12 +199,23 @@ static void *writerThread(void *param) {
 static void *readerThread(void *param) {
   Ebr_register_thread();
   RWThreadParams *p = (RWThreadParams *)param;
+  unsigned int seed = (unsigned int)time(NULL) + p->workerId;
   while (atomic_load(&p->running)) {
-    RTValue k = RT_boxInt32(rand() % 100);
+    int k_val = rand_r(&seed) % BATTLE_KEYS;
+    RTValue k = RT_boxInt32(k_val);
     Ptr_retain(p->map);
     RTValue v = ConcurrentHashMap_get(p->map, k);
     if (!RT_isNil(v)) {
-      assert_true(getType(v) == integerType);
+      if (RT_isPtr(v) && getType(v) == stringType) {
+        String *s = (String *)RT_unboxPtr(v);
+        char buf[32];
+        snprintf(buf, sizeof(buf), "val-%d", (k_val ^ 0xDEADC0DE));
+        assert_string_equal(String_c_str(s), buf);
+        release(v);
+      } else {
+        assert_true(RT_isInt32(v));
+        assert_int_equal((uint32_t)RT_unboxInt32(v), (uint32_t)(k_val ^ 0xDEADC0DE));
+      }
     }
   }
   Ebr_unregister_thread();
@@ -197,26 +226,30 @@ static void test_concurrent_read_write(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     ConcurrentHashMap *m = ConcurrentHashMap_create(10);
-    RWThreadParams params[10];
-    pthread_t threads[10];
+    RWThreadParams params[BATTLE_THREADS];
+    pthread_t threads[BATTLE_THREADS];
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < BATTLE_THREADS; i++) {
       params[i].map = m;
+      params[i].workerId = i;
       atomic_init(&params[i].running, true);
-      if (i < 5)
+      if (i < BATTLE_THREADS / 2)
         pthread_create(&threads[i], NULL, writerThread, &params[i]);
       else
         pthread_create(&threads[i], NULL, readerThread, &params[i]);
     }
 
-    usleep(100000); // Run for 100ms
-    for (int i = 0; i < 10; i++)
+    usleep(BATTLE_DURATION_MS * 1000);
+    for (int i = 0; i < BATTLE_THREADS; i++)
       atomic_store(&params[i].running, false);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < BATTLE_THREADS; i++)
       pthread_join(threads[i], NULL);
 
     Ptr_release(m);
+    // Cleanup EBR
+    Ebr_synchronize_and_reclaim();
+    Ebr_synchronize_and_reclaim();
   });
 }
 

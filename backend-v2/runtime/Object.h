@@ -1,6 +1,7 @@
 #ifndef RT_OBJECT
 #define RT_OBJECT
 
+#include "Hash.h"
 #include "word.h"
 #ifdef __cplusplus
 extern "C" {
@@ -475,20 +476,20 @@ inline uword_t hash(RTValue v) {
   objectType t = getType(v);
   switch (t) {
   case integerType:
-    return (uword_t)RT_unboxInt32(v) + 1;
+    return (uword_t)avalanche(RT_unboxInt32(v));
   case booleanType:
-    return (uword_t)RT_unboxBool(v) + 1;
+    return (uword_t)avalanche(RT_unboxBool(v));
   case nilType:
     return 0xDEADBEEF; // Standard nil hash
   case keywordType:
-    return (uword_t)RT_unboxKeyword(v);
+    return (uword_t)avalanche(RT_unboxKeyword(v));
   case symbolType:
-    return (uword_t)RT_unboxSymbol(v);
+    return (uword_t)avalanche(RT_unboxSymbol(v));
   case doubleType: {
     double d = RT_unboxDouble(v);
     uint64_t u;
     memcpy(&u, &d, 8);
-    return u + 1;
+    return avalanche(u);
   }
   default:
     assert(RT_isPtr(v) &&

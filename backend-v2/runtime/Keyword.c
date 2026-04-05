@@ -15,13 +15,14 @@ static _Atomic(uint32_t) minUnusedKeyword = 1;
 RTValue Keyword_create(String *string) {
   RTValue stringVal = RT_boxPtr(string);
   Ptr_retain(string); /* +1 for first get */
-  RTValue retVal = ConcurrentHashMap_get(keywords, stringVal); /* consumes 1 */
+  RTValue retVal =
+      ConcurrentHashMap_get_preservesSelf(keywords, stringVal); /* consumes 1 */
 
   if (RT_isNil(retVal)) {
     Ptr_retain(string); /* +1 for second get */
     pthread_mutex_lock(&intern_mutex);
-    RTValue retVal2 =
-        ConcurrentHashMap_get(keywords, stringVal); /* consumes 1 */
+    RTValue retVal2 = ConcurrentHashMap_get_preservesSelf(
+        keywords, stringVal); /* consumes 1 */
     if (RT_isKeyword(retVal2)) {
       pthread_mutex_unlock(&intern_mutex);
       Ptr_release(string); /* consume caller's ref */
@@ -34,8 +35,10 @@ RTValue Keyword_create(String *string) {
     /* Need 2 refs for 2 assoc calls (each consumes stringVal as key/value).
        We currently hold 1 (caller's), so retain once more. */
     Ptr_retain(string);
-    ConcurrentHashMap_assoc(keywordsInverted, new, stringVal); /* consumes 1 */
-    ConcurrentHashMap_assoc(keywords, stringVal, new);         /* consumes 1 */
+    ConcurrentHashMap_assoc_preservesSelf(keywordsInverted, new, stringVal,
+                                          false); /* consumes 1 */
+    ConcurrentHashMap_assoc_preservesSelf(keywords, stringVal, new,
+                                          false); /* consumes 1 */
     pthread_mutex_unlock(&intern_mutex);
     return new;
   }
@@ -46,7 +49,7 @@ RTValue Keyword_create(String *string) {
 /* mem done */
 String *Keyword_toString(RTValue self) {
   String *colon = String_create(":");
-  RTValue retVal = ConcurrentHashMap_get(keywordsInverted, self);
+  RTValue retVal = ConcurrentHashMap_get_preservesSelf(keywordsInverted, self);
   assert(!RT_isNil(retVal) &&
          "Internal error: Keyword was not interned before printing.");
   return String_concat(colon, toString(retVal));

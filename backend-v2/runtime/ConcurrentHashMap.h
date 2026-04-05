@@ -60,10 +60,18 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, RTValue key,
 void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, RTValue key);
 RTValue ConcurrentHashMap_get(ConcurrentHashMap *self, RTValue key);
 
+void ConcurrentHashMap_assoc_preservesSelf(ConcurrentHashMap *self, RTValue key,
+                                           RTValue value,
+                                           bool releaseSelfOnError);
+void ConcurrentHashMap_dissoc_preservesSelf(ConcurrentHashMap *self,
+                                            RTValue key);
+RTValue ConcurrentHashMap_get_preservesSelf(ConcurrentHashMap *self,
+                                            RTValue key);
+String *ConcurrentHashMap_toString(ConcurrentHashMap *self);
+
 bool ConcurrentHashMap_equals(ConcurrentHashMap *self,
                               ConcurrentHashMap *other);
 uword_t ConcurrentHashMap_hash(ConcurrentHashMap *self);
-String *ConcurrentHashMap_toString(ConcurrentHashMap *self);
 void ConcurrentHashMap_destroy(ConcurrentHashMap *self);
 
 #ifdef __cplusplus

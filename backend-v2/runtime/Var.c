@@ -54,8 +54,9 @@ void asymmetric_barrier() {
 void on_thread_exit(void *unused) {
   if (threadLocalHazardSlot != NULL) {
     bool expectedValue = true;
-    atomic_compare_exchange_weak(&(((HazardSlot *)threadLocalHazardSlot)->active),
-                                 &expectedValue, false);
+    atomic_compare_exchange_weak(
+        &(((HazardSlot *)threadLocalHazardSlot)->active), &expectedValue,
+        false);
   }
 }
 
@@ -130,9 +131,7 @@ bool Var_equals(Var *self, Var *other) {
   return false; // pointer equality in Object_equals
 };
 
-uword_t Var_hash(Var *self) {
-  return combineHash(hash(self->keyword), hash(self->root));
-};
+uword_t Var_hash(Var *self) { return hash(self->keyword); };
 
 String *Var_toString(Var *self) {
   String *retVal = String_create("#");

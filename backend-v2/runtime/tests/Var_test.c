@@ -5,6 +5,7 @@
 #include "../RuntimeInterface.h"
 #include "../String.h"
 #include "../Var.h"
+#include "../Ebr.h"
 
 static void test_var_basic_lifecycle(void **state) {
   (void)state;
@@ -35,6 +36,8 @@ static void test_var_basic_lifecycle(void **state) {
     Var_unbindRoot(v);
 
     assert_true(Var_hasRoot(v) == false);
+    Ebr_synchronize_and_reclaim();
+    Ebr_synchronize_and_reclaim();
   });
 }
 
@@ -116,6 +119,8 @@ static void test_var_peek(void **state) {
     Ptr_release(v);
     // val is now released because v was destroyed.
     release(sym);
+    Ebr_synchronize_and_reclaim();
+    Ebr_synchronize_and_reclaim();
   });
 }
 

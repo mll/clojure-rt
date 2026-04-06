@@ -9,6 +9,7 @@
 #include "../RuntimeInterface.h"
 #include "../String.h"
 #include "../Var.h"
+#include "../Ebr.h"
 
 #define RACE_ITERATIONS 1000000
 #define DESTRUCT_ITERATIONS 1000
@@ -17,8 +18,11 @@
 #include <immintrin.h>
 #define CPU_PAUSE() _mm_pause()
 #elif defined(__aarch64__) || defined(__arm__)
-#include <arm_acle.h>
+#if defined(__GNUC__) || defined(__clang__)
 #define CPU_PAUSE() __asm__ __volatile__("yield")
+#else
+#define CPU_PAUSE() __builtin_arm_yield()
+#endif
 #else
 #define CPU_PAUSE()                                                            \
   do {                                                                         \
@@ -27,17 +31,6 @@
 
 static atomic_bool stop_threads = false;
 
-typedef struct HazardSlot {
-  _Atomic(RTValue) hazardPointer;
-  _Atomic(bool) active;
-  struct HazardSlot *next;
-} HazardSlot;
-
-extern HazardSlot *getOrCreateSlot(void);
-extern void asymmetric_barrier(void);
-extern _Atomic(HazardSlot *) hazardHead;
-extern void Var_destroy(Var *self);
-
 /* --- Test 1: Concurrent bindRoot and deref (The "Race Condition" Test) --- */
 
 struct RaceArgs {
@@ -45,18 +38,19 @@ struct RaceArgs {
 };
 
 void *writer_thread(void *arg) {
-  Var_thread_initialize();
+  Ebr_register_thread();
   struct RaceArgs *args = (struct RaceArgs *)arg;
   for (int i = 0; i < RACE_ITERATIONS && !atomic_load(&stop_threads); i++) {
     RTValue val = RT_boxPtr(String_create("value"));
     Ptr_retain(args->v);
     Var_bindRoot(args->v, val);
   }
+  Ebr_unregister_thread();
   return NULL;
 }
 
 void *reader_thread(void *arg) {
-  Var_thread_initialize();
+  Ebr_register_thread();
   struct RaceArgs *args = (struct RaceArgs *)arg;
   while (!atomic_load(&stop_threads)) {
     Ptr_retain(args->v);
@@ -68,13 +62,15 @@ void *reader_thread(void *arg) {
     }
     CPU_PAUSE();
   }
+  Ebr_unregister_thread();
   return NULL;
 }
 
 static void test_var_concurrent_bind_deref_race(void **state) {
   (void)state;
   atomic_store(&stop_threads, false);
-  Var *v = Var_create(Keyword_create(String_create("race")));
+  RTValue sym = Keyword_create(String_create("race"));
+  Var *v = Var_create(sym);
   struct RaceArgs args = {v};
 
   pthread_t writer, reader;
@@ -89,9 +85,13 @@ static void test_var_concurrent_bind_deref_race(void **state) {
   pthread_join(reader, NULL);
 
   Ptr_release(v);
+  release(sym);
+  Ebr_synchronize_and_reclaim();
+  Ebr_synchronize_and_reclaim();
 }
 
 /* --- Test 2: Var_destroy synchronization (The "Destruction" Test) --- */
+/* In EBR, Var_destroy uses autorelease, so we verify readers are safe */
 
 struct DestructionRaceArgs {
   Var *v;
@@ -102,7 +102,7 @@ struct DestructionRaceArgs {
 };
 
 void *destruction_writer(void *arg) {
-  Var_thread_initialize();
+  Ebr_register_thread();
   struct DestructionRaceArgs *args = (struct DestructionRaceArgs *)arg;
   Var *v = args->v;
 
@@ -115,7 +115,7 @@ void *destruction_writer(void *arg) {
     atomic_store(&args->reader_entering, false);
     atomic_store(&args->iteration, i); // Signal reader to start
 
-    // Wait for reader to grab and pin the root
+    // Wait for reader to indicate it is entering critical section
     while (!atomic_load(&args->reader_entering) &&
            !atomic_load(&stop_threads)) {
       CPU_PAUSE();
@@ -124,25 +124,29 @@ void *destruction_writer(void *arg) {
     if (atomic_load(&stop_threads))
       break;
 
-    // Call Var_destroy manually.
-    // This MUST wait for the reader who has 'val' pinned in hazard pointer.
+    // In EBR, Var_destroy doesn't block, it just retires.
+    // We want to test that the reader who is in critical section is safe.
     Var_destroy(v);
 
     // Reset for next iteration (re-init struct members that destroy cleared)
+    // Note: This is an artificial test of Var internal state
     atomic_store(&v->root, RT_boxNull());
     v->keyword = Keyword_create(String_create("temp"));
 
     // Wait for reader to finish its part of the iteration
     while (atomic_load(&args->reader_done) < i && !atomic_load(&stop_threads)) {
       CPU_PAUSE();
+      // Periodically reclaim to stress the system
+      Ebr_synchronize_and_reclaim();
     }
   }
   atomic_store(&stop_threads, true);
+  Ebr_unregister_thread();
   return NULL;
 }
 
 void *destruction_reader(void *arg) {
-  Var_thread_initialize();
+  Ebr_register_thread();
   struct DestructionRaceArgs *args = (struct DestructionRaceArgs *)arg;
   Var *v = args->v;
   long current_iter = 0;
@@ -152,50 +156,36 @@ void *destruction_reader(void *arg) {
     if (next_iter > current_iter) {
       current_iter = next_iter;
 
+      Ebr_enter_critical();
       RTValue val = atomic_load_explicit(&v->root, memory_order_acquire);
       if (val != RT_boxNull() && RT_isPtr(val)) {
-        HazardSlot *slot = getOrCreateSlot();
+        // Signal writer that we are in critical section
+        atomic_store(&args->reader_entering, true);
 
-        // Advertise
-        atomic_store_explicit(&slot->hazardPointer, val, memory_order_relaxed);
-        atomic_signal_fence(memory_order_seq_cst);
+        // Targeted delay to maximize window for destruction/reclamation
+        for (int j = 0; j < 1000; j++)
+          CPU_PAUSE();
 
-        // Double check
-        if (val == atomic_load_explicit(&v->root, memory_order_acquire)) {
-          // Signal writer that we are in
-          atomic_store(&args->reader_entering, true);
-
-          // Targeted delay: right before retain, maximize window for
-          // destruction
-          for (int j = 0; j < 1000; j++)
-            CPU_PAUSE();
-
-          retain(val);
-          release(val);
-        } else {
-          // If we missed it, signal so writer doesn't hang
-          atomic_store(&args->reader_entering, true);
-        }
-
-        // Clear advertisement IMMEDIATELY so writer can proceed
-        atomic_store_explicit(&slot->hazardPointer, RT_boxNull(),
-                              memory_order_relaxed);
+        retain(val);
+        release(val);
       } else {
-        // Fallback to avoid hanging writer if root wasn't visible
         atomic_store(&args->reader_entering, true);
       }
+      Ebr_leave_critical();
 
       atomic_store(&args->reader_done, current_iter);
     }
     CPU_PAUSE();
   }
+  Ebr_unregister_thread();
   return NULL;
 }
 
 static void test_var_destruction_hazard_race_stable(void **state) {
   (void)state;
   atomic_store(&stop_threads, false);
-  Var *v = Var_create(Keyword_create(String_create("stable")));
+  RTValue sym = Keyword_create(String_create("stable"));
+  Var *v = Var_create(sym);
   struct DestructionRaceArgs args = {
       .v = v, .iteration = 0, .reader_done = 0, .reader_entering = false};
 
@@ -207,6 +197,9 @@ static void test_var_destruction_hazard_race_stable(void **state) {
   pthread_join(reader, NULL);
 
   Ptr_release(v);
+  release(sym);
+  Ebr_synchronize_and_reclaim();
+  Ebr_synchronize_and_reclaim();
 }
 
 int main(int argc, char **argv) {

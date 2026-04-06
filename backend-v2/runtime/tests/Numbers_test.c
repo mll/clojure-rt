@@ -1,7 +1,7 @@
 #include "../Numbers.h"
 #include "../Object.h"
+#include "../ObjectProto.h"
 #include "TestTools.h"
-#include "runtime/ObjectProto.h"
 #include <cmocka.h>
 #include <stdio.h>
 

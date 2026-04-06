@@ -1,6 +1,6 @@
+#include "../Object.h"
+#include "../String.h"
 #include "TestTools.h"
-#include "runtime/Object.h"
-#include "runtime/String.h"
 
 jmp_buf exception_env;
 char *last_exception_name = NULL;

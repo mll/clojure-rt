@@ -71,6 +71,8 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
         methodName ? methodName : "unknown", ObjectTypeSet(instanceType),
         argTypes, slot, llvm::OptimizationLevel::O0, true);
 
+    std::cout << future.get().optimizedIR << std::endl;
+
     // Block until the JIT compilation is finished and get the executable
     // address
     llvm::orc::ExecutorAddr bridgeAddr = future.get().address;

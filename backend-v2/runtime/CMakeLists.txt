@@ -38,7 +38,8 @@ set(SOURCES
     Var.c
     Numbers.c
     Exception.c
-    JITSafety.c)
+    JITSafety.c
+    Ebr.c)
 
 add_library(runtime STATIC ${SOURCES})
 target_compile_options(runtime PRIVATE $<$<PLATFORM_ID:Linux>:-femulated-tls>)
@@ -56,6 +57,48 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
 mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
 include_directories(${GMP_INCLUDE_DIRS})
+
+########################################################################
+# STANDALONE LLVM DETECTION
+########################################################################
+
+# Helper function to find Homebrew prefix on macOS (if not running from root)
+macro(find_homebrew_prefix PREFIX_VAR FORMULA_NAME)
+    if(APPLE AND NOT ${PREFIX_VAR})
+        execute_process(
+            COMMAND brew --prefix ${FORMULA_NAME}
+            RESULT_VARIABLE BREW_RESULT
+            OUTPUT_VARIABLE BREW_PREFIX
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        if(BREW_RESULT EQUAL 0)
+            set(${PREFIX_VAR} "${BREW_PREFIX}")
+        endif()
+    endif()
+endmacro()
+
+# 1. LLVM Detection (if not provided by parent project)
+if(NOT LLVM_DIR)
+    find_package(LLVM 20.1 CONFIG QUIET)
+
+    # Fallback for macOS Homebrew if not found in standard paths
+    if(NOT LLVM_FOUND AND APPLE)
+        find_homebrew_prefix(LLVM_PREFIX llvm@20)
+        if(LLVM_PREFIX)
+            set(LLVM_DIR "${LLVM_PREFIX}/lib/cmake/llvm")
+            find_package(LLVM 20.1 CONFIG QUIET)
+        endif()
+    endif()
+
+    if(NOT LLVM_FOUND)
+        # Final fallback to any LLVM version if 20.1 is missing
+        find_package(LLVM CONFIG)
+    endif()
+endif()
+
+if(LLVM_FOUND)
+    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+endif()
 
 ########################################################################
 # BITCODE GENERATION FOR JIT INTROSPECTION

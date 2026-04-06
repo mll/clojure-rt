@@ -96,6 +96,7 @@ String *String_createCompound(String *left, String *right) {
   self->count = left->count + right->count;
   self->specialisation = compoundString;
   self->hash = left->hash + right->hash - String_computeHash("");
+  assert(self->hash != 0);
   PersistentVector *v = NULL;
 
   if (left->specialisation != compoundString) {

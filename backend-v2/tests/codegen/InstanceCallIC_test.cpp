@@ -159,7 +159,8 @@ static void test_instance_call_ic_hit_miss(void **state) {
       // Cleanup
       Ptr_retain(myVar);
       Var_bindRoot(myVar, RT_boxNil());
-
+      Ebr_synchronize_and_reclaim();
+      Ebr_synchronize_and_reclaim();
     } catch (const std::exception &e) {
       fprintf(stderr, "Exception in IC test: %s\n", e.what());
       assert_true(false);
@@ -288,6 +289,8 @@ static void test_instance_call_ic_atomicity(void **state) {
     // Cleanup Var before memory check
     Ptr_retain(myVar);
     Var_bindRoot(myVar, RT_boxNil());
+    Ebr_synchronize_and_reclaim();
+    Ebr_synchronize_and_reclaim();
   });
 }
 

@@ -37,7 +37,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-static void intialise() {
+static void initialise() {
   // expedited private membarrier
   int ret =
       syscall(__NR_membarrier, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, 0);
@@ -157,9 +157,9 @@ void Ebr_register_thread() {
   do {
     old_head = atomic_load_explicit(&registry_head, memory_order_relaxed);
     s->next = old_head;
-  } while (!atomic_compare_exchange_weak_explicit(
-      &registry_head, &old_head, s, memory_order_release,
-      memory_order_relaxed));
+  } while (!atomic_compare_exchange_weak_explicit(&registry_head, &old_head, s,
+                                                  memory_order_release,
+                                                  memory_order_relaxed));
 
   thread_state = s;
 }
@@ -271,8 +271,8 @@ size_t Ebr_synchronize_and_reclaim() {
     EBR_LOG("Advanced global_epoch to %u.", current_global);
   }
 
-  RetiredObject *retiring =
-      atomic_exchange_explicit(&pending_reclamation, NULL, memory_order_acquire);
+  RetiredObject *retiring = atomic_exchange_explicit(&pending_reclamation, NULL,
+                                                     memory_order_acquire);
 
   RetiredObject *to_keep_head = NULL;
   RetiredObject *to_keep_tail = NULL;

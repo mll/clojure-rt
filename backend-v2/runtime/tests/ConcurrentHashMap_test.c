@@ -1,12 +1,12 @@
 #include "../ConcurrentHashMap.h"
 #include "../Ebr.h"
 #include "../Hash.h"
+#include "../Object.h"
 #include "../PersistentList.h"
+#include "../RTValue.h"
+#include "../RuntimeInterface.h"
 #include "../String.h"
 #include "TestTools.h"
-#include "runtime/Object.h"
-#include "runtime/RTValue.h"
-#include "runtime/RuntimeInterface.h"
 #include <math.h>
 #include <unistd.h>
 
@@ -214,7 +214,8 @@ static void *readerThread(void *param) {
         release(v);
       } else {
         assert_true(RT_isInt32(v));
-        assert_int_equal((uint32_t)RT_unboxInt32(v), (uint32_t)(k_val ^ 0xDEADC0DE));
+        assert_int_equal((uint32_t)RT_unboxInt32(v),
+                         (uint32_t)(k_val ^ 0xDEADC0DE));
       }
     }
   }

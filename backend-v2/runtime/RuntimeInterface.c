@@ -37,7 +37,6 @@ void RuntimeInterface_initialise() {
   vars = ConcurrentHashMap_create(10);             // 2^10
   symbols = ConcurrentHashMap_create(10);
   symbolsInverted = ConcurrentHashMap_create(10);
-  Var_initialize();
 }
 
 void RuntimeInterface_cleanup() {
@@ -64,7 +63,6 @@ void RuntimeInterface_cleanup() {
   PersistentList_cleanup();
   PersistentVector_cleanup();
   PersistentArrayMap_cleanup();
-  Var_cleanup();
   // Unregistering main thread.
   Ebr_unregister_thread();
   Ebr_shutdown();

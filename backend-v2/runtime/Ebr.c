@@ -101,6 +101,7 @@ typedef struct RetiredObject {
 
 pthread_t reclaimer_thread_id;
 pthread_mutex_t reclaimer_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t synchronization_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t reclaimer_cond = PTHREAD_COND_INITIALIZER;
 atomic_bool reclaimer_running = true;
 
@@ -231,6 +232,7 @@ size_t Ebr_get_pending_count() {
 }
 
 size_t Ebr_synchronize_and_reclaim() {
+  pthread_mutex_lock(&synchronization_mutex);
   unsigned int current_global =
       atomic_load_explicit(&global_epoch, memory_order_relaxed);
 #ifdef EBR_DEBUG
@@ -319,6 +321,7 @@ size_t Ebr_synchronize_and_reclaim() {
 #endif
 
   atomic_fetch_sub(&pending_count, reclaimed);
+  pthread_mutex_unlock(&synchronization_mutex);
   return reclaimed;
 }
 

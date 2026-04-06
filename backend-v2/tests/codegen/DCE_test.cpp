@@ -93,59 +93,66 @@ static void check_no_bigint_bloat(const string &ir, const string &stepName) {
 static void test_repl_sequence_dce(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
-    setup_compiler_state(compState, engine);
+    {
+      rt::ThreadsafeCompilerState compState;
+      rt::JITEngine engine(compState);
+      setup_compiler_state(compState, engine);
 
-    try {
-      // Step 1: (def x 3N)
-      {
-        cout << "Compiling Step 1: (def x 3N)" << endl;
-        Node node = create_bigint_def("x", "3");
-        auto result =
-            engine.compileAST(node, "repl_1", llvm::OptimizationLevel::O3, true)
-                .get();
-        cout << "--- Step 1 IR ---\n"
-             << result.optimizedIR << "\n--- End Step 1 IR ---\n";
-        check_no_bigint_bloat(result.optimizedIR, "(def x 3N)");
-        RTValue res = result.address.toPtr<RTValue (*)()>()();
-        release(res);
-      }
+      try {
+        // Step 1: (def x 3N)
+        {
+          cout << "Compiling Step 1: (def x 3N)" << endl;
+          Node node = create_bigint_def("x", "3");
+          auto result =
+              engine
+                  .compileAST(node, "repl_1", llvm::OptimizationLevel::O3, true)
+                  .get();
+          cout << "--- Step 1 IR ---\n"
+               << result.optimizedIR << "\n--- End Step 1 IR ---\n";
+          check_no_bigint_bloat(result.optimizedIR, "(def x 3N)");
+          RTValue res = result.address.toPtr<RTValue (*)()>()();
+          release(res);
+        }
 
-      // Step 2: (def y 2N)
-      {
-        cout << "Compiling Step 2: (def y 2N)" << endl;
-        Node node = create_bigint_def("y", "2");
-        auto result =
-            engine.compileAST(node, "repl_2", llvm::OptimizationLevel::O3, true)
-                .get();
-        cout << "--- Step 2 IR ---\n"
-             << result.optimizedIR << "\n--- End Step 2 IR ---\n";
-        check_no_bigint_bloat(result.optimizedIR, "(def y 2N)");
-        RTValue res = result.address.toPtr<RTValue (*)()>()();
-        release(res);
-      }
+        // Step 2: (def y 2N)
+        {
+          cout << "Compiling Step 2: (def y 2N)" << endl;
+          Node node = create_bigint_def("y", "2");
+          auto result =
+              engine
+                  .compileAST(node, "repl_2", llvm::OptimizationLevel::O3, true)
+                  .get();
+          cout << "--- Step 2 IR ---\n"
+               << result.optimizedIR << "\n--- End Step 2 IR ---\n";
+          check_no_bigint_bloat(result.optimizedIR, "(def y 2N)");
+          RTValue res = result.address.toPtr<RTValue (*)()>()();
+          release(res);
+        }
 
-      // Step 3: (+ x y)
-      {
-        cout << "Compiling Step 3: (+ x y)" << endl;
-        Node node = create_add_vars("x", "y");
-        auto result =
-            engine.compileAST(node, "repl_3", llvm::OptimizationLevel::O3, true)
-                .get();
-        cout << "--- Step 3 IR ---\n"
-             << result.optimizedIR << "\n--- End Step 3 IR ---\n";
-        check_no_bigint_bloat(result.optimizedIR, "(+ x y)");
-        RTValue res = result.address.toPtr<RTValue (*)()>()();
-        RTValue other = RT_boxPtr(BigInteger_createFromInt(5));
-        assert_true(::equals(res, other));
-        release(res);
-        release(other);
+        // Step 3: (+ x y)
+        {
+          cout << "Compiling Step 3: (+ x y)" << endl;
+          Node node = create_add_vars("x", "y");
+          auto result =
+              engine
+                  .compileAST(node, "repl_3", llvm::OptimizationLevel::O3, true)
+                  .get();
+          cout << "--- Step 3 IR ---\n"
+               << result.optimizedIR << "\n--- End Step 3 IR ---\n";
+          check_no_bigint_bloat(result.optimizedIR, "(+ x y)");
+          RTValue res = result.address.toPtr<RTValue (*)()>()();
+          RTValue other = RT_boxPtr(BigInteger_createFromInt(5));
+          assert_true(::equals(res, other));
+          release(res);
+          release(other);
+        }
+      } catch (const LanguageException &e) {
+        cout << "Caught LanguageException: " << getExceptionString(e) << endl;
+        throw;
       }
-    } catch (const LanguageException &e) {
-      cout << "Caught LanguageException: " << getExceptionString(e) << endl;
-      throw;
     }
+    Ebr_synchronize_and_reclaim();
+    Ebr_synchronize_and_reclaim();
   });
 }
 

@@ -109,11 +109,13 @@ struct DestructionRaceArgs {
 
 void *destruction_writer(void *arg) {
   Ebr_register_thread();
+  Ebr_enter_critical();
   struct DestructionRaceArgs *args = (struct DestructionRaceArgs *)arg;
   Var *v = args->v;
 
   for (long i = 1; i <= DESTRUCT_ITERATIONS && !atomic_load(&stop_threads);
        i++) {
+    Ebr_flush_critical();
     RTValue val = RT_boxPtr(String_create("val"));
     Ptr_retain(v);
     Var_bindRoot(v, val);
@@ -147,22 +149,24 @@ void *destruction_writer(void *arg) {
     }
   }
   atomic_store(&stop_threads, true);
+  Ebr_leave_critical();
   Ebr_unregister_thread();
   return NULL;
 }
 
 void *destruction_reader(void *arg) {
   Ebr_register_thread();
+  Ebr_enter_critical();
   struct DestructionRaceArgs *args = (struct DestructionRaceArgs *)arg;
   Var *v = args->v;
   long current_iter = 0;
 
   while (!atomic_load(&stop_threads)) {
+    Ebr_flush_critical();
     long next_iter = atomic_load(&args->iteration);
     if (next_iter > current_iter) {
       current_iter = next_iter;
 
-      Ebr_enter_critical();
       RTValue val = atomic_load_explicit(&v->root, memory_order_acquire);
       if (val != RT_boxNull() && RT_isPtr(val)) {
         // Signal writer that we are in critical section
@@ -177,12 +181,12 @@ void *destruction_reader(void *arg) {
       } else {
         atomic_store(&args->reader_entering, true);
       }
-      Ebr_leave_critical();
 
       atomic_store(&args->reader_done, current_iter);
     }
     CPU_PAUSE();
   }
+  Ebr_leave_critical();
   Ebr_unregister_thread();
   return NULL;
 }

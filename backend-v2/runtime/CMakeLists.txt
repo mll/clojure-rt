@@ -38,7 +38,7 @@ set(SOURCES
     Var.c
     Numbers.c
     Exception.c
-    JITSafety.c
+    BridgedObject.c
     Ebr.c)
 
 add_library(runtime STATIC ${SOURCES})

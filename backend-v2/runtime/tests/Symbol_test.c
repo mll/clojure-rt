@@ -29,6 +29,7 @@ static void test_symbol_interning(void **state) {
 
 int main(int argc, char **argv) {
   initialise_memory();
+  RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_symbol_interning),
   };

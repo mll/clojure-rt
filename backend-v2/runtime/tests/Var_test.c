@@ -1,11 +1,11 @@
 #include "TestTools.h"
 #include <cmocka.h>
 
+#include "../Ebr.h"
 #include "../Keyword.h"
 #include "../RuntimeInterface.h"
 #include "../String.h"
 #include "../Var.h"
-#include "../Ebr.h"
 
 static void test_var_basic_lifecycle(void **state) {
   (void)state;
@@ -126,6 +126,7 @@ static void test_var_peek(void **state) {
 
 int main(int argc, char **argv) {
   initialise_memory();
+  RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_var_basic_lifecycle),
       cmocka_unit_test(test_var_dynamic),

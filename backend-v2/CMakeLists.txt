@@ -110,7 +110,7 @@ set(BACKEND_SOURCES
       bridge/Exceptions.cpp
       bridge/InstanceCallStub.cpp
       bridge/ClassLookup.cpp
-      bridge/JITEngineBridge.cpp
+      bridge/Module.cpp
       types/ObjectTypeSet.cpp
       tools/ThreadPool.cpp
       jit/JITEngine.cpp

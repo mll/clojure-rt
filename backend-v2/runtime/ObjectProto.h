@@ -41,6 +41,7 @@ enum objectType {
   varType,                  // 17
   objectRootType,           // 18
   exceptionType,            // 19
+  bridgedObjectType,        // 20
 };
 
 typedef enum objectType objectType;

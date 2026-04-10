@@ -57,3 +57,7 @@ String *Symbol_toString(RTValue self) {
 uint32_t Symbol_getInternCount() {
   return atomic_load_explicit(&minUnusedSymbol, memory_order_relaxed) - 1;
 }
+
+void Symbol_resetInterns() {
+  atomic_store_explicit(&minUnusedSymbol, 1, memory_order_relaxed);
+}

@@ -83,13 +83,14 @@ static void issue_global_barrier() {
 // OS-SPECIFIC ASYMMETRIC BARRIER MAGIC
 // ------------------------ END ----------------------------
 
-#define EBR_RECLAIM_THRESHOLD 1024
+#define EBR_RECLAIM_THRESHOLD 32
 
 typedef struct ThreadState {
   char padding[64]; // To avoid false sharing
   atomic_uint local_epoch;
   atomic_bool active;
   atomic_bool terminated;
+  uword_t pending_count;
   _Atomic(struct ThreadState *) next;
 } ThreadState;
 
@@ -104,8 +105,6 @@ pthread_mutex_t reclaimer_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t synchronization_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t reclaimer_cond = PTHREAD_COND_INITIALIZER;
 atomic_bool reclaimer_running = true;
-
-atomic_size_t pending_count = 0;
 
 atomic_uint global_epoch = 0;
 _Atomic(ThreadState *) registry_head = NULL;
@@ -124,8 +123,7 @@ void Ebr_init() {
 }
 
 void Ebr_register_thread() {
-  if (thread_state)
-    return;
+  assert(!thread_state && "Thread already registered");
   atomic_fetch_add(&active_threads, 1);
   EBR_LOG("Registering thread...");
   // printf("After register we have %d threads\n", th + 1);
@@ -140,6 +138,7 @@ void Ebr_register_thread() {
 
         atomic_store_explicit(&curr->active, false, memory_order_release);
         atomic_store_explicit(&curr->local_epoch, 0U, memory_order_relaxed);
+        curr->pending_count = 0;
         thread_state = curr;
         EBR_LOG("Reused terminated thread state %p.", (void *)curr);
         return;
@@ -165,8 +164,7 @@ void Ebr_register_thread() {
 }
 
 void Ebr_unregister_thread() {
-  if (!thread_state)
-    return;
+  assert(thread_state && "Thread not registered");
   atomic_fetch_sub(&active_threads, 1);
   EBR_LOG("Unregistering thread (state %p).", (void *)thread_state);
   // printf("After unregister we have %d threads\n", xx - 1);
@@ -175,10 +173,19 @@ void Ebr_unregister_thread() {
   thread_state = NULL;
 }
 
-void Ebr_enter_critical() {
-  if (!thread_state) {
-    Ebr_register_thread();
+void Ebr_force_reclaim() {
+  // There should be only two threads left: the current thread and the reclaimer
+  while (atomic_load(&active_threads) > 2)
+    usleep(1000);
+  // Keep reclaiming until there are no more objects to reclaim (usually 2
+  // cycles)
+  while (atomic_load(&pending_reclamation) != NULL) {
+    Ebr_flush_critical();
+    Ebr_synchronize_and_reclaim();
   }
+}
+
+void Ebr_enter_critical() {
   unsigned int current =
       atomic_load_explicit(&global_epoch, memory_order_relaxed);
   EBR_LOG("Entering critical section (state %p, global_epoch: %u).",
@@ -188,14 +195,19 @@ void Ebr_enter_critical() {
                         memory_order_relaxed);
 }
 
+void Ebr_flush_critical() {
+  unsigned int current =
+      atomic_load_explicit(&global_epoch, memory_order_relaxed);
+  EBR_LOG("Flushing critical section (state %p, global_epoch: %u).",
+          (void *)thread_state, current);
+  atomic_store_explicit(&thread_state->local_epoch, current,
+                        memory_order_relaxed);
+}
+
 void Ebr_leave_critical() {
-  if (thread_state) {
-    EBR_LOG("Leaving critical section (state %p).", (void *)thread_state);
-    atomic_signal_fence(memory_order_seq_cst);
-    atomic_store_explicit(&thread_state->active, false, memory_order_release);
-  } else {
-    EBR_LOG("WARNING: Ebr_leave_critical called on unregistered thread!");
-  }
+  EBR_LOG("Leaving critical section (state %p).", (void *)thread_state);
+  atomic_signal_fence(memory_order_seq_cst);
+  atomic_store_explicit(&thread_state->active, false, memory_order_release);
 }
 
 void autorelease(RTValue value) {
@@ -218,17 +230,12 @@ void autorelease(RTValue value) {
       &pending_reclamation, &old_head, node, memory_order_release,
       memory_order_relaxed));
 
-  size_t count = atomic_fetch_add(&pending_count, 1) + 1;
   EBR_LOG("Object %p retired (epoch: %u, pending: %zu).", RT_unboxPtr(value),
-          current_ep, count);
-  if (count >= EBR_RECLAIM_THRESHOLD) {
-    EBR_LOG("Reclaim threshold reached (%zu). Signaling reclaimer.", count);
+          current_ep, thread_state->pending_count);
+  if (thread_state->pending_count++ % EBR_RECLAIM_THRESHOLD == 0) {
+    EBR_LOG("Reclaim threshold reached. Signaling reclaimer.");
     pthread_cond_signal(&reclaimer_cond);
   }
-}
-
-size_t Ebr_get_pending_count() {
-  return atomic_load_explicit(&pending_count, memory_order_relaxed);
 }
 
 size_t Ebr_synchronize_and_reclaim() {
@@ -236,9 +243,7 @@ size_t Ebr_synchronize_and_reclaim() {
   unsigned int current_global =
       atomic_load_explicit(&global_epoch, memory_order_relaxed);
 #ifdef EBR_DEBUG
-  size_t pending = atomic_load_explicit(&pending_count, memory_order_relaxed);
-  EBR_LOG("Sync/Reclaim start (global_epoch: %u, pending_count: %zu).",
-          current_global, pending);
+  EBR_LOG("Sync/Reclaim start (global_epoch: %u).", current_global);
 #endif
 
   issue_global_barrier();
@@ -320,7 +325,6 @@ size_t Ebr_synchronize_and_reclaim() {
   EBR_LOG("Sync/Reclaim done: Reclaimed %d, kept %d.", reclaimed, kept);
 #endif
 
-  atomic_fetch_sub(&pending_count, reclaimed);
   pthread_mutex_unlock(&synchronization_mutex);
   return reclaimed;
 }
@@ -331,19 +335,8 @@ void *Ebr_reclaimer_thread_func(void *arg) {
 
   while (reclaimer_running) {
     pthread_mutex_lock(&reclaimer_mutex);
-
-    while (atomic_load_explicit(&pending_count, memory_order_relaxed) <
-               EBR_RECLAIM_THRESHOLD &&
-           reclaimer_running) {
-      EBR_LOG("Reclaimer thread sleeping (pending: %zu).",
-              atomic_load_explicit(&pending_count, memory_order_relaxed));
-      pthread_cond_wait(&reclaimer_cond, &reclaimer_mutex);
-    }
-
+    pthread_cond_wait(&reclaimer_cond, &reclaimer_mutex);
     pthread_mutex_unlock(&reclaimer_mutex);
-
-    if (!reclaimer_running)
-      break;
 
     EBR_LOG("Reclaimer thread woken up. Running synchronization...");
     Ebr_synchronize_and_reclaim();

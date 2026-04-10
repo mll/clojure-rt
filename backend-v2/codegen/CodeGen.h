@@ -1,6 +1,7 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
+#include "../bridge/SourceLocation.h"
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <llvm/IR/DIBuilder.h>
 #include <llvm/IR/DerivedTypes.h>
@@ -9,12 +10,11 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
+#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <map>
 #include <vector>
-#include "../bridge/SourceLocation.h"
 
 #include "TypedValue.h"
 
@@ -65,8 +65,9 @@ class CodeGen {
   llvm::FunctionCallee personalityFn;
 
 public:
-  void* jitEnginePtr;
-  CodeGen(std::string_view ModuleName, ThreadsafeCompilerState &state, void* jitEngine = nullptr)
+  void *jitEnginePtr;
+  CodeGen(std::string_view ModuleName, ThreadsafeCompilerState &state,
+          void *jitEngine = nullptr)
       : TSContext(std::make_unique<llvm::orc::ThreadSafeContext>(
             std::make_unique<llvm::LLVMContext>())),
         TheContext(*(TSContext->getContext())),
@@ -98,11 +99,11 @@ public:
   }
 
   std::string codegenTopLevel(const Node &node);
-  std::string generateInstanceCallBridge(
-      const std::string &methodName,
-      const ObjectTypeSet &instanceType,
-      const std::vector<ObjectTypeSet> &argTypes,
-      void* callSiteId = nullptr);
+  std::string
+  generateInstanceCallBridge(const std::string &moduleName,
+                             const std::string &methodName,
+                             const ObjectTypeSet &instanceType,
+                             const std::vector<ObjectTypeSet> &argTypes);
 
   TypedValue codegen(const Node &node, const ObjectTypeSet &typeRestrictions);
 

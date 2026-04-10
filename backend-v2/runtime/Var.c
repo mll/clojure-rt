@@ -48,8 +48,8 @@ uword_t Var_hash(Var *self) { return hash(self->keyword); };
 String *Var_toString(Var *self) {
   String *retVal = String_create("#");
   retVal = String_concat(retVal, String_replace(toString(self->keyword),
-                                                 String_create(":"),
-                                                 String_create("'")));
+                                                String_create(":"),
+                                                String_create("'")));
   Ptr_release(self);
   return retVal;
 };
@@ -81,12 +81,10 @@ bool Var_hasRoot(Var *self) {
 };
 
 RTValue Var_deref(Var *self) {
-  Ebr_enter_critical();
   RTValue val = atomic_load_explicit(&self->root, memory_order_acquire);
   if (val != RT_boxNull()) {
     retain(val);
   }
-  Ebr_leave_critical();
   Ptr_release(self);
   return val;
 };

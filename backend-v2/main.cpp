@@ -25,6 +25,7 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 
 #include "jit/JITEngine.h"
+#include "runtime/Ebr.h"
 #include "runtime/String.h"
 #include "state/ThreadsafeCompilerState.h"
 
@@ -49,7 +50,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::string filename = argv[1];
-  llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O0;
+  llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O3;
 
   int retVal = -1;
 
@@ -85,11 +86,9 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    cout << "Initialising memory..." << endl;
-    initialise_memory();
     cout << "Initialising compiler state..." << endl;
-    rt::ThreadsafeCompilerState state;
-    rt::JITEngine engine(state);
+    initialise_memory();
+    rt::JITEngine engine;
     cout << "Compiling interfaces..." << endl;
     RTValue interfaces = engine
                              .compileAST(astInterfaces.nodes(0), "__interfaces",
@@ -97,7 +96,7 @@ int main(int argc, char *argv[]) {
                              .get()
                              .address.toPtr<RTValue (*)()>()();
     cout << "Storing interfaces..." << endl;
-    state.storeInternalProtocols(interfaces);
+    engine.threadsafeState.storeInternalProtocols(interfaces);
 
     cout << "Compiling classes..." << endl;
     RTValue classes = engine
@@ -106,7 +105,7 @@ int main(int argc, char *argv[]) {
                           .get()
                           .address.toPtr<RTValue (*)()>()();
     cout << "Storing classes..." << endl;
-    state.storeInternalClasses(classes);
+    engine.threadsafeState.storeInternalClasses(classes);
 
     cout << "Compiling root..." << endl;
     for (int j = 0; j < astRoot.nodes_size(); j++) {
@@ -138,8 +137,6 @@ int main(int argc, char *argv[]) {
   } catch (std::exception e) {
     cerr << e.what() << endl;
   }
-
-  RuntimeInterface_cleanup();
 
   if (strstr(BUILD_TYPE, "Debug")) {
     MemoryState finalMemoryState;

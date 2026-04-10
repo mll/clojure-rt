@@ -137,6 +137,7 @@ int main(void) {
       cmocka_unit_test(testListPromotionStop),
   };
   initialise_memory();
+  RuntimeInterface_initialise();
   srand(0);
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -24,15 +24,12 @@ void PersistentVector_initialise();
 void PersistentArrayMap_initialise();
 
 void initialise_memory() {
+  /* Idempotent */
   for (int i = 0; i < 256; i++)
     atomic_exchange(&(allocationCount[i]), 0);
   /* poolInitialize(&globalPool1, BLOCK_SIZE, 100000); */
   /* poolInitialize(&globalPool2, 128, 100000); */
   /* poolInitialize(&globalPool3, 64, 100000); */
-  PersistentVector_initialise();
-  PersistentArrayMap_initialise();
-  PersistentList_initialise();
-  RuntimeInterface_initialise();
 }
 
 /* BOOL poolFreeCheck(void *ptr, pool *mempool) { */

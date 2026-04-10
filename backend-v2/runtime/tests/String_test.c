@@ -189,7 +189,7 @@ static void test_string_char_at_subs(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     String *s = String_createStatic("clojure");
-    
+
     Ptr_retain(s);
     assert_int_equal(String_charAt(s, 0), 'c');
     Ptr_retain(s);
@@ -258,6 +258,7 @@ int main(void) {
       cmocka_unit_test(test_string_exceptions),
   };
   initialise_memory();
+  RuntimeInterface_initialise();
   srand(0);
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -34,8 +34,7 @@ static RTValue resPtrToValue(llvm::orc::ExecutorAddr res) {
 static void test_if_truthy_const(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
 
     Node ifNode;
     ifNode.set_op(opIf);
@@ -44,29 +43,34 @@ static void test_if_truthy_const(void **state) {
     // Test: true
     auto *test = if_->mutable_test();
     test->set_op(opConst);
-    test->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeBool);
+    test->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeBool);
     test->mutable_subnode()->mutable_const_()->set_val("true");
 
     // Then: "then"
     auto *then = if_->mutable_then();
     then->set_op(opConst);
-    then->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeString);
+    then->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeString);
     then->mutable_subnode()->mutable_const_()->set_val("then");
 
     // Else: "else"
     auto *else_ = if_->mutable_else_();
     else_->set_op(opConst);
-    else_->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeString);
+    else_->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeString);
     else_->mutable_subnode()->mutable_const_()->set_val("else");
 
     auto resIf = engine
                      .compileAST(ifNode, "__test_if_truthy_const",
                                  llvm::OptimizationLevel::O0, false)
-                     .get().address;
+                     .get()
+                     .address;
 
     RTValue result = resPtrToValue(resIf);
     assert_true(RT_isPtr(result));
-    assert_string_equal("then", String_c_str(reinterpret_cast<String *>(RT_unboxPtr(result))));
+    assert_string_equal(
+        "then", String_c_str(reinterpret_cast<String *>(RT_unboxPtr(result))));
     release(result);
   });
 }
@@ -74,8 +78,7 @@ static void test_if_truthy_const(void **state) {
 static void test_if_falsy_const(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
 
     Node ifNode;
     ifNode.set_op(opIf);
@@ -84,29 +87,34 @@ static void test_if_falsy_const(void **state) {
     // Test: false
     auto *test = if_->mutable_test();
     test->set_op(opConst);
-    test->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeBool);
+    test->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeBool);
     test->mutable_subnode()->mutable_const_()->set_val("false");
 
     // Then: "then"
     auto *then = if_->mutable_then();
     then->set_op(opConst);
-    then->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeString);
+    then->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeString);
     then->mutable_subnode()->mutable_const_()->set_val("then");
 
     // Else: "else"
     auto *else_ = if_->mutable_else_();
     else_->set_op(opConst);
-    else_->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeString);
+    else_->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeString);
     else_->mutable_subnode()->mutable_const_()->set_val("else");
 
     auto resIf = engine
                      .compileAST(ifNode, "__test_if_falsy_const",
                                  llvm::OptimizationLevel::O0, false)
-                     .get().address;
+                     .get()
+                     .address;
 
     RTValue result = resPtrToValue(resIf);
     assert_true(RT_isPtr(result));
-    assert_string_equal("else", String_c_str(reinterpret_cast<String *>(RT_unboxPtr(result))));
+    assert_string_equal(
+        "else", String_c_str(reinterpret_cast<String *>(RT_unboxPtr(result))));
     release(result);
   });
 }
@@ -114,8 +122,7 @@ static void test_if_falsy_const(void **state) {
 static void test_if_nil(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
 
     Node ifNode;
     ifNode.set_op(opIf);
@@ -124,29 +131,34 @@ static void test_if_nil(void **state) {
     // Test: nil
     auto *test = if_->mutable_test();
     test->set_op(opConst);
-    test->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNil);
+    test->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNil);
     test->mutable_subnode()->mutable_const_()->set_val("nil");
 
     // Then: "then"
     auto *then = if_->mutable_then();
     then->set_op(opConst);
-    then->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeString);
+    then->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeString);
     then->mutable_subnode()->mutable_const_()->set_val("then");
 
     // Else: "else"
     auto *else_ = if_->mutable_else_();
     else_->set_op(opConst);
-    else_->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeString);
+    else_->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeString);
     else_->mutable_subnode()->mutable_const_()->set_val("else");
 
     auto resIf = engine
                      .compileAST(ifNode, "__test_if_nil",
                                  llvm::OptimizationLevel::O0, false)
-                     .get().address;
+                     .get()
+                     .address;
 
     RTValue result = resPtrToValue(resIf);
     assert_true(RT_isPtr(result));
-    assert_string_equal("else", String_c_str(reinterpret_cast<String *>(RT_unboxPtr(result))));
+    assert_string_equal(
+        "else", String_c_str(reinterpret_cast<String *>(RT_unboxPtr(result))));
     release(result);
   });
 }
@@ -154,8 +166,7 @@ static void test_if_nil(void **state) {
 static void test_if_integer_const(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
 
     Node ifNode;
     ifNode.set_op(opIf);
@@ -164,31 +175,37 @@ static void test_if_integer_const(void **state) {
     // Test: 1
     auto *test = if_->mutable_test();
     test->set_op(opConst);
-    test->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    test->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
     test->set_tag("long");
-    test->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    test->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
     test->mutable_subnode()->mutable_const_()->set_val("1");
 
     // Then: "then"
     auto *then = if_->mutable_then();
     then->set_op(opConst);
-    then->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeString);
+    then->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeString);
     then->mutable_subnode()->mutable_const_()->set_val("then");
 
     // Else: "else"
     auto *else_ = if_->mutable_else_();
     else_->set_op(opConst);
-    else_->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeString);
+    else_->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeString);
     else_->mutable_subnode()->mutable_const_()->set_val("else");
 
     auto resIf = engine
                      .compileAST(ifNode, "__test_if_integer_const",
                                  llvm::OptimizationLevel::O0, false)
-                     .get().address;
+                     .get()
+                     .address;
 
     RTValue result = resPtrToValue(resIf);
     assert_true(RT_isPtr(result));
-    assert_string_equal("then", String_c_str(reinterpret_cast<String *>(RT_unboxPtr(result))));
+    assert_string_equal(
+        "then", String_c_str(reinterpret_cast<String *>(RT_unboxPtr(result))));
     release(result);
   });
 }
@@ -196,8 +213,7 @@ static void test_if_integer_const(void **state) {
 static void test_if_test_leak(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-
+    JITEngine engine;
     // (if (+ 1N 2N) 42 43)
     Node root;
     root.set_op(opIf);
@@ -208,36 +224,40 @@ static void test_if_test_leak(void **state) {
     auto *sc = testNode->mutable_subnode()->mutable_staticcall();
     sc->set_class_("clojure.lang.Numbers");
     sc->set_method("add");
-    
+
     auto *a1 = sc->add_args();
     a1->set_op(opConst);
     a1->mutable_subnode()->mutable_const_()->set_val("1");
-    a1->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    a1->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
     a1->set_tag("clojure.lang.BigInt");
 
     auto *a2 = sc->add_args();
     a2->set_op(opConst);
     a2->mutable_subnode()->mutable_const_()->set_val("2");
-    a2->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    a2->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
     a2->set_tag("clojure.lang.BigInt");
 
     auto *then = if_->mutable_then();
     then->set_op(opConst);
     then->mutable_subnode()->mutable_const_()->set_val("42");
-    then->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    then->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
     then->set_tag("long");
 
     auto *else_ = if_->mutable_else_();
     else_->set_op(opConst);
     else_->mutable_subnode()->mutable_const_()->set_val("43");
-    else_->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    else_->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
     else_->set_tag("long");
 
     // Setup clojure.lang.Numbers/add metadata
     auto desc = std::make_unique<rt::ClassDescription>();
     rt::IntrinsicDescription numAdd;
     numAdd.type = rt::CallType::Call;
-    numAdd.symbol = "mock_add_bigint"; 
+    numAdd.symbol = "mock_add_bigint";
     numAdd.argTypes.push_back(rt::ObjectTypeSet::all());
     numAdd.argTypes.push_back(rt::ObjectTypeSet::all());
     numAdd.returnType = rt::ObjectTypeSet::all();
@@ -248,13 +268,17 @@ static void test_if_test_leak(void **state) {
     ::Class *numCls = Class_create(numName, numName, 0, nullptr);
     numCls->compilerExtension = desc.release();
     numCls->compilerExtensionDestructor = rt::delete_class_description;
-    compState.classRegistry.registerObject("clojure.lang.Numbers", numCls);
+    engine.threadsafeState.classRegistry.registerObject("clojure.lang.Numbers",
+                                                        numCls);
 
     cout << "=== If Test Leak Test (Should NOT leak) ===" << endl;
     try {
-      rt::JITEngine engine(compState);
-      auto res = engine.compileAST(root, "__test_if_leak", llvm::OptimizationLevel::O0, true).get().address;
-      
+      auto res = engine
+                     .compileAST(root, "__test_if_leak",
+                                 llvm::OptimizationLevel::O0, true)
+                     .get()
+                     .address;
+
       RTValue val = res.toPtr<RTValue (*)()>()();
       assert_int_equal(42, RT_unboxInt32(val));
     } catch (const std::exception &e) {
@@ -275,6 +299,5 @@ int main(void) {
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
   return result;
 }

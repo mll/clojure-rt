@@ -19,51 +19,52 @@ namespace rt {
 class MemoryManagement {
 public:
   explicit MemoryManagement(llvm::LLVMContext &context, llvm::IRBuilder<> &b,
-                            llvm::Module &m,
-                            ValueEncoder &v, LLVMTypes &t,
+                            llvm::Module &m, ValueEncoder &v, LLVMTypes &t,
                             VariableBindings<TypedValue> &vb, InvokeManager &i);
 
   void initFunction(llvm::Function *F);
-  
+
   void dynamicMemoryGuidance(const MemoryManagementGuidance &guidance);
 
   void dynamicRetain(TypedValue &target);
   TypedValue dynamicRelease(TypedValue &target);
   void dynamicIsReusable(TypedValue &target);
 
-  void enterSafetySection(void *enginePtr);
-  void leaveSafetySection(void *enginePtr);
-
   // Exception safety / Resource management
   void pushResource(TypedValue val);
   void popResource();
-  llvm::BasicBlock* getLandingPad(size_t skipCount = 0);
+  llvm::BasicBlock *getLandingPad(size_t skipCount = 0);
   bool hasPushedResources() const { return !activeResources.empty(); }
   void clear();
 
-  const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* getActiveUnwindGuidance() const {
+  const google::protobuf::RepeatedPtrField<MemoryManagementGuidance> *
+  getActiveUnwindGuidance() const {
     return activeUnwindGuidance;
   }
-  void setActiveUnwindGuidance(const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* guidance) {
+  void setActiveUnwindGuidance(
+      const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>
+          *guidance) {
     activeUnwindGuidance = guidance;
-    // Clearing cache because guidance might change between nodes for the same skipCount
+    // Clearing cache because guidance might change between nodes for the same
+    // skipCount
     lpadCache.clear();
   }
-  void clearActiveUnwindGuidance() { 
-    activeUnwindGuidance = nullptr; 
+  void clearActiveUnwindGuidance() {
+    activeUnwindGuidance = nullptr;
     lpadCache.clear();
   }
 
   struct UnwindGuidanceGuard {
     MemoryManagement &mm;
-    const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* prev;
-    UnwindGuidanceGuard(MemoryManagement &mm, const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* current)
+    const google::protobuf::RepeatedPtrField<MemoryManagementGuidance> *prev;
+    UnwindGuidanceGuard(
+        MemoryManagement &mm,
+        const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>
+            *current)
         : mm(mm), prev(mm.getActiveUnwindGuidance()) {
       mm.setActiveUnwindGuidance(current);
     }
-    ~UnwindGuidanceGuard() {
-      mm.setActiveUnwindGuidance(prev);
-    }
+    ~UnwindGuidanceGuard() { mm.setActiveUnwindGuidance(prev); }
   };
 
 private:
@@ -84,7 +85,8 @@ private:
   size_t resourcesWithCleanup = 0; // Index into activeResources
   std::map<size_t, llvm::BasicBlock *> lpadCache;
 
-  const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>* activeUnwindGuidance = nullptr;
+  const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>
+      *activeUnwindGuidance = nullptr;
   void *jitEnginePtr = nullptr;
 
   void ensureExceptionInfrastructure(llvm::Function *F);

@@ -27,8 +27,7 @@ static RTValue resPtrToValue(llvm::orc::ExecutorAddr res) {
 
 static void test_double_add_repro(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  JITEngine engine(compState);
+  JITEngine engine;
 
   // (def a "aa")
   {
@@ -38,16 +37,18 @@ static void test_double_add_repro(void **state) {
 
     Ptr_retain(v);
     Var_bindRoot(v, str);
-    compState.varRegistry.registerObject("a", v);
+    engine.threadsafeState.varRegistry.registerObject("a", v);
   }
 
   // (+ a a)
   // We'll simulate this by a call to Numbers_add(a, a)
-  // Since we don't have a direct '+' operator in bytecode that maps to Numbers_add easily without a lot of setup,
-  // we can use a StaticCall to a hypothetical Numbers class or just manually trigger the codegen that leads to Numbers_add.
-  // Actually, the easiest way is to use a StaticCall to something that throws or just a known runtime function.
-  // The user's IR shows a complex static call dispatch.
-  
+  // Since we don't have a direct '+' operator in bytecode that maps to
+  // Numbers_add easily without a lot of setup, we can use a StaticCall to a
+  // hypothetical Numbers class or just manually trigger the codegen that leads
+  // to Numbers_add. Actually, the easiest way is to use a StaticCall to
+  // something that throws or just a known runtime function. The user's IR shows
+  // a complex static call dispatch.
+
   Node callNode;
   callNode.set_op(opStaticCall);
   auto *sc = callNode.mutable_subnode()->mutable_staticcall();
@@ -80,13 +81,16 @@ static void test_double_add_repro(void **state) {
 
     cls->compilerExtension = ext;
     cls->compilerExtensionDestructor = delete_class_description;
-    compState.classRegistry.registerObject("clojure.lang.Numbers", cls);
+    engine.threadsafeState.classRegistry.registerObject("clojure.lang.Numbers",
+                                                        cls);
   }
 
   try {
     auto resCall = engine
                        .compileAST(callNode, "__test_double_add",
-                                   llvm::OptimizationLevel::O0, false).get().address;
+                                   llvm::OptimizationLevel::O0, false)
+                       .get()
+                       .address;
     RTValue result = resPtrToValue(resCall);
     (void)result;
     release(result);
@@ -104,6 +108,5 @@ int main(void) {
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
   return result;
 }

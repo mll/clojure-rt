@@ -55,8 +55,7 @@ static void test_edn_parser_memory(void **state) {
   }
 
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
 
     llvm::orc::ExecutorAddr res =
         engine
@@ -85,8 +84,7 @@ static void test_edn_parser_class_parsing_memory(void **state) {
   }
 
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
 
     llvm::orc::ExecutorAddr res =
         engine
@@ -231,6 +229,8 @@ static void test_edn_parser_class_parsing_memory(void **state) {
 static void test_class_aliasing(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     // Define Class A with alias :a
     // {com.foo/A {:alias :a, :object-type 100}}
     PersistentArrayMap *classAMap = PersistentArrayMap_empty();
@@ -318,6 +318,8 @@ static void test_class_aliasing(void **state) {
 static void test_static_fields(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     // {com.foo/MyClass {:static-fields {VERSION "1.0", COUNT 42}}}
     PersistentArrayMap *fieldsMap = PersistentArrayMap_empty();
     fieldsMap = PersistentArrayMap_assoc(
@@ -356,6 +358,8 @@ static void test_static_fields(void **state) {
 static void test_special_types(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     // {com.foo/A {:instance-fns {f [{:args [:this :any :nil], :returns :nil,
     // :type :call, :symbol "f_sym"}]}}}
     PersistentVector *argsVec = PersistentVector_create();
@@ -415,6 +419,8 @@ static void test_special_types(void **state) {
 static void test_bridge_functions(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     // {com.foo/Test {:instance-fields ["a" "b"], :static-fields {S1 10, S2
     // 20}}}
     PersistentVector *ifields = PersistentVector_create();
@@ -498,7 +504,10 @@ static void test_bridge_functions(void **state) {
 static void test_root_not_map(void **state) {
   (void)state;
   try {
-    ASSERT_MEMORY_ALL_BALANCED({ buildClasses(RT_boxInt32(42)); });
+    ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+      buildClasses(RT_boxInt32(42));
+    });
     fail_msg(
         "Expected LanguageException for test_root_not_map but none was thrown");
   } catch (const LanguageException &e) {
@@ -513,6 +522,8 @@ static void test_class_key_not_symbol(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(rootMap, RT_boxInt32(1),
                                          RT_boxPtr(PersistentArrayMap_empty()));
@@ -532,6 +543,8 @@ static void test_class_value_not_map(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
           rootMap, Symbol_create(String_create("A")), RT_boxInt32(1));
@@ -551,6 +564,8 @@ static void test_object_type_not_int(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
           classMap, Keyword_create(String_create("object-type")),
@@ -573,6 +588,8 @@ static void test_object_type_not_int(void **state) {
 static void test_alias_not_keyword(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     try {
 
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
@@ -600,6 +617,8 @@ static void test_static_fields_not_map(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
           classMap, Keyword_create(String_create("static-fields")),
@@ -623,6 +642,8 @@ static void test_instance_fns_not_map(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
           classMap, Keyword_create(String_create("instance-fns")),
@@ -648,6 +669,8 @@ static void test_static_field_key_not_symbol(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *fieldsMap = PersistentArrayMap_empty();
       fieldsMap =
           PersistentArrayMap_assoc(fieldsMap, RT_boxInt32(1), RT_boxInt32(42));
@@ -674,6 +697,8 @@ static void test_intrinsic_key_not_symbol(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
       fnsMap = PersistentArrayMap_assoc(fnsMap, RT_boxInt32(1),
                                         RT_boxPtr(PersistentVector_create()));
@@ -700,6 +725,8 @@ static void test_intrinsic_value_not_vector(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
       fnsMap = PersistentArrayMap_assoc(
           fnsMap, Symbol_create(String_create("f")), RT_boxInt32(42));
@@ -728,6 +755,8 @@ static void test_intrinsic_type_not_keyword(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *intrinsicMap = PersistentArrayMap_empty();
       intrinsicMap = PersistentArrayMap_assoc(
           intrinsicMap, Keyword_create(String_create("type")),
@@ -764,6 +793,8 @@ static void test_intrinsic_type_invalid(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *intrinsicMap = PersistentArrayMap_empty();
       intrinsicMap = PersistentArrayMap_assoc(
           intrinsicMap, Keyword_create(String_create("type")),
@@ -800,6 +831,8 @@ static void test_intrinsic_symbol_not_string(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *intrinsicMap = PersistentArrayMap_empty();
       intrinsicMap = PersistentArrayMap_assoc(
           intrinsicMap, Keyword_create(String_create("type")),
@@ -836,6 +869,8 @@ static void test_intrinsic_args_not_vector(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *intrinsicMap = PersistentArrayMap_empty();
       intrinsicMap = PersistentArrayMap_assoc(
           intrinsicMap, Keyword_create(String_create("type")),
@@ -877,6 +912,8 @@ static void test_unknown_arg_type(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentVector *argsVec = PersistentVector_create();
       argsVec = PersistentVector_conj(
           argsVec, Keyword_create(String_create("unknown-alias")));
@@ -923,6 +960,8 @@ static void test_unknown_return_type(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       PersistentArrayMap *intrinsicMap = PersistentArrayMap_empty();
       intrinsicMap = PersistentArrayMap_assoc(
           intrinsicMap, Keyword_create(String_create("type")),
@@ -964,7 +1003,8 @@ static void test_unknown_return_type(void **state) {
 static void test_class_inheritance_linkage(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
 
     // {Parent {:object-type 100}, Child {:extends Parent, :object-type 101}}
     PersistentArrayMap *parentMap = PersistentArrayMap_empty();
@@ -1011,6 +1051,8 @@ static void test_class_inheritance_linkage(void **state) {
 static void test_toString(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     // {com.foo/MyClass {:object-type 100, :extends "Parent",
     //                  :instance-fields ["a" "b"],
     //                  :static-fields {:S1 10, :S2 20},
@@ -1197,6 +1239,8 @@ static void test_toString(void **state) {
 static void test_overload_symbols(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     // Define a class with overloads having different symbols
     // {Math
     //  {:static-fns
@@ -1466,6 +1510,8 @@ static void test_overload_symbols(void **state) {
 static void test_cross_class_references(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     // {com.foo/A {:alias :a, :object-type 100, :static-fns {func [{:args [:b],
     // :type :intrinsic, :symbol "A_func"}]}}
     //  com.foo/B {:alias :b, :object-type 101, :static-fns {func [{:args [:a],
@@ -1543,6 +1589,8 @@ static void test_cross_class_references(void **state) {
 static void test_constructors(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     // Test 1: Constructor with explicit returns
     // {com.foo/A {:object-type 100, :constructor [{:args [], :type :call,
     // :symbol "A_create", :returns com.foo/A}]}}
@@ -1613,6 +1661,8 @@ static void test_constructor_return_type(void **state) {
   (void)state;
   try {
     ASSERT_MEMORY_ALL_BALANCED({
+      rt::JITEngine engine;
+
       // Test returning :any (explicitly) should fail
       // {com.foo/A {:object-type 100, :constructor [{:args [], :type :call,
       // :symbol "A_create", :returns :any}]}}
@@ -1662,6 +1712,8 @@ static void test_constructor_return_type(void **state) {
 static void test_class_inheritance_runtime(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     // Define Class A (Parent)
     PersistentArrayMap *classAMap = PersistentArrayMap_empty();
     classAMap = PersistentArrayMap_assoc(
@@ -1746,6 +1798,6 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_class_inheritance_runtime),
   };
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
+
   return result;
 }

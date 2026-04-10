@@ -12,6 +12,7 @@
 #include "SourceLocation.h"
 #include <exception>
 #include <execinfo.h>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -54,6 +55,7 @@ class LanguageException : public std::exception {
   std::string sourceLocation;
   std::shared_ptr<CapturedStack> capturedStack;
   mutable std::string cachedMessage;
+  mutable std::mutex messageMutex;
 
 public:
   LanguageException(const std::string &name, RTValue message, RTValue payload);

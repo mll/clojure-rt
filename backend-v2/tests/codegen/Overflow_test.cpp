@@ -23,7 +23,8 @@ static RTValue resPtrToValue(llvm::orc::ExecutorAddr res) {
   return res.toPtr<RTValue (*)()>()();
 }
 
-static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JITEngine &engine) {
+static void setup_compiler_state(rt::ThreadsafeCompilerState &compState,
+                                 rt::JITEngine &engine) {
   // Load metadata
   Programme astClasses;
   {
@@ -39,7 +40,8 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JIT
       engine
           .compileAST(astClasses.nodes(0), "__classes",
                       llvm::OptimizationLevel::O0, false)
-          .get().address;
+          .get()
+          .address;
   RTValue classes = resClasses.toPtr<RTValue (*)()>()();
   auto classesList = rt::buildClasses(classes);
   for (auto &desc : classesList) {
@@ -56,8 +58,8 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JIT
 static void test_integer_overflow_add(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
     setup_compiler_state(compState, engine);
 
     // Create a StaticCallNode for (clojure.lang.Numbers/add 2147483647 1)
@@ -73,7 +75,7 @@ static void test_integer_overflow_add(void **state) {
     arg1->set_tag("long");
     arg1->mutable_subnode()->mutable_const_()->set_type(
         ConstNode_ConstType_constTypeNumber);
-    arg1->mutable_subnode()->mutable_const_()->set_val("2147483647"); 
+    arg1->mutable_subnode()->mutable_const_()->set_val("2147483647");
 
     auto *arg2 = sc->add_args();
     arg2->set_op(opConst);
@@ -85,7 +87,8 @@ static void test_integer_overflow_add(void **state) {
     auto resCall = engine
                        .compileAST(callNode, "__test_overflow_add",
                                    llvm::OptimizationLevel::O0, false)
-                       .get().address;
+                       .get()
+                       .address;
 
     try {
       resPtrToValue(resCall);
@@ -100,8 +103,8 @@ static void test_integer_overflow_add(void **state) {
 static void test_integer_overflow_sub(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
     setup_compiler_state(compState, engine);
 
     // Create a StaticCallNode for (clojure.lang.Numbers/minus -2147483648 1)
@@ -117,7 +120,7 @@ static void test_integer_overflow_sub(void **state) {
     arg1->set_tag("long");
     arg1->mutable_subnode()->mutable_const_()->set_type(
         ConstNode_ConstType_constTypeNumber);
-    arg1->mutable_subnode()->mutable_const_()->set_val("-2147483648"); 
+    arg1->mutable_subnode()->mutable_const_()->set_val("-2147483648");
 
     auto *arg2 = sc->add_args();
     arg2->set_op(opConst);
@@ -128,8 +131,9 @@ static void test_integer_overflow_sub(void **state) {
 
     auto resCall = engine
                        .compileAST(callNode, "__test_overflow_sub",
-                                    llvm::OptimizationLevel::O0, false)
-                       .get().address;
+                                   llvm::OptimizationLevel::O0, false)
+                       .get()
+                       .address;
 
     try {
       resPtrToValue(resCall);
@@ -149,6 +153,6 @@ int main(void) {
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
+
   return result;
 }

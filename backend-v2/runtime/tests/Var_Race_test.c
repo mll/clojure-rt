@@ -5,11 +5,11 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "../Ebr.h"
 #include "../Keyword.h"
 #include "../RuntimeInterface.h"
 #include "../String.h"
 #include "../Var.h"
-#include "../Ebr.h"
 
 #define RACE_ITERATIONS 1000000
 #define DESTRUCT_ITERATIONS 1000
@@ -39,18 +39,22 @@ struct RaceArgs {
 
 void *writer_thread(void *arg) {
   Ebr_register_thread();
+  Ebr_enter_critical();
   struct RaceArgs *args = (struct RaceArgs *)arg;
   for (int i = 0; i < RACE_ITERATIONS && !atomic_load(&stop_threads); i++) {
     RTValue val = RT_boxPtr(String_create("value"));
     Ptr_retain(args->v);
     Var_bindRoot(args->v, val);
+    Ebr_flush_critical();
   }
+  Ebr_leave_critical();
   Ebr_unregister_thread();
   return NULL;
 }
 
 void *reader_thread(void *arg) {
   Ebr_register_thread();
+  Ebr_enter_critical();
   struct RaceArgs *args = (struct RaceArgs *)arg;
   while (!atomic_load(&stop_threads)) {
     Ptr_retain(args->v);
@@ -60,8 +64,10 @@ void *reader_thread(void *arg) {
       // toString is consuming in this runtime
       Ptr_release(toString(val));
     }
+    Ebr_flush_critical();
     CPU_PAUSE();
   }
+  Ebr_leave_critical();
   Ebr_unregister_thread();
   return NULL;
 }
@@ -103,11 +109,13 @@ struct DestructionRaceArgs {
 
 void *destruction_writer(void *arg) {
   Ebr_register_thread();
+  Ebr_enter_critical();
   struct DestructionRaceArgs *args = (struct DestructionRaceArgs *)arg;
   Var *v = args->v;
 
   for (long i = 1; i <= DESTRUCT_ITERATIONS && !atomic_load(&stop_threads);
        i++) {
+    Ebr_flush_critical();
     RTValue val = RT_boxPtr(String_create("val"));
     Ptr_retain(v);
     Var_bindRoot(v, val);
@@ -141,22 +149,24 @@ void *destruction_writer(void *arg) {
     }
   }
   atomic_store(&stop_threads, true);
+  Ebr_leave_critical();
   Ebr_unregister_thread();
   return NULL;
 }
 
 void *destruction_reader(void *arg) {
   Ebr_register_thread();
+  Ebr_enter_critical();
   struct DestructionRaceArgs *args = (struct DestructionRaceArgs *)arg;
   Var *v = args->v;
   long current_iter = 0;
 
   while (!atomic_load(&stop_threads)) {
+    Ebr_flush_critical();
     long next_iter = atomic_load(&args->iteration);
     if (next_iter > current_iter) {
       current_iter = next_iter;
 
-      Ebr_enter_critical();
       RTValue val = atomic_load_explicit(&v->root, memory_order_acquire);
       if (val != RT_boxNull() && RT_isPtr(val)) {
         // Signal writer that we are in critical section
@@ -171,12 +181,12 @@ void *destruction_reader(void *arg) {
       } else {
         atomic_store(&args->reader_entering, true);
       }
-      Ebr_leave_critical();
 
       atomic_store(&args->reader_done, current_iter);
     }
     CPU_PAUSE();
   }
+  Ebr_leave_critical();
   Ebr_unregister_thread();
   return NULL;
 }
@@ -204,6 +214,7 @@ static void test_var_destruction_hazard_race_stable(void **state) {
 
 int main(int argc, char **argv) {
   initialise_memory();
+  RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_var_concurrent_bind_deref_race),
       cmocka_unit_test(test_var_destruction_hazard_race_stable),

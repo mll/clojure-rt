@@ -18,6 +18,7 @@ typedef struct String String;
 RTValue Symbol_create(String *string);
 String *Symbol_toString(RTValue self);
 uint32_t Symbol_getInternCount();
+void Symbol_resetInterns();
 
 #ifdef __cplusplus
 }

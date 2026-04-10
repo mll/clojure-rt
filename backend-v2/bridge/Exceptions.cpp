@@ -532,11 +532,13 @@ LanguageException::LanguageException(const LanguageException &other)
       capturedStack(other.capturedStack) {
   retain(message);
   retain(payload);
+  // cachedMessage is empty, messageMutex is default initialized
 }
 
 LanguageException &
 LanguageException::operator=(const LanguageException &other) {
   if (this != &other) {
+    std::lock_guard<std::mutex> lock(messageMutex);
     release(message);
     release(payload);
     name = other.name;
@@ -545,6 +547,7 @@ LanguageException::operator=(const LanguageException &other) {
     form = other.form;
     sourceLocation = other.sourceLocation;
     capturedStack = other.capturedStack;
+    cachedMessage = "";
     retain(message);
     retain(payload);
   }
@@ -557,7 +560,10 @@ LanguageException::~LanguageException() noexcept {
 }
 
 const char *LanguageException::what() const noexcept {
-  cachedMessage = getExceptionString(*this, StackTraceMode::Debug, false);
+  std::lock_guard<std::mutex> lock(messageMutex);
+  if (cachedMessage.empty()) {
+    cachedMessage = getExceptionString(*this, StackTraceMode::Debug, false);
+  }
   return cachedMessage.c_str();
 }
 

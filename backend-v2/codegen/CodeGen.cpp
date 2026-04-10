@@ -7,6 +7,8 @@
 #include "runtime/Object.h"
 #include "runtime/RTValue.h"
 #include "runtime/String.h"
+#include <random>
+#include <sstream>
 
 using namespace llvm;
 using namespace clojure::rt::protobuf::bytecode;
@@ -66,7 +68,6 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   Builder.SetInsertPoint(BB);
 
   memoryManagement.initFunction(F);
-  memoryManagement.enterSafetySection(jitEnginePtr);
 
   // Declare personality function
   FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
@@ -79,7 +80,6 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
       llvm::DILocation::get(TheContext, env.line(), env.column(), SP));
 
   TypedValue result = codegen(node, ObjectTypeSet::all());
-  memoryManagement.leaveSafetySection(jitEnginePtr);
   Builder.CreateRet(valueEncoder.box(result).value);
 
   LexicalBlocks.pop_back();
@@ -88,21 +88,19 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
 }
 
 std::string CodeGen::generateInstanceCallBridge(
-    const std::string &methodName, const ObjectTypeSet &instanceType,
-    const std::vector<ObjectTypeSet> &argTypes, void *callSiteId) {
+    const std::string &moduleName, const std::string &methodName,
+    const ObjectTypeSet &instanceType,
+    const std::vector<ObjectTypeSet> &argTypes) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
+  static thread_local std::mt19937 gen(std::random_device{}());
+  std::uniform_int_distribution<uint64_t> dist;
+  std::stringstream ss;
+  ss << std::hex << dist(gen);
 
-  // 1. Create a unique function name
-  std::string funcName = "__bridge_" + methodName + "_" +
-                         std::to_string((int)instanceType.determinedType());
-  if (callSiteId) {
-    // Use the call site pointer for uniqueness if provided
-    char buf[32];
-    snprintf(buf, sizeof(buf), "_%p", callSiteId);
-    funcName += buf;
-  }
-
-  // 2. Define Signature: (Instance, Arg1, ...) -> RTValue
+  std::string funcName =
+      moduleName + "_" + std::to_string(instanceType.determinedType()) + "_" +
+      ss.str();
+  // 1. Define Signature: (Instance, Arg1, ...) -> RTValue
   // Specialized arguments use natural LLVM types for unboxed primitives
   std::vector<llvm::Type *> llvmArgTypes;
   llvmArgTypes.push_back(types.RT_valueTy); // Instance
@@ -144,7 +142,6 @@ std::string CodeGen::generateInstanceCallBridge(
   Builder.SetInsertPoint(BB);
 
   memoryManagement.initFunction(F);
-  memoryManagement.enterSafetySection(jitEnginePtr);
 
   // 4. Prepare TypedValues for the call
   auto it = F->arg_begin();
@@ -164,7 +161,6 @@ std::string CodeGen::generateInstanceCallBridge(
       invokeManager.generateInstanceCall(methodName, instanceTV, callArgs);
 
   // 6. Ensure result is boxed and return
-  memoryManagement.leaveSafetySection(jitEnginePtr);
   Builder.CreateRet(valueEncoder.box(result).value);
 
   verifyFunction(*F);
@@ -278,7 +274,11 @@ TypedValue CodeGen::codegen(const Node &node,
   case opTheVar:
     return codegen(node, node.subnode().thevar(), typeRestrictions);
   case opThrow:
-     return this->codegen(node, static_cast<const clojure::rt::protobuf::bytecode::ThrowNode &>(node.subnode().throw_()), typeRestrictions);
+    return this->codegen(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::ThrowNode &>(
+            node.subnode().throw_()),
+        typeRestrictions);
   case opTry:
   //   return codegen(node, node.subnode().try_(), typeRestrictions);
   case opVar:
@@ -380,7 +380,11 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   case opTheVar:
     return getType(node, node.subnode().thevar(), typeRestrictions);
   case opThrow:
-    return this->getType(node, static_cast<const clojure::rt::protobuf::bytecode::ThrowNode &>(node.subnode().throw_()), typeRestrictions);
+    return this->getType(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::ThrowNode &>(
+            node.subnode().throw_()),
+        typeRestrictions);
   case opTry:
   //   return getType(node, node.subnode().try_(), typeRestrictions);
   case opVar:

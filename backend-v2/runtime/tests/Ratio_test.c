@@ -88,5 +88,6 @@ int main(void) {
       cmocka_unit_test(test_ratio_comparison),
   };
   initialise_memory();
+  RuntimeInterface_initialise();
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -285,8 +285,7 @@ static void vectorNthOutOfBoundsTest(void **state) {
       PersistentVector_nth(v1, 0); // consumes v1
     });
 
-    PersistentVector *v2 =
-        PersistentVector_createMany(1, RT_boxInt32(99));
+    PersistentVector *v2 = PersistentVector_createMany(1, RT_boxInt32(99));
 
     // Valid access
     Ptr_retain(v2); // nth consumes
@@ -304,21 +303,17 @@ static void test_vector_bounds_exceptions(void **state) {
   ASSERT_MEMORY_ALL_BALANCED({
     // 1. assoc out of bounds
     PersistentVector *v1 = PersistentVector_create();
-    ASSERT_THROWS("IndexOutOfBoundsException", {
-      PersistentVector_assoc(v1, 1, RT_boxInt32(42));
-    });
+    ASSERT_THROWS("IndexOutOfBoundsException",
+                  { PersistentVector_assoc(v1, 1, RT_boxInt32(42)); });
 
     // 2. dynamic_nth with non-integer
     PersistentVector *v2 = PersistentVector_createMany(1, RT_boxInt32(10));
-    ASSERT_THROWS("IllegalArgumentException", {
-      PersistentVector_dynamic_nth(v2, RT_boxDouble(1.2));
-    });
+    ASSERT_THROWS("IllegalArgumentException",
+                  { PersistentVector_dynamic_nth(v2, RT_boxDouble(1.2)); });
 
     // 3. pop on empty vector
     PersistentVector *v3 = PersistentVector_create();
-    ASSERT_THROWS("IllegalStateException", {
-      PersistentVector_pop(v3);
-    });
+    ASSERT_THROWS("IllegalStateException", { PersistentVector_pop(v3); });
   });
 }
 
@@ -546,9 +541,7 @@ static void test_vector_transient_promotion(void **state) {
     PersistentVector *v = PersistentVector_transient(PersistentVector_create());
     v = PersistentVector_conj_BANG_(v, RT_boxInt32(1));
 
-    ASSERT_THROWS("IllegalStateException", {
-      promoteToShared(RT_boxPtr(v));
-    });
+    ASSERT_THROWS("IllegalStateException", { promoteToShared(RT_boxPtr(v)); });
 
     Ptr_release(v);
   });
@@ -598,6 +591,7 @@ int main(void) {
   };
 
   initialise_memory();
+  RuntimeInterface_initialise();
   srand(0);
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

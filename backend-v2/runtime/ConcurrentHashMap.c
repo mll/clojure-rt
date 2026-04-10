@@ -306,15 +306,12 @@ inline RTValue tryGettingFromEntry(ConcurrentHashMapEntry *entry, RTValue key,
                          &(entry->key), memory_order_relaxed)))
       ;
     if (equals(encounteredKey, key)) {
-      Ebr_enter_critical();
       RTValue value =
           atomic_load_explicit(&(entry->value), memory_order_acquire);
       if (!RT_isNull(value)) {
         retain(value);
-        Ebr_leave_critical();
         return value;
       }
-      Ebr_leave_critical();
       return RT_boxNil();
     }
   }

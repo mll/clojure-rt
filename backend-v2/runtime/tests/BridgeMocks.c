@@ -94,6 +94,10 @@ __attribute__((weak)) Class *ClassLookupByRegisterId(int32_t registerId,
   abort();
 }
 
+__attribute__((weak)) void destroyModule(void *module, void *jitEngine) {
+  // No-op for tests
+}
+
 __attribute__((weak)) String *exceptionToString_C(void *exception) {
   return String_createStatic("Exception");
 }

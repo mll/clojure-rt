@@ -23,7 +23,8 @@ static RTValue resPtrToValue(llvm::orc::ExecutorAddr res) {
   return res.toPtr<RTValue (*)()>()();
 }
 
-static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JITEngine &engine) {
+static void setup_compiler_state(rt::ThreadsafeCompilerState &compState,
+                                 rt::JITEngine &engine) {
   // Load metadata
   Programme astClasses;
   {
@@ -39,7 +40,8 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JIT
       engine
           .compileAST(astClasses.nodes(0), "__classes",
                       llvm::OptimizationLevel::O0, false)
-          .get().address;
+          .get()
+          .address;
   RTValue classes = resClasses.toPtr<RTValue (*)()>()();
   auto classesList = rt::buildClasses(classes);
   for (auto &desc : classesList) {
@@ -56,9 +58,8 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JIT
 static void test_exception_form_capture(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
-    setup_compiler_state(compState, engine);
+    rt::JITEngine engine;
+    setup_compiler_state(engine.threadsafeState, engine);
 
     // Create a StaticCallNode for (/ 1 0) to trigger ArithmeticException
     Node callNode;
@@ -71,7 +72,8 @@ static void test_exception_form_capture(void **state) {
 
     auto *sc = callNode.mutable_subnode()->mutable_staticcall();
     sc->set_class_("clojure.lang.Numbers");
-    sc->set_method("divide"); // Numbers/divide throws ArithmeticException for div by zero
+    sc->set_method(
+        "divide"); // Numbers/divide throws ArithmeticException for div by zero
 
     auto *arg1 = sc->add_args();
     arg1->set_op(opConst);
@@ -90,7 +92,8 @@ static void test_exception_form_capture(void **state) {
     auto resCall = engine
                        .compileAST(callNode, "__test_exception_form",
                                    llvm::OptimizationLevel::O0, false)
-                       .get().address;
+                       .get()
+                       .address;
 
     try {
       resPtrToValue(resCall);
@@ -113,6 +116,5 @@ int main(void) {
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
   return result;
 }

@@ -40,10 +40,9 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
       throwInternalInconsistencyException(
           "InstanceCallSlowPath: IC slot is null");
     }
-    if (argCount >= 64) {
+    if (!methodName) {
       throwInternalInconsistencyException(
-          "InstanceCallSlowPath: argCount >= 64 is not supported due to "
-          "boxedMask limitation");
+          "InstanceCallSlowPath: methodName is null");
     }
 
     JITEngine *engine = static_cast<JITEngine *>(jitEngine);
@@ -57,7 +56,7 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
     std::vector<ObjectTypeSet> argTypes;
     for (int i = 0; i < argCount; i++) {
       // bit i of boxedMask corresponds to args[i+1] (the i-th method argument)
-      bool isBoxed = (boxedMask >> i) & 1;
+      bool isBoxed = i < 20 ? (boxedMask >> i) & 1 : true;
       if (isBoxed) {
         argTypes.push_back(ObjectTypeSet::dynamicType());
       } else {
@@ -68,8 +67,22 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
 
     // 3. Trigger JIT compilation of a specialized bridge stub
     auto future = engine->compileInstanceCallBridge(
-        methodName ? methodName : "unknown", ObjectTypeSet(instanceType),
-        argTypes, slot, llvm::OptimizationLevel::O0, true);
+        methodName, ObjectTypeSet(instanceType), argTypes, slot,
+        llvm::OptimizationLevel::O0, true);
+
+    /* TODO - The bridge, when compiled, should never have Ebr_flush_critical
+     * inside of it. This is easily achievable because for now it only ever
+     * calls to runtime functions which should always be smooth and fast. If
+     * there was a flush inside, Ebr could allow the old bridge code to be
+     * released while execution still happens in runtime which then
+     * would want to return to the non existing bridge.
+     *
+     * A way forward, if we ever wanted flushes in methods, could be to
+     * construct another bridge with a signature exactly equal to the top-level
+     * bridge that would only convert parameters/return value. Then we can force
+     * a tail call in the bridge that can be reclaimed so that it disappears
+     * from stack.
+     */
 
     std::cout << future.get().optimizedIR << std::endl;
 
@@ -114,7 +127,6 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
     } else {
       __atomic_store((uint64_t *)ic, (uint64_t *)&newCache, __ATOMIC_RELEASE);
     }
-    engine->commit(methodName);
 
     // 5. Return the bridge pointer. The caller will jump to it.
     return bridgePtr;

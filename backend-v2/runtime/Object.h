@@ -124,6 +124,7 @@ inline bool Ptr_isReusable(void *ptr);
 #include "String.h"
 #include "Symbol.h"
 #include "Var.h"
+#include "BridgedObject.h"
 
 inline void *allocate(size_t size) {
 #ifndef USE_MEMORY_BANKS
@@ -291,6 +292,9 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
     break;
   case exceptionType:
     Exception_destroy((Exception *)self);
+    break;
+  case bridgedObjectType:
+    BridgedObject_destroy((BridgedObject *)self);
     break;
 
   default:
@@ -463,6 +467,8 @@ inline uword_t Object_hash(Object *restrict self) {
     return Var_hash((Var *)self);
   case exceptionType:
     return Exception_hash((Exception *)self);
+  case bridgedObjectType:
+    return BridgedObject_hash((BridgedObject *)self);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -544,6 +550,8 @@ inline bool Object_equals(Object *self, Object *other) {
     break;
   case exceptionType:
     return Exception_equals((Exception *)self, (Exception *)other);
+  case bridgedObjectType:
+    return BridgedObject_equals((BridgedObject *)self, (BridgedObject *)other);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -605,6 +613,8 @@ inline String *Object_toString(Object *restrict self) {
     return Var_toString((Var *)self);
   case exceptionType:
     return Exception_toString((Exception *)self);
+  case bridgedObjectType:
+    return BridgedObject_toString((BridgedObject *)self);
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }

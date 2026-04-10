@@ -21,6 +21,8 @@ using namespace clojure::rt::protobuf::bytecode;
 static void test_throw_exception_bridge(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
     RTValue msg = RT_boxPtr(String_createDynamicStr("test message"));
 
     // In our runtime, Exception objects wrap LanguageException
@@ -50,8 +52,7 @@ static void test_throw_exception_bridge(void **state) {
 static void test_codegen_throw(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
 
     // (throw "error")
     Node throwNode;
@@ -94,6 +95,6 @@ int main(void) {
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
+
   return result;
 }

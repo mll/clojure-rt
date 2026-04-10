@@ -19,9 +19,10 @@ void Ebr_unregister_thread();
 
 void Ebr_enter_critical();
 void Ebr_leave_critical();
+void Ebr_flush_critical();
 
+void Ebr_force_reclaim();
 void autorelease(RTValue value);
-size_t Ebr_get_pending_count();
 size_t Ebr_synchronize_and_reclaim();
 
 #ifdef __cplusplus

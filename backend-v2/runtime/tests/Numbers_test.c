@@ -63,6 +63,7 @@ static void test_numbers_invalid_args(void **state) {
 
 int main(void) {
   initialise_memory();
+  RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_numbers_add_basic),
       cmocka_unit_test(test_numbers_div_promotion),

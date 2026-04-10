@@ -255,6 +255,7 @@ public:
     retVal.insert(varType);
     retVal.insert(objectRootType);
     retVal.insert(exceptionType);
+    retVal.insert(bridgedObjectType);
     retVal.allTypes = true;
     retVal.isBoxed = true;
     return retVal;
@@ -313,6 +314,8 @@ public:
         return "LO";
       case exceptionType:
         return "LE";
+      case bridgedObjectType:
+        return "LB";
       default:
         return "LR";
       }
@@ -379,6 +382,8 @@ public:
       return ":any";
     case exceptionType:
       return ":exception";
+    case bridgedObjectType:
+      return ":bridged";
     default:
       return ":custom(" + std::to_string(type) + ")";
     }

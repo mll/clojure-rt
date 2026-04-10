@@ -40,8 +40,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "../runtime/JITSafety.h"
-
 namespace rt {
 
 struct JITResult {
@@ -51,46 +49,27 @@ struct JITResult {
 };
 
 class JITEngine {
-public:
-  struct SafetySection {
-    JITEngine &engine;
-    SafetySection(JITEngine &e);
-    ~SafetySection();
+  struct Finaliser {
+    ~Finaliser();
   };
-
-private:
+  /* A trick to run code after all the variables were destroyed */
+  std::mutex engineMutex;
+  std::mutex compilationMutex;
   std::unique_ptr<llvm::orc::LLJIT> jit;
   std::unique_ptr<llvm::TargetMachine> TM;
-  ThreadPool pool;
-  std::mutex engineMutex;
-  std::map<std::string, llvm::orc::ResourceTrackerSP> functionTrackers;
-  std::map<std::string, std::vector<RTValue>> moduleConstants;
+  Finaliser finaliser;
+  ThreadPool compilationPool;
+  ThreadPool executionPool;
+
   struct CapturedObject {
     std::unique_ptr<llvm::MemoryBuffer> buffer;
     std::unordered_set<std::string> symbols;
   };
   std::vector<CapturedObject> capturedObjectBuffers;
 
-  // Epoch-based Reclamation (EBR)
-  struct ZombieTracker {
-    llvm::orc::ResourceTrackerSP tracker;
-    uint64_t epoch;
-    std::vector<RTValue> constants;
-  };
-  struct LimboTracker {
-    llvm::orc::ResourceTrackerSP tracker;
-    std::vector<RTValue> constants;
-  };
-  std::atomic<uint64_t> globalEpoch{1};
-  std::vector<ZombieTracker> zombieTrackers;
-  std::map<std::string, std::vector<LimboTracker>> limboTrackers;
-  std::map<std::thread::id, std::atomic<uint64_t> *> activeThreads;
-  mutable std::mutex zombieMutex;
-
   // Active compilation tracking
   std::unordered_map<std::string, std::shared_future<JITResult>>
       activeCompilations;
-  std::mutex compilationMutex;
 
   std::unique_ptr<llvm::MemoryBuffer> runtimeBitcodeBuffer;
 
@@ -105,9 +84,8 @@ private:
                  bool printModule, bool reuseIfExists = false);
 
 public:
-  ThreadsafeCompilerState &threadsafeState;
-  JITEngine(ThreadsafeCompilerState &state,
-            size_t numThreads = std::thread::hardware_concurrency());
+  ThreadsafeCompilerState threadsafeState;
+  JITEngine(size_t numThreads = std::thread::hardware_concurrency());
   ~JITEngine();
   /**
    * The primary entry point.
@@ -126,31 +104,19 @@ public:
       const std::vector<ObjectTypeSet> &argTypes, void *callSiteId,
       llvm::OptimizationLevel Level, bool printModule = false);
 
-  void invalidate(const std::string &name);
+  void removeModule(llvm::orc::ResourceTrackerSP &tracker);
+  void retireModule(const std::string &moduleName);
 
-  /**
-   * EBR management
-   */
-  void enterSafeSection();
-  void leaveSafeSection();
-  void commit(const std::string &name);
-  void sweep();
-
-  // Testing helpers
-
-  size_t getLimboCount() const;
-  size_t getZombieCount() const;
-
-  void registerThread(rt_jt_epoch_t *epochPtr);
-  void unregisterThread();
-
-  uint64_t getGlobalEpoch() const {
-    return globalEpoch.load(std::memory_order_relaxed);
-  }
+  struct ModuleTracker {
+    llvm::orc::ResourceTrackerSP tracker;
+    std::vector<RTValue> constants;
+  };
 
 private:
   static CapturedObject captureObject(const llvm::MemoryBuffer &Obj);
   static std::atomic<bool> instanceExists;
+  std::map<std::string, ModuleTracker *> moduleTrackers;
+  void retireModule(ModuleTracker *tracker);
 };
 
 } // namespace rt

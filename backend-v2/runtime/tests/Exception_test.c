@@ -28,6 +28,7 @@ static void test_exception_creation(void **state) {
 
 int main(void) {
   initialise_memory();
+  RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_exception_creation),
   };

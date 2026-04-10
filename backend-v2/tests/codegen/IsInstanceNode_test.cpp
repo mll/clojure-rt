@@ -88,9 +88,9 @@ static void test_is_instance_compile_time_true(void **state) {
   (void)state;
   Node node;
   ASSERT_MEMORY_ALL_BALANCED({
-    ThreadsafeCompilerState compilerState;
+    JITEngine engine;
+    ThreadsafeCompilerState &compilerState = engine.threadsafeState;
     setup_test_metadata(compilerState);
-    JITEngine engine(compilerState);
 
     node.set_op(opIsInstance);
     auto *is = node.mutable_subnode()->mutable_isinstance();
@@ -121,9 +121,9 @@ static void test_is_instance_compile_time_true(void **state) {
 static void test_is_instance_compile_time_false(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    ThreadsafeCompilerState compilerState;
+    JITEngine engine;
+    ThreadsafeCompilerState &compilerState = engine.threadsafeState;
     setup_test_metadata(compilerState);
-    JITEngine engine(compilerState);
 
     Node node;
     node.set_op(opIsInstance);
@@ -153,9 +153,9 @@ static void test_is_instance_compile_time_false(void **state) {
 static void test_is_instance_runtime(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    ThreadsafeCompilerState compilerState;
+    JITEngine engine;
+    ThreadsafeCompilerState &compilerState = engine.threadsafeState;
     setup_test_metadata(compilerState);
-    JITEngine engine(compilerState);
 
     Node node;
     node.set_op(opIsInstance);
@@ -195,9 +195,9 @@ static void test_is_instance_runtime(void **state) {
 static void test_is_instance_class_prefix(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    ThreadsafeCompilerState compilerState;
+    JITEngine engine;
+    ThreadsafeCompilerState &compilerState = engine.threadsafeState;
     setup_test_metadata(compilerState);
-    JITEngine engine(compilerState);
 
     Node node;
     node.set_op(opIsInstance);
@@ -229,9 +229,9 @@ static void test_is_instance_class_prefix(void **state) {
 static void test_is_instance_any_type_regression(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    ThreadsafeCompilerState compilerState;
+    JITEngine engine;
+    ThreadsafeCompilerState &compilerState = engine.threadsafeState;
     setup_test_metadata(compilerState);
-    JITEngine engine(compilerState);
 
     Node letNode;
     letNode.set_op(opLet);
@@ -271,9 +271,9 @@ static void test_is_instance_refcounted_local(void **state) {
   (void)state;
   // (let [x 123N] (instance? MyClass x))
   ASSERT_MEMORY_ALL_BALANCED({
-    ThreadsafeCompilerState compilerState;
+    JITEngine engine;
+    ThreadsafeCompilerState &compilerState = engine.threadsafeState;
     setup_test_metadata(compilerState);
-    JITEngine engine(compilerState);
 
     Node letNode;
     letNode.set_op(opLet);
@@ -332,6 +332,5 @@ int main(void) {
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
   return result;
 }

@@ -58,3 +58,7 @@ String *Keyword_toString(RTValue self) {
 uint32_t Keyword_getInternCount() {
   return atomic_load_explicit(&minUnusedKeyword, memory_order_relaxed) - 1;
 }
+
+void Keyword_resetInterns() {
+  atomic_store_explicit(&minUnusedKeyword, 1, memory_order_relaxed);
+}

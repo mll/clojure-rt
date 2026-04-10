@@ -51,35 +51,19 @@ static void setup_test_metadata(rt::ThreadsafeCompilerState &compState,
   }
 }
 
-static rt::ThreadsafeCompilerState *gCompState = nullptr;
-static rt::JITEngine *gEngine = nullptr;
-
-static int setup_test_group(void **state) {
-  initialise_memory();
-  gCompState = new rt::ThreadsafeCompilerState();
-  gEngine = new rt::JITEngine(*gCompState);
-  setup_test_metadata(*gCompState, *gEngine);
-  return 0;
-}
-
-static int teardown_test_group(void **state) {
-  delete gEngine;
-  delete gCompState;
-  RuntimeInterface_cleanup();
-  return 0;
-}
-
 static void test_async_stack_trace_friendly(void **state) {
   (void)state;
   InlineCache icSlot = {0, nullptr};
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+    setup_test_metadata(engine.threadsafeState, engine);
     RTValue strObj = RT_boxPtr(String_create("test"));
 
     try {
       RTValue args[1] = {strObj};
       // Slow path has a peculiar semantics. It does not consume when successful
       // and it does when throws.
-      InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, gEngine);
+      InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, &engine);
       fail_msg("Expected an exception from .contas");
     } catch (const LanguageException &e) {
       string trace = getExceptionString(e, StackTraceMode::Friendly);
@@ -106,13 +90,16 @@ static void test_async_stack_trace_debug(void **state) {
   (void)state;
   InlineCache icSlot = {0, nullptr};
   ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+    setup_test_metadata(engine.threadsafeState, engine);
+
     RTValue strObj = RT_boxPtr(String_create("test"));
 
     try {
       RTValue args[1] = {strObj};
       // Slow path has a peculiar semantics. It does not consume when successful
       // and it does when throws.
-      InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, gEngine);
+      InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, &engine);
       fail_msg("Expected an exception from .contas");
     } catch (const LanguageException &e) {
       string trace = getExceptionString(e, StackTraceMode::Debug);
@@ -127,9 +114,10 @@ static void test_async_stack_trace_debug(void **state) {
 }
 
 int main() {
+  initialise_memory();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_async_stack_trace_friendly),
       cmocka_unit_test(test_async_stack_trace_debug),
   };
-  return cmocka_run_group_tests(tests, setup_test_group, teardown_test_group);
+  return cmocka_run_group_tests(tests, NULL, NULL);
 }

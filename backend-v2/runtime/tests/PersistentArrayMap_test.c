@@ -295,6 +295,7 @@ int main(void) {
       cmocka_unit_test(test_array_map_promotion),
   };
   initialise_memory();
+  RuntimeInterface_initialise();
   PersistentArrayMap *warmup = PersistentArrayMap_empty();
   Ptr_release(warmup);
 

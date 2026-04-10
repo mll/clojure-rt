@@ -100,179 +100,190 @@ static void setup_math_runtime_test(rt::ThreadsafeCompilerState &compState) {
 
 static void test_math_sin_int(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_math_runtime_test(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
+    setup_math_runtime_test(compState);
 
-  // (Math/sin 0)
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("java.lang.Math");
-  sc->set_method("sin");
+    // (Math/sin 0)
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("java.lang.Math");
+    sc->set_method("sin");
 
-  auto *arg1 = sc->add_args();
-  arg1->set_op(opConst);
-  auto *c1 = arg1->mutable_subnode()->mutable_const_();
-  c1->set_val("0");
-  c1->set_type(ConstNode_ConstType_constTypeNumber);
-  arg1->set_tag("long");
+    auto *arg1 = sc->add_args();
+    arg1->set_op(opConst);
+    auto *c1 = arg1->mutable_subnode()->mutable_const_();
+    c1->set_val("0");
+    c1->set_type(ConstNode_ConstType_constTypeNumber);
+    arg1->set_tag("long");
 
-  try {
-    auto resCall = engine
-                       .compileAST(callNode, "__test_sin_int",
-                                   llvm::OptimizationLevel::O0, false)
-                       .get().address;
-    RTValue result = resPtrToValue(resCall);
-    assert_true(RT_isDouble(result));
-    assert_double_equal(0.0, RT_unboxDouble(result), 0.0001);
-    release(result);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "Math sin int failure: %s\n", e.what());
-    assert_true(false);
-  }
+    try {
+      auto resCall = engine
+                         .compileAST(callNode, "__test_sin_int",
+                                     llvm::OptimizationLevel::O0, false)
+                         .get()
+                         .address;
+      RTValue result = resPtrToValue(resCall);
+      assert_true(RT_isDouble(result));
+      assert_double_equal(0.0, RT_unboxDouble(result), 0.0001);
+      release(result);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Math sin int failure: %s\n", e.what());
+      assert_true(false);
+    }
+  });
 }
 
 static void test_math_sqrt_bigint(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_math_runtime_test(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
+    setup_math_runtime_test(compState);
 
-  // (Math/sqrt 100N)
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("java.lang.Math");
-  sc->set_method("sqrt");
+    // (Math/sqrt 100N)
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("java.lang.Math");
+    sc->set_method("sqrt");
 
-  auto *arg1 = sc->add_args();
-  arg1->set_op(opConst);
-  auto *c1 = arg1->mutable_subnode()->mutable_const_();
-  c1->set_val("100");
-  c1->set_type(ConstNode_ConstType_constTypeNumber);
-  arg1->set_tag("clojure.lang.BigInt");
+    auto *arg1 = sc->add_args();
+    arg1->set_op(opConst);
+    auto *c1 = arg1->mutable_subnode()->mutable_const_();
+    c1->set_val("100");
+    c1->set_type(ConstNode_ConstType_constTypeNumber);
+    arg1->set_tag("clojure.lang.BigInt");
 
-  try {
-    auto resCall = engine
-                       .compileAST(callNode, "__test_sqrt_bigint",
-                                   llvm::OptimizationLevel::O0, false)
-                       .get().address;
+    try {
+      auto resCall = engine
+                         .compileAST(callNode, "__test_sqrt_bigint",
+                                     llvm::OptimizationLevel::O0, false)
+                         .get()
+                         .address;
 
-    RTValue result = resPtrToValue(resCall);
-    assert_true(RT_isDouble(result));
-    assert_double_equal(10.0, RT_unboxDouble(result), 0.0001);
-    release(result);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "Math sqrt bigint failure: %s\n", e.what());
-    assert_true(false);
-  }
+      RTValue result = resPtrToValue(resCall);
+      assert_true(RT_isDouble(result));
+      assert_double_equal(10.0, RT_unboxDouble(result), 0.0001);
+      release(result);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Math sqrt bigint failure: %s\n", e.what());
+      assert_true(false);
+    }
+  });
 }
 
 static void test_math_sqrt_leak_repro(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_math_runtime_test(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
+    setup_math_runtime_test(compState);
 
-  // Create a String 'a' and bind it to a Var
-  {
-    RTValue k = Keyword_create(String_create("a"));
-    Var *v = Var_create(k);
-    RTValue str = RT_boxPtr(String_create("aa"));
+    // Create a String 'a' and bind it to a Var
+    {
+      RTValue k = Keyword_create(String_create("a"));
+      Var *v = Var_create(k);
+      RTValue str = RT_boxPtr(String_create("aa"));
 
-    Ptr_retain(v); // Var_bindRoot consumes v, so retain it
-    Var_bindRoot(v, str);
+      Ptr_retain(v); // Var_bindRoot consumes v, so retain it
+      Var_bindRoot(v, str);
 
-    compState.varRegistry.registerObject("a", v);
-  }
+      compState.varRegistry.registerObject("a", v);
+    }
 
-  // (Math/sqrt a)
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("java.lang.Math");
-  sc->set_method("sqrt");
+    // (Math/sqrt a)
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("java.lang.Math");
+    sc->set_method("sqrt");
 
-  auto *arg1 = sc->add_args();
-  arg1->set_op(opVar);
-  auto *v1 = arg1->mutable_subnode()->mutable_var();
-  v1->set_var("#'a");
+    auto *arg1 = sc->add_args();
+    arg1->set_op(opVar);
+    auto *v1 = arg1->mutable_subnode()->mutable_var();
+    v1->set_var("#'a");
 
-  try {
-    auto resCall = engine
-                       .compileAST(callNode, "__test_leak_repro",
-                                   llvm::OptimizationLevel::O0, false)
-                       .get().address;
-    fflush(stdout);
-    fflush(stderr);
-    RTValue result = resPtrToValue(resCall); // Should throw
-    (void)result;
-  } catch (const LanguageException &e) {
-    std::string s = rt::getExceptionString(e);
-    assert_string_contains(s, "Operation requires a numeric argument");
-    assert_string_contains(s, "IllegalArgumentException");
-    assert_string_contains(s, "Numbers_toDouble");
-    assert_string_contains(s, "Numbers_sqrt");
-  } catch (...) {
-    printf("Caught UNKNOWN exception!\n");
-    assert_true(false);
-  }
-
-  // Note: initialise_memory() and RuntimeInterface_cleanup() in main will check
-  // for leaks. If it leaks, RuntimeInterface_cleanup() will print the leak
-  // detection and fail (usually).
+    try {
+      auto resCall = engine
+                         .compileAST(callNode, "__test_leak_repro",
+                                     llvm::OptimizationLevel::O0, false)
+                         .get()
+                         .address;
+      fflush(stdout);
+      fflush(stderr);
+      RTValue result = resPtrToValue(resCall); // Should throw
+      (void)result;
+    } catch (const LanguageException &e) {
+      std::string s = rt::getExceptionString(e);
+      assert_string_contains(s, "Operation requires a numeric argument");
+      assert_string_contains(s, "IllegalArgumentException");
+      assert_string_contains(s, "Numbers_toDouble");
+      assert_string_contains(s, "Numbers_sqrt");
+    } catch (...) {
+      printf("Caught UNKNOWN exception!\n");
+      assert_true(false);
+    }
+  });
+  // Note: initialise_memory() and RuntimeInterface_cleanup() in main will
+  // check for leaks. If it leaks, RuntimeInterface_cleanup() will print the
+  // leak detection and fail (usually).
 }
 
 static void test_math_pow_var(void **state) {
   (void)state;
-  rt::ThreadsafeCompilerState compState;
-  setup_math_runtime_test(compState);
-  JITEngine engine(compState);
+  ASSERT_MEMORY_ALL_BALANCED({
+    JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
+    setup_math_runtime_test(compState);
 
-  // (def a 2)
-  {
-    RTValue v_a = RT_boxInt32(2);
-    RTValue k = Keyword_create(String_create("a"));
-    Var *v = Var_create(k);
+    // (def a 2)
+    {
+      RTValue v_a = RT_boxInt32(2);
+      RTValue k = Keyword_create(String_create("a"));
+      Var *v = Var_create(k);
 
-    Ptr_retain(v);
-    Var_bindRoot(v, v_a);
-    compState.varRegistry.registerObject("a", v);
-  }
+      Ptr_retain(v);
+      Var_bindRoot(v, v_a);
+      compState.varRegistry.registerObject("a", v);
+    }
 
-  // (Math/pow 2.0 a)
-  Node callNode;
-  callNode.set_op(opStaticCall);
-  auto *sc = callNode.mutable_subnode()->mutable_staticcall();
-  sc->set_class_("java.lang.Math");
-  sc->set_method("pow");
+    // (Math/pow 2.0 a)
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("java.lang.Math");
+    sc->set_method("pow");
 
-  auto *arg1 = sc->add_args();
-  arg1->set_op(opConst);
-  auto *c1 = arg1->mutable_subnode()->mutable_const_();
-  c1->set_val("2.0");
-  c1->set_type(ConstNode_ConstType_constTypeNumber);
-  arg1->set_tag("double");
+    auto *arg1 = sc->add_args();
+    arg1->set_op(opConst);
+    auto *c1 = arg1->mutable_subnode()->mutable_const_();
+    c1->set_val("2.0");
+    c1->set_type(ConstNode_ConstType_constTypeNumber);
+    arg1->set_tag("double");
 
-  auto *arg2 = sc->add_args();
-  arg2->set_op(opVar);
-  auto *v2 = arg2->mutable_subnode()->mutable_var();
-  v2->set_var("v_a");
+    auto *arg2 = sc->add_args();
+    arg2->set_op(opVar);
+    auto *v2 = arg2->mutable_subnode()->mutable_var();
+    v2->set_var("v_a");
 
-  try {
-    auto resCall = engine
-                       .compileAST(callNode, "__test_pow_var",
-                                   llvm::OptimizationLevel::O0, false)
-                       .get().address;
-    RTValue result = resPtrToValue(resCall);
-    assert_true(RT_isDouble(result));
-    assert_double_equal(4.0, RT_unboxDouble(result), 0.0001);
-    release(result);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "Math pow var failure: %s\n", e.what());
-    assert_true(false);
-  }
+    try {
+      auto resCall = engine
+                         .compileAST(callNode, "__test_pow_var",
+                                     llvm::OptimizationLevel::O0, false)
+                         .get()
+                         .address;
+      RTValue result = resPtrToValue(resCall);
+      assert_true(RT_isDouble(result));
+      assert_double_equal(4.0, RT_unboxDouble(result), 0.0001);
+      release(result);
+    } catch (const std::exception &e) {
+      fprintf(stderr, "Math pow var failure: %s\n", e.what());
+      assert_true(false);
+    }
+  });
 }
 
 int main(void) {
@@ -287,6 +298,5 @@ int main(void) {
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
   return result;
 }

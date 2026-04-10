@@ -5,11 +5,11 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "../Ebr.h"
 #include "../Keyword.h"
 #include "../RuntimeInterface.h"
 #include "../String.h"
 #include "../Var.h"
-#include "../Ebr.h"
 
 #define RACE_ITERATIONS 1000000
 #define DESTRUCT_ITERATIONS 1000
@@ -204,6 +204,7 @@ static void test_var_destruction_hazard_race_stable(void **state) {
 
 int main(int argc, char **argv) {
   initialise_memory();
+  RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_var_concurrent_bind_deref_race),
       cmocka_unit_test(test_var_destruction_hazard_race_stable),

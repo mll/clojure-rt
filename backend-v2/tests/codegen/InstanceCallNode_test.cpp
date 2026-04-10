@@ -100,9 +100,9 @@ setup_mock_instance_metadata(rt::ThreadsafeCompilerState &compState) {
 static void test_static_instance_call(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
     setup_mock_instance_metadata(compState);
-    JITEngine engine(compState);
 
     Node callNode;
     callNode.set_op(opInstanceCall);
@@ -149,9 +149,9 @@ static void test_static_instance_call(void **state) {
 static void test_vector_pop_call(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
     setup_mock_instance_metadata(compState);
-    JITEngine engine(compState);
 
     Node callNode;
     callNode.set_op(opInstanceCall);
@@ -189,9 +189,9 @@ static void test_vector_pop_call(void **state) {
 static void test_dynamic_instance_call(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
     setup_mock_instance_metadata(compState);
-    JITEngine engine(compState);
 
     Node callNode;
     callNode.set_op(opInstanceCall);
@@ -238,9 +238,9 @@ static void test_dynamic_instance_call(void **state) {
 static void test_instance_call_slow_path_error(void **state) {
   (void)state;
   auto logic = [&]() {
-    rt::ThreadsafeCompilerState compState;
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
     setup_mock_instance_metadata(compState);
-    JITEngine engine(compState);
 
     Node callNode;
     callNode.set_op(opInstanceCall);
@@ -271,7 +271,8 @@ static void test_instance_call_slow_path_error(void **state) {
 static void test_instance_call_fast_path_error(void **state) {
   (void)state;
   auto logic = [&]() {
-    rt::ThreadsafeCompilerState compState;
+    JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
     setup_mock_instance_metadata(compState);
     {
       ::Class *cls = compState.classRegistry.getCurrent("Vector");
@@ -285,7 +286,7 @@ static void test_instance_call_fast_path_error(void **state) {
       ext->instanceFns["pop"].push_back(pop);
       Ptr_release(cls);
     }
-    JITEngine engine(compState);
+
     RTValue vk = Keyword_create(String_create("user/my-vec"));
     Var *myVar = Var_create(vk);
     compState.varRegistry.registerObject("user/my-vec", myVar);
@@ -321,8 +322,6 @@ static void test_instance_call_fast_path_error(void **state) {
     }
     Ptr_retain(myVar);
     Var_bindRoot(myVar, RT_boxNil());
-    Ebr_synchronize_and_reclaim();
-    Ebr_synchronize_and_reclaim();
   };
   ASSERT_MEMORY_ALL_BALANCED(logic(););
 }
@@ -338,6 +337,5 @@ int main(void) {
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
   return result;
 }

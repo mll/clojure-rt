@@ -23,7 +23,8 @@ static RTValue resPtrToValue(llvm::orc::ExecutorAddr res) {
   return res.toPtr<RTValue (*)()>()();
 }
 
-static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JITEngine &engine) {
+static void setup_compiler_state(rt::ThreadsafeCompilerState &compState,
+                                 rt::JITEngine &engine) {
   // Load metadata
   Programme astClasses;
   {
@@ -39,7 +40,8 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JIT
       engine
           .compileAST(astClasses.nodes(0), "__classes",
                       llvm::OptimizationLevel::O0, false)
-          .get().address;
+          .get()
+          .address;
   RTValue classes = resClasses.toPtr<RTValue (*)()>()();
   auto classesList = rt::buildClasses(classes);
   for (auto &desc : classesList) {
@@ -56,8 +58,8 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState, rt::JIT
 static void test_o3_debug_info(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    rt::ThreadsafeCompilerState compState;
-    rt::JITEngine engine(compState);
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
     setup_compiler_state(compState, engine);
 
     // Create a StaticCallNode for (clojure.lang.Numbers/add 2147483647 1)
@@ -68,7 +70,7 @@ static void test_o3_debug_info(void **state) {
     auto *env = callNode.mutable_env();
     env->set_file("./test_file.clj");
     env->set_line(42);
-    
+
     auto *sc = callNode.mutable_subnode()->mutable_staticcall();
     sc->set_class_("clojure.lang.Numbers");
     sc->set_method("add");
@@ -76,20 +78,23 @@ static void test_o3_debug_info(void **state) {
     auto *arg1 = sc->add_args();
     arg1->set_op(opConst);
     arg1->set_tag("long");
-    arg1->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
-    arg1->mutable_subnode()->mutable_const_()->set_val("2147483647"); 
+    arg1->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
+    arg1->mutable_subnode()->mutable_const_()->set_val("2147483647");
 
     auto *arg2 = sc->add_args();
     arg2->set_op(opConst);
     arg2->set_tag("long");
-    arg2->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    arg2->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
     arg2->mutable_subnode()->mutable_const_()->set_val("1");
 
     // Compile with O3
     auto resCall = engine
                        .compileAST(callNode, "__repl__o3_test",
                                    llvm::OptimizationLevel::O3, false)
-                       .get().address;
+                       .get()
+                       .address;
 
     try {
       resPtrToValue(resCall);
@@ -97,14 +102,14 @@ static void test_o3_debug_info(void **state) {
     } catch (const LanguageException &e) {
       std::string err = getExceptionString(e);
       cout << "Caught Exception String:\n" << err << endl;
-      
+
       // Verify function name is preserved (it starts with __repl__)
       assert_true(err.find("__repl__") != std::string::npos);
-      
+
       // Verify file is preserved
       assert_true(err.find("test_file.clj") != std::string::npos);
-      
-      // We don't strictly assert the line number is 42 because O3 might 
+
+      // We don't strictly assert the line number is 42 because O3 might
       // have shifted things, but we verified we have symbolic info!
     }
   });
@@ -117,6 +122,5 @@ int main(void) {
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);
-  RuntimeInterface_cleanup();
   return result;
 }

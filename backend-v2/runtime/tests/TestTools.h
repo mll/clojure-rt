@@ -72,7 +72,7 @@ double timerGetSeconds(const TimerContext *context);
 
 void testScalingBehavior(void **state);
 
-#define ASSERT_MEMORY_BALANCE(type, block)                                     \
+#define ASSERT_MEMORY_BALANCE(type, ...)                                       \
   do {                                                                         \
     _Pragma("GCC diagnostic push")                                             \
         _Pragma("GCC diagnostic ignored \"-Wstringop-overflow\"") if (         \
@@ -82,7 +82,7 @@ void testScalingBehavior(void **state);
     }                                                                          \
     _Pragma("GCC diagnostic pop") uword_t start_count =                        \
         allocationCount[(type)-1];                                             \
-    block uword_t end_count = allocationCount[(type)-1];                       \
+    __VA_ARGS__ uword_t end_count = allocationCount[(type)-1];                 \
     assert_int_equal(start_count, end_count);                                  \
   } while (0)
 
@@ -95,7 +95,7 @@ void assertMemoryDifference(MemoryState *before, MemoryState *after, int type,
 
 // Macro to assert that absolutely no memory balance changes occurred for any
 // type
-#define ASSERT_MEMORY_ALL_BALANCED(block)                                      \
+#define ASSERT_MEMORY_ALL_BALANCED(...)                                        \
   do {                                                                         \
     if (!strstr(BUILD_TYPE, "Debug")) {                                        \
       fail_msg("ASSERT_MEMORY_ALL_BALANCED must be used in Debug mode as "     \
@@ -103,7 +103,7 @@ void assertMemoryDifference(MemoryState *before, MemoryState *after, int type,
     }                                                                          \
     MemoryState __before, __after;                                             \
     captureMemoryState(&__before);                                             \
-    {block} captureMemoryState(&__after);                                      \
+    __VA_ARGS__ captureMemoryState(&__after);                                  \
     assertMemoryBalance(&__before, &__after);                                  \
   } while (0)
 
@@ -113,12 +113,12 @@ extern bool exception_catchable;
 
 void reset_exception_state();
 
-#define ASSERT_THROWS(expected_name, block)                                    \
+#define ASSERT_THROWS(expected_name, ...)                                      \
   do {                                                                         \
     reset_exception_state();                                                   \
     exception_catchable = true;                                                \
     if (setjmp(exception_env) == 0) {                                          \
-      {block} exception_catchable = false;                                     \
+      __VA_ARGS__ exception_catchable = false;                                 \
       fail_msg("Expected exception '%s' was not thrown", expected_name);       \
     } else {                                                                   \
       exception_catchable = false;                                             \

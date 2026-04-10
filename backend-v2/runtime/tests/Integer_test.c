@@ -19,14 +19,13 @@ static void test_integer_div_basic(void **state) {
 }
 
 static void test_integer_division_by_zero(void **state) {
-  ASSERT_MEMORY_ALL_BALANCED({
-    ASSERT_THROWS("ArithmeticException", {
-      Integer_div(10, 0);
-    });
-  });
+  ASSERT_MEMORY_ALL_BALANCED(
+      { ASSERT_THROWS("ArithmeticException", { Integer_div(10, 0); }); });
 }
 
 int main(void) {
+  initialise_memory();
+  RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_integer_div_basic),
       cmocka_unit_test(test_integer_division_by_zero),

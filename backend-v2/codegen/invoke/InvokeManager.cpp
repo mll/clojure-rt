@@ -10,6 +10,7 @@
 #include "../CodeGen.h"
 
 #include "llvm/IR/MDBuilder.h"
+#include <cstddef>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 #include <sstream>
@@ -201,8 +202,10 @@ llvm::Value *InvokeManager::invokeRaw(llvm::Value *fpointer,
                                       llvm::FunctionType *type,
                                       const std::vector<llvm::Value *> &args,
                                       CleanupChainGuard *guard) {
-  BasicBlock *lpadToUse =
-      codeGen.getMemoryManagement().getLandingPad(guard ? guard->size() : 0);
+  BasicBlock *lpadToUse = codeGen.hasPushedResources()
+                              ? codeGen.getMemoryManagement().getLandingPad(
+                                    guard ? guard->size() : 0)
+                              : nullptr;
   Value *callResult;
   bool isVoid = type->getReturnType()->isVoidTy();
   if (lpadToUse) {
@@ -221,9 +224,9 @@ llvm::Value *InvokeManager::invokeRaw(llvm::Value *fpointer,
 
     builder.SetInsertPoint(normalBB);
   } else {
-    callResult = builder.CreateCall(
-        type, fpointer, args,
-        isVoid ? std::string("") : std::string("call_pointer"));
+    callResult = builder.CreateCall(type, fpointer, args,
+                                    isVoid ? std::string("")
+                                           : std::string("call_pointer"));
   }
   return callResult;
 }
@@ -237,19 +240,20 @@ llvm::Value *InvokeManager::invokeRaw(const std::string &fname,
     toCall =
         Function::Create(type, Function::ExternalLinkage, fname, theModule);
   }
-  BasicBlock *lpadToUse = canThrow(fname)
+  BasicBlock *lpadToUse = (canThrow(fname) && codeGen.hasPushedResources())
                               ? codeGen.getMemoryManagement().getLandingPad(
                                     guard ? guard->size() : 0)
                               : nullptr;
   Value *callResult;
   bool isVoid = type->getReturnType()->isVoidTy();
+
   if (lpadToUse) {
     BasicBlock *normalBB =
         BasicBlock::Create(theModule.getContext(), "invoke_normal",
                            builder.GetInsertBlock()->getParent());
-    InvokeInst *inv =
-        builder.CreateInvoke(toCall, normalBB, lpadToUse, args,
-                             isVoid ? std::string("") : std::string("inv_") + fname);
+    InvokeInst *inv = builder.CreateInvoke(
+        toCall, normalBB, lpadToUse, args,
+        isVoid ? std::string("") : std::string("inv_") + fname);
     callResult = inv;
 
     // Attach branch weights to mark landing pad as cold.
@@ -259,8 +263,24 @@ llvm::Value *InvokeManager::invokeRaw(const std::string &fname,
 
     builder.SetInsertPoint(normalBB);
   } else {
-    callResult = builder.CreateCall(
+    CallInst *call = builder.CreateCall(
         toCall, args, isVoid ? std::string("") : std::string("call_") + fname);
+    // Tutaj trzeba zrobic kilka rzeczy:
+    // 1. Ustawiac musttail tylko jak budujemy trampoline metody (flaga nowa w
+    // codegen)
+    // 2. Stworzyc na poczatku nowy modul ktory dla kazdej funkcji z runtime
+    // ktora nie zwraca RTValue doda wlasna wersje ktora zwraca RTValue (z
+    // dziwnym przedrostkiem?). Ten modul nigdy nie moze byc uwolniony.
+    // Zastanowic sie, jak zrobic zeby argumenty tych mikrotrampolin pokrywaly
+    // sie z argumentami trampoliny?
+    // 3. Wywołać tutaj funkcje z tego nowego modułu z musttail.
+    // 4. Dodac zarzadzanie modulami takie, zeby trampolina byla zwalniana zaraz
+    // po deaktualizacji za pomoca autorelease (moze trzeba dolozyc dla niej typ
+    // w runtime? A moze moze skorzystac z "function"?) Jesli EBR ją ochroni a
+    // tail call usunie zaleznosc z kodu ktory byl wywolany, to nie bedzie
+    // problemu.
+    // call->setTailCallKind(llvm::CallInst::TCK_MustTail);
+    callResult = call;
   }
   return callResult;
 }

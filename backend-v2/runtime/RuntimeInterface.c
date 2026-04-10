@@ -32,6 +32,10 @@ void RuntimeInterface_initialise() {
   Ebr_init();
   // Registering main thread.
   Ebr_register_thread();
+  PersistentVector_initialise();
+  PersistentArrayMap_initialise();
+  PersistentList_initialise();
+
   keywords = ConcurrentHashMap_create(10);         // 2^10
   keywordsInverted = ConcurrentHashMap_create(10); // 2^10
   vars = ConcurrentHashMap_create(10);             // 2^10
@@ -66,6 +70,8 @@ void RuntimeInterface_cleanup() {
   // Unregistering main thread.
   Ebr_unregister_thread();
   Ebr_shutdown();
+  Keyword_resetInterns();
+  Symbol_resetInterns();
 }
 
 void printReferenceCounts() {

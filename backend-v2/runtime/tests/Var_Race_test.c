@@ -39,18 +39,22 @@ struct RaceArgs {
 
 void *writer_thread(void *arg) {
   Ebr_register_thread();
+  Ebr_enter_critical();
   struct RaceArgs *args = (struct RaceArgs *)arg;
   for (int i = 0; i < RACE_ITERATIONS && !atomic_load(&stop_threads); i++) {
     RTValue val = RT_boxPtr(String_create("value"));
     Ptr_retain(args->v);
     Var_bindRoot(args->v, val);
+    Ebr_flush_critical();
   }
+  Ebr_leave_critical();
   Ebr_unregister_thread();
   return NULL;
 }
 
 void *reader_thread(void *arg) {
   Ebr_register_thread();
+  Ebr_enter_critical();
   struct RaceArgs *args = (struct RaceArgs *)arg;
   while (!atomic_load(&stop_threads)) {
     Ptr_retain(args->v);
@@ -60,8 +64,10 @@ void *reader_thread(void *arg) {
       // toString is consuming in this runtime
       Ptr_release(toString(val));
     }
+    Ebr_flush_critical();
     CPU_PAUSE();
   }
+  Ebr_leave_critical();
   Ebr_unregister_thread();
   return NULL;
 }

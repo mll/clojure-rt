@@ -41,8 +41,8 @@ TypedValue CodeGen::codegen(const Node &node, const FnNode &subnode,
               if (a.node->isvariadic() != b.node->isvariadic()) {
                 return !a.node->isvariadic(); // non-variadic first
               }
-              return a.node->fixedarity() >
-                     b.node->fixedarity(); // descending arity
+              return a.node->fixedarity() <
+                     b.node->fixedarity(); // ascending arity
             });
 
   // 3. Generate baseline implementations and register them

@@ -162,11 +162,67 @@ static void test_fn_capture_unboxing_int(void **state) {
   });
 }
 
+// (fn ([x] x) ([x y] y))
+static void test_multi_arity_fn(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+    
+    Node fnNode;
+    fnNode.set_op(opFn);
+    auto *fn = fnNode.mutable_subnode()->mutable_fn();
+    fn->set_maxfixedarity(2);
+    
+    // Arity 1
+    {
+      auto *m = fn->add_methods();
+      auto *mn = m->mutable_subnode()->mutable_fnmethod();
+      mn->set_fixedarity(1);
+      auto *p = mn->add_params();
+      p->set_op(opBinding);
+      p->mutable_subnode()->mutable_binding()->set_name("x");
+      auto *body = mn->mutable_body();
+      body->set_op(opLocal);
+      body->mutable_subnode()->mutable_local()->set_name("x");
+    }
+    
+    // Arity 2
+    {
+      auto *m = fn->add_methods();
+      auto *mn = m->mutable_subnode()->mutable_fnmethod();
+      mn->set_fixedarity(2);
+      auto *p1 = mn->add_params();
+      p1->set_op(opBinding);
+      p1->mutable_subnode()->mutable_binding()->set_name("x");
+      auto *p2 = mn->add_params();
+      p2->set_op(opBinding);
+      p2->mutable_subnode()->mutable_binding()->set_name("y");
+      auto *body = mn->mutable_body();
+      body->set_op(opLocal);
+      body->mutable_subnode()->mutable_local()->set_name("y");
+    }
+    
+    auto res = engine.compileAST(fnNode, "multi_arity_fn", llvm::OptimizationLevel::O0, true).get();
+    
+    RTValue funObj = res.address.toPtr<RTValue (*)()>()();
+    assert_true(RT_isPtr(funObj));
+    assert_int_equal(functionType, ::getType(funObj));
+    
+    ClojureFunction *f = (ClojureFunction*)RT_unboxPtr(funObj);
+    assert_int_equal(2, f->methodCount);
+    assert_int_equal(1, f->methods[0].fixedArity);
+    assert_int_equal(2, f->methods[1].fixedArity);
+    
+    release(funObj);
+  });
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_simple_fn),
       cmocka_unit_test(test_fn_capture_unboxing_int),
+      cmocka_unit_test(test_multi_arity_fn),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);

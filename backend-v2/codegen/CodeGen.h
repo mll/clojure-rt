@@ -105,6 +105,10 @@ public:
                              const ObjectTypeSet &instanceType,
                              const std::vector<ObjectTypeSet> &argTypes);
 
+  llvm::Function *generateBaselineMethod(
+      const FnMethodNode &method,
+      const std::vector<std::pair<std::string, ObjectTypeSet>> &captureInfo);
+
   TypedValue codegen(const Node &node, const ObjectTypeSet &typeRestrictions);
 
   TypedValue codegen(const Node &node, const ConstNode &subnode,
@@ -128,6 +132,8 @@ public:
   TypedValue codegen(const Node &node, const DefNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const WithMetaNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const FnNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const StaticFieldNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
@@ -171,6 +177,8 @@ public:
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const WithMetaNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const FnNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const StaticFieldNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const LetNode &subnode,
@@ -203,6 +211,25 @@ public:
   }
   MemoryManagement &getMemoryManagement() { return memoryManagement; }
   DynamicConstructor &getDynamicConstructor() { return dynamicConstructor; }
+
+  class FunctionScopeGuard {
+    CodeGen &cg;
+    llvm::IRBuilder<>::InsertPointGuard ipGuard;
+    size_t prevLexicalBlocksSize;
+
+  public:
+    FunctionScopeGuard(CodeGen &cg, llvm::Function *newFunction)
+        : cg(cg), ipGuard(cg.Builder),
+          prevLexicalBlocksSize(cg.LexicalBlocks.size()) {
+      cg.memoryManagement.pushState(newFunction);
+    }
+    ~FunctionScopeGuard() {
+      cg.memoryManagement.popState();
+      while (cg.LexicalBlocks.size() > prevLexicalBlocksSize) {
+        cg.LexicalBlocks.pop_back();
+      }
+    }
+  };
 
 private:
   std::map<SourceLocation, std::string> formMap;

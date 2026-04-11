@@ -36,6 +36,31 @@ void MemoryManagement::initFunction(llvm::Function *F) {
   clear();
 }
 
+void MemoryManagement::pushState(llvm::Function *F) {
+  stateStack.push_back({exceptionSlot, terminalResumeBB, std::move(cleanupStack),
+                        std::move(activeResources), totalPushedResources,
+                        resourcesWithCleanup, std::move(lpadCache),
+                        activeUnwindGuidance});
+  initFunction(F);
+}
+
+void MemoryManagement::popState() {
+  if (stateStack.empty()) {
+    throwInternalInconsistencyException(
+        "MemoryManagement::popState called on empty stack");
+  }
+  FunctionState &s = stateStack.back();
+  exceptionSlot = s.exceptionSlot;
+  terminalResumeBB = s.terminalResumeBB;
+  cleanupStack = std::move(s.cleanupStack);
+  activeResources = std::move(s.activeResources);
+  totalPushedResources = s.totalPushedResources;
+  resourcesWithCleanup = s.resourcesWithCleanup;
+  lpadCache = std::move(s.lpadCache);
+  activeUnwindGuidance = s.activeUnwindGuidance;
+  stateStack.pop_back();
+}
+
 void MemoryManagement::ensureExceptionInfrastructure(llvm::Function *F) {
   if (exceptionSlot)
     return;

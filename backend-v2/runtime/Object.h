@@ -107,6 +107,7 @@ inline bool Ptr_isReusable(void *ptr);
 
 #include "BigInteger.h"
 #include "Boolean.h"
+#include "BridgedObject.h"
 #include "Class.h"
 #include "ConcurrentHashMap.h"
 #include "Double.h"
@@ -124,7 +125,6 @@ inline bool Ptr_isReusable(void *ptr);
 #include "String.h"
 #include "Symbol.h"
 #include "Var.h"
-#include "BridgedObject.h"
 
 inline void *allocate(size_t size) {
 #ifndef USE_MEMORY_BANKS
@@ -252,6 +252,15 @@ inline void Object_retain(Object *restrict self) {
 #endif
 }
 
+/* TODO: an improvement could be that for collections if we detect that it
+  should be destroyed, we do retain; autorelease; and ignore destroy. This would
+  free the current thread from the burden of deallocating them.
+
+  Difficulties:
+           - how does it interact with shared bit in refcount?
+           - how to avoid endless loop (the cleanup thread needs to do a real
+             destroy)
+ */
 inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   //  printf("--> Deallocating type %d addres %lld\n", self->type, (uword_t));
   // printReferenceCounts();

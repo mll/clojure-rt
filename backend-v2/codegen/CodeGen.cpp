@@ -97,9 +97,9 @@ std::string CodeGen::generateInstanceCallBridge(
   std::stringstream ss;
   ss << std::hex << dist(gen);
 
-  std::string funcName =
-      moduleName + "_" + std::to_string(instanceType.determinedType()) + "_" +
-      ss.str();
+  std::string funcName = moduleName + "_" +
+                         std::to_string(instanceType.determinedType()) + "_" +
+                         ss.str();
   // 1. Define Signature: (Instance, Arg1, ...) -> RTValue
   // Specialized arguments use natural LLVM types for unboxed primitives
   std::vector<llvm::Type *> llvmArgTypes;
@@ -165,6 +165,155 @@ std::string CodeGen::generateInstanceCallBridge(
 
   verifyFunction(*F);
   return funcName;
+}
+
+llvm::Function *CodeGen::generateBaselineMethod(
+    const FnMethodNode &method,
+    const std::vector<std::pair<std::string, ObjectTypeSet>> &captureInfo) {
+  CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
+  static thread_local std::mt19937 gen(std::random_device{}());
+  std::uniform_int_distribution<uint64_t> dist;
+  std::stringstream ss;
+  ss << std::hex << dist(gen);
+
+  std::string funcName = "fn_" + ss.str();
+
+  // Create the function with baseline signature: (Frame*, Arg0, Arg1, Arg2,
+  // Arg3, Arg4) -> RTValue
+  Function *F =
+      Function::Create(types.baselineFunctionTy, Function::ExternalLinkage,
+                       funcName, *TheModule);
+
+  // Use the guard to save current IR state and memory management context
+  FunctionScopeGuard scopeGuard(*this, F);
+
+  // Enforce frame pointers for reliable stack traces
+  F->addFnAttr("frame-pointer", "all");
+
+  // Create entry block
+  BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
+  Builder.SetInsertPoint(BB);
+
+  // Unpack arguments from LLVM function
+  auto arg_it = F->arg_begin();
+  Value *framePtr = &*arg_it++; // Arg 0: Frame*
+  Value *regArgs[5];            // Arg 1-5: RTValue registers
+  for (int i = 0; i < 5; ++i) {
+    regArgs[i] = &*arg_it++;
+  }
+
+  // Set personality function for exception handling
+  FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
+  personalityFn =
+      TheModule->getOrInsertFunction("__gxx_personality_v0", personalityFnTy);
+  F->setPersonalityFn(cast<Function>(personalityFn.getCallee()));
+
+  // Prepare environment for body codegen
+  variableBindingStack.push();
+  variableTypesBindingsStack.push();
+
+  int isVariadic = method.isvariadic();
+  int numParams = method.params_size();
+  Value *nilValue = valueEncoder.boxNil().value;
+
+  // 1. Unpack parameters
+  for (int i = 0; i < numParams; ++i) {
+    const auto &paramNode = method.params(i);
+    std::string paramName = paramNode.subnode().binding().name();
+
+    Value *val = nullptr;
+
+    if (isVariadic && i == numParams - 1) {
+      // It's the variadic parameter. Unpack from frame->variadicSeq (index 2)
+      Value *variadicSeqPtr = Builder.CreateStructGEP(types.frameTy, framePtr,
+                                                      2, "variadicSeq_ptr");
+      val = Builder.CreateLoad(types.RT_valueTy, variadicSeqPtr, "variadicSeq");
+    } else {
+      // Regular parameter
+      if (i < 5) {
+        // From registers
+        val = regArgs[i];
+      } else {
+        // From frame->locals[i-5] (index 5)
+        Value *localsBase =
+            Builder.CreateStructGEP(types.frameTy, framePtr, 5, "locals_base");
+        // Accessing element i-5 in the flexible array
+        Value *argPtr = Builder.CreateInBoundsGEP(
+            types.RT_valueTy, localsBase,
+            {Builder.getInt32(0), Builder.getInt32(i - 5)}, "arg_ptr");
+        val = Builder.CreateLoad(types.RT_valueTy, argPtr, "arg_val");
+      }
+    }
+
+    if (!val)
+      val = nilValue;
+
+    TypedValue paramTV(ObjectTypeSet::dynamicType(), val);
+    variableBindingStack.set(paramName, paramTV);
+    variableTypesBindingsStack.set(paramName, ObjectTypeSet::dynamicType());
+  }
+
+  // 2. Unpack closed overs (captures) with type propagation
+  if (!captureInfo.empty()) {
+    // a. Get method pointer from frame
+    Value *methodPtrPtr =
+        Builder.CreateStructGEP(types.frameTy, framePtr, 1, "method_ptr_ptr");
+    Value *methodPtr =
+        Builder.CreateLoad(types.ptrTy, methodPtrPtr, "method_ptr");
+
+    // b. Load closedOvers array pointer from method
+    Value *closedOversPtrPtr = Builder.CreateStructGEP(
+        types.methodTy, methodPtr, 6, "closedOvers_ptr_ptr");
+    Value *closedOversPtr =
+        Builder.CreateLoad(types.ptrTy, closedOversPtrPtr, "closedOvers_ptr");
+
+    // c. Unpack each capture
+    for (int i = 0; i < (int)captureInfo.size(); ++i) {
+      const std::string &name = captureInfo[i].first;
+      const ObjectTypeSet &type = captureInfo[i].second;
+
+      Value *valRawPtr = Builder.CreateInBoundsGEP(
+          types.RT_valueTy, closedOversPtr, Builder.getInt64(i), "capture_ptr");
+      Value *valRaw =
+          Builder.CreateLoad(types.RT_valueTy, valRawPtr, "capture_raw");
+
+      Value *val = valRaw;
+      if (!type.isBoxedType()) {
+        if (type.isUnboxedType(integerType)) {
+          val = valueEncoder.unboxInt32(TypedValue(type.boxed(), valRaw)).value;
+        } else if (type.isUnboxedType(doubleType)) {
+          val =
+              valueEncoder.unboxDouble(TypedValue(type.boxed(), valRaw)).value;
+        } else if (type.isUnboxedType(booleanType)) {
+          val = valueEncoder.unboxBool(TypedValue(type.boxed(), valRaw)).value;
+        }
+      }
+
+      variableBindingStack.set(name, TypedValue(type, val));
+      variableTypesBindingsStack.set(name, type);
+    }
+  }
+
+  // Generate body
+  TypedValue result = codegen(method.body(), ObjectTypeSet::all());
+
+  // TODO - it is not yet clear if this should always happen.
+  // Previous function calls cound introduce the flush as well, we need to
+  // carefully analyse the memory model for closed overs.
+  //
+  // llvm::FunctionType *flushTy =
+  // llvm::FunctionType::get(types.voidTy, {}, false);
+  // invokeManager.invokeRaw("Ebr_flush_critical", flushTy, {});
+
+  // Box result and return
+  Builder.CreateRet(valueEncoder.box(result).value);
+
+  // Clean up bindings
+  variableBindingStack.pop();
+  variableTypesBindingsStack.pop();
+
+  verifyFunction(*F);
+  return F;
 }
 
 TypedValue CodeGen::codegen(const Node &node,
@@ -283,6 +432,8 @@ TypedValue CodeGen::codegen(const Node &node,
   //   return codegen(node, node.subnode().try_(), typeRestrictions);
   case opVar:
     return codegen(node, node.subnode().var(), typeRestrictions);
+  case opFn:
+    return codegen(node, node.subnode().fn(), typeRestrictions);
   case opWithMeta:
     return codegen(node, node.subnode().withmeta(), typeRestrictions);
   default: {
@@ -308,6 +459,8 @@ ObjectTypeSet CodeGen::getType(const Node &node,
     return getType(node, node.subnode().vector(), typeRestrictions);
   case opMap:
     return getType(node, node.subnode().map(), typeRestrictions);
+  case opFn:
+    return getType(node, node.subnode().fn(), typeRestrictions);
   case opStaticCall:
     return getType(node, node.subnode().staticcall(), typeRestrictions);
 

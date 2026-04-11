@@ -144,7 +144,8 @@ set(BACKEND_SOURCES
       codegen/ops/HostInteropNode.cpp
       codegen/ops/NewNode.cpp
       codegen/ops/IsInstanceNode.cpp
-      codegen/ops/ThrowNode.cpp)
+      codegen/ops/ThrowNode.cpp
+      codegen/ops/FnNode.cpp)
 
 add_subdirectory(runtime)
 

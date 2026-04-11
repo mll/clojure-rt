@@ -200,8 +200,10 @@ void Ebr_flush_critical() {
       atomic_load_explicit(&global_epoch, memory_order_relaxed);
   EBR_LOG("Flushing critical section (state %p, global_epoch: %u).",
           (void *)thread_state, current);
+  /* We need release barrier because we want to make sure all
+     the reads completed before the barrier. */
   atomic_store_explicit(&thread_state->local_epoch, current,
-                        memory_order_relaxed);
+                        memory_order_release);
 }
 
 void Ebr_leave_critical() {

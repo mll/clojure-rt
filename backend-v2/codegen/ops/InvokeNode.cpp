@@ -51,7 +51,8 @@ TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,
 
   // 4. Release function object (as it was NOT consumed). Note: this is slow!
   // TODO: can we change function call semantics to have "borrow" for the
-  // function object?
+  // function object? - this requires a significant rework of the frontend
+  // memory pass. Let us check how much this release hurts before improving it.
   memoryManagement.dynamicRelease(fn);
 
   return TypedValue(result.type.restriction(typeRestrictions), result.value);

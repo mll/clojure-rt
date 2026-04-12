@@ -30,6 +30,32 @@
     ast))
 
 
+(defn hoist-invoke-fns
+  "Hoist function expressions in invokes to let bindings if they are not already locals.
+   This is needed if we decide to shift into borrow semantics for invoke targets"
+  {:pass-info {:walk :post :before #{#'uniquify-locals}}}
+  [ast]
+  (if (and (#{:invoke :prim-invoke :protocol-invoke} (:op ast))
+           (let [fn-key (if (= :protocol-invoke (:op ast)) :protocol-fn :fn)]
+             (not= :local (:op (fn-key ast)))))
+    (let [fn-key (if (= :protocol-invoke (:op ast)) :protocol-fn :fn)
+          fn-expr (fn-key ast)
+          new-var (gensym "__inv_fn")]
+      {:op :let
+       :form `(~'let* [~new-var ~(:form fn-expr)] ~(:form ast))
+       :bindings [{:op :binding
+                   :form new-var
+                   :name new-var
+                   :init fn-expr
+                   :local :let
+                   :children [:init]}]
+       :body (assoc ast fn-key {:op :local
+                                :form new-var
+                                :name new-var
+                                :local :let})
+       :children [:bindings :body]})
+    ast))
+
 (defn rewrite-loops
   "Rewrite loop nodes `(loop [bindings] body)` to `(let [G (loop [bindings] body)] G)` and tag those lets."
   {:pass-info {:walk :post :before #{#'uniquify-locals}}}

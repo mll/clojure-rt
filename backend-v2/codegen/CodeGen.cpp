@@ -188,12 +188,30 @@ llvm::Function *CodeGen::generateBaselineMethod(
   // Use the guard to save current IR state and memory management context
   FunctionScopeGuard scopeGuard(*this, F);
 
+  if (DIB) {
+    llvm::DIScope *CurrentScope = LexicalBlocks.empty() ? nullptr : LexicalBlocks.back();
+    llvm::DIFile *Unit = CurrentScope ? CurrentScope->getFile() : DIB->createFile("unknown", ".");
+    unsigned LineNo = 0;
+    llvm::DISubroutineType *AsmSignature = DIB->createSubroutineType(DIB->getOrCreateTypeArray({}));
+    llvm::DISubprogram *SP = DIB->createFunction(
+        Unit, funcName, funcName, Unit, LineNo, AsmSignature, LineNo,
+        llvm::DINode::FlagPrototyped, llvm::DISubprogram::SPFlagDefinition);
+    F->setSubprogram(SP);
+    LexicalBlocks.push_back(SP);
+  }
+
   // Enforce frame pointers for reliable stack traces
   F->addFnAttr("frame-pointer", "all");
 
   // Create entry block
   BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
   Builder.SetInsertPoint(BB);
+
+  if (DIB) {
+    Builder.SetCurrentDebugLocation(llvm::DILocation::get(TheContext, 0, 0, LexicalBlocks.back()));
+  } else {
+    Builder.SetCurrentDebugLocation(llvm::DebugLoc());
+  }
 
   // Unpack arguments from LLVM function
   auto arg_it = F->arg_begin();

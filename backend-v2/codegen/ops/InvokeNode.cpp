@@ -39,15 +39,16 @@ TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,
   // 2. Evaluate arguments
   // Note: Arguments are "consumed" by the call according to the plan.
   std::vector<TypedValue> args;
+  CleanupChainGuard argsGuard(*this);
   for (const auto &argNode : subnode.args()) {
     TypedValue t = codegen(argNode, ObjectTypeSet::all());
     args.push_back(t);
-    guard.push(t);
+    argsGuard.push(t);
   }
 
   // 3. Generate the invoke call
   // The function object itself is NOT consumed by generateInvoke
-  TypedValue result = invokeManager.generateInvoke(fn, args, &guard, &node);
+  TypedValue result = invokeManager.generateInvoke(fn, args, &argsGuard, &node);
 
   // 4. Release function object (as it was NOT consumed). Note: this is slow!
   // TODO: can we change function call semantics to have "borrow" for the

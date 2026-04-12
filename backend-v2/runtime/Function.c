@@ -5,6 +5,8 @@
 #include "RTValue.h"
 #include "String.h"
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 
 /* mem done */
@@ -108,5 +110,8 @@ void Function_destroy(ClojureFunction *self) {
   }
   
 }
-
-
+RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount) {
+  (void)funObj; (void)args; (void)argCount;
+  fprintf(stderr, "RT_invokeDynamic: Not yet implemented\n");
+  abort();
+}

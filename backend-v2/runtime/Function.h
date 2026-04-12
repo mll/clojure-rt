@@ -60,6 +60,7 @@ uword_t Function_hash(ClojureFunction *self);
 String *Function_toString(ClojureFunction *self);
 void Function_destroy(ClojureFunction *self);
 void Function_cleanupOnce(ClojureFunction *self);
+RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount);
 
 #ifdef __cplusplus
 }

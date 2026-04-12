@@ -80,6 +80,7 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
       llvm::DILocation::get(TheContext, env.line(), env.column(), SP));
 
   TypedValue result = codegen(node, ObjectTypeSet::all());
+
   Builder.CreateRet(valueEncoder.box(result).value);
 
   LexicalBlocks.pop_back();
@@ -211,6 +212,7 @@ llvm::Function *CodeGen::generateBaselineMethod(
   // Prepare environment for body codegen
   variableBindingStack.push();
   variableTypesBindingsStack.push();
+  functionMetricsStack.push_back({0, false});
 
   int isVariadic = method.isvariadic();
   int numParams = method.params_size();
@@ -220,6 +222,8 @@ llvm::Function *CodeGen::generateBaselineMethod(
   for (int i = 0; i < numParams; ++i) {
     const auto &paramNode = method.params(i);
     std::string paramName = paramNode.subnode().binding().name();
+    // printf("GENERATE_BASELINE_METHOD: Param %d op=%d name=%s\n", i,
+    // paramNode.op(), paramName.c_str());
 
     Value *val = nullptr;
 
@@ -234,13 +238,12 @@ llvm::Function *CodeGen::generateBaselineMethod(
         // From registers
         val = regArgs[i];
       } else {
-        // From frame->locals[i-5] (index 5)
-        Value *localsBase =
-            Builder.CreateStructGEP(types.frameTy, framePtr, 5, "locals_base");
-        // Accessing element i-5 in the flexible array
+        // Accessing element i-5 in the flexible array (field 5 of
+        // Clojure_Frame)
         Value *argPtr = Builder.CreateInBoundsGEP(
-            types.RT_valueTy, localsBase,
-            {Builder.getInt32(0), Builder.getInt32(i - 5)}, "arg_ptr");
+            types.frameTy, framePtr,
+            {Builder.getInt32(0), Builder.getInt32(5), Builder.getInt32(i - 5)},
+            "arg_ptr");
         val = Builder.CreateLoad(types.RT_valueTy, argPtr, "arg_val");
       }
     }
@@ -297,13 +300,15 @@ llvm::Function *CodeGen::generateBaselineMethod(
   // Generate body
   TypedValue result = codegen(method.body(), ObjectTypeSet::all());
 
-  // TODO - it is not yet clear if this should always happen.
-  // Previous function calls cound introduce the flush as well, we need to
-  // carefully analyse the memory model for closed overs.
-  //
-  // llvm::FunctionType *flushTy =
-  // llvm::FunctionType::get(types.voidTy, {}, false);
-  // invokeManager.invokeRaw("Ebr_flush_critical", flushTy, {});
+  // Check metrics and conditionally call flush
+  const auto &metrics = functionMetricsStack.back();
+  if (metrics.nodeCount > EBR_FLUSH_NODE_THRESHOLD || metrics.hasInvoke) {
+    llvm::FunctionType *flushTy =
+        llvm::FunctionType::get(types.voidTy, {}, false);
+    invokeManager.invokeRaw("Ebr_flush_critical", flushTy,
+                            std::vector<llvm::Value *>{});
+  }
+  functionMetricsStack.pop_back();
 
   // Box result and return
   Builder.CreateRet(valueEncoder.box(result).value);
@@ -335,6 +340,10 @@ TypedValue CodeGen::codegen(const Node &node,
   if (!LexicalBlocks.empty()) {
     Builder.SetCurrentDebugLocation(llvm::DILocation::get(
         TheContext, env.line(), env.column(), LexicalBlocks.back()));
+  }
+
+  if (!functionMetricsStack.empty()) {
+    functionMetricsStack.back().nodeCount++;
   }
 
   for (int i = 0; i < node.dropmemory_size(); i++) {
@@ -428,6 +437,21 @@ TypedValue CodeGen::codegen(const Node &node,
         static_cast<const clojure::rt::protobuf::bytecode::ThrowNode &>(
             node.subnode().throw_()),
         typeRestrictions);
+  case opInvoke:
+    if (!functionMetricsStack.empty()) {
+      functionMetricsStack.back().hasInvoke = true;
+    }
+    return this->codegen(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::InvokeNode &>(
+            node.subnode().invoke()),
+        typeRestrictions);
+  case opKeywordInvoke:
+    return this->codegen(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::KeywordInvokeNode &>(
+            node.subnode().keywordinvoke()),
+        typeRestrictions);
   case opTry:
   //   return codegen(node, node.subnode().try_(), typeRestrictions);
   case opVar:
@@ -496,10 +520,18 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   //   return getType(node, node.subnode().instancefield(), typeRestrictions);
   case opIsInstance:
     return getType(node, node.subnode().isinstance(), typeRestrictions);
-  // case opInvoke:
-  //   return getType(node, node.subnode().invoke(), typeRestrictions);
-  // case opKeywordInvoke:
-  //   return getType(node, node.subnode().keywordinvoke(), typeRestrictions);
+  case opInvoke:
+    return this->getType(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::InvokeNode &>(
+            node.subnode().invoke()),
+        typeRestrictions);
+  case opKeywordInvoke:
+    return this->getType(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::KeywordInvokeNode &>(
+            node.subnode().keywordinvoke()),
+        typeRestrictions);
   case opLet:
     return getType(node, node.subnode().let(), typeRestrictions);
   // case opLetfn:

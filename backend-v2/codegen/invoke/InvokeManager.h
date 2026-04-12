@@ -104,6 +104,14 @@ public:
 
   ObjectTypeSet foldIntrinsic(const IntrinsicDescription &id,
                               const std::vector<ObjectTypeSet> &args);
+
+  TypedValue generateInvoke(
+      TypedValue fn, const std::vector<TypedValue> &args,
+      CleanupChainGuard *guard = nullptr,
+      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+
+  ObjectTypeSet predictInvokeType(const ObjectTypeSet &fnType,
+                                  const std::vector<ObjectTypeSet> &args);
 };
 
 } // namespace rt

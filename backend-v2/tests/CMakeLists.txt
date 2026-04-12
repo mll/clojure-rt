@@ -29,6 +29,7 @@ set(TEST_MODULES
     codegen/NewNode_test
     codegen/IsInstanceNode_test
     codegen/ThrowNode_test
+    codegen/FnNode_test
     state/ClassRegistration_test
     VarUAF_repro_test
     JITSafety_test

@@ -15,13 +15,22 @@ typedef struct InvokationCache InvokationCache;
 
 struct FunctionMethod {
   unsigned char index;
-  uword_t fixedArity;
-  uword_t isVariadic;
+  unsigned char isVariadic;  
+  unsigned char fixedArity;
+  unsigned char closedOversCount;
   void *baselineImplementation;
   char *loopId;
-  uword_t closedOversCount;
   RTValue *closedOvers;
 };
+
+typedef struct Frame {
+  struct Frame *leafFrame;
+  struct FunctionMethod *method;
+  RTValue variadicSeq;
+  int32_t bailoutEntryIndex;
+  int32_t localsCount;
+  RTValue locals[];
+} Frame;
 
 typedef struct FunctionMethod FunctionMethod;
 
@@ -31,7 +40,6 @@ struct ClojureFunction {
   Object super;
   bool once;
   bool executed;
-  uword_t uniqueId;
   uword_t methodCount;
   uword_t maxArity;
   struct FunctionMethod methods[];
@@ -39,12 +47,12 @@ struct ClojureFunction {
 
 typedef struct ClojureFunction ClojureFunction;
 
-struct ClojureFunction *Function_create(uword_t methodCount, uword_t uniqueId,
-                                        uword_t maxArity, bool once);
+struct ClojureFunction *Function_create(uword_t methodCount, uword_t maxArity, bool once);
 
 void Function_fillMethod(struct ClojureFunction *self, uword_t position,
                          uword_t index, uword_t fixedArity, bool isVariadic,
-                         char *loopId, word_t closedOversCount, ...);
+                         void *implementation, char *loopId,
+                         word_t closedOversCount, ...);
 
 bool Function_validCallWithArgCount(ClojureFunction *self, uword_t argCount);
 bool Function_equals(ClojureFunction *self, ClojureFunction *other);

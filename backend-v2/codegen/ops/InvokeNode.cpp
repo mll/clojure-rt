@@ -18,13 +18,11 @@ TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,
   guard.push(fn);
 
   // 2. Evaluate arguments
-  // Note: Arguments are "consumed" by the call according to the plan.
   std::vector<TypedValue> args;
-  CleanupChainGuard argsGuard(*this);
   for (const auto &argNode : subnode.args()) {
     TypedValue t = codegen(argNode, ObjectTypeSet::all());
+    guard.push(t);
     args.push_back(t);
-    argsGuard.push(t);
   }
 
   // 3. Generate the invoke call
@@ -32,9 +30,9 @@ TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,
   TypedValue result;
   if (fn.type.isDetermined() && fn.type.getConstant() &&
       dynamic_cast<ConstantFunction *>(fn.type.getConstant())) {
-    result = invokeManager.generateStaticInvoke(fn, args, &argsGuard, &node);
+    result = invokeManager.generateStaticInvoke(fn, args, &guard, &node, {fn});
   } else {
-    result = invokeManager.generateDynamicInvoke(fn, args, &argsGuard, &node);
+    result = invokeManager.generateDynamicInvoke(fn, args, &guard, &node, {fn});
   }
 
   // 4. Release function object (as it was NOT consumed). Note: this is slow!

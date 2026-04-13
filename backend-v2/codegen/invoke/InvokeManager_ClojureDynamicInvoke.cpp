@@ -7,7 +7,8 @@ namespace rt {
 
 TypedValue InvokeManager::generateDynamicInvoke(
     TypedValue fn, const std::vector<TypedValue> &args, CleanupChainGuard *guard,
-    const clojure::rt::protobuf::bytecode::Node *node) {
+    const clojure::rt::protobuf::bytecode::Node *node,
+    const std::vector<TypedValue> &extraCleanup) {
   size_t argCount = args.size();
   llvm::Function *currentFn = builder.GetInsertBlock()->getParent();
 
@@ -19,7 +20,7 @@ TypedValue InvokeManager::generateDynamicInvoke(
   llvm::Value *methodPtr =
       invokeRaw("Function_extractMethod", extractMethodTy,
                 {boxedFn, llvm::ConstantInt::get(types.wordTy, argCount)},
-                guard);
+                guard, false);
 
   // 2. Load isVariadic and fixedArity from FunctionMethod*
   // struct FunctionMethod { u8 index, u8 isVariadic, u8 fixedArity, ... }
@@ -76,7 +77,7 @@ TypedValue InvokeManager::generateDynamicInvoke(
       invokeRaw("RT_packVariadic", packVariadicTy,
                 {llvm::ConstantInt::get(types.wordTy, argCount), argsArray,
                  builder.CreateZExt(fixedArityRaw, types.wordTy)},
-                guard),
+                guard, false),
       valueEncoder.boxNil().value);
   
   if (guard) {
@@ -118,7 +119,8 @@ TypedValue InvokeManager::generateDynamicInvoke(
   // 7. Perform Call
   llvm::Value *implPtr = builder.CreateLoad(
       types.ptrTy, builder.CreateStructGEP(types.methodTy, methodPtr, 4));
-  llvm::Value *res = invokeRaw(implPtr, types.baselineFunctionTy, callArgs, guard);
+  llvm::Value *res = invokeRaw(implPtr, types.baselineFunctionTy, callArgs, guard,
+                               true, extraCleanup);
 
   return TypedValue(ObjectTypeSet::all(), res);
 }

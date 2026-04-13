@@ -31,6 +31,7 @@ set(TEST_MODULES
     codegen/ThrowNode_test
     codegen/FnNode_test
     codegen/InvokeNode_test
+    codegen/DynamicInvoke_test
     codegen/EBRFlush_test
     state/ClassRegistration_test
     VarUAF_repro_test

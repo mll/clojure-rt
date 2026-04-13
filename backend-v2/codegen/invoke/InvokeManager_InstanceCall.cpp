@@ -143,7 +143,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
       {slotPtr, methNameG, ConstantInt::get(types.i32Ty, (int32_t)args.size()),
        builder.CreateStructGEP(argsArrType, argsArray, 0),
        ConstantInt::get(types.i64Ty, boxedMask), jitEnginePtr},
-      guard);
+      guard, false);
   BasicBlock *slowPathEnd = builder.GetInsertBlock();
   builder.CreateBr(callBB);
 
@@ -447,7 +447,7 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
     FunctionType *fnTy = FunctionType::get(
         this->types.voidTy, {this->types.ptrTy, this->types.ptrTy}, false);
     this->invokeRaw("throwNoMatchingOverloadException_C", fnTy,
-                    {classNameVal, methNameVal}, guard);
+                    {classNameVal, methNameVal}, guard, false);
     this->builder.CreateUnreachable();
   }
 

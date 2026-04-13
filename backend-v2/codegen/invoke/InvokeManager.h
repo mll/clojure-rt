@@ -76,18 +76,24 @@ public:
 
   llvm::Value *invokeRaw(const std::string &fname, llvm::FunctionType *type,
                          const std::vector<llvm::Value *> &args,
-                         CleanupChainGuard *guard = nullptr);
+                         CleanupChainGuard *guard = nullptr,
+                         bool skipGuard = true,
+                         const std::vector<TypedValue> &extraCleanup = {});
 
   llvm::Value *invokeRaw(llvm::Value *fpointer, llvm::FunctionType *type,
                          const std::vector<llvm::Value *> &args,
-                         CleanupChainGuard *guard = nullptr);
+                         CleanupChainGuard *guard = nullptr,
+                         bool skipGuard = true,
+                         const std::vector<TypedValue> &extraCleanup = {});
 
   TypedValue invokeRuntime(const std::string &fname,
                            const ObjectTypeSet *retValType,
                            const std::vector<ObjectTypeSet> &argTypes,
                            const std::vector<TypedValue> &args,
                            const bool isVariadic = false,
-                           CleanupChainGuard *guard = nullptr);
+                           CleanupChainGuard *guard = nullptr,
+                           bool skipGuard = true,
+                           const std::vector<TypedValue> &extraCleanup = {});
 
   TypedValue generateIntrinsic(const IntrinsicDescription &id,
                                const std::vector<TypedValue> &args,
@@ -108,12 +114,14 @@ public:
   TypedValue
   generateStaticInvoke(TypedValue fn, const std::vector<TypedValue> &args,
                  CleanupChainGuard *guard = nullptr,
-                 const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+                 const clojure::rt::protobuf::bytecode::Node *node = nullptr,
+                 const std::vector<TypedValue> &extraCleanup = {});
 
   TypedValue
   generateDynamicInvoke(TypedValue fn, const std::vector<TypedValue> &args,
                  CleanupChainGuard *guard = nullptr,
-                 const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+                 const clojure::rt::protobuf::bytecode::Node *node = nullptr,
+                 const std::vector<TypedValue> &extraCleanup = {});
 };
 
 } // namespace rt

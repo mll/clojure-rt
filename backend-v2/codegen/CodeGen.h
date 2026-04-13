@@ -216,7 +216,10 @@ public:
   llvm::BasicBlock *getLandingPad(size_t skipCount = 0) {
     return memoryManagement.getLandingPad(skipCount);
   }
-  bool hasLandingPad() const { return memoryManagement.hasPushedResources(); }
+  bool hasLandingPad() const {
+    return memoryManagement.hasPushedResources() ||
+           memoryManagement.hasActiveGuidance();
+  }
   bool hasPushedResources() const {
     return memoryManagement.hasPushedResources();
   }

@@ -201,11 +201,13 @@ bool InvokeManager::canThrow(const std::string &fname) const {
 llvm::Value *InvokeManager::invokeRaw(llvm::Value *fpointer,
                                       llvm::FunctionType *type,
                                       const std::vector<llvm::Value *> &args,
-                                      CleanupChainGuard *guard) {
-  BasicBlock *lpadToUse = codeGen.hasPushedResources()
-                              ? codeGen.getMemoryManagement().getLandingPad(
-                                    guard ? guard->size() : 0)
-                              : nullptr;
+                                      CleanupChainGuard *guard, bool skipGuard,
+                                      const std::vector<TypedValue> &extraCleanup) {
+  BasicBlock *lpadToUse =
+      (codeGen.hasLandingPad() || !extraCleanup.empty())
+          ? codeGen.getMemoryManagement().getLandingPad(
+                (guard && skipGuard) ? guard->size() : 0, extraCleanup)
+          : nullptr;
   Value *callResult;
   bool isVoid = type->getReturnType()->isVoidTy();
   if (lpadToUse) {
@@ -234,16 +236,18 @@ llvm::Value *InvokeManager::invokeRaw(llvm::Value *fpointer,
 llvm::Value *InvokeManager::invokeRaw(const std::string &fname,
                                       llvm::FunctionType *type,
                                       const std::vector<llvm::Value *> &args,
-                                      CleanupChainGuard *guard) {
+                                      CleanupChainGuard *guard, bool skipGuard,
+                                      const std::vector<TypedValue> &extraCleanup) {
   Function *toCall = theModule.getFunction(fname);
   if (!toCall) {
     toCall =
         Function::Create(type, Function::ExternalLinkage, fname, theModule);
   }
-  BasicBlock *lpadToUse = (canThrow(fname) && codeGen.hasPushedResources())
-                              ? codeGen.getMemoryManagement().getLandingPad(
-                                    guard ? guard->size() : 0)
-                              : nullptr;
+  BasicBlock *lpadToUse =
+      (canThrow(fname) && (codeGen.hasLandingPad() || !extraCleanup.empty()))
+          ? codeGen.getMemoryManagement().getLandingPad(
+                (guard && skipGuard) ? guard->size() : 0, extraCleanup)
+          : nullptr;
   Value *callResult;
   bool isVoid = type->getReturnType()->isVoidTy();
 
@@ -290,7 +294,9 @@ InvokeManager::invokeRuntime(const std::string &fname,
                              const ObjectTypeSet *retValType,
                              const std::vector<ObjectTypeSet> &argTypes,
                              const std::vector<TypedValue> &args,
-                             const bool isVariadic, CleanupChainGuard *guard) {
+                             const bool isVariadic, CleanupChainGuard *guard,
+                             bool skipGuard,
+                             const std::vector<TypedValue> &extraCleanup) {
   std::vector<llvm::Type *> llvmTypes;
   for (auto &at : argTypes) {
     if (at.isBoxedType())
@@ -331,8 +337,9 @@ InvokeManager::invokeRuntime(const std::string &fname,
     }
   }
 
-  return TypedValue(retValType ? *retValType : ObjectTypeSet::all(),
-                    invokeRaw(fname, functionType, argVals, guard));
+  return TypedValue(
+      retValType ? *retValType : ObjectTypeSet::all(),
+      invokeRaw(fname, functionType, argVals, guard, skipGuard, extraCleanup));
 }
 
 } // namespace rt

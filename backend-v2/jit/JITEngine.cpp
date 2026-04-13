@@ -212,6 +212,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               if (printModule) {
                 llvm::raw_string_ostream rs(ir);
                 module->print(rs, nullptr);
+                llvm::errs() << ir << "\n";
               }
 
               llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
@@ -442,6 +443,14 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(
       absoluteSymbol("ClassExtension_resolveInstanceCall",
                      (void *)ClassExtension_resolveInstanceCall));
+
+  // Function and Runtime Helpers
+  runtimeSymbols.insert(
+      absoluteSymbol("Function_extractMethod", (void *)Function_extractMethod));
+  runtimeSymbols.insert(
+      absoluteSymbol("RT_packVariadic", (void *)RT_packVariadic));
+  runtimeSymbols.insert(
+      absoluteSymbol("Ebr_flush_critical", (void *)Ebr_flush_critical));
 
   // The bridge:
   runtimeSymbols.insert(

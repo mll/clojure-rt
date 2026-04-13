@@ -33,8 +33,13 @@ public:
   // Exception safety / Resource management
   void pushResource(TypedValue val);
   void popResource();
-  llvm::BasicBlock *getLandingPad(size_t skipCount = 0);
+  llvm::BasicBlock *getLandingPad(
+      size_t skipCount = 0,
+      const std::vector<TypedValue> &extraCleanup = {});
   bool hasPushedResources() const { return !activeResources.empty(); }
+  bool hasActiveGuidance() const {
+    return activeUnwindGuidance != nullptr && !activeUnwindGuidance->empty();
+  }
   void clear();
 
   struct FunctionState {

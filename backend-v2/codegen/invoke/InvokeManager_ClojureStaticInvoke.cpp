@@ -7,7 +7,8 @@ namespace rt {
 
 TypedValue InvokeManager::generateStaticInvoke(
     TypedValue fn, const std::vector<TypedValue> &args, CleanupChainGuard *guard,
-    const clojure::rt::protobuf::bytecode::Node *node) {
+    const clojure::rt::protobuf::bytecode::Node *node,
+    const std::vector<TypedValue> &extraCleanup) {
   ObjectTypeSet fnType = fn.type;
   size_t argCount = args.size();
 
@@ -114,7 +115,7 @@ TypedValue InvokeManager::generateStaticInvoke(
             llvm::Value *vSeq = invokeRaw(
                 "RT_createListFromArray", listHelperTy,
                 {llvm::ConstantInt::get(types.i32Ty, surplus), surplusArray},
-                guard);
+                guard, false);
             if (guard) {
               guard->push(
                   TypedValue(ObjectTypeSet(persistentListType, true), vSeq));
@@ -160,7 +161,8 @@ TypedValue InvokeManager::generateStaticInvoke(
 
         // D. Perform Call
         llvm::Value *res = invokeRaw(match->implementation,
-                                     types.baselineFunctionTy, callArgs, guard);
+                                     types.baselineFunctionTy, callArgs, guard,
+                                     true, extraCleanup);
 
         return TypedValue(ObjectTypeSet::all(), res);
       } else {
@@ -169,7 +171,7 @@ TypedValue InvokeManager::generateStaticInvoke(
             types.voidTy, {types.i32Ty, types.i32Ty}, false);
         invokeRaw("throwArityException_C", arityExTy,
                   {builder.getInt32(-1), builder.getInt32((int)argCount)},
-                  guard);
+                  guard, false);
         return TypedValue(ObjectTypeSet::all(),
                           llvm::UndefValue::get(types.RT_valueTy));
       }

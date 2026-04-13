@@ -61,8 +61,7 @@ static void test_static_invoke_simple(void **state) {
 // (fn ([x] x) ([x y] y))
 static void test_static_invoke_multi_arity(void **state) {
     (void)state;
-    // Note: We expect some leaks due to JITEngine's internal runtime registration.
-    // However, we want to ensure the logic itself is correct.
+    ASSERT_MEMORY_ALL_BALANCED({
     rt::JITEngine engine;
     
     Node fnNode;
@@ -140,6 +139,47 @@ static void test_static_invoke_multi_arity(void **state) {
         RTValue result = func();
         assert_int_equal(20, RT_unboxInt32(result));
     }
+    });
+}
+
+static void test_static_invoke_arity_mismatch_leak(void **state) {
+    (void)state;
+    ASSERT_MEMORY_ALL_BALANCED({
+         rt::JITEngine engine;
+         
+         // AST: ((fn [x] x) 1 2) -> ArityException
+         Node invokeNode;
+         invokeNode.set_op(opInvoke);
+         auto *inv = invokeNode.mutable_subnode()->mutable_invoke();
+         
+         // fn = (fn [x] x)
+         auto *fnNode = inv->mutable_fn();
+         fnNode->set_op(opFn);
+         auto *fn = fnNode->mutable_subnode()->mutable_fn();
+         fn->set_maxfixedarity(1);
+         auto *mn = fn->add_methods()->mutable_subnode()->mutable_fnmethod();
+         mn->set_fixedarity(1);
+         mn->add_params()->mutable_subnode()->mutable_binding()->set_name("x");
+         mn->mutable_body()->set_op(opLocal);
+         mn->mutable_body()->mutable_subnode()->mutable_local()->set_name("x");
+         mn->mutable_body()->mutable_subnode()->mutable_local()->set_local(localTypeArg);
+         
+         inv->add_args()->set_op(opConst);
+         inv->add_args()->set_op(opConst);
+         
+         auto res = engine.compileAST(invokeNode, "static_arity_leak", llvm::OptimizationLevel::O0, true).get();
+         RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
+         
+         bool caught = false;
+         try {
+             func();
+         } catch (const rt::LanguageException& e) {
+             if (e.getName() == "ArityException") {
+                 caught = true;
+             }
+         }
+         assert_true(caught);
+    });
 }
 
 static void test_static_invoke_overflow(void **state) {
@@ -189,6 +229,7 @@ int main(void) {
       cmocka_unit_test(test_static_invoke_simple),
       cmocka_unit_test(test_static_invoke_multi_arity),
       cmocka_unit_test(test_static_invoke_overflow),
+      cmocka_unit_test(test_static_invoke_arity_mismatch_leak),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);

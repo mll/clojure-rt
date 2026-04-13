@@ -1,31 +1,11 @@
 #include "../CodeGen.h"
+#include "types/ObjectTypeSet.h"
 
 namespace rt {
 
 ObjectTypeSet CodeGen::getType(const Node &node, const InvokeNode &subnode,
                                const ObjectTypeSet &typeRestrictions) {
-  ObjectTypeSet fnType = getType(subnode.fn(), ObjectTypeSet::all());
-  std::vector<ObjectTypeSet> argTypes;
-  for (const auto &arg : subnode.args()) {
-    argTypes.push_back(getType(arg, ObjectTypeSet::all()));
-  }
-
-  return invokeManager.predictInvokeType(fnType, argTypes)
-      .restriction(typeRestrictions);
-}
-
-ObjectTypeSet CodeGen::getType(const Node &node,
-                               const KeywordInvokeNode &subnode,
-                               const ObjectTypeSet &typeRestrictions) {
-  // TODO - KeywordInvokeNode implementation
-  return ObjectTypeSet::all().restriction(typeRestrictions);
-}
-
-TypedValue CodeGen::codegen(const Node &node, const KeywordInvokeNode &subnode,
-                            const ObjectTypeSet &typeRestrictions) {
-  // TODO - KeywordInvokeNode implementation
-  throwCodeGenerationException(
-      "Compiler does not support the following op yet: opKeywordInvoke", node);
+  return ObjectTypeSet::dynamicType().restriction(typeRestrictions);
 }
 
 TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,

@@ -46,6 +46,17 @@ LLVMTypes::LLVMTypes(LLVMContext &context) {
                                  ptrTy,  // loopId
                                  ptrTy}, // closedOvers
                                 "Clojure_FunctionMethod");
+
+  clojureFunctionTy = StructType::create(context,
+                                         {
+                                             RT_objectTy,
+                                             i8Ty,   // once
+                                             i8Ty,   // executed
+                                             wordTy, // methodCount
+                                             wordTy, // maxArity
+                                             ArrayType::get(methodTy, 0) // methods
+                                         },
+                                         "Clojure_Function");
   /* Usually 6 args fit in registers */
   baselineFunctionTy = FunctionType::get(
       RT_valueTy,

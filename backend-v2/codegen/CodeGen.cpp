@@ -9,6 +9,8 @@
 #include "runtime/String.h"
 #include <random>
 #include <sstream>
+#include <algorithm>
+#include <cctype>
 
 using namespace llvm;
 using namespace clojure::rt::protobuf::bytecode;
@@ -177,7 +179,15 @@ llvm::Function *CodeGen::generateBaselineMethod(
   std::stringstream ss;
   ss << std::hex << dist(gen);
 
-  std::string funcName = "fn_" + ss.str();
+  std::string funcName = "fn_";
+  if (!suggestedFunctionName.empty()) {
+    std::string sanitized = suggestedFunctionName;
+    std::replace_if(
+        sanitized.begin(), sanitized.end(),
+        [](unsigned char c) { return !std::isalnum(c); }, '_');
+    funcName += sanitized + "_";
+  }
+  funcName += ss.str();
 
   // Create the function with baseline signature: (Frame*, Arg0, Arg1, Arg2,
   // Arg3, Arg4) -> RTValue

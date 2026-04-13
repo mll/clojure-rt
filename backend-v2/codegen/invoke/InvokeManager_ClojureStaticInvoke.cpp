@@ -5,7 +5,7 @@
 
 namespace rt {
 
-TypedValue InvokeManager::generateInvoke(
+TypedValue InvokeManager::generateStaticInvoke(
     TypedValue fn, const std::vector<TypedValue> &args, CleanupChainGuard *guard,
     const clojure::rt::protobuf::bytecode::Node *node) {
   ObjectTypeSet fnType = fn.type;
@@ -163,30 +163,21 @@ TypedValue InvokeManager::generateInvoke(
                                      types.baselineFunctionTy, callArgs, guard);
 
         return TypedValue(ObjectTypeSet::all(), res);
+      } else {
+        // Arity mismatch for constant function
+        llvm::FunctionType *arityExTy = llvm::FunctionType::get(
+            types.voidTy, {types.i32Ty, types.i32Ty}, false);
+        invokeRaw("throwArityException_C", arityExTy,
+                  {builder.getInt32(-1), builder.getInt32((int)argCount)},
+                  guard);
+        return TypedValue(ObjectTypeSet::all(),
+                          llvm::UndefValue::get(types.RT_valueTy));
       }
     }
   }
 
-  // 2. Fallback: Dynamic Dispatch (Generic Path)
-  // For now, call a runtime helper: RT_invoke(funObj, argCount, argsArray)
-  llvm::Value *argsArray = builder.CreateAlloca(
-      types.RT_valueTy, llvm::ConstantInt::get(types.i64Ty, argCount));
-  for (int i = 0; i < (int)argCount; ++i) {
-    llvm::Value *argVal = valueEncoder.box(args[i]).value;
-    builder.CreateStore(argVal, builder.CreateInBoundsGEP(
-                                    types.RT_valueTy, argsArray,
-                                    {llvm::ConstantInt::get(types.i64Ty, i)}));
-  }
-
-  llvm::FunctionType *invokeHelperTy = llvm::FunctionType::get(
-      types.RT_valueTy, {types.i64Ty, types.ptrTy, types.i32Ty}, false);
-  llvm::Value *res =
-      invokeRaw("RT_invokeDynamic", invokeHelperTy,
-                {valueEncoder.box(fn).value, argsArray,
-                 llvm::ConstantInt::get(types.i32Ty, (int)argCount)},
-                guard);
-
-  return TypedValue(ObjectTypeSet::all(), res);
+  throwInternalInconsistencyException(
+      "generateStaticInvoke called on non-constant function");
 }
 
 } // namespace rt

@@ -106,7 +106,12 @@ public:
                               const std::vector<ObjectTypeSet> &args);
 
   TypedValue
-  generateInvoke(TypedValue fn, const std::vector<TypedValue> &args,
+  generateStaticInvoke(TypedValue fn, const std::vector<TypedValue> &args,
+                 CleanupChainGuard *guard = nullptr,
+                 const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+
+  TypedValue
+  generateDynamicInvoke(TypedValue fn, const std::vector<TypedValue> &args,
                  CleanupChainGuard *guard = nullptr,
                  const clojure::rt::protobuf::bytecode::Node *node = nullptr);
 };

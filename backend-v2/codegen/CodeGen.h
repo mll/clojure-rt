@@ -244,6 +244,9 @@ public:
 
 private:
   std::map<SourceLocation, std::string> formMap;
+public:
+  std::string suggestedFunctionName;
+  bool isSuggestedNameFromDef = false;
 };
 
 } // namespace rt

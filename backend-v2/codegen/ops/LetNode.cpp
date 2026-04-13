@@ -16,7 +16,19 @@ TypedValue CodeGen::codegen(const Node &node, const LetNode &subnode,
     auto bindingNode = subnode.bindings(i);
     auto binding = bindingNode.subnode().binding();
 
+    const Node *actualInit = &binding.init();
+    while (actualInit->op() == opWithMeta) {
+      actualInit = &actualInit->subnode().withmeta().expr();
+    }
+
+    if (actualInit->op() == opFn) {
+      this->suggestedFunctionName = binding.name();
+      this->isSuggestedNameFromDef = false;
+    }
+
     auto init = codegen(binding.init(), ObjectTypeSet::all());
+    this->suggestedFunctionName = "";
+    this->isSuggestedNameFromDef = false;
 
     auto name = binding.name();
     variableBindingStack.set(name, init);

@@ -19,7 +19,18 @@ TypedValue CodeGen::codegen(const Node &node, const DefNode &subnode,
                                 this->types.ptrTy));
   memoryManagement.dynamicRetain(varPtr);
   if (subnode.has_init()) {
+    const Node *actualInit = &subnode.init();
+    while (actualInit->op() == opWithMeta) {
+      actualInit = &actualInit->subnode().withmeta().expr();
+    }
+
+    if (actualInit->op() == opFn) {
+      this->suggestedFunctionName = varName;
+      this->isSuggestedNameFromDef = true;
+    }
     TypedValue initValue = codegen(subnode.init(), ObjectTypeSet::all());
+    this->suggestedFunctionName = "";
+    this->isSuggestedNameFromDef = false;
     memoryManagement.dynamicRetain(varPtr);
     invokeManager.invokeRuntime(
         "Var_bindRoot", nullptr,

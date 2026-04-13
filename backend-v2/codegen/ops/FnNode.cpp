@@ -13,6 +13,14 @@ ObjectTypeSet CodeGen::getType(const Node &node, const FnNode &subnode,
 
 TypedValue CodeGen::codegen(const Node &node, const FnNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
+  // 0. Name hint from local name if suggestedFunctionName is not from def
+  std::string originalSuggestedName = this->suggestedFunctionName;
+  bool originalIsFromDef = this->isSuggestedNameFromDef;
+  if (!originalIsFromDef && subnode.has_local()) {
+    this->suggestedFunctionName = subnode.local().subnode().binding().name();
+    this->isSuggestedNameFromDef = false;
+  }
+
   // 1. Runtime Creation
   // Function_create(methodCount, maxFixedArity, once)
   std::vector<llvm::Value *> createArgs = {
@@ -116,6 +124,8 @@ TypedValue CodeGen::codegen(const Node &node, const FnNode &subnode,
       functionType, false,
       new ConstantFunction(constantMethods, subnode.once()));
 
+  this->suggestedFunctionName = originalSuggestedName;
+  this->isSuggestedNameFromDef = originalIsFromDef;
   return TypedValue(enrichedType.restriction(typeRestrictions), funObj);
 }
 

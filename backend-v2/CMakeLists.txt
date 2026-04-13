@@ -146,7 +146,8 @@ set(BACKEND_SOURCES
       codegen/ops/IsInstanceNode.cpp
       codegen/ops/ThrowNode.cpp
       codegen/ops/InvokeNode.cpp
-      codegen/invoke/InvokeManager_ClojureInvoke.cpp
+      codegen/invoke/InvokeManager_ClojureStaticInvoke.cpp
+      codegen/invoke/InvokeManager_ClojureDynamicInvoke.cpp
       codegen/ops/FnNode.cpp)
 
 add_subdirectory(runtime)

@@ -1,4 +1,5 @@
 #include "../CodeGen.h"
+#include "types/ConstantFunction.h"
 #include "types/ObjectTypeSet.h"
 
 namespace rt {
@@ -28,7 +29,13 @@ TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,
 
   // 3. Generate the invoke call
   // The function object itself is NOT consumed by generateInvoke
-  TypedValue result = invokeManager.generateInvoke(fn, args, &argsGuard, &node);
+  TypedValue result;
+  if (fn.type.isDetermined() && fn.type.getConstant() &&
+      dynamic_cast<ConstantFunction *>(fn.type.getConstant())) {
+    result = invokeManager.generateStaticInvoke(fn, args, &argsGuard, &node);
+  } else {
+    result = invokeManager.generateDynamicInvoke(fn, args, &argsGuard, &node);
+  }
 
   // 4. Release function object (as it was NOT consumed). Note: this is slow!
   // TODO: can we change function call semantics to have "borrow" for the

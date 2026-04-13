@@ -68,7 +68,6 @@
     #'passes/simplify-closed-overs
     #'passes/remove-env
     #'passes/fresh-vars
-    #'passes/hoist-invoke-fns
     #'passes/memory-management-pass
     #'passes/rewrite-loops
     })

@@ -10,11 +10,12 @@ namespace rt {
 struct ConstantMethod {
   int fixedArity;
   bool isVariadic;
+  int index; // Physical index in the ClojureFunction's methods array
   llvm::Function *implementation;
 
   bool operator==(const ConstantMethod &other) const {
     return fixedArity == other.fixedArity && isVariadic == other.isVariadic &&
-           implementation == other.implementation;
+           index == other.index && implementation == other.implementation;
   }
 };
 

@@ -30,6 +30,8 @@ set(TEST_MODULES
     codegen/IsInstanceNode_test
     codegen/ThrowNode_test
     codegen/FnNode_test
+    codegen/InvokeNode_test
+    codegen/EBRFlush_test
     state/ClassRegistration_test
     VarUAF_repro_test
     JITSafety_test

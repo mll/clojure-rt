@@ -176,3 +176,15 @@ void PersistentList_promoteToShared(PersistentList *self, uword_t current) {
 PersistentList *PersistentList_conj(PersistentList *self, RTValue other) {
   return PersistentList_create(other, self);
 }
+
+PersistentList *PersistentList_fromArray(int32_t argCount, RTValue *args) {
+  PersistentList *retVal = PersistentList_empty();
+  for (int32_t i = argCount - 1; i >= 0; i--) {
+    retVal = PersistentList_conj(retVal, args[i]);
+  }
+  return retVal;
+}
+
+RTValue RT_createListFromArray(int32_t argCount, RTValue *args) {
+  return RT_boxPtr(PersistentList_fromArray(argCount, args));
+}

@@ -23,6 +23,7 @@ struct LLVMTypes {
   llvm::StructType *RT_objectTy;
   llvm::StructType *frameTy;
   llvm::StructType *methodTy;
+  llvm::StructType *clojureFunctionTy;
   llvm::FunctionType *baselineFunctionTy;
 
   explicit LLVMTypes(llvm::LLVMContext &ctx);

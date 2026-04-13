@@ -31,6 +31,8 @@ void PersistentList_promoteToShared(PersistentList *self, uword_t current);
 PersistentList *PersistentList_create(RTValue first, PersistentList *rest);
 PersistentList *PersistentList_conj(PersistentList *self, RTValue other);
 PersistentList *PersistentList_createMany(int32_t argCount, ...);
+PersistentList *PersistentList_fromArray(int32_t argCount, RTValue *args);
+RTValue RT_createListFromArray(int32_t argCount, RTValue *args);
 
 #ifdef __cplusplus
 }

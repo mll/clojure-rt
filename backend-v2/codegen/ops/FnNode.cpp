@@ -107,7 +107,8 @@ TypedValue CodeGen::codegen(const Node &node, const FnNode &subnode,
     invokeManager.invokeRaw("Function_fillMethod", fillTy, fillArgs);
 
     // Record for ConstantFunction
-    constantMethods.push_back({m.fixedarity(), m.isvariadic(), baselineF});
+    constantMethods.push_back(
+        {m.fixedarity(), m.isvariadic(), (int)i, baselineF});
   }
 
   // 4. Return unboxed function object

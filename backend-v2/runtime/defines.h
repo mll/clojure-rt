@@ -10,4 +10,6 @@
 
 #define HASHTABLE_THRESHOLD 128
 
+#define EBR_FLUSH_NODE_THRESHOLD 20
+
 #endif

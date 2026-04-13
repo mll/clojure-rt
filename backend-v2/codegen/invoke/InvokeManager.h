@@ -1,6 +1,7 @@
 #ifndef INVOKE_MANAGER_H
 #define INVOKE_MANAGER_H
 
+#include "bytecode.pb.h"
 #include <functional>
 #include <gmp.h>
 #include <llvm/IR/IRBuilder.h>
@@ -11,7 +12,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "bytecode.pb.h"
 
 #include "../../types/ObjectTypeSet.h"
 #include "../LLVMTypes.h"
@@ -104,6 +104,11 @@ public:
 
   ObjectTypeSet foldIntrinsic(const IntrinsicDescription &id,
                               const std::vector<ObjectTypeSet> &args);
+
+  TypedValue
+  generateInvoke(TypedValue fn, const std::vector<TypedValue> &args,
+                 CleanupChainGuard *guard = nullptr,
+                 const clojure::rt::protobuf::bytecode::Node *node = nullptr);
 };
 
 } // namespace rt

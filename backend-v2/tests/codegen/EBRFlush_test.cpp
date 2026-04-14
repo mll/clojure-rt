@@ -15,7 +15,7 @@ using namespace clojure::rt::protobuf::bytecode;
 
 static void test_ebr_flush_on_threshold(void **state) {
     (void)state;
-    rt::JITEngine engine;
+    rt::JITEngine engine(llvm::OptimizationLevel::O0, true);
     
     // (fn [] (do 1 2 3 ... 21))
     Node fnNode;
@@ -49,7 +49,7 @@ static void test_ebr_flush_on_threshold(void **state) {
 
 static void test_ebr_flush_on_invoke(void **state) {
     (void)state;
-    rt::JITEngine engine;
+    rt::JITEngine engine(llvm::OptimizationLevel::O0, true);
     
     // (fn [] (some-fn)) - Small node count but contains an invoke
     Node fnNode;
@@ -76,7 +76,7 @@ static void test_ebr_flush_on_invoke(void **state) {
 
 static void test_no_ebr_flush_for_simple(void **state) {
     (void)state;
-    rt::JITEngine engine;
+    rt::JITEngine engine(llvm::OptimizationLevel::O0, true);
     
     // (fn [] 1)
     Node fnNode;

@@ -541,7 +541,8 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
         // Nil_VALUE). We force them to be external declarations so they bind to
         // the host process.
         for (auto &G : M.globals()) {
-          if (!G.isDeclaration() && G.hasExternalLinkage()) {
+          if (!G.isDeclaration() && G.hasExternalLinkage() &&
+              !G.getName().starts_with("__var_ic_slot_")) {
             G.setInitializer(nullptr);
             G.setLinkage(llvm::GlobalValue::ExternalLinkage);
             if (G.isThreadLocal()) {

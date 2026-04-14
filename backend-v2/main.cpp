@@ -28,9 +28,27 @@
 #include "runtime/Ebr.h"
 #include "runtime/String.h"
 #include "state/ThreadsafeCompilerState.h"
+#include <chrono>
 
 using namespace std;
 using namespace llvm;
+
+class ExecutionTimer {
+  std::string name;
+  std::chrono::high_resolution_clock::time_point start;
+
+public:
+  ExecutionTimer(const std::string &n)
+      : name(n), start(std::chrono::high_resolution_clock::now()) {}
+  ~ExecutionTimer() {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+            .count();
+    std::cout << "[TIMER] " << name << " took " << duration << " ms"
+              << std::endl;
+  }
+};
 
 #include "RuntimeHeaders.h"
 
@@ -89,30 +107,37 @@ int main(int argc, char *argv[]) {
     cout << "Initialising compiler state..." << endl;
     initialise_memory();
     rt::JITEngine engine;
-    cout << "Compiling interfaces..." << endl;
-    RTValue interfaces = engine
-                             .compileAST(astInterfaces.nodes(0), "__interfaces",
-                                         llvm::OptimizationLevel::O0, false)
-                             .get()
-                             .address.toPtr<RTValue (*)()>()();
-    cout << "Storing interfaces..." << endl;
-    engine.threadsafeState.storeInternalProtocols(interfaces);
+    {
+      ExecutionTimer t("Compiling and storing interfaces");
+      cout << "Compiling interfaces..." << endl;
+      RTValue interfaces = engine
+                               .compileAST(astInterfaces.nodes(0), "__interfaces",
+                                           llvm::OptimizationLevel::O3, false)
+                               .get()
+                               .address.toPtr<RTValue (*)()>()();
+      cout << "Storing interfaces..." << endl;
+      engine.threadsafeState.storeInternalProtocols(interfaces);
+    }
 
-    cout << "Compiling classes..." << endl;
-    RTValue classes = engine
-                          .compileAST(astClasses.nodes(0), "__classes",
-                                      llvm::OptimizationLevel::O0, false)
-                          .get()
-                          .address.toPtr<RTValue (*)()>()();
-    cout << "Storing classes..." << endl;
-    engine.threadsafeState.storeInternalClasses(classes);
+    {
+      ExecutionTimer t("Compiling and storing classes");
+      cout << "Compiling classes..." << endl;
+      RTValue classes = engine
+                            .compileAST(astClasses.nodes(0), "__classes",
+                                        llvm::OptimizationLevel::O3, false)
+                            .get()
+                            .address.toPtr<RTValue (*)()>()();
+      cout << "Storing classes..." << endl;
+      engine.threadsafeState.storeInternalClasses(classes);
+    }
 
     cout << "Compiling root..." << endl;
     for (int j = 0; j < astRoot.nodes_size(); j++) {
+      std::string moduleName = "__repl__" + std::to_string(j);
+      ExecutionTimer t("Executing " + moduleName);
       auto topLevelNode = astRoot.nodes(j);
       cout << "=============================" << endl;
       cout << "Compiling!!!" << endl;
-      std::string moduleName = "__repl__" + std::to_string(j);
       auto res =
           engine.compileAST(topLevelNode, moduleName, optLevel, true).get();
 

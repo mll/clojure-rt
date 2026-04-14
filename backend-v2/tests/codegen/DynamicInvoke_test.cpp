@@ -57,6 +57,7 @@ static void setup_mock_runtime_full(rt::ThreadsafeCompilerState &compState) {
   ext->staticFns["add"].push_back(addGen);
 
   cls->compilerExtension = ext;
+  cls->compilerExtensionDestructor = rt::delete_class_description;
   compState.classRegistry.registerObject("clojure.lang.Numbers", cls);
 }
 
@@ -121,6 +122,7 @@ static void test_dynamic_invoke_simple(void **state) {
     RTValue result = func();
 
     assert_int_equal(42, RT_unboxInt32(result));
+    release(result);
   });
 }
 
@@ -190,6 +192,7 @@ static void test_dynamic_invoke_higher_order(void **state) {
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
     RTValue result = func();
     assert_int_equal(100, RT_unboxInt32(result));
+    release(result);
   });
 }
 
@@ -254,6 +257,7 @@ static void test_dynamic_invoke_multi_arity(void **state) {
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
     RTValue result = func();
     assert_int_equal(2, RT_unboxInt32(result));
+    release(result);
   });
 }
 

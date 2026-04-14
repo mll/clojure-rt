@@ -91,14 +91,10 @@ void MemoryManagement::pushResource(TypedValue val) {
   totalPushedResources++;
 }
 
-void MemoryManagement::popResource() { popResourceInternal(true); }
-
-void MemoryManagement::popResourceWithoutRelease() { popResourceInternal(false); }
-
-void MemoryManagement::popResourceInternal(bool release) {
+void MemoryManagement::popResource() {
   if (activeResources.empty()) {
     throwInternalInconsistencyException(
-        "popResourceInternal() called on empty stack");
+        "popResource() called on empty stack");
   }
 
   TypedValue val = activeResources.back();
@@ -112,9 +108,6 @@ void MemoryManagement::popResourceInternal(bool release) {
   }
 
   activeResources.pop_back();
-  if (release) {
-    dynamicRelease(val);
-  }
 }
 
 llvm::BasicBlock *

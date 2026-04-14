@@ -226,9 +226,6 @@ public:
   // Exception safety helpers
   void pushResource(TypedValue val) { memoryManagement.pushResource(val); }
   void popResource() { memoryManagement.popResource(); }
-  void popResourceWithoutRelease() {
-    memoryManagement.popResourceWithoutRelease();
-  }
   llvm::BasicBlock *getLandingPad(size_t skipCount = 0) {
     return memoryManagement.getLandingPad(skipCount);
   }

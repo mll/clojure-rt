@@ -37,7 +37,7 @@ TypedValue CodeGen::codegen(const Node &node, const RecurNode &subnode,
   // (the next iteration) will start a fresh scope and take over.
   size_t argsToPop = guard.size();
   for (size_t i = 0; i < argsToPop; ++i) {
-    this->popResourceWithoutRelease();
+    this->popResource();
   }
   guard.cancel(argsToPop);
 

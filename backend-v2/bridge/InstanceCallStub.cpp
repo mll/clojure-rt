@@ -13,7 +13,6 @@ void releaseInstanceStubArgs(int32_t argCount, RTValue *args) {
   }
 }
 
-
 /**
  * The "Slow Path Bouncer" for dynamic instance calls.
  *

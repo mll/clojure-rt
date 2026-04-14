@@ -43,8 +43,7 @@ static void test_void_invoke_verification(void **state) {
     // If verification fails, it will throw/crash during compileAST.
     try {
       (void)engine
-          .compileAST(addNode, "__test_void_invoke",
-                      llvm::OptimizationLevel::O0, false)
+          .compileAST(addNode, "__test_void_invoke")
           .get()
           .address;
     } catch (const std::exception &e) {

@@ -38,8 +38,7 @@ static void setup_test_metadata(rt::ThreadsafeCompilerState &compState,
 
   try {
     auto res = engine
-                   .compileAST(astClasses.nodes(0), "__classes",
-                               llvm::OptimizationLevel::O0, false)
+                   .compileAST(astClasses.nodes(0), "__classes")
                    .get()
                    .address;
     RTValue classes = res.toPtr<RTValue (*)()>()();

@@ -71,8 +71,7 @@ static void test_codegen_throw(void **state) {
       // LanguageException) because "error" is a String, not an Exception
       // object.
       auto resThrow = engine
-                          .compileAST(throwNode, "__test_codegen_throw",
-                                      llvm::OptimizationLevel::O0, false)
+                          .compileAST(throwNode, "__test_codegen_throw")
                           .get()
                           .address;
 

@@ -67,8 +67,7 @@ static void test_static_field_const_int(void **state) {
 
     try {
       auto res = engine
-                     .compileAST(node, "__test_sf_int",
-                                 llvm::OptimizationLevel::O0, true)
+                     .compileAST(node, "__test_sf_int")
                      .get()
                      .address;
       RTValue result = resPtrToValue(res);
@@ -100,8 +99,7 @@ static void test_static_field_const_double(void **state) {
 
     try {
       auto res = engine
-                     .compileAST(node, "__test_sf_double",
-                                 llvm::OptimizationLevel::O0, true)
+                     .compileAST(node, "__test_sf_double")
                      .get()
                      .address;
       RTValue result = resPtrToValue(res);
@@ -130,8 +128,7 @@ static void test_static_field_const_bool(void **state) {
 
     try {
       auto res = engine
-                     .compileAST(node, "__test_sf_bool",
-                                 llvm::OptimizationLevel::O0, true)
+                     .compileAST(node, "__test_sf_bool")
                      .get()
                      .address;
       RTValue result = resPtrToValue(res);
@@ -160,8 +157,7 @@ static void test_static_field_runtime_lookup(void **state) {
 
     try {
       auto res = engine
-                     .compileAST(node, "__test_sf_runtime",
-                                 llvm::OptimizationLevel::O0, true)
+                     .compileAST(node, "__test_sf_runtime")
                      .get()
                      .address;
       RTValue result = resPtrToValue(res);

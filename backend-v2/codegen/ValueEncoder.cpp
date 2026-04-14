@@ -322,6 +322,10 @@ TypedValue ValueEncoder::unbox(TypedValue val) {
     return unboxSymbol(val);
   }
 
+  if (val.type.isBoxedType(nilType)) {
+    return TypedValue(val.type.unboxed(), val.value);
+  }
+
   throwInternalInconsistencyException("Only determined types can be unboxed: " +
                                       val.type.toString());
   return val;

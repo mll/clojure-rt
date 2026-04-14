@@ -121,8 +121,7 @@ static void test_math_sin_int(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_sin_int",
-                                     llvm::OptimizationLevel::O0, false)
+                         .compileAST(callNode, "__test_sin_int")
                          .get()
                          .address;
       RTValue result = resPtrToValue(resCall);
@@ -159,8 +158,7 @@ static void test_math_sqrt_bigint(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_sqrt_bigint",
-                                     llvm::OptimizationLevel::O0, false)
+                         .compileAST(callNode, "__test_sqrt_bigint")
                          .get()
                          .address;
 
@@ -208,8 +206,7 @@ static void test_math_sqrt_leak_repro(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_leak_repro",
-                                     llvm::OptimizationLevel::O0, false)
+                         .compileAST(callNode, "__test_leak_repro")
                          .get()
                          .address;
       fflush(stdout);
@@ -271,8 +268,7 @@ static void test_math_pow_var(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_pow_var",
-                                     llvm::OptimizationLevel::O0, false)
+                         .compileAST(callNode, "__test_pow_var")
                          .get()
                          .address;
       RTValue result = resPtrToValue(resCall);

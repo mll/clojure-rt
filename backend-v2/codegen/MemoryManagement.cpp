@@ -92,6 +92,11 @@ void MemoryManagement::pushResource(TypedValue val) {
 }
 
 void MemoryManagement::popResource() {
+  if (activeResources.empty()) {
+    throwInternalInconsistencyException(
+        "popResource() called on empty stack");
+  }
+
   TypedValue val = activeResources.back();
   bool processed = activeResources.size() == resourcesWithCleanup;
 
@@ -205,6 +210,8 @@ MemoryManagement::getLandingPad(size_t skipCount,
   }
   return lpad;
 }
+
+// Replaced by popResourceInternal
 
 void MemoryManagement::clear() {
   cleanupStack.clear();

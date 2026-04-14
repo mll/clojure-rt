@@ -38,8 +38,7 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState,
   // Initialize compiler state with metadata
   llvm::orc::ExecutorAddr resClasses =
       engine
-          .compileAST(astClasses.nodes(0), "__classes",
-                      llvm::OptimizationLevel::O0, false)
+          .compileAST(astClasses.nodes(0), "__classes")
           .get()
           .address;
   RTValue classes = resClasses.toPtr<RTValue (*)()>()();
@@ -91,8 +90,7 @@ static void test_o3_debug_info(void **state) {
 
     // Compile with O3
     auto resCall = engine
-                       .compileAST(callNode, "__repl__o3_test",
-                                   llvm::OptimizationLevel::O3, false)
+                       .compileAST(callNode, "__repl__o3_test")
                        .get()
                        .address;
 

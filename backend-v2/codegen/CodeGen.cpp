@@ -7,14 +7,13 @@
 #include "runtime/Object.h"
 #include "runtime/RTValue.h"
 #include "runtime/String.h"
-#include <random>
-#include <sstream>
 #include <algorithm>
 #include <cctype>
+#include <random>
+#include <sstream>
 
 using namespace llvm;
 using namespace clojure::rt::protobuf::bytecode;
-
 namespace rt {
 
 CodeGen::~CodeGen() {
@@ -160,7 +159,8 @@ std::string CodeGen::generateInstanceCallBridge(
   }
 
   // 5. Generate the specialized instance call
-  // This will emit direct calls or a dispatch tree based on the provided types.
+  // This will emit direct calls or a dispatch tree based on the provided
+  // types.
   TypedValue result =
       invokeManager.generateInstanceCall(methodName, instanceTV, callArgs);
 
@@ -200,10 +200,13 @@ llvm::Function *CodeGen::generateBaselineMethod(
   FunctionScopeGuard scopeGuard(*this, F);
 
   if (DIB) {
-    llvm::DIScope *CurrentScope = LexicalBlocks.empty() ? nullptr : LexicalBlocks.back();
-    llvm::DIFile *Unit = CurrentScope ? CurrentScope->getFile() : DIB->createFile("unknown", ".");
+    llvm::DIScope *CurrentScope =
+        LexicalBlocks.empty() ? nullptr : LexicalBlocks.back();
+    llvm::DIFile *Unit = CurrentScope ? CurrentScope->getFile()
+                                      : DIB->createFile("unknown", ".");
     unsigned LineNo = 0;
-    llvm::DISubroutineType *AsmSignature = DIB->createSubroutineType(DIB->getOrCreateTypeArray({}));
+    llvm::DISubroutineType *AsmSignature =
+        DIB->createSubroutineType(DIB->getOrCreateTypeArray({}));
     llvm::DISubprogram *SP = DIB->createFunction(
         Unit, funcName, funcName, Unit, LineNo, AsmSignature, LineNo,
         llvm::DINode::FlagPrototyped, llvm::DISubprogram::SPFlagDefinition);
@@ -219,7 +222,8 @@ llvm::Function *CodeGen::generateBaselineMethod(
   Builder.SetInsertPoint(BB);
 
   if (DIB) {
-    Builder.SetCurrentDebugLocation(llvm::DILocation::get(TheContext, 0, 0, LexicalBlocks.back()));
+    Builder.SetCurrentDebugLocation(
+        llvm::DILocation::get(TheContext, 0, 0, LexicalBlocks.back()));
   } else {
     Builder.SetCurrentDebugLocation(llvm::DebugLoc());
   }
@@ -242,6 +246,12 @@ llvm::Function *CodeGen::generateBaselineMethod(
   variableBindingStack.push();
   variableTypesBindingsStack.push();
   functionMetricsStack.push_back({0, false});
+
+  std::string loopId = method.loopid();
+  if (!loopId.empty()) {
+    recurTargets[loopId] = {F, framePtr, method.params_size(),
+                            (bool)method.isvariadic()};
+  }
 
   int isVariadic = method.isvariadic();
   int numParams = method.params_size();
@@ -340,7 +350,12 @@ llvm::Function *CodeGen::generateBaselineMethod(
   functionMetricsStack.pop_back();
 
   // Box result and return
+
   Builder.CreateRet(valueEncoder.box(result).value);
+
+  if (!loopId.empty()) {
+    recurTargets.erase(loopId);
+  }
 
   // Clean up bindings
   variableBindingStack.pop();
@@ -427,7 +442,8 @@ TypedValue CodeGen::codegen(const Node &node,
     // case opInvoke:
     //   return codegen(node, node.subnode().invoke(), typeRestrictions);
     // case opKeywordInvoke:
-    //   return codegen(node, node.subnode().keywordinvoke(), typeRestrictions);
+    //   return codegen(node, node.subnode().keywordinvoke(),
+    //   typeRestrictions);
   case opLet:
     return codegen(node, node.subnode().let(), typeRestrictions);
   // case opLetfn:
@@ -447,9 +463,10 @@ TypedValue CodeGen::codegen(const Node &node,
   // case opPrimInvoke:
   //   return codegen(node, node.subnode().priminvoke(), typeRestrictions);
   // case opProtocolInvoke:
-  //   return codegen(node, node.subnode().protocolinvoke(), typeRestrictions);
-  // case opRecur:
-  //   return codegen(node, node.subnode().recur(), typeRestrictions);
+  //   return codegen(node, node.subnode().protocolinvoke(),
+  //   typeRestrictions);
+  case opRecur:
+    return codegen(node, node.subnode().recur(), typeRestrictions);
   // case opReify:
   //   return codegen(node, node.subnode().reify(), typeRestrictions);
   // case opSet:
@@ -478,7 +495,9 @@ TypedValue CodeGen::codegen(const Node &node,
   // case opKeywordInvoke:
   //   return this->codegen(
   //       node,
-  //       static_cast<const clojure::rt::protobuf::bytecode::KeywordInvokeNode &>(
+  //       static_cast<const
+  //       clojure::rt::protobuf::bytecode::KeywordInvokeNode
+  //       &>(
   //           node.subnode().keywordinvoke()),
   //       typeRestrictions);
   case opTry:
@@ -558,7 +577,9 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   // case opKeywordInvoke:
   //   return this->getType(
   //       node,
-  //       static_cast<const clojure::rt::protobuf::bytecode::KeywordInvokeNode &>(
+  //       static_cast<const
+  //       clojure::rt::protobuf::bytecode::KeywordInvokeNode
+  //       &>(
   //           node.subnode().keywordinvoke()),
   //       typeRestrictions);
   case opLet:
@@ -580,9 +601,10 @@ ObjectTypeSet CodeGen::getType(const Node &node,
   // case opPrimInvoke:
   //   return getType(node, node.subnode().priminvoke(), typeRestrictions);
   // case opProtocolInvoke:
-  //   return getType(node, node.subnode().protocolinvoke(), typeRestrictions);
-  // case opRecur:
-  //   return getType(node, node.subnode().recur(), typeRestrictions);
+  //   return getType(node, node.subnode().protocolinvoke(),
+  //   typeRestrictions);
+  case opRecur:
+    return getType(node, node.subnode().recur(), typeRestrictions);
   // case opReify:
   //   return getType(node, node.subnode().reify(), typeRestrictions);
   // case opSet:

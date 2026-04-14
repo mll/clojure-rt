@@ -127,8 +127,7 @@ static void test_static_instance_call(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_static_instance_call",
-                                     llvm::OptimizationLevel::O0, true)
+                         .compileAST(callNode, "__test_static_instance_call")
                          .get()
                          .address;
       RTValue result = resPtrToValue(resCall);
@@ -168,8 +167,7 @@ static void test_vector_pop_call(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_vector_pop",
-                                     llvm::OptimizationLevel::O0, true)
+                         .compileAST(callNode, "__test_vector_pop")
                          .get()
                          .address;
       RTValue result = resPtrToValue(resCall);
@@ -216,8 +214,7 @@ static void test_dynamic_instance_call(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_dynamic_instance_call",
-                                     llvm::OptimizationLevel::O0, true)
+                         .compileAST(callNode, "__test_dynamic_instance_call")
                          .get()
                          .address;
       RTValue result = resPtrToValue(resCall);
@@ -256,8 +253,7 @@ static void test_instance_call_slow_path_error(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "test_slow_error",
-                                     llvm::OptimizationLevel::O0, true)
+                         .compileAST(callNode, "test_slow_error")
                          .get()
                          .address;
       resPtrToValue(resCall);
@@ -300,8 +296,7 @@ static void test_instance_call_fast_path_error(void **state) {
     inst->mutable_subnode()->mutable_var()->set_var("#'user/my-vec");
 
     auto resCall = engine
-                       .compileAST(callNode, "test_fast_error",
-                                   llvm::OptimizationLevel::O0, true)
+                       .compileAST(callNode, "test_fast_error")
                        .get()
                        .address;
     auto fn = resCall.toPtr<RTValue (*)()>();

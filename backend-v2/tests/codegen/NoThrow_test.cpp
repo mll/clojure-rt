@@ -40,8 +40,7 @@ static void test_no_throw_collection(void **state) {
 
     // Compile and dump IR
     auto res = engine
-                   .compileAST(root, "__test_no_throw",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(root, "__test_no_throw")
                    .get()
                    .address;
 
@@ -89,8 +88,7 @@ static void test_hot_cold_separation(void **state) {
     cout << "=== Hot/Cold Separation Test IR ===" << endl;
     [[maybe_unused]] auto res =
         engine
-            .compileAST(root, "__hot_cold_test", llvm::OptimizationLevel::O0,
-                        true)
+            .compileAST(root, "__hot_cold_test")
             .get()
             .address;
     cout << "===================================" << endl;
@@ -158,8 +156,7 @@ static void test_crash_repro(void **state) {
     cout << "=== Crash Repro Test IR ===" << endl;
     [[maybe_unused]] auto res =
         engine
-            .compileAST(root, "__crash_repro", llvm::OptimizationLevel::O0,
-                        true)
+            .compileAST(root, "__crash_repro")
             .get()
             .address;
     cout << "===========================" << endl;
@@ -190,8 +187,7 @@ static void test_whitelist_works(void **state) {
     cout << "=== Whitelist Test IR ===" << endl;
     [[maybe_unused]] auto res =
         engine
-            .compileAST(root, "__whitelist_test", llvm::OptimizationLevel::O0,
-                        true)
+            .compileAST(root, "__whitelist_test")
             .get()
             .address;
     cout << "=========================" << endl;

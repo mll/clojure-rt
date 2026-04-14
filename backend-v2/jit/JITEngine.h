@@ -73,36 +73,36 @@ class JITEngine {
 
   std::unique_ptr<llvm::MemoryBuffer> runtimeBitcodeBuffer;
 
-  void optimize(llvm::Module &M, llvm::OptimizationLevel Level,
-                const std::string &entryPoint);
+  void optimize(llvm::Module &M, const std::string &entryPoint);
   void registerRuntimeSymbols();
 
   // Private helper for common JIT logic
   std::shared_future<JITResult>
   compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
-                 const std::string &moduleName, llvm::OptimizationLevel Level,
-                 bool printModule, bool reuseIfExists = false);
+                 const std::string &moduleName, bool reuseIfExists = false);
 
 public:
   ThreadsafeCompilerState threadsafeState;
-  JITEngine(size_t numThreads = std::thread::hardware_concurrency());
+  llvm::OptimizationLevel optLevel;
+  bool printIR;
+  JITEngine(
+      llvm::OptimizationLevel defaultOptLevel = llvm::OptimizationLevel::O0,
+      bool defaultPrintIR = false,
+      size_t numThreads = std::thread::hardware_concurrency());
   ~JITEngine();
   /**
    * The primary entry point.
    * Returns a future that resolves to the function address once compiled.
    */
   std::shared_future<JITResult> compileAST(const Node &AST,
-                                           const std::string &moduleName,
-                                           llvm::OptimizationLevel Level,
-                                           bool printModule = false);
+                                           const std::string &moduleName);
 
   /**
    * Compiles a specialized bridge for an instance call.
    */
   std::shared_future<JITResult> compileInstanceCallBridge(
       const std::string &methodName, const ObjectTypeSet &instanceType,
-      const std::vector<ObjectTypeSet> &argTypes, void *callSiteId,
-      llvm::OptimizationLevel Level, bool printModule = false);
+      const std::vector<ObjectTypeSet> &argTypes, void *callSiteId);
 
   void removeModule(llvm::orc::ResourceTrackerSP &tracker);
   void retireModule(const std::string &moduleName);

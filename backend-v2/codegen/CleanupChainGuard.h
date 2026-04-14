@@ -23,6 +23,7 @@ public:
 
   void push(TypedValue val);
   void popAll();
+  void cancel(size_t count) { pushedCount -= count; }
 
   size_t size() const { return pushedCount; }
   

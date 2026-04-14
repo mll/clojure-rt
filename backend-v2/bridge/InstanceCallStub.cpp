@@ -67,8 +67,7 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
 
     // 3. Trigger JIT compilation of a specialized bridge stub
     auto future = engine->compileInstanceCallBridge(
-        methodName, ObjectTypeSet(instanceType), argTypes, slot,
-        llvm::OptimizationLevel::O0, true);
+        methodName, ObjectTypeSet(instanceType), argTypes, slot);
 
     /* TODO - The bridge, when compiled, should never have Ebr_flush_critical
      * inside of it. This is easily achievable because for now it only ever

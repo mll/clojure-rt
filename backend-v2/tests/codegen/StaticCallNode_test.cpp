@@ -172,8 +172,7 @@ static void test_dynamic_dispatch_3tail(void **state) {
 
       [[maybe_unused]] auto resCall =
           engine
-              .compileAST(callNode, "__test_3tail_int",
-                          llvm::OptimizationLevel::O0, false)
+              .compileAST(callNode, "__test_3tail_int")
               .get()
               .address;
       RTValue result = resPtrToValue(resCall);
@@ -193,8 +192,7 @@ static void test_dynamic_dispatch_3tail(void **state) {
       createIndeterminateArg(sc->add_args(), "20.5", true);
 
       auto resCallD = engine
-                          .compileAST(callNode, "__test_3tail_double",
-                                      llvm::OptimizationLevel::O0, false)
+                          .compileAST(callNode, "__test_3tail_double")
                           .get()
                           .address;
       RTValue resultD = resPtrToValue(resCallD);
@@ -232,8 +230,7 @@ static void test_dynamic_dispatch_filtering(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_filtering",
-                                     llvm::OptimizationLevel::O0, false)
+                         .compileAST(callNode, "__test_filtering")
                          .get()
                          .address;
       RTValue result = resPtrToValue(resCall);
@@ -267,8 +264,7 @@ static void test_dynamic_dispatch_exhaustive(void **state) {
     try {
       [[maybe_unused]] auto resCall =
           engine
-              .compileAST(callNode, "__test_exhaustive",
-                          llvm::OptimizationLevel::O0, false)
+              .compileAST(callNode, "__test_exhaustive")
               .get()
               .address;
       RTValue result = resPtrToValue(resCall);
@@ -315,8 +311,7 @@ static void test_dynamic_dispatch_no_match(void **state) {
     try {
       [[maybe_unused]] auto resCall =
           engine
-              .compileAST(callNode, "__test_no_match",
-                          llvm::OptimizationLevel::O0, false)
+              .compileAST(callNode, "__test_no_match")
               .get()
               .address;
       // Since both are strings, it's statically possible they match a dynamic
@@ -378,8 +373,7 @@ static void test_dynamic_dispatch_no_match_runtime(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_no_match_runtime",
-                                     llvm::OptimizationLevel::O0, false)
+                         .compileAST(callNode, "__test_no_match_runtime")
                          .get()
                          .address;
       resPtrToValue(resCall);
@@ -423,8 +417,7 @@ static void test_regression_type_narrowing_specialized(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(callNode, "__test_regression_narrowing",
-                                     llvm::OptimizationLevel::O0, false)
+                         .compileAST(callNode, "__test_regression_narrowing")
                          .get()
                          .address;
       RTValue result = resPtrToValue(resCall);
@@ -461,8 +454,7 @@ static void test_regression_phi_node_segfault(void **state) {
       // Optimization level O1 or higher is needed to trigger SimplifyCFG in a
       // way that crashes
       auto resCall = engine
-                         .compileAST(callNode, "__test_regression_segfault",
-                                     llvm::OptimizationLevel::O1, false)
+                         .compileAST(callNode, "__test_regression_segfault")
                          .get()
                          .address;
       RTValue result = resPtrToValue(resCall);

@@ -115,8 +115,7 @@ static void test_dynamic_invoke_simple(void **state) {
     arg->mutable_subnode()->mutable_const_()->set_val("42");
 
     auto res = engine
-                   .compileAST(letNode, "dynamic_invoke_simple",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(letNode, "dynamic_invoke_simple")
                    .get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
     RTValue result = func();
@@ -186,8 +185,7 @@ static void test_dynamic_invoke_higher_order(void **state) {
     }
 
     auto res = engine
-                   .compileAST(outerLet, "dynamic_ho_test",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(outerLet, "dynamic_ho_test")
                    .get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
     RTValue result = func();
@@ -251,8 +249,7 @@ static void test_dynamic_invoke_multi_arity(void **state) {
     a2->mutable_subnode()->mutable_const_()->set_val("20");
 
     auto res = engine
-                   .compileAST(letNode, "dynamic_multi_arity",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(letNode, "dynamic_multi_arity")
                    .get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
     RTValue result = func();
@@ -307,8 +304,7 @@ static void test_dynamic_invoke_variadic(void **state) {
     }
 
     auto res = engine
-                   .compileAST(letNode, "dynamic_variadic",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(letNode, "dynamic_variadic")
                    .get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
     RTValue result = func();
@@ -356,8 +352,7 @@ static void test_dynamic_invoke_arity_exception(void **state) {
     ea2->mutable_subnode()->mutable_const_()->set_val("2");
 
     auto res = engine
-                   .compileAST(letNode, "dynamic_arity_ex",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(letNode, "dynamic_arity_ex")
                    .get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
 
@@ -434,8 +429,7 @@ static void test_dynamic_invoke_intermediate_throw(void **state) {
     letBody->mutable_subnode()->mutable_const_()->set_val("nil");
 
     auto res = engine
-                   .compileAST(letNode, "dynamic_intermediate_throw",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(letNode, "dynamic_intermediate_throw")
                    .get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
 
@@ -504,8 +498,7 @@ static void test_dynamic_invoke_nested_guidance(void **state) {
         ConstNode_ConstType_constTypeString);
 
     auto res = engine
-                   .compileAST(outerLetNode, "dynamic_nested_guidance",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(outerLetNode, "dynamic_nested_guidance")
                    .get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
 

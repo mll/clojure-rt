@@ -38,8 +38,7 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState,
   // Initialize compiler state with metadata
   llvm::orc::ExecutorAddr resClasses =
       engine
-          .compileAST(astClasses.nodes(0), "__classes",
-                      llvm::OptimizationLevel::O0, false)
+          .compileAST(astClasses.nodes(0), "__classes")
           .get()
           .address;
   RTValue classes = resClasses.toPtr<RTValue (*)()>()();
@@ -85,8 +84,7 @@ static void test_integer_overflow_add(void **state) {
     arg2->mutable_subnode()->mutable_const_()->set_val("1");
 
     auto resCall = engine
-                       .compileAST(callNode, "__test_overflow_add",
-                                   llvm::OptimizationLevel::O0, false)
+                       .compileAST(callNode, "__test_overflow_add")
                        .get()
                        .address;
 
@@ -130,8 +128,7 @@ static void test_integer_overflow_sub(void **state) {
     arg2->mutable_subnode()->mutable_const_()->set_val("1");
 
     auto resCall = engine
-                       .compileAST(callNode, "__test_overflow_sub",
-                                   llvm::OptimizationLevel::O0, false)
+                       .compileAST(callNode, "__test_overflow_sub")
                        .get()
                        .address;
 

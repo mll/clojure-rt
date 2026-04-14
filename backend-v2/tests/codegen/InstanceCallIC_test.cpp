@@ -123,8 +123,7 @@ static void test_instance_call_ic_hit_miss(void **state) {
     try {
       // Compile once
       auto resF = engine
-                      .compileAST(callNode, "__test_ic_dynamic",
-                                  llvm::OptimizationLevel::O0, true)
+                      .compileAST(callNode, "__test_ic_dynamic")
                       .get()
                       .address;
       auto fn = resF.toPtr<RTValue (*)()>();
@@ -199,8 +198,7 @@ static void test_instance_call_ic_atomicity(void **state) {
     arg->set_tag("long");
 
     auto resF = engine
-                    .compileAST(callNode, "__test_ic_atomicity",
-                                llvm::OptimizationLevel::O0, false)
+                    .compileAST(callNode, "__test_ic_atomicity")
                     .get()
                     .address;
     auto fn = resF.toPtr<RTValue (*)()>();

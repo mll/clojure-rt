@@ -58,7 +58,7 @@ static void test_exorcist_leak(void **state) {
         }
 
 
-        auto defnRes = engine.compileAST(defnNode, "defn_exorcist", llvm::OptimizationLevel::O0, true).get();
+        auto defnRes = engine.compileAST(defnNode, "defn_exorcist").get();
         RTValue (*defnFunc)() = defnRes.address.toPtr<RTValue (*)()>();
         RTValue v = defnFunc();
         release(v);
@@ -80,7 +80,7 @@ static void test_exorcist_leak(void **state) {
         a2->mutable_subnode()->mutable_const_()->set_val("2");
         a2->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
 
-        auto callRes = engine.compileAST(callNode, "call_exorcist", llvm::OptimizationLevel::O0, true).get();
+        auto callRes = engine.compileAST(callNode, "call_exorcist").get();
         RTValue (*callFunc)() = callRes.address.toPtr<RTValue (*)()>();
         
         RTValue res = callFunc();

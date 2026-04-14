@@ -212,8 +212,11 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
                  target == ratioType || target == keywordType ||
                  target == symbolType || target == functionType ||
                  target == classType || target == persistentArrayMapType ||
-                 target == varType) {
+                 target == varType || target == exceptionType ||
+                 target == bridgedObjectType) {
           unboxedVal = this->valueEncoder.unboxPointer(args[i]).value;
+        } else if (target == nilType) {
+          unboxedVal = args[i].value;
         } else {
           unboxedVal = this->valueEncoder.unbox(args[i]).value;
         }

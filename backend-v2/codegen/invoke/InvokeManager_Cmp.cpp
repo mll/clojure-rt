@@ -309,6 +309,23 @@ void registerCmpIntrinsics(InvokeManager &mgr) {
     };
   };
 
+  auto makeDI = [&intrinsics](const string &opSymbol) {
+    return [&intrinsics, opSymbol](auto &b, auto args) {
+      Value *v2 =
+          b.CreateSIToFP(args[1], b.getDoubleTy());
+      return intrinsics[opSymbol](b, {args[0], v2});
+    };
+  };
+
+  auto makeID = [&intrinsics](const string &opSymbol) {
+    return [&intrinsics, opSymbol](auto &b, auto args) {
+      Value *v1 =
+          b.CreateSIToFP(args[0], b.getDoubleTy());
+      return intrinsics[opSymbol](b, {v1, args[1]});
+    };
+  };
+
+
   intrinsics["FCmpOGE_BD"] = makeBD("FCmpOGE");
   intrinsics["FCmpOGE_DB"] = makeDB("FCmpOGE");
   intrinsics["FCmpOGT_BD"] = makeBD("FCmpOGT");
@@ -319,6 +336,17 @@ void registerCmpIntrinsics(InvokeManager &mgr) {
   intrinsics["FCmpOLE_DB"] = makeDB("FCmpOLE");
   intrinsics["FCmpOEQ_BD"] = makeBD("FCmpOEQ");
   intrinsics["FCmpOEQ_DB"] = makeDB("FCmpOEQ");
+
+  intrinsics["ICmpSGE_ID"] = makeID("FCmpOGE");
+  intrinsics["ICmpSGE_DI"] = makeDI("FCmpOGE");
+  intrinsics["ICmpSGT_ID"] = makeID("FCmpOGT");
+  intrinsics["ICmpSGT_DI"] = makeDI("FCmpOGT");
+  intrinsics["ICmpSLT_ID"] = makeID("FCmpOLT");
+  intrinsics["ICmpSLT_DI"] = makeDI("FCmpOLT");
+  intrinsics["ICmpSLE_ID"] = makeID("FCmpOLE");
+  intrinsics["ICmpSLE_DI"] = makeDI("FCmpOLE");
+  intrinsics["FCmpOEQ_ID"] = makeID("FCmpOEQ");
+  intrinsics["FCmpOEQ_DI"] = makeDI("FCmpOEQ");
 
   auto makeDR = [&mgr, &intrinsics](const string &opSymbol) {
     return [&mgr, &intrinsics, opSymbol](auto &b, auto args) {
@@ -350,6 +378,64 @@ void registerCmpIntrinsics(InvokeManager &mgr) {
   intrinsics["FCmpOLE_DR"] = makeDR("FCmpOLE");
   intrinsics["FCmpOEQ_RD"] = makeRD("FCmpOEQ");
   intrinsics["FCmpOEQ_DR"] = makeDR("FCmpOEQ");
+
+  auto makeBR = [&mgr, &intrinsics](const string &opSymbol) {
+    return [&mgr, &intrinsics, opSymbol](auto &b, auto args) {
+      ObjectTypeSet ratioTypeSet(ratioType);
+      TypedValue v1 = mgr.invokeRuntime("Ratio_createFromBigInteger", &ratioTypeSet,
+                         {ObjectTypeSet(bigIntegerType)},
+                         {TypedValue(ObjectTypeSet(bigIntegerType), args[0])});
+      return intrinsics[opSymbol](b, {v1.value, args[1]});
+    };
+  };
+
+  auto makeRB = [&mgr, &intrinsics](const string &opSymbol) {
+    return [&mgr, &intrinsics, opSymbol](auto &b, auto args) {
+      ObjectTypeSet ratioTypeSet(ratioType);
+      TypedValue v2 = mgr.invokeRuntime("Ratio_createFromBigInteger", &ratioTypeSet,
+                         {ObjectTypeSet(bigIntegerType)},
+                         {TypedValue(ObjectTypeSet(bigIntegerType), args[1])});
+      return intrinsics[opSymbol](b, {args[0], v2.value});
+    };
+  };
+
+  auto makeIR = [&mgr, &intrinsics](const string &opSymbol) {
+    return [&mgr, &intrinsics, opSymbol](auto &b, auto args) {
+      ObjectTypeSet ratioTypeSet(ratioType);
+      TypedValue v1 = mgr.invokeRuntime("Ratio_createFromInt", &ratioTypeSet,
+                         {ObjectTypeSet(integerType)},
+                         {TypedValue(ObjectTypeSet(integerType), args[0])});
+      return intrinsics[opSymbol](b, {v1.value, args[1]});
+    };
+  };
+
+  auto makeRI = [&mgr, &intrinsics](const string &opSymbol) {
+    return [&mgr, &intrinsics, opSymbol](auto &b, auto args) {
+      ObjectTypeSet ratioTypeSet(ratioType);
+      TypedValue v2 = mgr.invokeRuntime("Ratio_createFromInt", &ratioTypeSet,
+                         {ObjectTypeSet(integerType)},
+                         {TypedValue(ObjectTypeSet(integerType), args[1])});
+      return intrinsics[opSymbol](b, {args[0], v2.value});
+    };
+  };
+
+  intrinsics["FCmpOGE_BR"] = makeBR("Ratio_gte");
+  intrinsics["FCmpOGE_RB"] = makeRB("Ratio_gte");
+  intrinsics["FCmpOGT_BR"] = makeBR("Ratio_gt");
+  intrinsics["FCmpOGT_RB"] = makeRB("Ratio_gt");
+  intrinsics["FCmpOLT_BR"] = makeBR("Ratio_lt");
+  intrinsics["FCmpOLT_RB"] = makeRB("Ratio_lt");
+  intrinsics["FCmpOLE_BR"] = makeBR("Ratio_lte");
+  intrinsics["FCmpOLE_RB"] = makeRB("Ratio_lte");
+
+  intrinsics["FCmpOGE_IR"] = makeIR("Ratio_gte");
+  intrinsics["FCmpOGE_RI"] = makeRI("Ratio_gte");
+  intrinsics["FCmpOGT_IR"] = makeIR("Ratio_gt");
+  intrinsics["FCmpOGT_RI"] = makeRI("Ratio_gt");
+  intrinsics["FCmpOLT_IR"] = makeIR("Ratio_lt");
+  intrinsics["FCmpOLT_RI"] = makeRI("Ratio_lt");
+  intrinsics["FCmpOLE_IR"] = makeIR("Ratio_lte");
+  intrinsics["FCmpOLE_RI"] = makeRI("Ratio_lte");
 }
 
 } // namespace rt

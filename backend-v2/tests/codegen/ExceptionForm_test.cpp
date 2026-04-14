@@ -38,8 +38,7 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState,
   // Initialize compiler state with metadata
   llvm::orc::ExecutorAddr resClasses =
       engine
-          .compileAST(astClasses.nodes(0), "__classes",
-                      llvm::OptimizationLevel::O0, false)
+          .compileAST(astClasses.nodes(0), "__classes")
           .get()
           .address;
   RTValue classes = resClasses.toPtr<RTValue (*)()>()();
@@ -90,8 +89,7 @@ static void test_exception_form_capture(void **state) {
     arg2->mutable_subnode()->mutable_const_()->set_val("0");
 
     auto resCall = engine
-                       .compileAST(callNode, "__test_exception_form",
-                                   llvm::OptimizationLevel::O0, false)
+                       .compileAST(callNode, "__test_exception_form")
                        .get()
                        .address;
 

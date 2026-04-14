@@ -62,8 +62,7 @@ static void test_if_truthy_const(void **state) {
     else_->mutable_subnode()->mutable_const_()->set_val("else");
 
     auto resIf = engine
-                     .compileAST(ifNode, "__test_if_truthy_const",
-                                 llvm::OptimizationLevel::O0, false)
+                     .compileAST(ifNode, "__test_if_truthy_const")
                      .get()
                      .address;
 
@@ -106,8 +105,7 @@ static void test_if_falsy_const(void **state) {
     else_->mutable_subnode()->mutable_const_()->set_val("else");
 
     auto resIf = engine
-                     .compileAST(ifNode, "__test_if_falsy_const",
-                                 llvm::OptimizationLevel::O0, false)
+                     .compileAST(ifNode, "__test_if_falsy_const")
                      .get()
                      .address;
 
@@ -150,8 +148,7 @@ static void test_if_nil(void **state) {
     else_->mutable_subnode()->mutable_const_()->set_val("else");
 
     auto resIf = engine
-                     .compileAST(ifNode, "__test_if_nil",
-                                 llvm::OptimizationLevel::O0, false)
+                     .compileAST(ifNode, "__test_if_nil")
                      .get()
                      .address;
 
@@ -197,8 +194,7 @@ static void test_if_integer_const(void **state) {
     else_->mutable_subnode()->mutable_const_()->set_val("else");
 
     auto resIf = engine
-                     .compileAST(ifNode, "__test_if_integer_const",
-                                 llvm::OptimizationLevel::O0, false)
+                     .compileAST(ifNode, "__test_if_integer_const")
                      .get()
                      .address;
 
@@ -274,8 +270,7 @@ static void test_if_test_leak(void **state) {
     cout << "=== If Test Leak Test (Should NOT leak) ===" << endl;
     try {
       auto res = engine
-                     .compileAST(root, "__test_if_leak",
-                                 llvm::OptimizationLevel::O0, true)
+                     .compileAST(root, "__test_if_leak")
                      .get()
                      .address;
 

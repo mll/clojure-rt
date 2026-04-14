@@ -64,9 +64,10 @@ JITEngine::captureObject(const llvm::MemoryBuffer &Obj) {
   return captured;
 }
 
-JITEngine::JITEngine(size_t numThreads)
+JITEngine::JITEngine(llvm::OptimizationLevel defaultOptLevel, bool defaultPrintIR, size_t numThreads)
     : compilationPool(std::max(numThreads / 4, size_t(1)), Priority::Low),
-      executionPool(numThreads, Priority::High) {
+      executionPool(numThreads, Priority::High),
+      optLevel(defaultOptLevel), printIR(defaultPrintIR) {
   if (instanceExists.exchange(true)) {
     throw std::runtime_error("Only one JITEngine instance is allowed");
   }
@@ -157,7 +158,6 @@ JITEngine::JITEngine(size_t numThreads)
 std::shared_future<JITResult>
 JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                           const std::string &moduleName,
-                          llvm::OptimizationLevel level, bool printModule,
                           bool reuseIfExists) {
   std::lock_guard<std::mutex> lock(compilationMutex);
 
@@ -182,8 +182,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
   // multiple times
   auto shared_f =
       compilationPool
-          .enqueue([this, codegenFunc, moduleName, level,
-                    printModule]() -> JITResult {
+          .enqueue([this, codegenFunc, moduleName]() -> JITResult {
             try {
               auto codeGenerator =
                   CodeGen(moduleName, threadsafeState, (void *)this);
@@ -206,10 +205,10 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               auto constants = std::move(result.constants);
               auto formMap = std::move(result.formMap);
 
-              this->optimize(*module, level, fName);
+              this->optimize(*module, fName);
 
               std::string ir;
-              if (printModule) {
+              if (printIR) {
                 llvm::raw_string_ostream rs(ir);
                 module->print(rs, nullptr);
                 llvm::errs() << ir << "\n";
@@ -310,16 +309,14 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
 }
 
 std::shared_future<JITResult>
-JITEngine::compileAST(const Node &AST, const std::string &moduleName,
-                      llvm::OptimizationLevel level, bool printModule) {
+JITEngine::compileAST(const Node &AST, const std::string &moduleName) {
   return compileGeneric([&AST](CodeGen &cg) { return cg.codegenTopLevel(AST); },
-                        moduleName, level, printModule);
+                        moduleName);
 }
 
 std::shared_future<JITResult> JITEngine::compileInstanceCallBridge(
     const std::string &methodName, const ObjectTypeSet &instanceType,
-    const std::vector<ObjectTypeSet> &argTypes, void *callSiteId,
-    llvm::OptimizationLevel Level, bool printModule) {
+    const std::vector<ObjectTypeSet> &argTypes, void *callSiteId) {
   // For bridges, the module name should be descriptive and include the call
   // site
   /* For instance calls module name is equivalent with function name */
@@ -332,7 +329,7 @@ std::shared_future<JITResult> JITEngine::compileInstanceCallBridge(
         return cg.generateInstanceCallBridge(moduleName, methodName,
                                              instanceType, argTypes);
       },
-      moduleName, Level, printModule,
+      moduleName,
       /* we do not want to re-use the old code */ false);
 }
 
@@ -516,13 +513,12 @@ JITEngine::~JITEngine() {
   instanceExists.store(false);
 }
 
-void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
-                         const std::string &entryPoint) {
+void JITEngine::optimize(llvm::Module &M, const std::string &entryPoint) {
   if (llvm::verifyModule(M, &llvm::errs())) {
     throw std::runtime_error("Module verification failed before optimization");
   }
 
-  if (Level != llvm::OptimizationLevel::O0 && runtimeBitcodeBuffer) {
+  if (optLevel != llvm::OptimizationLevel::O0 && runtimeBitcodeBuffer) {
     auto runtimeModuleOrErr =
         llvm::parseBitcodeFile(*runtimeBitcodeBuffer, M.getContext());
     if (!runtimeModuleOrErr) {
@@ -541,7 +537,8 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
         // Nil_VALUE). We force them to be external declarations so they bind to
         // the host process.
         for (auto &G : M.globals()) {
-          if (!G.isDeclaration() && G.hasExternalLinkage()) {
+          if (!G.isDeclaration() && G.hasExternalLinkage() &&
+              !G.getName().starts_with("__var_ic_slot_")) {
             G.setInitializer(nullptr);
             G.setLinkage(llvm::GlobalValue::ExternalLinkage);
             if (G.isThreadLocal()) {
@@ -641,7 +638,7 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
 
   llvm::ModulePassManager MPM;
 
-  if (Level == llvm::OptimizationLevel::O3) {
+  if (optLevel == llvm::OptimizationLevel::O3) {
     // For O3 we want VERY aggressive inlining to pull in linked runtime
     // functions.
     llvm::InlineParams IP;
@@ -651,7 +648,7 @@ void JITEngine::optimize(llvm::Module &M, llvm::OptimizationLevel Level,
     MPM.addPass(llvm::ModuleInlinerWrapperPass(IP));
   }
 
-  MPM.addPass(PB.buildPerModuleDefaultPipeline(Level));
+  MPM.addPass(PB.buildPerModuleDefaultPipeline(optLevel));
   MPM.addPass(llvm::GlobalDCEPass());
   MPM.run(M, MAM);
 }

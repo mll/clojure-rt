@@ -138,7 +138,7 @@ foreach(src ${SOURCES})
         COMMAND ${CLANG_EXECUTABLE} -emit-llvm -c 
                 ${CMAKE_CURRENT_SOURCE_DIR}/${src}
                 -iquote ${CMAKE_CURRENT_SOURCE_DIR} -I${GMP_INCLUDE_DIRS}
-                -O3 -gline-tables-only -fPIC -fexceptions -funwind-tables ${EMULATED_TLS_FLAG} 
+                -O3 -gline-tables-only -fPIC -fexceptions -funwind-tables ${EMULATED_TLS_FLAG} ${MCX16_FLAG}
                 -o ${bc_output}
         DEPENDS ${src}
         COMMENT "Generating LLVM Bitcode for ${src}"
@@ -192,7 +192,7 @@ set(TEST_MODULES
 foreach(TEST_MODULE ${TEST_MODULES})
     set(EXEC_NAME ${TEST_MODULE})
     add_executable(${EXEC_NAME} tests/${TEST_MODULE}.c ${COMMON_TEST_SOURCES})
-    target_link_libraries(${EXEC_NAME} PUBLIC runtime ${GMP_LIBRARY} ${CMOCKA_LIBRARIES})
+    target_link_libraries(${EXEC_NAME} PUBLIC runtime ${GMP_LIBRARY} ${CMOCKA_LIBRARIES} ${ATOMIC_LIBRARY})
     
     add_test(
         NAME ${EXEC_NAME} 

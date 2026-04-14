@@ -185,19 +185,19 @@ include_directories(${GMP_INCLUDE_DIRS})
 
 # 4. Atomic Detection (needed for 128-bit atomics on standard Linux)
 set(ATOMIC_LIBRARY "")
+set(MCX16_FLAG "")
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # On x86_64 Linux, we need -mcx16 for 16-byte atomics (cmpxchg16b)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+        set(MCX16_FLAG "-mcx16")
         add_compile_options(-mcx16)
         set(CMAKE_REQUIRED_FLAGS "-mcx16")
     endif()
 
-
-
     include(CheckCXXSourceCompiles)
     
     # Check if we can use 128-bit atomics without libatomic
-    set(CMAKE_REQUIRED_FLAGS "-std=c++20")
+    set(CMAKE_REQUIRED_FLAGS "${MCX16_FLAG} -std=c++20")
     check_cxx_source_compiles("
         #include <atomic>
         #include <cstdint>
@@ -209,9 +209,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             return 0;
         }
     " ATOMIC_128_BUILTIN)
-    # Don't let CMAKE_REQUIRED_FLAGS leak into other checks if we don't want it to, 
-    # but here we actually want it for the rest of the build if on x86_64.
-    # unset(CMAKE_REQUIRED_FLAGS)
 
     if(NOT ATOMIC_128_BUILTIN)
         find_library(ATOMIC_LIBRARY_PATH NAMES atomic libatomic.so.1 libatomic.so)

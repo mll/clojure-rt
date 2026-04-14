@@ -141,9 +141,7 @@ struct FunctionMethod *VarCallSlowPath(void *slot, RTValue currentVal,
   int128 *dest = (int128 *)slot;
   int128 src;
   memcpy(&src, &pair, 16);
-  int128 __attribute__((aligned(16))) old_val;
-
-  __atomic_exchange(dest, &src, &old_val, __ATOMIC_ACQ_REL);
+  int128 old_val = __atomic_exchange_n(dest, src, __ATOMIC_ACQ_REL);
 
   struct {
     RTValue key;

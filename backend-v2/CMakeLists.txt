@@ -191,35 +191,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
         set(MCX16_FLAG "-mcx16")
         add_compile_options(-mcx16)
-        set(CMAKE_REQUIRED_FLAGS "-mcx16")
     endif()
 
-    include(CheckCXXSourceCompiles)
-    
-    # Check if we can use 128-bit atomics without libatomic
-    set(CMAKE_REQUIRED_FLAGS "${MCX16_FLAG} -std=c++20")
-    check_cxx_source_compiles("
-        #include <atomic>
-        #include <cstdint>
-        struct dummy { uint64_t a, b; };
-        int main() {
-            std::atomic<dummy> x;
-            dummy d = x.load();
-            x.store(d);
-            return 0;
-        }
-    " ATOMIC_128_BUILTIN)
-
-    if(NOT ATOMIC_128_BUILTIN)
-        find_library(ATOMIC_LIBRARY_PATH NAMES atomic libatomic.so.1 libatomic.so)
-        if(ATOMIC_LIBRARY_PATH)
-            set(ATOMIC_LIBRARY ${ATOMIC_LIBRARY_PATH})
-            message(STATUS "Found libatomic at ${ATOMIC_LIBRARY}")
-        else()
-            message(FATAL_ERROR "128-bit atomics require libatomic on Linux, but it was not found. Please install libatomic1 (Debian/Ubuntu) or libatomic (RHEL/CentOS).")
-        endif()
+    find_library(ATOMIC_LIBRARY_PATH NAMES atomic libatomic.so.1 libatomic.so)
+    if(ATOMIC_LIBRARY_PATH)
+        set(ATOMIC_LIBRARY ${ATOMIC_LIBRARY_PATH})
+        message(STATUS "Found libatomic at ${ATOMIC_LIBRARY}")
     else()
-        message(STATUS "128-bit atomics are builtin, libatomic not needed.")
+        message(FATAL_ERROR "128-bit atomics require libatomic on Linux, but it was not found. Please install libatomic1 (Debian/Ubuntu) or libatomic (RHEL/CentOS).")
     endif()
 endif()
 

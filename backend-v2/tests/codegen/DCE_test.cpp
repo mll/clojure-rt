@@ -33,8 +33,7 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState,
   }
 
   auto result = engine
-                    .compileAST(astClasses.nodes(0), "__classes",
-                                llvm::OptimizationLevel::O0, false)
+                    .compileAST(astClasses.nodes(0), "__classes")
                     .get();
   RTValue classes = result.address.toPtr<RTValue (*)()>()();
   compState.storeInternalClasses(classes);
@@ -103,7 +102,7 @@ static void test_repl_sequence_dce(void **state) {
       cout << "Compiling Step 1: (def x 3N)" << endl;
       Node node = create_bigint_def("x", "3");
       auto result =
-          engine.compileAST(node, "repl_1", llvm::OptimizationLevel::O3, true)
+          engine.compileAST(node, "repl_1")
               .get();
       cout << "--- Step 1 IR ---\n"
            << result.optimizedIR << "\n--- End Step 1 IR ---\n";
@@ -117,7 +116,7 @@ static void test_repl_sequence_dce(void **state) {
       cout << "Compiling Step 2: (def y 2N)" << endl;
       Node node = create_bigint_def("y", "2");
       auto result =
-          engine.compileAST(node, "repl_2", llvm::OptimizationLevel::O3, true)
+          engine.compileAST(node, "repl_2")
               .get();
       cout << "--- Step 2 IR ---\n"
            << result.optimizedIR << "\n--- End Step 2 IR ---\n";
@@ -131,7 +130,7 @@ static void test_repl_sequence_dce(void **state) {
       cout << "Compiling Step 3: (+ x y)" << endl;
       Node node = create_add_vars("x", "y");
       auto result =
-          engine.compileAST(node, "repl_3", llvm::OptimizationLevel::O3, true)
+          engine.compileAST(node, "repl_3")
               .get();
       cout << "--- Step 3 IR ---\n"
            << result.optimizedIR << "\n--- End Step 3 IR ---\n";

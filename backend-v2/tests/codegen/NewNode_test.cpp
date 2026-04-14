@@ -87,8 +87,7 @@ static void test_new_person(void **state) {
 
     try {
       auto resCall = engine
-                         .compileAST(newNode, "__test_new_person",
-                                     llvm::OptimizationLevel::O0, true)
+                         .compileAST(newNode, "__test_new_person")
                          .get()
                          .address;
       RTValue result = resPtrToValue(resCall);

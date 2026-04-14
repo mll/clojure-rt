@@ -70,7 +70,7 @@ static void test_simple_fn(void **state) {
 
     auto res =
         engine
-            .compileAST(fnNode, "simple_fn", llvm::OptimizationLevel::O0, true)
+            .compileAST(fnNode, "simple_fn")
             .get();
 
     // Execute: returns a ClojureFunction object
@@ -145,8 +145,7 @@ static void test_fn_capture_unboxing_int(void **state) {
 
     cout << "=== Fn Capture Unboxing Test IR ===" << endl;
     auto res = engine
-                   .compileAST(letNode, "fn_capture_int",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(letNode, "fn_capture_int")
                    .get();
     cout << "====================================" << endl;
 
@@ -202,7 +201,7 @@ static void test_multi_arity_fn(void **state) {
       body->mutable_subnode()->mutable_local()->set_name("y");
     }
     
-    auto res = engine.compileAST(fnNode, "multi_arity_fn", llvm::OptimizationLevel::O0, true).get();
+    auto res = engine.compileAST(fnNode, "multi_arity_fn").get();
     
     RTValue funObj = res.address.toPtr<RTValue (*)()>()();
     assert_true(RT_isPtr(funObj));

@@ -49,7 +49,7 @@ static void test_static_invoke_simple(void **state) {
         c->set_type(ConstNode_ConstType_constTypeNumber);
         c->set_val("42");
         
-        auto res = engine.compileAST(invokeNode, "static_invoke_test", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(invokeNode, "static_invoke_test").get();
         
         RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
         RTValue result = func();
@@ -113,7 +113,7 @@ static void test_static_invoke_multi_arity(void **state) {
         a1->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
         a1->mutable_subnode()->mutable_const_()->set_val("10");
         
-        auto res = engine.compileAST(invNode, "invoke_arity1", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(invNode, "invoke_arity1").get();
         RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
         RTValue result = func();
         assert_int_equal(10, RT_unboxInt32(result));
@@ -134,7 +134,7 @@ static void test_static_invoke_multi_arity(void **state) {
         a2->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
         a2->mutable_subnode()->mutable_const_()->set_val("20");
         
-        auto res = engine.compileAST(invNode, "invoke_arity2", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(invNode, "invoke_arity2").get();
         RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
         RTValue result = func();
         assert_int_equal(20, RT_unboxInt32(result));
@@ -167,7 +167,7 @@ static void test_static_invoke_arity_mismatch_leak(void **state) {
          inv->add_args()->set_op(opConst);
          inv->add_args()->set_op(opConst);
          
-         auto res = engine.compileAST(invokeNode, "static_arity_leak", llvm::OptimizationLevel::O0, true).get();
+         auto res = engine.compileAST(invokeNode, "static_arity_leak").get();
          RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
          
          bool caught = false;
@@ -217,7 +217,7 @@ static void test_static_invoke_overflow(void **state) {
         a->mutable_subnode()->mutable_const_()->set_val(std::to_string(i * 10));
     }
     
-    auto res = engine.compileAST(invNode, "invoke_overflow", llvm::OptimizationLevel::O0, true).get();
+    auto res = engine.compileAST(invNode, "invoke_overflow").get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
     RTValue result = func();
     assert_int_equal(70, RT_unboxInt32(result));

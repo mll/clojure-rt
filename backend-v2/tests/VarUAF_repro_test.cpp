@@ -103,7 +103,7 @@ static void test_double_release_uaf_repro(void **state_arg) {
 
     printf("Compiling repro AST...\n");
     auto res =
-        engine.compileAST(topCall, "repro", llvm::OptimizationLevel::O0, true)
+        engine.compileAST(topCall, "repro")
             .get()
             .address;
     typedef RTValue (*FnPtr)();

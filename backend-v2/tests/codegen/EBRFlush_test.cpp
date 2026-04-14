@@ -41,7 +41,7 @@ static void test_ebr_flush_on_threshold(void **state) {
     ret->mutable_subnode()->mutable_const_()->set_val("1");
 
     // Compile. We don't even need to run it, just check the IR.
-    auto res = engine.compileAST(fnNode, "test_ebr_flush_on_threshold", llvm::OptimizationLevel::O0, true).get();
+    auto res = engine.compileAST(fnNode, "test_ebr_flush_on_threshold").get();
     
     // Check if Ebr_flush_critical is present in the IR
     assert_non_null(strstr(res.optimizedIR.c_str(), "Ebr_flush_critical"));
@@ -68,7 +68,7 @@ static void test_ebr_flush_on_invoke(void **state) {
     innerFn->mutable_subnode()->mutable_const_()->set_val("0"); 
 
     // Compile
-    auto res = engine.compileAST(fnNode, "test_ebr_flush_on_invoke", llvm::OptimizationLevel::O0, true).get();
+    auto res = engine.compileAST(fnNode, "test_ebr_flush_on_invoke").get();
     
     // Check if Ebr_flush_critical is present in the IR
     assert_non_null(strstr(res.optimizedIR.c_str(), "Ebr_flush_critical"));
@@ -91,7 +91,7 @@ static void test_no_ebr_flush_for_simple(void **state) {
     body->mutable_subnode()->mutable_const_()->set_val("1");
 
     // Compile
-    auto res = engine.compileAST(fnNode, "test_no_ebr_flush_for_simple", llvm::OptimizationLevel::O0, true).get();
+    auto res = engine.compileAST(fnNode, "test_no_ebr_flush_for_simple").get();
     
     // Check if Ebr_flush_critical is absent in the IR
     assert_null(strstr(res.optimizedIR.c_str(), "Ebr_flush_critical"));

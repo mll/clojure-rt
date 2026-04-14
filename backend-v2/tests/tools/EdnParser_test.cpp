@@ -59,8 +59,7 @@ static void test_edn_parser_memory(void **state) {
 
     llvm::orc::ExecutorAddr res =
         engine
-            .compileAST(astClasses.nodes(0), "__classes",
-                        llvm::OptimizationLevel::O0, false)
+            .compileAST(astClasses.nodes(0), "__classes")
             .get()
             .address;
 
@@ -88,8 +87,7 @@ static void test_edn_parser_class_parsing_memory(void **state) {
 
     llvm::orc::ExecutorAddr res =
         engine
-            .compileAST(astClasses.nodes(0), "__classes",
-                        llvm::OptimizationLevel::O0, false)
+            .compileAST(astClasses.nodes(0), "__classes")
             .get()
             .address;
 

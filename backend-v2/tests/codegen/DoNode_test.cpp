@@ -81,8 +81,7 @@ static void test_do_statement_leak(void **state) {
     cout << "=== Do Statement Leak Test (Should NOT leak) ===" << endl;
     try {
       auto res = engine
-                     .compileAST(root, "__test_do_leak",
-                                 llvm::OptimizationLevel::O0, true)
+                     .compileAST(root, "__test_do_leak")
                      .get()
                      .address;
 

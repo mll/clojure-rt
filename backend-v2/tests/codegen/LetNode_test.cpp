@@ -92,8 +92,7 @@ static void test_let_basic(void **state) {
 
     try {
       auto res = engine
-                     .compileAST(root, "__test_let_basic",
-                                 llvm::OptimizationLevel::O0, true)
+                     .compileAST(root, "__test_let_basic")
                      .get()
                      .address;
       RTValue result = res.toPtr<RTValue (*)()>()();
@@ -148,8 +147,7 @@ static void test_let_memory_mm(void **state) {
     cout << "=== Let Memory Guidance Test IR ===" << endl;
     try {
       auto res = engine
-                     .compileAST(root, "__test_let_mm",
-                                 llvm::OptimizationLevel::O0, true)
+                     .compileAST(root, "__test_let_mm")
                      .get()
                      .address;
       cout << "===================================" << endl;
@@ -232,8 +230,7 @@ static void test_let_uaf_fixed(void **state) {
       {
 
         auto res = engine
-                       .compileAST(root, "__test_let_uaf",
-                                   llvm::OptimizationLevel::O0, true)
+                       .compileAST(root, "__test_let_uaf")
                        .get()
                        .address;
         res.toPtr<RTValue (*)()>()();
@@ -322,8 +319,7 @@ static void test_let_gap_leak(void **state) {
     try {
       {
         auto res = engine
-                       .compileAST(root, "__test_let_leak",
-                                   llvm::OptimizationLevel::O0, true)
+                       .compileAST(root, "__test_let_leak")
                        .get()
                        .address;
         res.toPtr<RTValue (*)()>()();
@@ -395,8 +391,7 @@ static void test_let_nested_redundancy(void **state) {
     cout << "=== Let Nested Redundancy Detection Test ===" << endl;
     try {
       auto res = engine
-                     .compileAST(root, "__test_let_nested_redundancy",
-                                 llvm::OptimizationLevel::O0, true)
+                     .compileAST(root, "__test_let_nested_redundancy")
                      .get()
                      .address;
       RTValue val = res.toPtr<RTValue (*)()>()();

@@ -65,8 +65,7 @@ static void test_var_call_leak_repro(void **state) {
 
     printf("Compiling defn...\n");
     auto defnRes = engine
-                       .compileAST(defnNode, "defn_castigator",
-                                   llvm::OptimizationLevel::O0, true)
+                       .compileAST(defnNode, "defn_castigator")
                        .get();
     RTValue (*defnFunc)() = defnRes.address.toPtr<RTValue (*)()>();
     RTValue v = defnFunc();
@@ -92,8 +91,7 @@ static void test_var_call_leak_repro(void **state) {
 
     printf("Compiling call...\n");
     auto callRes = engine
-                       .compileAST(callNode, "call_castigator",
-                                   llvm::OptimizationLevel::O0, true)
+                       .compileAST(callNode, "call_castigator")
                        .get();
     RTValue (*callFunc)() = callRes.address.toPtr<RTValue (*)()>();
 

@@ -70,7 +70,7 @@ static void test_var_call_ic(void **state) {
     // Function 1: Identity
     Node fn1Node = create_identity_fn();
     auto fn1Res =
-        engine.compileAST(fn1Node, "fn1", llvm::OptimizationLevel::O0, true)
+        engine.compileAST(fn1Node, "fn1")
             .get();
     RTValue (*fn1Ctor)() = fn1Res.address.toPtr<RTValue (*)()>();
     RTValue fn1 = fn1Ctor();
@@ -94,8 +94,7 @@ static void test_var_call_ic(void **state) {
 
     // 3. Compile and Run
     auto res = engine
-                   .compileAST(invokeNode, "var_call_test",
-                               llvm::OptimizationLevel::O0, true)
+                   .compileAST(invokeNode, "var_call_test")
                    .get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
 
@@ -111,7 +110,7 @@ static void test_var_call_ic(void **state) {
       // 4. Change the Var root to another function
       Node fn2Node = create_constant_fn(100);
       auto fn2Res =
-          engine.compileAST(fn2Node, "fn2", llvm::OptimizationLevel::O0, true)
+          engine.compileAST(fn2Node, "fn2")
               .get();
       RTValue (*fn2Ctor)() = fn2Res.address.toPtr<RTValue (*)()>();
       RTValue fn2 = fn2Ctor();

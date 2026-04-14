@@ -73,8 +73,7 @@ static void test_math_pow_uaf(void **state) {
     try {
       std::cout << "Compiling UAF repro..." << std::endl;
       auto resCall = engine
-                         .compileAST(callNode, "repro_uaf",
-                                     llvm::OptimizationLevel::O0, true)
+                         .compileAST(callNode, "repro_uaf")
                          .get()
                          .address;
       std::cout << "Executing UAF repro..." << std::endl;
@@ -123,8 +122,7 @@ static void test_math_pow_leak(void **state) {
     try {
       std::cout << "Compiling Leak repro..." << std::endl;
       auto resCall = engine
-                         .compileAST(callNode, "repro_leak",
-                                     llvm::OptimizationLevel::O0, true)
+                         .compileAST(callNode, "repro_leak")
                          .get()
                          .address;
       std::cout << "Executing Leak repro..." << std::endl;

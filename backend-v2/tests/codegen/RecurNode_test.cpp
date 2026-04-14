@@ -99,7 +99,7 @@ static void test_recur_factorial(void **state) {
         // or actually run it if we have clojure.lang.Numbers etc available.
         // Since we are in a unit test, maybe we just verify it compiles and look for musttail.
         
-        auto res = engine.compileAST(fnNode, "recur_test", llvm::OptimizationLevel::O0, true).get();
+        auto res = engine.compileAST(fnNode, "recur_test").get();
         
         // If it compiles successfully, we are halfway there.
         assert_non_null(res.address.toPtr<void*>());

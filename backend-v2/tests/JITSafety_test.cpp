@@ -36,7 +36,7 @@ static void test_jit_reclamation_stress(void **state_arg) {
 
     auto res =
         engine
-            .compileAST(topNode, moduleName, llvm::OptimizationLevel::O0, false)
+            .compileAST(topNode, moduleName)
             .get();
     auto addr = res.address;
     typedef RTValue (*FnPtr)();
@@ -65,8 +65,7 @@ static void test_jit_reclamation_stress(void **state_arg) {
 
     for (int i = 0; i < 50; i++) {
       auto nextAddr = engine
-                          .compileAST(topNode, moduleName,
-                                      llvm::OptimizationLevel::O0, false)
+                          .compileAST(topNode, moduleName)
                           .get()
                           .address;
       funcPtr.store((FnPtr)nextAddr.getValue());
@@ -108,8 +107,7 @@ static void setup_test_metadata(rt::ThreadsafeCompilerState &compState,
 
   try {
     auto res = engine
-                   .compileAST(astClasses.nodes(0), "__classes",
-                               llvm::OptimizationLevel::O0, false)
+                   .compileAST(astClasses.nodes(0), "__classes")
                    .get()
                    .address;
     RTValue classes = res.toPtr<RTValue (*)()>()();
@@ -205,8 +203,7 @@ static void test_compilation_error_concurrency(void **state_arg) {
     // Verify system stability
     Node node = create42Node();
     (void)engine
-        .compileAST(node, "test_after_error", llvm::OptimizationLevel::O0,
-                    false)
+        .compileAST(node, "test_after_error")
         .get()
         .address;
   });

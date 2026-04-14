@@ -106,8 +106,7 @@ static void test_is_instance_compile_time_true(void **state) {
     clsNode->mutable_subnode()->mutable_const_()->set_val("MyClass");
 
     auto res = engine
-                   .compileAST(node, "test_is_instance_compile_time_true",
-                               llvm::OptimizationLevel::O0, false)
+                   .compileAST(node, "test_is_instance_compile_time_true")
                    .get()
                    .address;
 
@@ -138,8 +137,7 @@ static void test_is_instance_compile_time_false(void **state) {
     target->set_tag("long");
 
     auto res = engine
-                   .compileAST(node, "test_is_instance_compile_time_false",
-                               llvm::OptimizationLevel::O0, false)
+                   .compileAST(node, "test_is_instance_compile_time_false")
                    .get()
                    .address;
 
@@ -180,8 +178,7 @@ static void test_is_instance_runtime(void **state) {
     ln->mutable_body()->CopyFrom(node);
 
     auto res = engine
-                   .compileAST(letNode, "test_is_instance_runtime",
-                               llvm::OptimizationLevel::O0, false)
+                   .compileAST(letNode, "test_is_instance_runtime")
                    .get()
                    .address;
 
@@ -214,8 +211,7 @@ static void test_is_instance_class_prefix(void **state) {
     clsNode->mutable_subnode()->mutable_const_()->set_val("MyClass");
 
     auto res = engine
-                   .compileAST(node, "test_is_instance_class_prefix",
-                               llvm::OptimizationLevel::O0, false)
+                   .compileAST(node, "test_is_instance_class_prefix")
                    .get()
                    .address;
 
@@ -255,8 +251,7 @@ static void test_is_instance_any_type_regression(void **state) {
     target->mutable_subnode()->mutable_local()->set_name("dynamic-val");
 
     auto res = engine
-                   .compileAST(letNode, "test_is_instance_any_type_regression",
-                               llvm::OptimizationLevel::O0, false)
+                   .compileAST(letNode, "test_is_instance_any_type_regression")
                    .get()
                    .address;
 
@@ -311,8 +306,7 @@ static void test_is_instance_refcounted_local(void **state) {
         ConstNode_ConstType_constTypeNil);
 
     auto res = engine
-                   .compileAST(letNode, "test_is_instance_refcounted_local",
-                               llvm::OptimizationLevel::O0, false)
+                   .compileAST(letNode, "test_is_instance_refcounted_local")
                    .get()
                    .address;
     RTValue result = resPtrToValue(res);

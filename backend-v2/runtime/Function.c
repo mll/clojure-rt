@@ -4,6 +4,8 @@
 #include "Hash.h"
 #include "RTValue.h"
 #include "String.h"
+#include "Exceptions.h"
+#include "PersistentList.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,4 +116,33 @@ RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount) {
   (void)funObj; (void)args; (void)argCount;
   fprintf(stderr, "RT_invokeDynamic: Not yet implemented\n");
   abort();
+}
+
+FunctionMethod *Function_extractMethod(RTValue funObj, uword_t argCount) {
+  if (getType(funObj) != functionType) {
+    throwIllegalArgumentException_C("Not a function");
+  }
+
+  ClojureFunction *self = (ClojureFunction *)RT_unboxPtr(funObj);
+
+  // 1. Exact match
+  for (uword_t i = 0; i < self->methodCount; ++i) {
+    if (!self->methods[i].isVariadic && self->methods[i].fixedArity == argCount) {
+      return &self->methods[i];
+    }
+  }
+
+  // 2. Variadic match
+  for (uword_t i = 0; i < self->methodCount; ++i) {
+    if (self->methods[i].isVariadic && argCount >= self->methods[i].fixedArity) {
+      return &self->methods[i];
+    }
+  }
+
+  throwArityException_C(-1, (int)argCount);
+}
+
+RTValue RT_packVariadic(uword_t argCount, RTValue *args, uword_t fixedArity) {
+  if (argCount <= fixedArity) return RT_boxNil();
+  return RT_createListFromArray((int32_t)(argCount - fixedArity), args + fixedArity);
 }

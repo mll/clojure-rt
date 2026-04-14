@@ -61,6 +61,8 @@ String *Function_toString(ClojureFunction *self);
 void Function_destroy(ClojureFunction *self);
 void Function_cleanupOnce(ClojureFunction *self);
 RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount);
+FunctionMethod *Function_extractMethod(RTValue funObj, uword_t argCount);
+RTValue RT_packVariadic(uword_t argCount, RTValue *args, uword_t fixedArity);
 
 #ifdef __cplusplus
 }

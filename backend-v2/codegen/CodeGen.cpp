@@ -9,6 +9,8 @@
 #include "runtime/String.h"
 #include <random>
 #include <sstream>
+#include <algorithm>
+#include <cctype>
 
 using namespace llvm;
 using namespace clojure::rt::protobuf::bytecode;
@@ -25,8 +27,9 @@ CodeGenResult CodeGen::release() && {
   DIB->finalize();
   auto constants = std::move(generatedConstants);
   generatedConstants.clear(); // Ensure destructor doesn't re-release
+  auto icSlotNames = std::move(invokeManager.getICSlotNames());
   return {std::move(TSContext), std::move(TheModule), std::move(constants),
-          std::move(formMap)};
+          std::move(icSlotNames), std::move(formMap)};
 }
 
 std::string CodeGen::codegenTopLevel(const Node &node) {
@@ -177,7 +180,15 @@ llvm::Function *CodeGen::generateBaselineMethod(
   std::stringstream ss;
   ss << std::hex << dist(gen);
 
-  std::string funcName = "fn_" + ss.str();
+  std::string funcName = "fn_";
+  if (!suggestedFunctionName.empty()) {
+    std::string sanitized = suggestedFunctionName;
+    std::replace_if(
+        sanitized.begin(), sanitized.end(),
+        [](unsigned char c) { return !std::isalnum(c); }, '_');
+    funcName += sanitized + "_";
+  }
+  funcName += ss.str();
 
   // Create the function with baseline signature: (Frame*, Arg0, Arg1, Arg2,
   // Arg3, Arg4) -> RTValue

@@ -212,25 +212,40 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               if (printModule) {
                 llvm::raw_string_ostream rs(ir);
                 module->print(rs, nullptr);
+                llvm::errs() << ir << "\n";
               }
 
               llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
 
+              auto RT = jit->getMainJITDylib().createResourceTracker();
+
+              if (auto Err = jit->addIRModule(RT, std::move(TSM))) {
+                throwInternalInconsistencyException(
+                    std::string("JIT Link Error: ") +
+                    llvm::toString(std::move(Err)));
+              }
+
+              // Resolve IC slot addresses BEFORE the lock to avoid Materialization Deadlock
+              std::vector<void *> icSlotAddresses;
+              for (const auto &icName : result.icSlotNames) {
+                auto icSym = jit->lookup(icName);
+                if (icSym) {
+                  icSlotAddresses.push_back(icSym->toPtr<void *>());
+                } else {
+                  llvm::consumeError(icSym.takeError());
+                }
+              }
+
               {
                 std::lock_guard<std::mutex> lock(engineMutex);
-
-                auto RT = jit->getMainJITDylib().createResourceTracker();
-
-                if (auto Err = jit->addIRModule(RT, std::move(TSM))) {
-                  throwInternalInconsistencyException(std::string("JIT Link Error: ") +
-                                                      llvm::toString(std::move(Err)));
-                }
 
                 if (moduleTrackers.count(moduleName)) {
                   retireModule(moduleTrackers[moduleName]);
                 }
-                moduleTrackers[moduleName] =
+                auto tracker =
                     new ModuleTracker(std::move(RT), std::move(constants));
+                tracker->icSlotAddresses = std::move(icSlotAddresses);
+                moduleTrackers[moduleName] = tracker;
               }
 
               auto Sym = jit->lookup(fName);
@@ -442,6 +457,14 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(
       absoluteSymbol("ClassExtension_resolveInstanceCall",
                      (void *)ClassExtension_resolveInstanceCall));
+
+  // Function and Runtime Helpers
+  runtimeSymbols.insert(
+      absoluteSymbol("Function_extractMethod", (void *)Function_extractMethod));
+  runtimeSymbols.insert(
+      absoluteSymbol("RT_packVariadic", (void *)RT_packVariadic));
+  runtimeSymbols.insert(
+      absoluteSymbol("Ebr_flush_critical", (void *)Ebr_flush_critical));
 
   // The bridge:
   runtimeSymbols.insert(

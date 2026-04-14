@@ -36,6 +36,7 @@ struct CodeGenResult {
   std::unique_ptr<llvm::orc::ThreadSafeContext> context;
   std::unique_ptr<llvm::Module> module;
   std::vector<RTValue> constants;
+  std::vector<std::string> icSlotNames;
   std::map<SourceLocation, std::string> formMap;
 };
 
@@ -216,7 +217,10 @@ public:
   llvm::BasicBlock *getLandingPad(size_t skipCount = 0) {
     return memoryManagement.getLandingPad(skipCount);
   }
-  bool hasLandingPad() const { return memoryManagement.hasPushedResources(); }
+  bool hasLandingPad() const {
+    return memoryManagement.hasPushedResources() ||
+           memoryManagement.hasActiveGuidance();
+  }
   bool hasPushedResources() const {
     return memoryManagement.hasPushedResources();
   }
@@ -244,6 +248,9 @@ public:
 
 private:
   std::map<SourceLocation, std::string> formMap;
+public:
+  std::string suggestedFunctionName;
+  bool isSuggestedNameFromDef = false;
 };
 
 } // namespace rt

@@ -105,8 +105,10 @@ void MemoryManagement::popResource() {
   activeResources.pop_back();
 }
 
-llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
-  if (lpadCache.count(skipCount)) {
+llvm::BasicBlock *
+MemoryManagement::getLandingPad(size_t skipCount,
+                                const std::vector<TypedValue> &extraCleanup) {
+  if (extraCleanup.empty() && lpadCache.count(skipCount)) {
     return lpadCache[skipCount];
   }
 
@@ -160,6 +162,13 @@ llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
   lp->setCleanup(true);
   builder.CreateStore(lp, exceptionSlot);
 
+  // 5.5 Execute Unconditional Cleanup (extraCleanup)
+  if (!extraCleanup.empty()) {
+    for (auto val : extraCleanup) {
+      dynamicRelease(val);
+    }
+  }
+
   // 6. Execute Unwind Guidance
   if (hasGuidance) {
     for (const auto &g : *activeUnwindGuidance) {
@@ -191,7 +200,9 @@ llvm::BasicBlock *MemoryManagement::getLandingPad(size_t skipCount) {
     builder.CreateBr(terminalResumeBB);
   }
 
-  lpadCache[skipCount] = lpad;
+  if (extraCleanup.empty()) {
+    lpadCache[skipCount] = lpad;
+  }
   return lpad;
 }
 

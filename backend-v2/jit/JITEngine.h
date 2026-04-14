@@ -110,6 +110,7 @@ public:
   struct ModuleTracker {
     llvm::orc::ResourceTrackerSP tracker;
     std::vector<RTValue> constants;
+    std::vector<void *> icSlotAddresses;
   };
 
 private:

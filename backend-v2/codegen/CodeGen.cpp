@@ -27,8 +27,9 @@ CodeGenResult CodeGen::release() && {
   DIB->finalize();
   auto constants = std::move(generatedConstants);
   generatedConstants.clear(); // Ensure destructor doesn't re-release
+  auto icSlotNames = std::move(invokeManager.getICSlotNames());
   return {std::move(TSContext), std::move(TheModule), std::move(constants),
-          std::move(formMap)};
+          std::move(icSlotNames), std::move(formMap)};
 }
 
 std::string CodeGen::codegenTopLevel(const Node &node) {

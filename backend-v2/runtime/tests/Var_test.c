@@ -102,7 +102,6 @@ static void test_var_peek(void **state) {
         1);
 
     // Test Var_deref for contrast
-    Ptr_retain(v);
     RTValue derefed = Var_deref(v);
     assert_true(derefed == val);
     // Deref SHOULD increment refcount. Should be 2 (Var root, derefed handle)

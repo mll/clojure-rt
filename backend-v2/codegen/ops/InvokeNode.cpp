@@ -1,6 +1,11 @@
 #include "../CodeGen.h"
 #include "types/ConstantFunction.h"
 #include "types/ObjectTypeSet.h"
+#include "bridge/Module.h"
+#include "tools/RTValueWrapper.h"
+
+using namespace llvm;
+using namespace std;
 
 namespace rt {
 
@@ -13,6 +18,34 @@ TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
   CleanupChainGuard guard(*this);
 
+  // 1. Detect and handle optimized VarCall
+  if (subnode.fn().op() == opVar) {
+    auto varName = subnode.fn().subnode().var().var().substr(2);
+    ScopedRef<Var> var(getOrCreateVar(varName));
+    Var *v = var.get();
+
+    uintptr_t address = reinterpret_cast<uintptr_t>(v);
+    TypedValue varObj = TypedValue(
+        ObjectTypeSet(varType),
+        ConstantExpr::getIntToPtr(ConstantInt::get(this->types.i64Ty, address),
+                                  this->types.ptrTy));
+
+    // 2. Evaluate arguments
+    std::vector<TypedValue> args;
+    for (const auto &argNode : subnode.args()) {
+      TypedValue t = codegen(argNode, ObjectTypeSet::all());
+      guard.push(t);
+      args.push_back(t);
+    }
+
+    // 3. Generate the VarInvoke call
+    TypedValue result =
+        invokeManager.generateVarInvoke(varObj, args, &guard, &node);
+
+    return TypedValue(result.type.restriction(typeRestrictions), result.value);
+  }
+
+  // STANDARD PATH:
   // 1. Evaluate function expression
   TypedValue fn = codegen(subnode.fn(), ObjectTypeSet::all());
   guard.push(fn);

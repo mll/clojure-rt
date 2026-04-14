@@ -148,6 +148,7 @@ set(BACKEND_SOURCES
       codegen/ops/InvokeNode.cpp
       codegen/invoke/InvokeManager_ClojureStaticInvoke.cpp
       codegen/invoke/InvokeManager_ClojureDynamicInvoke.cpp
+      codegen/invoke/InvokeManager_VarCall.cpp
       codegen/ops/FnNode.cpp)
 
 add_subdirectory(runtime)

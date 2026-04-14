@@ -4,6 +4,7 @@
 #include "RTValue.h"
 #include "String.h"
 #include "word.h"
+#include <stdio.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -117,9 +118,40 @@ RTValue Var_unbindRoot(Var *self) {
 }
 
 /* the returned reference is not retained and is not guaranteed to even
-   be valid after the call returns. */
+   be valid after the call returns. Outside ref system. */
 RTValue Var_peek(Var *self) {
-  RTValue val = atomic_load_explicit(&self->root, memory_order_relaxed);
-  Ptr_release(self);
-  return val;
+  return atomic_load_explicit(&self->root, memory_order_relaxed);
+}
+
+struct FunctionMethod *VarCallSlowPath(void *slot, RTValue currentVal,
+                                       uint64_t argCount) {
+  struct FunctionMethod *method = Function_extractMethod(currentVal, argCount);
+
+  // IC Ownership: The IC slot owns a reference to the function (key).
+  retain(currentVal);
+
+  struct {
+    RTValue key;
+    void *method;
+  } __attribute__((aligned(16))) pair;
+  pair.key = currentVal;
+  pair.method = method;
+
+  typedef __int128_t int128;
+  int128 *dest = (int128 *)slot;
+  int128 src;
+  memcpy(&src, &pair, 16);
+  int128 __attribute__((aligned(16))) old_val;
+
+  __atomic_exchange(dest, &src, &old_val, __ATOMIC_ACQ_REL);
+
+  struct {
+    RTValue key;
+    void *method;
+  } *old_pair = (void *)&old_val;
+
+  if (old_pair->key != 0) {
+    release(old_pair->key);
+  }
+  return method;
 }

@@ -217,21 +217,35 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
 
               llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
 
+              auto RT = jit->getMainJITDylib().createResourceTracker();
+
+              if (auto Err = jit->addIRModule(RT, std::move(TSM))) {
+                throwInternalInconsistencyException(
+                    std::string("JIT Link Error: ") +
+                    llvm::toString(std::move(Err)));
+              }
+
+              // Resolve IC slot addresses BEFORE the lock to avoid Materialization Deadlock
+              std::vector<void *> icSlotAddresses;
+              for (const auto &icName : result.icSlotNames) {
+                auto icSym = jit->lookup(icName);
+                if (icSym) {
+                  icSlotAddresses.push_back(icSym->toPtr<void *>());
+                } else {
+                  llvm::consumeError(icSym.takeError());
+                }
+              }
+
               {
                 std::lock_guard<std::mutex> lock(engineMutex);
-
-                auto RT = jit->getMainJITDylib().createResourceTracker();
-
-                if (auto Err = jit->addIRModule(RT, std::move(TSM))) {
-                  throwInternalInconsistencyException(std::string("JIT Link Error: ") +
-                                                      llvm::toString(std::move(Err)));
-                }
 
                 if (moduleTrackers.count(moduleName)) {
                   retireModule(moduleTrackers[moduleName]);
                 }
-                moduleTrackers[moduleName] =
+                auto tracker =
                     new ModuleTracker(std::move(RT), std::move(constants));
+                tracker->icSlotAddresses = std::move(icSlotAddresses);
+                moduleTrackers[moduleName] = tracker;
               }
 
               auto Sym = jit->lookup(fName);

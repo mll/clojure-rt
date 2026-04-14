@@ -36,6 +36,7 @@ struct CodeGenResult {
   std::unique_ptr<llvm::orc::ThreadSafeContext> context;
   std::unique_ptr<llvm::Module> module;
   std::vector<RTValue> constants;
+  std::vector<std::string> icSlotNames;
   std::map<SourceLocation, std::string> formMap;
 };
 

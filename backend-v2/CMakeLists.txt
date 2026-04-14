@@ -124,6 +124,9 @@ set(BACKEND_SOURCES
       codegen/invoke/InvokeManager_Math.cpp
       codegen/invoke/InvokeManager_Cmp.cpp
       codegen/invoke/InvokeManager_InstanceCall.cpp
+      codegen/invoke/InvokeManager_ClojureStaticInvoke.cpp
+      codegen/invoke/InvokeManager_ClojureDynamicInvoke.cpp
+      codegen/invoke/InvokeManager_VarCall.cpp
 
       codegen/MemoryManagement.cpp
       codegen/ops/ConstNode.cpp
@@ -146,10 +149,9 @@ set(BACKEND_SOURCES
       codegen/ops/IsInstanceNode.cpp
       codegen/ops/ThrowNode.cpp
       codegen/ops/InvokeNode.cpp
-      codegen/invoke/InvokeManager_ClojureStaticInvoke.cpp
-      codegen/invoke/InvokeManager_ClojureDynamicInvoke.cpp
-      codegen/invoke/InvokeManager_VarCall.cpp
-      codegen/ops/FnNode.cpp)
+      codegen/ops/FnNode.cpp
+      codegen/ops/RecurNode.cpp
+      )
 
 # 4. Atomic Detection (needed for 128-bit atomics on standard Linux)
 set(ATOMIC_LIBRARY "")

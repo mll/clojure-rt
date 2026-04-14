@@ -69,22 +69,47 @@ TypedValue InvokeManager::generateDynamicInvoke(
                                     {llvm::ConstantInt::get(types.i64Ty, i)}));
   }
 
+  llvm::BasicBlock *variadicBB =
+      llvm::BasicBlock::Create(theModule.getContext(), "variadic_pack", currentFn);
+  llvm::BasicBlock *noVariadicBB =
+      llvm::BasicBlock::Create(theModule.getContext(), "no_variadic", currentFn);
+  llvm::BasicBlock *packingDoneBB =
+      llvm::BasicBlock::Create(theModule.getContext(), "packing_done", currentFn);
+
+  builder.CreateCondBr(isVariadic, variadicBB, noVariadicBB);
+
+  // --- Variadic Path ---
+  builder.SetInsertPoint(variadicBB);
   llvm::FunctionType *packVariadicTy = llvm::FunctionType::get(
       types.RT_valueTy, {types.wordTy, types.ptrTy, types.wordTy}, false);
   
-  llvm::Value *vSeq = builder.CreateSelect(
-      isVariadic,
-      invokeRaw("RT_packVariadic", packVariadicTy,
-                {llvm::ConstantInt::get(types.wordTy, argCount), argsArray,
-                 builder.CreateZExt(fixedArityRaw, types.wordTy)},
-                guard, false),
-      valueEncoder.boxNil().value);
+  llvm::Value *vSeqRaw = invokeRaw(
+      "RT_packVariadic", packVariadicTy,
+      {llvm::ConstantInt::get(types.wordTy, argCount), argsArray,
+       builder.CreateZExt(fixedArityRaw, types.wordTy)},
+      guard, false);
+      
+  builder.CreateStore(vSeqRaw, builder.CreateStructGEP(types.frameTy, framePtr, 2));
   
+  llvm::BasicBlock *variadicExitBB = builder.GetInsertBlock();
+  builder.CreateBr(packingDoneBB);
+
+  // --- No Variadic Path ---
+  builder.SetInsertPoint(noVariadicBB);
+  llvm::Value *nilVal = valueEncoder.boxNil().value;
+  builder.CreateStore(nilVal, builder.CreateStructGEP(types.frameTy, framePtr, 2));
+  builder.CreateBr(packingDoneBB);
+
+  // --- Merge ---
+  builder.SetInsertPoint(packingDoneBB);
+  llvm::PHINode *vSeqPhi = builder.CreatePHI(types.RT_valueTy, 2, "vseq_phi");
+  vSeqPhi->addIncoming(vSeqRaw, variadicExitBB);
+  vSeqPhi->addIncoming(nilVal, noVariadicBB);
+
   if (guard) {
       // Note: List returned by RT_packVariadic needs to be tracked for cleanup
-      guard->push(TypedValue(ObjectTypeSet(persistentListType, true), vSeq));
+      guard->push(TypedValue(ObjectTypeSet(persistentListType, true), vSeqPhi));
   }
-  builder.CreateStore(vSeq, builder.CreateStructGEP(types.frameTy, framePtr, 2));
 
   // bailoutEntryIndex
   builder.CreateStore(

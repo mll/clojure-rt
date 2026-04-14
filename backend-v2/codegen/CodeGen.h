@@ -45,6 +45,13 @@ struct FunctionMetrics {
   bool hasInvoke = false;
 };
 
+struct RecurTarget {
+  llvm::Function *function;
+  llvm::Value *framePtr;
+  int numParams;
+  bool isVariadic;
+};
+
 class CodeGen {
   std::unique_ptr<llvm::orc::ThreadSafeContext> TSContext;
 
@@ -71,6 +78,7 @@ class CodeGen {
   llvm::FunctionCallee personalityFn;
 
   std::vector<FunctionMetrics> functionMetricsStack;
+  std::map<std::string, RecurTarget> recurTargets;
 
 public:
   void *jitEnginePtr;
@@ -161,6 +169,8 @@ public:
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const InvokeNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const RecurNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
 
   ObjectTypeSet getType(const Node &node,
                         const ObjectTypeSet &typeRestrictions);
@@ -207,6 +217,8 @@ public:
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const InvokeNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const RecurNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
 
   Var *getOrCreateVar(std::string_view name);
   bool canThrow(const clojure::rt::protobuf::bytecode::Node &node);
@@ -214,6 +226,9 @@ public:
   // Exception safety helpers
   void pushResource(TypedValue val) { memoryManagement.pushResource(val); }
   void popResource() { memoryManagement.popResource(); }
+  void popResourceWithoutRelease() {
+    memoryManagement.popResourceWithoutRelease();
+  }
   llvm::BasicBlock *getLandingPad(size_t skipCount = 0) {
     return memoryManagement.getLandingPad(skipCount);
   }
@@ -248,6 +263,7 @@ public:
 
 private:
   std::map<SourceLocation, std::string> formMap;
+
 public:
   std::string suggestedFunctionName;
   bool isSuggestedNameFromDef = false;

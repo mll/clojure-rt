@@ -33,6 +33,7 @@ public:
   // Exception safety / Resource management
   void pushResource(TypedValue val);
   void popResource();
+  void popResourceWithoutRelease();
   llvm::BasicBlock *getLandingPad(
       size_t skipCount = 0,
       const std::vector<TypedValue> &extraCleanup = {});
@@ -111,6 +112,7 @@ private:
   void *jitEnginePtr = nullptr;
 
   void ensureExceptionInfrastructure(llvm::Function *F);
+  void popResourceInternal(bool release);
 };
 
 } // namespace rt

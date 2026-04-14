@@ -91,7 +91,16 @@ void MemoryManagement::pushResource(TypedValue val) {
   totalPushedResources++;
 }
 
-void MemoryManagement::popResource() {
+void MemoryManagement::popResource() { popResourceInternal(true); }
+
+void MemoryManagement::popResourceWithoutRelease() { popResourceInternal(false); }
+
+void MemoryManagement::popResourceInternal(bool release) {
+  if (activeResources.empty()) {
+    throwInternalInconsistencyException(
+        "popResourceInternal() called on empty stack");
+  }
+
   TypedValue val = activeResources.back();
   bool processed = activeResources.size() == resourcesWithCleanup;
 
@@ -103,6 +112,9 @@ void MemoryManagement::popResource() {
   }
 
   activeResources.pop_back();
+  if (release) {
+    dynamicRelease(val);
+  }
 }
 
 llvm::BasicBlock *
@@ -205,6 +217,8 @@ MemoryManagement::getLandingPad(size_t skipCount,
   }
   return lpad;
 }
+
+// Replaced by popResourceInternal
 
 void MemoryManagement::clear() {
   cleanupStack.clear();

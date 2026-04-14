@@ -54,6 +54,8 @@ public:
 
 extern "C" void *__emutls_get_address(void *);
 
+llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O3;
+
 int main(int argc, char *argv[]) {
   // Force the linker to include ___emutls_get_address from the Clang runtime.
   // This is required on macOS when JIT-compiled code uses thread-local storage,
@@ -68,7 +70,6 @@ int main(int argc, char *argv[]) {
   }
 
   std::string filename = argv[1];
-  llvm::OptimizationLevel optLevel = llvm::OptimizationLevel::O0;
 
   int retVal = -1;
 
@@ -111,8 +112,8 @@ int main(int argc, char *argv[]) {
       ExecutionTimer t("Compiling and storing interfaces");
       cout << "Compiling interfaces..." << endl;
       RTValue interfaces = engine
-                               .compileAST(astInterfaces.nodes(0), "__interfaces",
-                                           llvm::OptimizationLevel::O3, false)
+                               .compileAST(astInterfaces.nodes(0),
+                                           "__interfaces", optLevel, false)
                                .get()
                                .address.toPtr<RTValue (*)()>()();
       cout << "Storing interfaces..." << endl;
@@ -122,11 +123,10 @@ int main(int argc, char *argv[]) {
     {
       ExecutionTimer t("Compiling and storing classes");
       cout << "Compiling classes..." << endl;
-      RTValue classes = engine
-                            .compileAST(astClasses.nodes(0), "__classes",
-                                        llvm::OptimizationLevel::O3, false)
-                            .get()
-                            .address.toPtr<RTValue (*)()>()();
+      RTValue classes =
+          engine.compileAST(astClasses.nodes(0), "__classes", optLevel, false)
+              .get()
+              .address.toPtr<RTValue (*)()>()();
       cout << "Storing classes..." << endl;
       engine.threadsafeState.storeInternalClasses(classes);
     }

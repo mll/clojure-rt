@@ -432,21 +432,29 @@ TypedValue InvokeManager::generateRawMethodCall(
           {builder.getInt64(argCount), allArgsArray,
            builder.CreateZExt(fixedArity, types.i64Ty)},
           guard, false);
-      if (guard) {
-        guard->push(TypedValue(ObjectTypeSet::dynamicType(), vSeq));
-      }
       builder.CreateStore(vSeq,
                           builder.CreateStructGEP(types.frameTy, framePtr, 2));
+      
+      BasicBlock *variadicExitBB = builder.GetInsertBlock();
+      builder.CreateBr(packingDoneBB);
+
+      // --- No Variadic Path ---
+      builder.SetInsertPoint(noVariadicBB);
+      Value *nilVal = valueEncoder.boxNil().value;
+      builder.CreateStore(nilVal,
+                          builder.CreateStructGEP(types.frameTy, framePtr, 2));
+      builder.CreateBr(packingDoneBB);
+
+      builder.SetInsertPoint(packingDoneBB);
+
+      PHINode *phi = builder.CreatePHI(types.RT_valueTy, 2, "vSeq_phi");
+      phi->addIncoming(vSeq, variadicExitBB);
+      phi->addIncoming(nilVal, noVariadicBB);
+
+      if (guard) {
+        guard->push(TypedValue(ObjectTypeSet::dynamicType(), phi));
+      }
     }
-    builder.CreateBr(packingDoneBB);
-
-    // --- No Variadic Path ---
-    builder.SetInsertPoint(noVariadicBB);
-    builder.CreateStore(valueEncoder.boxNil().value,
-                        builder.CreateStructGEP(types.frameTy, framePtr, 2));
-    builder.CreateBr(packingDoneBB);
-
-    builder.SetInsertPoint(packingDoneBB);
   } else {
     builder.CreateStore(valueEncoder.boxNil().value,
                         builder.CreateStructGEP(types.frameTy, framePtr, 2));

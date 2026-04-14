@@ -151,6 +151,25 @@ set(BACKEND_SOURCES
       codegen/invoke/InvokeManager_VarCall.cpp
       codegen/ops/FnNode.cpp)
 
+# 4. Atomic Detection (needed for 128-bit atomics on standard Linux)
+set(ATOMIC_LIBRARY "")
+set(MCX16_FLAG "")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # On x86_64 Linux, we need -mcx16 for 16-byte atomics (cmpxchg16b)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+        set(MCX16_FLAG "-mcx16")
+        add_compile_options(-mcx16)
+    endif()
+
+    find_library(ATOMIC_LIBRARY_PATH NAMES atomic libatomic.so.1 libatomic.so)
+    if(ATOMIC_LIBRARY_PATH)
+        set(ATOMIC_LIBRARY ${ATOMIC_LIBRARY_PATH})
+        message(STATUS "Found libatomic at ${ATOMIC_LIBRARY}")
+    else()
+        message(FATAL_ERROR "128-bit atomics require libatomic on Linux, but it was not found. Please install libatomic1 (Debian/Ubuntu) or libatomic (RHEL/CentOS).")
+    endif()
+endif()
+
 add_subdirectory(runtime)
 
 
@@ -183,24 +202,6 @@ find_package_handle_standard_args(GMP DEFAULT_MSG GMP_INCLUDE_DIRS GMP_LIBRARY)
 mark_as_advanced(GMP_INCLUDE_DIRS GMP_LIBRARY)
 include_directories(${GMP_INCLUDE_DIRS})
 
-# 4. Atomic Detection (needed for 128-bit atomics on standard Linux)
-set(ATOMIC_LIBRARY "")
-set(MCX16_FLAG "")
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    # On x86_64 Linux, we need -mcx16 for 16-byte atomics (cmpxchg16b)
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
-        set(MCX16_FLAG "-mcx16")
-        add_compile_options(-mcx16)
-    endif()
-
-    find_library(ATOMIC_LIBRARY_PATH NAMES atomic libatomic.so.1 libatomic.so)
-    if(ATOMIC_LIBRARY_PATH)
-        set(ATOMIC_LIBRARY ${ATOMIC_LIBRARY_PATH})
-        message(STATUS "Found libatomic at ${ATOMIC_LIBRARY}")
-    else()
-        message(FATAL_ERROR "128-bit atomics require libatomic on Linux, but it was not found. Please install libatomic1 (Debian/Ubuntu) or libatomic (RHEL/CentOS).")
-    endif()
-endif()
 
 add_library(backend_lib STATIC ${BACKEND_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
 # Use target-based linking for Protobuf to handle Abseil dependencies automatically

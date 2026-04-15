@@ -549,3 +549,13 @@ bool PersistentVector_contains(PersistentVector *restrict self, RTValue other) {
   Ptr_release(self);
   return retVal;
 }
+
+RTValue PersistentVector_invoke(RTValue self, RTValue index, int32_t argCount) {
+  if (argCount == 1) {
+    return PersistentVector_dynamic_nth(RT_unboxPtr(self), index);
+  }
+  release(self);
+  release(index);
+  throwArityException_C(-1, argCount);
+}
+

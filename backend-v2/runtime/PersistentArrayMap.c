@@ -281,3 +281,21 @@ RTValue PersistentArrayMap_dynamic_get(RTValue self, RTValue key) {
   }
   return PersistentArrayMap_get(RT_unboxPtr(self), key);
 }
+
+RTValue PersistentArrayMap_invoke(RTValue self, RTValue key, RTValue defaultVal, int32_t argCount) {
+  if (argCount == 1) {
+    return PersistentArrayMap_get(RT_unboxPtr(self), key);
+  } else if (argCount == 2) {
+    RTValue res = PersistentArrayMap_get(RT_unboxPtr(self), key);
+    if (RT_isNil(res)) {
+      release(res);
+      return defaultVal;
+    }
+    release(defaultVal);
+    return res;
+  }
+  release(self);
+  release(key);
+  if (argCount >= 2) release(defaultVal);
+  throwArityException_C(-1, argCount);
+}

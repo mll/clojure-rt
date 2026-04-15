@@ -61,9 +61,23 @@ TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,
   // 3. Generate the invoke call
   // The function object itself is NOT consumed by generateInvoke
   TypedValue result;
-  if (fn.type.isDetermined() && fn.type.getConstant() &&
-      dynamic_cast<ConstantFunction *>(fn.type.getConstant())) {
-    result = invokeManager.generateStaticInvoke(fn, args, &guard, &node, {fn});
+  if (fn.type.isDetermined()) {
+    uint32_t type = fn.type.determinedType();
+    if (type == keywordType) {
+      result =
+          invokeManager.generateStaticKeywordInvoke(fn, args, &guard, &node);
+    } else if (type == persistentArrayMapType ||
+               type == concurrentHashMapType) {
+      result = invokeManager.generateStaticMapInvoke(fn, args, &guard, &node);
+    } else if (type == persistentVectorType) {
+      result = invokeManager.generateStaticVectorInvoke(fn, args, &guard, &node);
+    } else if (fn.type.getConstant() &&
+               dynamic_cast<ConstantFunction *>(fn.type.getConstant())) {
+      result = invokeManager.generateStaticInvoke(fn, args, &guard, &node, {fn});
+    } else {
+      result =
+          invokeManager.generateDynamicInvoke(fn, args, &guard, &node, {fn});
+    }
   } else {
     result = invokeManager.generateDynamicInvoke(fn, args, &guard, &node, {fn});
   }

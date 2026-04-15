@@ -1,4 +1,5 @@
 #include "../CodeGen.h"
+#include "bytecode.pb.h"
 
 using namespace std;
 using namespace llvm;
@@ -12,6 +13,7 @@ TypedValue CodeGen::codegen(const Node &node, const LocalNode &subnode,
   case localTypeArg:
   case localTypeLet:
   case localTypeLoop:
+  case localTypeFn:
   case localTypeCatch: {
     auto name = subnode.name();
     auto *val = variableBindingStack.find(name);
@@ -35,6 +37,7 @@ ObjectTypeSet CodeGen::getType(const Node &node, const LocalNode &subnode,
   case localTypeArg:
   case localTypeLet:
   case localTypeLoop:
+  case localTypeFn:
   case localTypeCatch: {
     auto name = subnode.name();
     auto *type = variableTypesBindingsStack.find(name);

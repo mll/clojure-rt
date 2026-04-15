@@ -182,4 +182,74 @@ TypedValue InvokeManager::generateStaticInvoke(
       "generateStaticInvoke called on non-constant function");
 }
 
+TypedValue InvokeManager::generateStaticKeywordInvoke(
+    TypedValue keyword, const std::vector<TypedValue> &args,
+    CleanupChainGuard *guard, const clojure::rt::protobuf::bytecode::Node *node) {
+  size_t argCount = args.size();
+  llvm::Value *boxedKeyword = valueEncoder.box(keyword).value;
+
+  std::vector<llvm::Value *> callArgs;
+  callArgs.push_back(boxedKeyword); // self
+  callArgs.push_back(valueEncoder.box(args[0]).value); // obj/map
+
+  if (argCount == 2) {
+    callArgs.push_back(valueEncoder.box(args[1]).value); // default
+  } else {
+    callArgs.push_back(valueEncoder.boxNil().value); // dummy default
+  }
+  callArgs.push_back(builder.getInt32((int)argCount));
+
+  llvm::FunctionType *invokeTy = llvm::FunctionType::get(
+      types.RT_valueTy, {types.RT_valueTy, types.RT_valueTy, types.RT_valueTy, types.i32Ty}, false);
+
+  llvm::Value *res = invokeRaw("Keyword_invoke", invokeTy, callArgs, guard, true);
+  return TypedValue(ObjectTypeSet::dynamicType(), res);
+}
+
+TypedValue InvokeManager::generateStaticMapInvoke(
+    TypedValue map, const std::vector<TypedValue> &args,
+    CleanupChainGuard *guard, const clojure::rt::protobuf::bytecode::Node *node) {
+  size_t argCount = args.size();
+  llvm::Value *boxedMap = valueEncoder.box(map).value;
+
+  std::vector<llvm::Value *> callArgs;
+  callArgs.push_back(boxedMap); // self
+  callArgs.push_back(valueEncoder.box(args[0]).value); // key
+
+  if (argCount == 2) {
+    callArgs.push_back(valueEncoder.box(args[1]).value); // default
+  } else {
+    callArgs.push_back(valueEncoder.boxNil().value); // dummy default
+  }
+  callArgs.push_back(builder.getInt32((int)argCount));
+
+  llvm::FunctionType *invokeTy = llvm::FunctionType::get(
+      types.RT_valueTy, {types.RT_valueTy, types.RT_valueTy, types.RT_valueTy, types.i32Ty}, false);
+
+  llvm::Value *res = invokeRaw("PersistentArrayMap_invoke", invokeTy, callArgs, guard, true);
+  return TypedValue(ObjectTypeSet::dynamicType(), res);
+}
+
+TypedValue InvokeManager::generateStaticVectorInvoke(
+    TypedValue vector, const std::vector<TypedValue> &args,
+    CleanupChainGuard *guard, const clojure::rt::protobuf::bytecode::Node *node) {
+  size_t argCount = args.size();
+  llvm::Value *boxedVector = valueEncoder.box(vector).value;
+
+  if (argCount != 1) {
+    // We could throw here or let the runtime function throw
+  }
+
+  std::vector<llvm::Value *> callArgs;
+  callArgs.push_back(boxedVector); // self
+  callArgs.push_back(valueEncoder.box(args[0]).value); // index
+  callArgs.push_back(builder.getInt32((int)argCount));
+
+  llvm::FunctionType *invokeTy = llvm::FunctionType::get(
+      types.RT_valueTy, {types.RT_valueTy, types.RT_valueTy, types.i32Ty}, false);
+
+  llvm::Value *res = invokeRaw("PersistentVector_invoke", invokeTy, callArgs, guard, true);
+  return TypedValue(ObjectTypeSet::dynamicType(), res);
+}
+
 } // namespace rt

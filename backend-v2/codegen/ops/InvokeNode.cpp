@@ -71,12 +71,16 @@ TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,
       result = invokeManager.generateStaticMapInvoke(fn, args, &guard, &node);
     } else if (type == persistentVectorType) {
       result = invokeManager.generateStaticVectorInvoke(fn, args, &guard, &node);
-    } else if (fn.type.getConstant() &&
-               dynamic_cast<ConstantFunction *>(fn.type.getConstant())) {
-      result = invokeManager.generateStaticInvoke(fn, args, &guard, &node, {fn});
+    } else if (type == functionType) {
+      if (fn.type.getConstant() &&
+          dynamic_cast<ConstantFunction *>(fn.type.getConstant())) {
+        result = invokeManager.generateStaticInvoke(fn, args, &guard, &node, {fn});
+      } else {
+        result =
+            invokeManager.generateDynamicInvoke(fn, args, &guard, &node, {fn});
+      }
     } else {
-      result =
-          invokeManager.generateDynamicInvoke(fn, args, &guard, &node, {fn});
+      throwCodeGenerationException("Type " + fn.type.toString() + " is not callable", node);
     }
   } else {
     result = invokeManager.generateDynamicInvoke(fn, args, &guard, &node, {fn});

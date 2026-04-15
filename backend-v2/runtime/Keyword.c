@@ -64,13 +64,13 @@ void Keyword_resetInterns() {
   atomic_store_explicit(&minUnusedKeyword, 1, memory_order_relaxed);
 }
 
+/* mem: self is NOT consumed (borrowed), other arguments are consumed */
 RTValue Keyword_invoke(RTValue self, RTValue map, RTValue defaultVal, int32_t argCount) {
   if (argCount == 1) {
     if (RT_isPtr(map) && getType(map) == persistentArrayMapType) {
       return PersistentArrayMap_get(RT_unboxPtr(map), self);
     }
     release(map);
-    release(self);
     return RT_boxNil();
   } else if (argCount == 2) {
     if (RT_isPtr(map) && getType(map) == persistentArrayMapType) {
@@ -83,10 +83,8 @@ RTValue Keyword_invoke(RTValue self, RTValue map, RTValue defaultVal, int32_t ar
       return res;
     }
     release(map);
-    release(self);
     return defaultVal;
   }
-  release(self);
   release(map);
   if (argCount >= 2) release(defaultVal);
   throwArityException_C(-1, argCount);

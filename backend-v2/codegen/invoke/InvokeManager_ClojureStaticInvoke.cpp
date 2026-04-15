@@ -116,10 +116,6 @@ TypedValue InvokeManager::generateStaticInvoke(
                 "RT_createListFromArray", listHelperTy,
                 {llvm::ConstantInt::get(types.i32Ty, surplus), surplusArray},
                 guard, false);
-            if (guard) {
-              guard->push(
-                  TypedValue(ObjectTypeSet(persistentListType, true), vSeq));
-            }
             builder.CreateStore(
                 vSeq, builder.CreateStructGEP(types.frameTy, framePtr, 2));
           } else {

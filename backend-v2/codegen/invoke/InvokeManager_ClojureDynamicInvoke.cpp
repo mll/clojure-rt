@@ -39,18 +39,27 @@ TypedValue InvokeManager::generateDynamicInvoke(
 
   // --- KEYWORD PATH ---
   builder.SetInsertPoint(keywordPath);
+  if (guard) {
+    guard->push(valueEncoder.boxNil()); // Balance stack (+1)
+  }
   TypedValue keyRes = generateStaticKeywordInvoke(fn, args, guard, node);
   llvm::BasicBlock *keyPathEnd = builder.GetInsertBlock();
   builder.CreateBr(mergeBB);
 
   // --- MAP PATH ---
   builder.SetInsertPoint(mapPath);
+  if (guard) {
+    guard->push(valueEncoder.boxNil()); // Balance stack (+1)
+  }
   TypedValue mapRes = generateStaticMapInvoke(fn, args, guard, node);
   llvm::BasicBlock *mapPathEnd = builder.GetInsertBlock();
   builder.CreateBr(mergeBB);
 
   // --- VECTOR PATH ---
   builder.SetInsertPoint(vectorPath);
+  if (guard) {
+    guard->push(valueEncoder.boxNil()); // Balance stack (+1)
+  }
   TypedValue vecRes = generateStaticVectorInvoke(fn, args, guard, node);
   llvm::BasicBlock *vecPathEnd = builder.GetInsertBlock();
   builder.CreateBr(mergeBB);
@@ -143,6 +152,7 @@ TypedValue InvokeManager::generateDynamicInvoke(
   // --- No Variadic Path ---
   builder.SetInsertPoint(noVariadicBB);
   llvm::Value *nilVal = valueEncoder.boxNil().value;
+
   builder.CreateStore(nilVal,
                       builder.CreateStructGEP(types.frameTy, framePtr, 2));
   builder.CreateBr(packingDoneBB);
@@ -153,11 +163,8 @@ TypedValue InvokeManager::generateDynamicInvoke(
   vSeqPhi->addIncoming(vSeqRaw, variadicExitBB);
   vSeqPhi->addIncoming(nilVal, noVariadicBB);
 
-  if (guard) {
-    // Note: List returned by RT_packVariadic needs to be tracked for cleanup
-    guard->push(TypedValue(ObjectTypeSet(persistentListType, true), vSeqPhi));
-  }
-
+  // (Removed guard->push(vSeqPhi) because the JIT-compiled body's unwind guidance 
+  // will consume the arguments & vSeq even if it throws.)
   // bailoutEntryIndex
   builder.CreateStore(llvm::ConstantInt::get(types.i32Ty, 0),
                       builder.CreateStructGEP(types.frameTy, framePtr, 3));
@@ -191,6 +198,9 @@ TypedValue InvokeManager::generateDynamicInvoke(
       types.ptrTy, builder.CreateStructGEP(types.methodTy, methodPtr, 4));
   llvm::Value *resFunction = invokeRaw(
       implPtr, types.baselineFunctionTy, callArgs, guard, true, extraCleanup);
+  
+  // (Removed guard->cancel(1) as we no longer track vSeqPhi in the caller's guard)
+  
   llvm::BasicBlock *functionPathEnd = builder.GetInsertBlock();
   builder.CreateBr(mergeBB);
 

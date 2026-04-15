@@ -149,6 +149,7 @@ set(BACKEND_SOURCES
       codegen/ops/IsInstanceNode.cpp
       codegen/ops/ThrowNode.cpp
       codegen/ops/InvokeNode.cpp
+      codegen/ops/KeywordInvokeNode.cpp
       codegen/ops/FnNode.cpp
       codegen/ops/RecurNode.cpp
       )

@@ -35,6 +35,7 @@ set(TEST_MODULES
     codegen/VarCallIC_test
     codegen/VarCallLeak_repro
     codegen/DynamicInvoke_test
+    codegen/IFnInvoke_test
     codegen/EBRFlush_test
     state/ClassRegistration_test
     VarUAF_repro_test

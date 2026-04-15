@@ -549,3 +549,14 @@ bool PersistentVector_contains(PersistentVector *restrict self, RTValue other) {
   Ptr_release(self);
   return retVal;
 }
+
+/* mem: self is NOT consumed (borrowed), other arguments are consumed */
+RTValue PersistentVector_invoke(RTValue self, RTValue index, int32_t argCount) {
+  if (argCount == 1) {
+    Ptr_retain(RT_unboxPtr(self));
+    return PersistentVector_dynamic_nth(RT_unboxPtr(self), index);
+  }
+  release(index);
+  throwArityException_C(-1, argCount);
+}
+

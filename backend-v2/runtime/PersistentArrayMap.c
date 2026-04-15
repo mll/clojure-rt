@@ -281,3 +281,23 @@ RTValue PersistentArrayMap_dynamic_get(RTValue self, RTValue key) {
   }
   return PersistentArrayMap_get(RT_unboxPtr(self), key);
 }
+
+/* mem: self is NOT consumed (borrowed), other arguments are consumed */
+RTValue PersistentArrayMap_invoke(RTValue self, RTValue key, RTValue defaultVal, int32_t argCount) {
+  if (argCount == 1) {
+    Ptr_retain(RT_unboxPtr(self));
+    return PersistentArrayMap_get(RT_unboxPtr(self), key);
+  } else if (argCount == 2) {
+    Ptr_retain(RT_unboxPtr(self));
+    RTValue res = PersistentArrayMap_get(RT_unboxPtr(self), key);
+    if (RT_isNil(res)) {
+      release(res);
+      return defaultVal;
+    }
+    release(defaultVal);
+    return res;
+  }
+  release(key);
+  if (argCount >= 2) release(defaultVal);
+  throwArityException_C(-1, argCount);
+}

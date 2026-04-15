@@ -42,6 +42,7 @@ RTValue PersistentArrayMap_get(PersistentArrayMap *self, RTValue key);
 RTValue PersistentArrayMap_dynamic_get(RTValue self, RTValue key);
 word_t PersistentArrayMap_indexOf(PersistentArrayMap *self, RTValue key);
 
+RTValue PersistentArrayMap_invoke(RTValue self, RTValue key, RTValue defaultVal, int32_t argCount);
 PersistentArrayMap *PersistentArrayMap_create();
 PersistentArrayMap *PersistentArrayMap_createMany(int32_t pairCount, ...);
 

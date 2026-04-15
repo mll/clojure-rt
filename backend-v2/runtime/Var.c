@@ -125,6 +125,9 @@ RTValue Var_peek(Var *self) {
 
 struct FunctionMethod *VarCallSlowPath(void *slot, RTValue currentVal,
                                        uint64_t argCount) {
+  if (getType(currentVal) != functionType) {
+    return NULL;
+  }
   struct FunctionMethod *method = Function_extractMethod(currentVal, argCount);
 
   // IC Ownership: The IC slot owns a reference to the function (key).

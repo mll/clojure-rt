@@ -398,67 +398,54 @@ TypedValue InvokeManager::generateRawMethodCall(
                       builder.CreateStructGEP(types.frameTy, framePtr, 1));
 
   // variadicSeq
-  if (args.size() <= 20) {
-    BasicBlock *variadicBB =
-        BasicBlock::Create(theModule.getContext(), "variadic_pack", currentFn);
-    BasicBlock *noVariadicBB =
-        BasicBlock::Create(theModule.getContext(), "no_variadic", currentFn);
-    BasicBlock *packingDoneBB =
-        BasicBlock::Create(theModule.getContext(), "packing_done", currentFn);
+  BasicBlock *variadicBB =
+      BasicBlock::Create(theModule.getContext(), "variadic_pack", currentFn);
+  BasicBlock *noVariadicBB =
+      BasicBlock::Create(theModule.getContext(), "no_variadic", currentFn);
+  BasicBlock *packingDoneBB =
+      BasicBlock::Create(theModule.getContext(), "packing_done", currentFn);
 
-    builder.CreateCondBr(isVariadicBool, variadicBB, noVariadicBB);
+  builder.CreateCondBr(isVariadicBool, variadicBB, noVariadicBB);
 
-    // --- Variadic Path ---
-    builder.SetInsertPoint(variadicBB);
-    {
-      auto IP = builder.saveIP();
-      builder.SetInsertPoint(&currentFn->getEntryBlock(),
-                             currentFn->getEntryBlock().begin());
-      Value *allArgsArray = builder.CreateAlloca(
-          types.RT_valueTy, builder.getInt32((int)argCount), "all_args_array");
-      builder.restoreIP(IP);
+  // --- Variadic Path ---
+  builder.SetInsertPoint(variadicBB);
+  {
+    auto IP = builder.saveIP();
+    builder.SetInsertPoint(&currentFn->getEntryBlock(),
+                           currentFn->getEntryBlock().begin());
+    Value *allArgsArray = builder.CreateAlloca(
+        types.RT_valueTy, builder.getInt32((int)argCount), "all_args_array");
+    builder.restoreIP(IP);
 
-      for (int i = 0; i < (int)argCount; ++i) {
-        builder.CreateStore(
-            valueEncoder.box(args[i]).value,
-            builder.CreateInBoundsGEP(types.RT_valueTy, allArgsArray,
-                                      {builder.getInt32(i)}));
-      }
-
-      FunctionType *packTy = FunctionType::get(
-          types.RT_valueTy, {types.i64Ty, types.ptrTy, types.i64Ty}, false);
-      Value *vSeq = invokeRaw(
-          "RT_packVariadic", packTy,
-          {builder.getInt64(argCount), allArgsArray,
-           builder.CreateZExt(fixedArity, types.i64Ty)},
-          guard, false);
-      builder.CreateStore(vSeq,
-                          builder.CreateStructGEP(types.frameTy, framePtr, 2));
-      
-      BasicBlock *variadicExitBB = builder.GetInsertBlock();
-      builder.CreateBr(packingDoneBB);
-
-      // --- No Variadic Path ---
-      builder.SetInsertPoint(noVariadicBB);
-      Value *nilVal = valueEncoder.boxNil().value;
-      builder.CreateStore(nilVal,
-                          builder.CreateStructGEP(types.frameTy, framePtr, 2));
-      builder.CreateBr(packingDoneBB);
-
-      builder.SetInsertPoint(packingDoneBB);
-
-      PHINode *phi = builder.CreatePHI(types.RT_valueTy, 2, "vSeq_phi");
-      phi->addIncoming(vSeq, variadicExitBB);
-      phi->addIncoming(nilVal, noVariadicBB);
-
-      if (guard) {
-        guard->push(TypedValue(ObjectTypeSet::dynamicType(), phi));
-      }
+    for (int i = 0; i < (int)argCount; ++i) {
+      builder.CreateStore(
+          valueEncoder.box(args[i]).value,
+          builder.CreateInBoundsGEP(types.RT_valueTy, allArgsArray,
+                                    {builder.getInt32(i)}));
     }
-  } else {
-    builder.CreateStore(valueEncoder.boxNil().value,
+
+    FunctionType *packTy = FunctionType::get(
+        types.RT_valueTy, {types.i64Ty, types.ptrTy, types.i64Ty}, false);
+    Value *vSeq = invokeRaw(
+        "RT_packVariadic", packTy,
+        {builder.getInt64(argCount), allArgsArray,
+         builder.CreateZExt(fixedArity, types.i64Ty)},
+        guard, false);
+    builder.CreateStore(vSeq,
                         builder.CreateStructGEP(types.frameTy, framePtr, 2));
+    
+    builder.CreateBr(packingDoneBB);
   }
+
+  // --- No Variadic Path ---
+  builder.SetInsertPoint(noVariadicBB);
+  Value *nilVal = valueEncoder.boxNil().value;
+  builder.CreateStore(nilVal,
+                      builder.CreateStructGEP(types.frameTy, framePtr, 2));
+  builder.CreateBr(packingDoneBB);
+
+  // --- Merge ---
+  builder.SetInsertPoint(packingDoneBB);
 
   // 4. bailoutEntryIndex & localsCount
   builder.CreateStore(ConstantInt::get(types.i32Ty, 0),

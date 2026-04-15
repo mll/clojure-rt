@@ -129,6 +129,21 @@ public:
                  CleanupChainGuard *guard = nullptr,
                  const clojure::rt::protobuf::bytecode::Node *node = nullptr);
 
+  TypedValue generateStaticKeywordInvoke(
+      TypedValue keyword, const std::vector<TypedValue> &args,
+      CleanupChainGuard *guard = nullptr,
+      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+
+  TypedValue generateStaticMapInvoke(
+      TypedValue map, const std::vector<TypedValue> &args,
+      CleanupChainGuard *guard = nullptr,
+      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+
+  TypedValue generateStaticVectorInvoke(
+      TypedValue vector, const std::vector<TypedValue> &args,
+      CleanupChainGuard *guard = nullptr,
+      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+
   TypedValue generateRawMethodCall(
       llvm::Value *methodPtr, TypedValue self,
       const std::vector<TypedValue> &args, CleanupChainGuard *guard = nullptr,

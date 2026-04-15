@@ -492,14 +492,12 @@ TypedValue CodeGen::codegen(const Node &node,
         static_cast<const clojure::rt::protobuf::bytecode::InvokeNode &>(
             node.subnode().invoke()),
         typeRestrictions);
-  // case opKeywordInvoke:
-  //   return this->codegen(
-  //       node,
-  //       static_cast<const
-  //       clojure::rt::protobuf::bytecode::KeywordInvokeNode
-  //       &>(
-  //           node.subnode().keywordinvoke()),
-  //       typeRestrictions);
+  case opKeywordInvoke:
+    return this->codegen(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::KeywordInvokeNode &>(
+            node.subnode().keywordinvoke()),
+        typeRestrictions);
   case opTry:
   //   return codegen(node, node.subnode().try_(), typeRestrictions);
   case opVar:
@@ -574,14 +572,12 @@ ObjectTypeSet CodeGen::getType(const Node &node,
         static_cast<const clojure::rt::protobuf::bytecode::InvokeNode &>(
             node.subnode().invoke()),
         typeRestrictions);
-  // case opKeywordInvoke:
-  //   return this->getType(
-  //       node,
-  //       static_cast<const
-  //       clojure::rt::protobuf::bytecode::KeywordInvokeNode
-  //       &>(
-  //           node.subnode().keywordinvoke()),
-  //       typeRestrictions);
+  case opKeywordInvoke:
+    return this->getType(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::KeywordInvokeNode &>(
+            node.subnode().keywordinvoke()),
+        typeRestrictions);
   case opLet:
     return getType(node, node.subnode().let(), typeRestrictions);
   // case opLetfn:

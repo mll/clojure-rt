@@ -1,4 +1,5 @@
 #include "Keyword.h"
+#include "Exceptions.h"
 #include "ConcurrentHashMap.h"
 #include "Object.h"
 #include "RTValue.h"
@@ -61,4 +62,30 @@ uint32_t Keyword_getInternCount() {
 
 void Keyword_resetInterns() {
   atomic_store_explicit(&minUnusedKeyword, 1, memory_order_relaxed);
+}
+
+/* mem: self is NOT consumed (borrowed), other arguments are consumed */
+RTValue Keyword_invoke(RTValue self, RTValue map, RTValue defaultVal, int32_t argCount) {
+  if (argCount == 1) {
+    if (RT_isPtr(map) && getType(map) == persistentArrayMapType) {
+      return PersistentArrayMap_get(RT_unboxPtr(map), self);
+    }
+    release(map);
+    return RT_boxNil();
+  } else if (argCount == 2) {
+    if (RT_isPtr(map) && getType(map) == persistentArrayMapType) {
+      RTValue res = PersistentArrayMap_get(RT_unboxPtr(map), self);
+      if (RT_isNil(res)) {
+        release(res);
+        return defaultVal;
+      }
+      release(defaultVal);
+      return res;
+    }
+    release(map);
+    return defaultVal;
+  }
+  release(map);
+  if (argCount >= 2) release(defaultVal);
+  throwArityException_C(-1, argCount);
 }

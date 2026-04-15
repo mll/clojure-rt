@@ -15,9 +15,10 @@ TypedValue InvokeManager::generateDynamicInvoke(
   // 1. Get object type
   llvm::Value *boxedFn = valueEncoder.box(fn).value;
   llvm::FunctionType *getTypeSig =
-      llvm::FunctionType::get(types.i32Ty, {types.RT_valueTy}, false);
-  llvm::Value *valType =
+      llvm::FunctionType::get(types.wordTy, {types.RT_valueTy}, false);
+  llvm::Value *valType64 =
       invokeRaw("getType", getTypeSig, {boxedFn}, guard, true);
+  llvm::Value *valType = builder.CreateTrunc(valType64, types.i32Ty, "valType");
 
   llvm::BasicBlock *functionPath =
       llvm::BasicBlock::Create(theModule.getContext(), "dyn_fun", currentFn);
@@ -29,7 +30,7 @@ TypedValue InvokeManager::generateDynamicInvoke(
       llvm::BasicBlock::Create(theModule.getContext(), "dyn_vec", currentFn);
   llvm::BasicBlock *mergeBB =
       llvm::BasicBlock::Create(theModule.getContext(), "dyn_merge", currentFn);
-
+ 
   llvm::SwitchInst *sw = builder.CreateSwitch(valType, functionPath);
   sw->addCase(builder.getInt32(functionType), functionPath);
   sw->addCase(builder.getInt32(keywordType), keywordPath);

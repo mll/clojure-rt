@@ -687,6 +687,17 @@ throwNoMatchingOverloadException_C(const char *className,
       RT_boxPtr(::String_createDynamicStr(ss.str().c_str())), RT_boxNil());
 }
 
+extern "C" [[noreturn]] void
+throwNoMatchingConstructorException_C(const char *className,
+                                       int arity) {
+  std::stringstream ss;
+  ss << "No matching constructor found for " << className << " with arity " << arity;
+  throw rt::LanguageException(
+      "NoMatchingConstructorException",
+      RT_boxPtr(::String_createDynamicStr(ss.str().c_str())), RT_boxNil());
+}
+
+
 extern "C" void throwLanguageException_C(const char *name, RTValue message,
                                          RTValue payload) {
   throw rt::LanguageException(name, message, payload);

@@ -293,7 +293,8 @@
             {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOEQ_DR"     :returns :bool}
             {:args [:int :double]    :type :intrinsic :symbol "FCmpOEQ_ID"     :returns :bool}
             {:args [:double :int]    :type :intrinsic :symbol "FCmpOEQ_DI"     :returns :bool}
-            {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}]}}
+            {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}
+            {:args [:any :any]       :type :call      :symbol "identical_managed" :returns :bool}]}}
 
 
 

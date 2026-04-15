@@ -123,6 +123,7 @@ inline bool Ptr_isReusable(void *ptr);
 #include "PersistentVectorNode.h"
 #include "Ratio.h"
 #include "String.h"
+#include "StringBuilder.h"
 #include "Symbol.h"
 #include "Var.h"
 
@@ -305,6 +306,9 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   case bridgedObjectType:
     BridgedObject_destroy((BridgedObject *)self);
     break;
+  case stringBuilderType:
+    StringBuilder_destroy((StringBuilder *)self);
+    break;
 
   default:
     break;
@@ -478,6 +482,8 @@ inline uword_t Object_hash(Object *restrict self) {
     return Exception_hash((Exception *)self);
   case bridgedObjectType:
     return BridgedObject_hash((BridgedObject *)self);
+  case stringBuilderType:
+    return StringBuilder_hash((StringBuilder *)self);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -561,6 +567,8 @@ inline bool Object_equals(Object *self, Object *other) {
     return Exception_equals((Exception *)self, (Exception *)other);
   case bridgedObjectType:
     return BridgedObject_equals((BridgedObject *)self, (BridgedObject *)other);
+  case stringBuilderType:
+    return StringBuilder_equals((StringBuilder *)self, (StringBuilder *)other);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -624,6 +632,8 @@ inline String *Object_toString(Object *restrict self) {
     return Exception_toString((Exception *)self);
   case bridgedObjectType:
     return BridgedObject_toString((BridgedObject *)self);
+  case stringBuilderType:
+    return StringBuilder_toString((StringBuilder *)self);
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }
@@ -717,6 +727,14 @@ inline bool equals_managed(RTValue self, RTValue other) {
   release(other);
   return result;
 }
+
+inline bool identical_managed(RTValue v1, RTValue v2) {
+  bool result = (v1 == v2);
+  release(v1);
+  release(v2);
+  return result;
+}
+
 
 #ifdef __cplusplus
 }

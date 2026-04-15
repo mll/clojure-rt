@@ -288,6 +288,13 @@
               {:args [:this java.lang.String :int] :type :call :symbol "String_indexOfFrom"  :returns :int}]
     replace [{:args [:this java.lang.String java.lang.String] :type :call :symbol "String_replace" :returns java.lang.String}]}}
 
+  java.lang.StringBuilder
+  {:extends java.lang.Object
+   :object-type 21
+   :constructor [{:args [java.lang.String] :type :call :symbol "StringBuilder_create" :returns java.lang.StringBuilder}]
+   :instance-fns
+   {append [{:args [:this java.lang.String] :type :call :symbol "StringBuilder_append" :returns java.lang.StringBuilder}]}}
+
   clojure.lang.Util
   {:static-fns
     {equiv [{:args [:int :int]       :type :intrinsic :symbol "ICmpEQ"         :returns :bool}
@@ -300,7 +307,8 @@
             {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOEQ_DR"     :returns :bool}
             {:args [:int :double]    :type :intrinsic :symbol "FCmpOEQ_ID"     :returns :bool}
             {:args [:double :int]    :type :intrinsic :symbol "FCmpOEQ_DI"     :returns :bool}
-            {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}]}}
+            {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}]
+     identical [{:args [:any :any]       :type :call      :symbol "identical_managed" :returns :bool}]}}
 
 
 

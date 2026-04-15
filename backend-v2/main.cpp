@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
   try {
     cout << "Initialising compiler state..." << endl;
     initialise_memory();
-    rt::JITEngine engine(llvm::OptimizationLevel::O3);
+    rt::JITEngine engine(llvm::OptimizationLevel::O0, true);
     {
       ExecutionTimer t("Compiling and storing interfaces");
       cout << "Compiling interfaces..." << endl;
@@ -120,10 +120,9 @@ int main(int argc, char *argv[]) {
     {
       ExecutionTimer t("Compiling and storing classes");
       cout << "Compiling classes..." << endl;
-      RTValue classes =
-          engine.compileAST(astClasses.nodes(0), "__classes")
-              .get()
-              .address.toPtr<RTValue (*)()>()();
+      RTValue classes = engine.compileAST(astClasses.nodes(0), "__classes")
+                            .get()
+                            .address.toPtr<RTValue (*)()>()();
       cout << "Storing classes..." << endl;
       engine.threadsafeState.storeInternalClasses(classes);
     }

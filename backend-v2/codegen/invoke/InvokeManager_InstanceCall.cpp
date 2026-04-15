@@ -83,7 +83,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
   // 1. Get current instance type
   TypedValue boxedInstance = valueEncoder.box(instance);
   FunctionType *getTypeSig =
-      FunctionType::get(types.i64Ty, {types.RT_valueTy}, false);
+      FunctionType::get(types.wordTy, {types.RT_valueTy}, false);
   FunctionCallee getTypeFunc =
       theModule.getOrInsertFunction("getType", getTypeSig);
   Value *currentTypeIdent =
@@ -379,7 +379,7 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
         Value *targetVal =
             ConstantInt::get(this->types.i32Ty, (uint32_t)target);
         Value *isType =
-            this->builder.CreateICmpEQ(argRuntimeTypes[i], targetVal);
+            this->builder.CreateICmpEQ(this->builder.CreateTrunc(argRuntimeTypes[i], this->types.i32Ty), targetVal);
 
         if (match) {
           match = this->builder.CreateAnd(match, isType);

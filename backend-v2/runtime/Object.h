@@ -220,6 +220,8 @@ inline objectType getType(RTValue v) {
     return keywordType;
   if (RT_isSymbol(v))
     return symbolType;
+  if (RT_isNull(v))
+    return nullType;
   assert(RT_isPtr(v) && "Internal error: Not a pointer");
   return ((Object *)RT_unboxPtr(v))->type;
 }

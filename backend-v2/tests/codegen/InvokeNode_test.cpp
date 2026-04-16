@@ -223,6 +223,59 @@ static void test_static_invoke_overflow(void **state) {
     assert_int_equal(70, RT_unboxInt32(result));
 }
 
+static void test_var_call_unbound(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+    auto &compState = engine.threadsafeState;
+
+    // 1. Create a Var but do NOT bind it
+    const char *varName = "user/unbound-fn";
+    RTValue kw = Keyword_create(String_create(varName));
+    Var *v = Var_create(kw);
+    Ptr_retain(v);
+    compState.varRegistry.registerObject(varName, v);
+
+    // 2. Create an InvokeNode calling #'user/unbound-fn
+    Node invokeNode;
+    invokeNode.set_op(opInvoke);
+    auto *inv = invokeNode.mutable_subnode()->mutable_invoke();
+
+    auto *fnPart = inv->mutable_fn();
+    fnPart->set_op(opVar);
+    fnPart->mutable_subnode()->mutable_var()->set_var(std::string("#'") +
+                                                     varName);
+
+    auto *arg1 = inv->add_args();
+    arg1->set_op(opConst);
+    auto *c = arg1->mutable_subnode()->mutable_const_();
+    c->set_type(ConstNode_ConstType_constTypeNumber);
+    c->set_val("42");
+
+    // 3. Compile and Run
+    auto res = engine.compileAST(invokeNode, "var_call_unbound_test").get();
+    RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
+
+    bool caught = false;
+    try {
+      // This should throw because the var is unbound
+      func();
+    } catch (const rt::LanguageException &e) {
+      caught = true;
+      // The user's edit in Var.c throws IllegalStateException
+      assert_string_equal("IllegalStateException", e.getName().c_str());
+    } catch (...) {
+      fail_msg("Expected LanguageException but caught something else");
+    }
+
+    assert_true(caught);
+
+    // 4. Cleanup
+    Ptr_release(v);
+    engine.retireModule("var_call_unbound_test");
+  });
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
@@ -230,6 +283,7 @@ int main(void) {
       cmocka_unit_test(test_static_invoke_multi_arity),
       cmocka_unit_test(test_static_invoke_overflow),
       cmocka_unit_test(test_static_invoke_arity_mismatch_leak),
+      cmocka_unit_test(test_var_call_unbound),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);

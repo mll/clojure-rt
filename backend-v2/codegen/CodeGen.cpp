@@ -249,7 +249,7 @@ llvm::Function *CodeGen::generateBaselineMethod(
 
   std::string loopId = method.loopid();
   if (!loopId.empty()) {
-    recurTargets[loopId] = {F, framePtr, method.params_size(),
+    recurTargets[loopId] = {F, framePtr, method.fixedarity(),
                             (bool)method.isvariadic()};
   }
 

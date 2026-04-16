@@ -64,10 +64,11 @@ JITEngine::captureObject(const llvm::MemoryBuffer &Obj) {
   return captured;
 }
 
-JITEngine::JITEngine(llvm::OptimizationLevel defaultOptLevel, bool defaultPrintIR, size_t numThreads)
+JITEngine::JITEngine(llvm::OptimizationLevel defaultOptLevel,
+                     bool defaultPrintIR, size_t numThreads)
     : compilationPool(std::max(numThreads / 4, size_t(1)), Priority::Low),
-      executionPool(numThreads, Priority::High),
-      optLevel(defaultOptLevel), printIR(defaultPrintIR) {
+      executionPool(numThreads, Priority::High), optLevel(defaultOptLevel),
+      printIR(defaultPrintIR) {
   if (instanceExists.exchange(true)) {
     throw std::runtime_error("Only one JITEngine instance is allowed");
   }
@@ -157,8 +158,7 @@ JITEngine::JITEngine(llvm::OptimizationLevel defaultOptLevel, bool defaultPrintI
 
 std::shared_future<JITResult>
 JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
-                          const std::string &moduleName,
-                          bool reuseIfExists) {
+                          const std::string &moduleName, bool reuseIfExists) {
   std::lock_guard<std::mutex> lock(compilationMutex);
 
   auto it = activeCompilations.find(moduleName);
@@ -211,7 +211,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               if (printIR) {
                 llvm::raw_string_ostream rs(ir);
                 module->print(rs, nullptr);
-                llvm::errs() << ir << "\n";
+                ir += "\n";
               }
 
               llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
@@ -224,7 +224,8 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                     llvm::toString(std::move(Err)));
               }
 
-              // Resolve IC slot addresses BEFORE the lock to avoid Materialization Deadlock
+              // Resolve IC slot addresses BEFORE the lock to avoid
+              // Materialization Deadlock
               std::vector<void *> icSlotAddresses;
               for (const auto &icName : result.icSlotNames) {
                 auto icSym = jit->lookup(icName);

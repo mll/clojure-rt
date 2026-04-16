@@ -1,5 +1,6 @@
 #include "../CodeGen.h"
 #include "bytecode.pb.h"
+#include <string>
 
 using namespace std;
 using namespace llvm;
@@ -18,6 +19,18 @@ TypedValue CodeGen::codegen(const Node &node, const RecurNode &subnode,
 
   const RecurTarget &target = it->second;
 
+  if (target.isVariadic && (target.numParams + 1) != subnode.exprs_size()) {
+    cout << to_string(target.numParams) + " " + to_string(subnode.exprs_size())
+         << endl;
+    throwCodeGenerationException("Recur target has wrong number of arguments",
+                                 node);
+  }
+
+  if (!target.isVariadic && target.numParams != subnode.exprs_size()) {
+    throwCodeGenerationException("Recur target has wrong number of arguments",
+                                 node);
+  }
+
   // 2. Evaluate all recur expressions with protection
   CleanupChainGuard guard(*this);
   vector<TypedValue> newArgs;
@@ -35,11 +48,8 @@ TypedValue CodeGen::codegen(const Node &node, const RecurNode &subnode,
   // 4. Hand over ownership of newArgs to the tail call context.
   // We pop them from the backend's cleanup stack because the callee
   // (the next iteration) will start a fresh scope and take over.
-  size_t argsToPop = guard.size();
-  for (size_t i = 0; i < argsToPop; ++i) {
-    this->popResource();
-  }
-  guard.cancel(argsToPop);
+
+  guard.popAll();
 
   // 5. Distribute arguments according to baseline calling convention
   // Baseline: RTValue (Frame*, RTValue r0, RTValue r1, RTValue r2, RTValue r3,
@@ -55,6 +65,11 @@ TypedValue CodeGen::codegen(const Node &node, const RecurNode &subnode,
     Value *variadicSeqPtr = Builder.CreateStructGEP(
         types.frameTy, target.framePtr, 2, "variadicSeq_ptr");
     Builder.CreateStore(variadicSeq, variadicSeqPtr);
+    newArgs.pop_back();
+  } else {
+    Value *variadicSeqPtr = Builder.CreateStructGEP(
+        types.frameTy, target.framePtr, 2, "variadicSeq_ptr");
+    Builder.CreateStore(valueEncoder.boxNil().value, variadicSeqPtr);
   }
 
   // First 5 arguments go to registers (r0-r4)
@@ -91,10 +106,11 @@ TypedValue CodeGen::codegen(const Node &node, const RecurNode &subnode,
 
   Builder.CreateRet(call);
 
-  // To prevent trailing instructions from polluting the basic block (since musttail
-  // requires it to end with ret), we create a dead block for the remainder of the AST 
-  // codegen to write into.
-  llvm::BasicBlock *deadBB = llvm::BasicBlock::Create(TheContext, "dead_recur", Builder.GetInsertBlock()->getParent());
+  // To prevent trailing instructions from polluting the basic block (since
+  // musttail requires it to end with ret), we create a dead block for the
+  // remainder of the AST codegen to write into.
+  llvm::BasicBlock *deadBB = llvm::BasicBlock::Create(
+      TheContext, "dead_recur", Builder.GetInsertBlock()->getParent());
   Builder.SetInsertPoint(deadBB);
 
   return TypedValue(ObjectTypeSet::dynamicType(), valueEncoder.boxNil().value);

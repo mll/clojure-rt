@@ -47,11 +47,11 @@ static void test_ebr_flush_on_threshold(void **state) {
     assert_non_null(strstr(res.optimizedIR.c_str(), "Ebr_flush_critical"));
 }
 
-static void test_ebr_flush_on_invoke(void **state) {
+static void test_ebr_flush_on_invoke_throws_on_uncallable(void **state) {
     (void)state;
     rt::JITEngine engine(llvm::OptimizationLevel::O0, true);
     
-    // (fn [] (some-fn)) - Small node count but contains an invoke
+    // Original (fn [] (0)) - Should throw CodeGenerationException natively
     Node fnNode;
     fnNode.set_op(opFn);
     auto *fn = fnNode.mutable_subnode()->mutable_fn();
@@ -60,12 +60,46 @@ static void test_ebr_flush_on_invoke(void **state) {
     mn->set_fixedarity(0);
     auto *body = mn->mutable_body();
     
-    body->set_op(opInvoke); 
+    body->set_op(opInvoke);
     auto *inv = body->mutable_subnode()->mutable_invoke();
     auto *innerFn = inv->mutable_fn();
     innerFn->set_op(opConst);
     innerFn->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
     innerFn->mutable_subnode()->mutable_const_()->set_val("0"); 
+
+    // Compile should throw because 0 is statically determined to be uncallable
+    try {
+        engine.compileAST(fnNode, "test_ebr_flush_on_uncallable").get();
+        assert_true(false); // Should not reach here
+    } catch (const rt::LanguageException& e) {
+        assert_non_null(strstr(e.what(), "is not callable"));
+    }
+}
+
+static void test_ebr_flush_on_invoke(void **state) {
+    (void)state;
+    rt::JITEngine engine(llvm::OptimizationLevel::O0, true);
+    
+    // (fn [] (:foo 1)) - Contains an invoke
+    Node fnNode;
+    fnNode.set_op(opFn);
+    auto *fn = fnNode.mutable_subnode()->mutable_fn();
+    auto *m = fn->add_methods();
+    auto *mn = m->mutable_subnode()->mutable_fnmethod();
+    mn->set_fixedarity(0);
+    auto *body = mn->mutable_body();
+    
+    body->set_op(opInvoke);
+    auto *inv = body->mutable_subnode()->mutable_invoke();
+    auto *innerFn = inv->mutable_fn();
+    innerFn->set_op(opConst);
+    innerFn->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeKeyword);
+    innerFn->mutable_subnode()->mutable_const_()->set_val(":foo"); 
+    
+    auto *arg = inv->add_args();
+    arg->set_op(opConst);
+    arg->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    arg->mutable_subnode()->mutable_const_()->set_val("1");
 
     // Compile
     auto res = engine.compileAST(fnNode, "test_ebr_flush_on_invoke").get();
@@ -100,6 +134,7 @@ static void test_no_ebr_flush_for_simple(void **state) {
 int main() {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_ebr_flush_on_threshold),
+        cmocka_unit_test(test_ebr_flush_on_invoke_throws_on_uncallable),
         cmocka_unit_test(test_ebr_flush_on_invoke),
         cmocka_unit_test(test_no_ebr_flush_for_simple),
     };

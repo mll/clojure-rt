@@ -18,6 +18,7 @@ typedef struct String String;
 
 RTValue Keyword_create(String *string);
 String *Keyword_toString(RTValue self);
+RTValue Keyword_invoke(RTValue self, RTValue map, RTValue defaultVal, int32_t argCount);
 uint32_t Keyword_getInternCount();
 void Keyword_resetInterns();
 

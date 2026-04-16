@@ -177,11 +177,21 @@ void Ebr_force_reclaim() {
   // There should be only two threads left: the current thread and the reclaimer
   while (atomic_load(&active_threads) > 2)
     usleep(1000);
-  // Keep reclaiming until there are no more objects to reclaim (usually 2
-  // cycles)
-  while (atomic_load(&pending_reclamation) != NULL) {
+  
+  // Keep reclaiming until there are no more objects to reclaim.
+  // We use the synchronization_mutex to properly wait for the background 
+  // reclaimer thread if it is currently holding the "stolen" pending list.
+  while (true) {
     Ebr_flush_critical();
     Ebr_synchronize_and_reclaim();
+
+    pthread_mutex_lock(&synchronization_mutex);
+    bool is_empty = (atomic_load_explicit(&pending_reclamation, memory_order_acquire) == NULL);
+    pthread_mutex_unlock(&synchronization_mutex);
+
+    if (is_empty) {
+      break;
+    }
   }
 }
 

@@ -29,6 +29,18 @@ TypedValue InvokeManager::generateVarInvoke(
       FunctionType::get(types.RT_valueTy, {types.ptrTy}, false);
   Value *currentVal = invokeRaw("Var_peek", peekSig, {varPtr}, guard, true);
 
+  BasicBlock *icPath = BasicBlock::Create(TheContext, "var_ic_path", currentFn);
+  BasicBlock *dynamicPath =
+      BasicBlock::Create(TheContext, "var_dynamic_path", currentFn);
+  BasicBlock *mergeBB =
+      BasicBlock::Create(TheContext, "var_invoke_merge", currentFn);
+
+  // Jump straight to IC path (the IC itself will branch to slow path if needed)
+  builder.CreateBr(icPath);
+
+  // --- IC PATH ---
+  builder.SetInsertPoint(icPath);
+
   // 3. Setup IC slot: { RTValue key, FunctionMethod* value }
   auto *slotTy = StructType::get(TheContext, {types.RT_valueTy, types.ptrTy});
   std::stringstream ss;
@@ -53,8 +65,8 @@ TypedValue InvokeManager::generateVarInvoke(
 
   Value *cachedKey = builder.CreateTrunc(pair, types.i64Ty, "cached_key");
   Value *cachedMethodVal128 = builder.CreateLShr(pair, 64);
-  Value *cachedMethodVal64 = builder.CreateTrunc(
-      cachedMethodVal128, types.i64Ty, "cached_method_val64");
+  Value *cachedMethodVal64 =
+      builder.CreateTrunc(cachedMethodVal128, types.i64Ty, "cached_method_val64");
   Value *cachedMethod =
       builder.CreateIntToPtr(cachedMethodVal64, types.ptrTy, "cached_method");
 
@@ -77,8 +89,11 @@ TypedValue InvokeManager::generateVarInvoke(
   Value *newMethod = invokeRaw(
       "VarCallSlowPath", slowPathSig,
       {slotGlobal, currentVal, builder.getInt64(argCount)}, guard, false);
+  
+  // Check if it's a non-function (NULL returned from SlowPath)
+  Value *isNonFun = builder.CreateICmpEQ(newMethod, ConstantPointerNull::get(cast<PointerType>(types.ptrTy)));
   BasicBlock *slowPathEnd = builder.GetInsertBlock();
-  builder.CreateBr(callBB);
+  builder.CreateCondBr(isNonFun, dynamicPath, callBB);
 
   // --- FAST PATH ---
   builder.SetInsertPoint(fastPath);
@@ -91,9 +106,28 @@ TypedValue InvokeManager::generateVarInvoke(
   methodToCall->addIncoming(newMethod, slowPathEnd);
 
   // Use the generalized helper
-  return generateRawMethodCall(
+  TypedValue icRes = generateRawMethodCall(
       methodToCall, TypedValue(ObjectTypeSet::dynamicType(), currentVal), args,
       guard, node);
+  BasicBlock *icPathEnd = builder.GetInsertBlock();
+  builder.CreateBr(mergeBB);
+
+  // --- DYNAMIC PATH ---
+  builder.SetInsertPoint(dynamicPath);
+  TypedValue dynamicRes = generateDynamicInvoke(
+      TypedValue(ObjectTypeSet::dynamicType(), currentVal), args, guard, node);
+  BasicBlock *dynamicPathEnd = builder.GetInsertBlock();
+  builder.CreateBr(mergeBB);
+
+  // --- MERGE ---
+  builder.SetInsertPoint(mergeBB);
+  PHINode *finalRes = builder.CreatePHI(types.RT_valueTy, 2, "var_invoke_res");
+  finalRes->addIncoming(icRes.value, icPathEnd);
+  finalRes->addIncoming(dynamicRes.value, dynamicPathEnd);
+
+  return TypedValue(ObjectTypeSet::dynamicType(), finalRes);
+
+  return TypedValue(ObjectTypeSet::dynamicType(), finalRes);
 }
 
 } // namespace rt

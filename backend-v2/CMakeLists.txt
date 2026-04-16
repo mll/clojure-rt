@@ -27,7 +27,7 @@ endif()
 
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fstandalone-debug")
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fno-omit-frame-pointer")
 set(CMAKE_CXX_STANDARD 20)
 add_compile_definitions(BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
@@ -149,6 +149,7 @@ set(BACKEND_SOURCES
       codegen/ops/IsInstanceNode.cpp
       codegen/ops/ThrowNode.cpp
       codegen/ops/InvokeNode.cpp
+      codegen/ops/KeywordInvokeNode.cpp
       codegen/ops/FnNode.cpp
       codegen/ops/RecurNode.cpp
       )
@@ -239,13 +240,13 @@ if(APPLE)
     endif()
 
     # Optional: if you want the binary to be smaller after stripping symbols:
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        add_custom_command(TARGET clojure-rt POST_BUILD
-            COMMAND strip -x $<TARGET_FILE:clojure-rt>
-            COMMENT "Stripping the binary (removing unnecessary symbols)..."
-            DEPENDS clojure-rt
-        )
-    endif()
+    # if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    #     add_custom_command(TARGET clojure-rt POST_BUILD
+    #         COMMAND strip -x $<TARGET_FILE:clojure-rt>
+    #         COMMENT "Stripping the binary (removing unnecessary symbols)..."
+    #         DEPENDS clojure-rt
+    #     )
+    # endif()
 endif()
 
 

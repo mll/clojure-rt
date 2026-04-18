@@ -318,11 +318,19 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
 }
 
 inline bool Object_isReusable(Object *restrict self) {
-  uword_t refCount =
+  uword_t current =
       atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
-  if (refCount & SHARED_BIT)
-    return false;
-  return refCount >> 1 == 1;
+  if (current >> 1 == 1) {
+    if (current & SHARED_BIT) {
+      // It was shared, but now we are the exclusive owner.
+      // De-promote to local for performance and correct propagation of shared
+      // bit in the future.
+      atomic_store_explicit(&(self->atomicRefCount), COUNT_INC,
+                            memory_order_relaxed);
+    }
+    return true;
+  }
+  return false;
 }
 
 inline bool isReusable(RTValue self) {

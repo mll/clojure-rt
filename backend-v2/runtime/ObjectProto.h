@@ -22,27 +22,33 @@ using std::memory_order_seq_cst;
 #include "word.h"
 
 enum objectType {
-  integerType = 1,
-  doubleType,               // 2
-  nilType,                  // 3
-  booleanType,              // 4
-  symbolType,               // 5
-  keywordType,              // 6
-  stringType,               // 7
-  persistentListType,       // 8
-  persistentVectorType,     // 9
-  persistentVectorNodeType, // 10
-  concurrentHashMapType,    // 11
-  functionType,             // 12
-  bigIntegerType,           // 13
-  ratioType,                // 14
-  classType,                // 15
-  persistentArrayMapType,   // 16
-  varType,                  // 17
-  objectRootType,           // 18
-  exceptionType,            // 19
-  bridgedObjectType,        // 20
-  nullType,                 // 21
+  // Heap types
+  stringType = 1,
+  doubleType = 2,
+  persistentListType = 3,
+  persistentVectorType = 4,
+  persistentVectorNodeType = 5,
+  concurrentHashMapType = 6,
+  functionType = 7,
+  bigIntegerType = 8,
+
+  // Tagged types (Mapped to 0xFFF[9-F] nibbles)
+  nullType = 9,          // 0xFFF9
+  symbolType = 10,       // 0xFFFA
+  keywordType = 11,      // 0xFFFB
+  nilType = 12,          // 0xFFFC
+  booleanType = 13,      // 0xFFFD
+  // 14 reserved for ptr
+  integerType = 15,      // 0xFFFF
+
+  // Remaining types
+  ratioType = 16,
+  classType = 17,
+  persistentArrayMapType = 18,
+  varType = 19,
+  objectRootType = 20,
+  exceptionType = 21,
+  bridgedObjectType = 22,
 };
 
 typedef enum objectType objectType;

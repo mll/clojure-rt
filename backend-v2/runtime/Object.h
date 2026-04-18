@@ -208,22 +208,17 @@ inline void deallocate(void *ptr) {
 
 /* Outside of refcount system */
 inline objectType getType(RTValue v) {
-  if (RT_isDouble(v))
-    return doubleType;
-  if (RT_isInt32(v))
-    return integerType;
-  if (RT_isBool(v))
-    return booleanType;
-  if (RT_isNil(v))
-    return nilType;
-  if (RT_isKeyword(v))
-    return keywordType;
-  if (RT_isSymbol(v))
-    return symbolType;
-  if (RT_isNull(v))
-    return nullType;
-  assert(RT_isPtr(v) && "Internal error: Not a pointer");
-  return ((Object *)RT_unboxPtr(v))->type;
+  // 1. Fast Path: Tagged Types (Int, Bool, Nil, etc.) - Priority Optimized
+  if (__builtin_expect(v >= RT_TAG_DOUBLE_START, 1)) {
+    uint16_t tag = (uint16_t)(v >> 48);
+    // Optimize for non-pointer inline types
+    if (__builtin_expect(tag != (uint16_t)(RT_TAG_PTR >> 48), 1))
+      return (objectType)(tag & 0xF);
+    // Fallback for pointers
+    return ((Object *)RT_unboxPtr(v))->type;
+  }
+  // 2. Second Path: Doubles
+  return doubleType;
 }
 
 inline void Object_retain(Object *restrict self) {
@@ -583,22 +578,20 @@ inline bool Object_equals(Object *self, Object *other) {
  */
 inline bool equals(RTValue self, RTValue other) {
   if (self == other)
-    return true; // Handles same-ints, same-bools, and same-pointers
+    return true;
+
+  bool leftPtr = RT_isPtr(self);
+  bool rightPtr = RT_isPtr(other);
+  if (rightPtr != leftPtr || !leftPtr)
+    return false;
 
   objectType t1 = getType(self);
   objectType t2 = getType(other);
   if (t1 != t2)
     return false;
 
-  if (RT_isPtr(self)) {
-    return Object_equals((Object *)RT_unboxPtr(self),
-                         (Object *)RT_unboxPtr(other));
-  }
-
-  if (t1 == doubleType) {
-    return RT_unboxDouble(self) == RT_unboxDouble(other);
-  }
-  return false;
+  return Object_equals((Object *)RT_unboxPtr(self),
+                       (Object *)RT_unboxPtr(other));
 }
 
 inline String *Object_toString(Object *restrict self) {

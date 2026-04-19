@@ -1,7 +1,7 @@
 #include "InvokeManager.h"
-#include "../../tools/RandomID.h"
 #include "../../bridge/Exceptions.h"
 #include "../../tools/EdnParser.h"
+#include "../../tools/RandomID.h"
 #include "../../types/ConstantBigInteger.h"
 #include "../../types/ConstantBool.h"
 #include "../../types/ConstantDouble.h"
@@ -343,9 +343,9 @@ TypedValue InvokeManager::invokeRuntime(
     }
   }
 
-  return TypedValue(
-      retValType ? *retValType : ObjectTypeSet::all(),
-      invokeRaw(fname, functionType, argVals, guard, consumesArgs, extraCleanup));
+  return TypedValue(retValType ? *retValType : ObjectTypeSet::all(),
+                    invokeRaw(fname, functionType, argVals, guard, consumesArgs,
+                              extraCleanup));
 }
 
 TypedValue InvokeManager::generateRawMethodCall(
@@ -397,7 +397,8 @@ TypedValue InvokeManager::generateRawMethodCall(
           ? static_cast<llvm::Value *>(&*currentFn->arg_begin())
           : static_cast<llvm::Value *>(
                 ConstantPointerNull::get(cast<PointerType>(types.ptrTy)));
-  builder.CreateStore(currentFrame, types.getFrameLeafFramePtr(builder, framePtr));
+  builder.CreateStore(currentFrame,
+                      types.getFrameLeafFramePtr(builder, framePtr));
   builder.CreateStore(methodPtr, types.getFrameMethodPtr(builder, framePtr));
   builder.CreateStore(valueEncoder.box(self).value,
                       types.getFrameSelfPtr(builder, framePtr));
@@ -478,8 +479,9 @@ TypedValue InvokeManager::generateRawMethodCall(
   return TypedValue(ObjectTypeSet::dynamicType(), res);
 }
 
-llvm::Value *InvokeManager::generateICLookup(
-    llvm::Value *currentVal, size_t argCount, CleanupChainGuard *guard) {
+llvm::Value *InvokeManager::generateICLookup(llvm::Value *currentVal,
+                                             size_t argCount,
+                                             CleanupChainGuard *guard) {
   auto &TheContext = theModule.getContext();
   llvm::Function *currentFn = builder.GetInsertBlock()->getParent();
 

@@ -290,7 +290,7 @@
 
   java.lang.StringBuilder
   {:extends java.lang.Object
-   :object-type 21
+   :object-type 23
    :constructor [{:args [java.lang.String] :type :call :symbol "StringBuilder_create" :returns java.lang.StringBuilder}]
    :instance-fns
    {append [{:args [:this java.lang.String] :type :call :symbol "StringBuilder_append" :returns java.lang.StringBuilder}]}}
@@ -309,7 +309,6 @@
             {:args [:double :int]    :type :intrinsic :symbol "FCmpOEQ_DI"     :returns :bool}
             {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}]
      identical [{:args [:any :any]       :type :call      :symbol "identical_managed" :returns :bool}]}}
-
 
 
   clojure.lang.PersistentVector

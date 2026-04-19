@@ -21,6 +21,7 @@ public:
   uint32_t nextClassId = 1000;
   TemporaryClassData(RTValue from);
   ~TemporaryClassData();
+  void clear();
 };
 
 enum class CallType { Call, Intrinsic, ClojureFn };

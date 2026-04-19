@@ -37,7 +37,6 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
       auto it = localMap.find(desc->parentName);
       if (it != localMap.end()) {
         parentClass = it->second;
-        Ptr_retain(parentClass);
       } else {
         // Look in global registry
         parentClass = classRegistry.getCurrent(desc->parentName.c_str());
@@ -45,14 +44,22 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
       }
 
       if (parentClass) {
-        Ptr_retain(parentClass); // desc release parentClass as well.
+        // desc release parentClass in its destructor.
+        Ptr_retain(parentClass);
         desc->extends = parentClass;
 
         // Populate runtime Class superclasses (currently support single
         // inheritance)
+        // Class_destroy also releases superclasses.
+        Ptr_retain(parentClass);
         c->superclassCount = 1;
         c->superclasses = (::Class **)allocate(sizeof(::Class *));
         c->superclasses[0] = parentClass;
+
+        // If it came from registry, release the reference from getCurrent
+        if (it == localMap.end()) {
+          Ptr_release(parentClass);
+        }
       } else {
         for (auto const &p2 : localMap)
           Ptr_release(p2.second);
@@ -73,13 +80,20 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
     classRegistry.registerObject(desc->name.c_str(), c);
 
     if (desc->type.isDetermined()) {
+      c->registerId = (int32_t)desc->type.determinedType();
+    }
+
+    Ptr_retain(c);
+    if (desc->type.isDetermined()) {
       // If we register by ID too, we need another reference because the ID
       // registry also releases on its own.
-      c->registerId = (int32_t)desc->type.determinedType();
       classRegistry.registerObject(c, c->registerId);
     } else {
-      c->registerId = classRegistry.registerObject(c, -1);
+      c->registerId = (int32_t)classRegistry.registerObject(c, -1);
     }
+
+    // Release the initial reference from Phase 1
+    Ptr_release(c);
   }
 }
 

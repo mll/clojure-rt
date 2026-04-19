@@ -1,26 +1,26 @@
 '{java.lang.Object
   {:alias :any
-   :object-type 18
+   :object-type 20
    :instance-fns
    {toString [{:args [:this] :type :call :symbol "toString" :returns java.lang.String}]}}
 
   java.lang.Class
-  {:object-type 15
+  {:object-type 17
    :extends java.lang.Object}
 
 
 ;; Assertion error is here just to enable assert.
   java.lang.AssertionError 
-  {:object-type 19
+  {:object-type 21
    :extends java.lang.Object
    :constructor [{:args [java.lang.String] :type :call :symbol "Exception_createAssertionErrorWithMessage"}]}
 
   java.lang.Nil
-  {:object-type 3
+  {:object-type 12
    :extends java.lang.Object}
 
   java.lang.Long
-  {:object-type 1
+  {:object-type 15
    :alias :int
    :extends java.lang.Object
    :static-fields
@@ -35,39 +35,39 @@
    :extends java.lang.Object}
 
   java.lang.PersistentArrayMap
-  {:object-type 16
+  {:object-type 18
    :extends java.lang.Object}
 
   clojure.lang.BigInt
   {:extends java.lang.Object
    :alias :bigint
-   :object-type 13}
+   :object-type 8}
 
   clojure.lang.Ratio
   {:extends java.lang.Object
    :alias :ratio
-   :object-type 14}
+   :object-type 16}
 
   clojure.lang.Boolean
   {:alias :bool
-   :object-type 4
+   :object-type 13
    :extends java.lang.Object}
 
   clojure.lang.Keyword
   {:alias :keyword
-   :object-type 6
+   :object-type 11
    :extends java.lang.Object}
 
   clojure.lang.Symbol
   {:alias :symbol
-   :object-type 5
+   :object-type 10
    :extends java.lang.Object}
 
   ;; character: clojure.lang.Character
 
   clojure.lang.Var
   {:extends java.lang.Object
-   :object-type 17}
+   :object-type 19}
 
   clojure.lang.Numbers
   {:static-fns
@@ -278,7 +278,7 @@
 
   java.lang.String
   {:extends java.lang.Object
-   :object-type 7
+   :object-type 1
     :constructor [{:args [] :type :call :symbol "String_createEmpty" :returns java.lang.String}]
    :static-fns
    {print [{:args [:any] :type :call :symbol "print" :returns :nil}]}
@@ -313,7 +313,7 @@
 
 
   clojure.lang.PersistentVector
-  {:object-type 9
+  {:object-type 4
    :extends java.lang.Object
    :instance-fns
    {asTransient [{:args [:this] :type :call :symbol "PersistentVector_transient" :returns clojure.lang.PersistentVector}]

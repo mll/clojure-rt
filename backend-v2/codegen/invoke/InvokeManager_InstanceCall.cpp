@@ -4,6 +4,7 @@
 #include "../../types/ConstantClass.h"
 #include "../CodeGen.h"
 #include "InvokeManager.h"
+#include "../../tools/RandomID.h"
 #include "llvm/IR/MDBuilder.h"
 #include <cstdint>
 #include <sstream>
@@ -42,7 +43,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
   auto *slotTy = StructType::get(TheContext, {types.wordTy, types.ptrTy});
 
   std::stringstream ss;
-  ss << "__ic_slot_cg_" << &this->codeGen << "_" << icCounter++;
+  ss << "__ic_slot_cg_" << &this->codeGen << "_" << generateRandomHex(16);
   if (node) {
     ss << "_node_" << node;
   }

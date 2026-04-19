@@ -17,6 +17,8 @@
 
 extern "C" {
 #include "../../runtime/Class.h"
+#include "../../runtime/Keyword.h"
+#include "../../runtime/Var.h"
 #include "../../runtime/tests/TestTools.h"
 #include <cmocka.h>
 #include <stdio.h>
@@ -351,9 +353,60 @@ static void test_dynamic_invoke_arity_exception(void **state) {
     ea2->set_op(opConst);
     ea2->mutable_subnode()->mutable_const_()->set_val("2");
 
-    auto res = engine
-                   .compileAST(letNode, "dynamic_arity_ex")
-                   .get();
+    bool caught = false;
+    try {
+      auto res = engine.compileAST(letNode, "dynamic_arity_ex").get();
+      fail_msg("Expected CodeGenerationException but compilation succeeded");
+    } catch (const rt::LanguageException &e) {
+      if (e.getName() == "CodeGenerationException") {
+        caught = true;
+      } else {
+        fail_msg("Expected CodeGenerationException but caught %s",
+                 e.getName().c_str());
+      }
+    }
+    assert_true(caught);
+  });
+}
+
+static void test_dynamic_invoke_arity_exception_erased(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+    auto &compState = engine.threadsafeState;
+
+    // 1. Create a Var and bind a 1-arity function to it
+    const char *varName = "user/dynamic-arity-ex-erased";
+    RTValue kw = Keyword_create(String_create(varName));
+    Var *v = Var_create(kw);
+    Ptr_retain(v);
+    Ptr_retain(v);
+    compState.varRegistry.registerObject(varName, v);
+
+    // fn = (fn [x] x)
+    Node fnNode;
+    create_identity_fn(fnNode);
+
+    auto compiledFnRes = engine.compileAST(fnNode, "dynamic_fn_erased").get();
+    RTValue (*fnBuilder)() = compiledFnRes.address.toPtr<RTValue (*)()>();
+    RTValue funcObj = fnBuilder();
+
+    Var_bindRoot(v, funcObj);
+
+    // 2. Create an InvokeNode calling #'user/... with 2 args
+    Node invokeNode;
+    invokeNode.set_op(opInvoke);
+    auto *inv = invokeNode.mutable_subnode()->mutable_invoke();
+
+    inv->mutable_fn()->set_op(opVar);
+    inv->mutable_fn()->mutable_subnode()->mutable_var()->set_var(
+        std::string("#'") + varName);
+
+    inv->add_args()->set_op(opConst);
+    inv->add_args()->set_op(opConst);
+
+    // 3. Compile and Run
+    auto res = engine.compileAST(invokeNode, "dynamic_arity_test_erased").get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
 
     bool caught = false;
@@ -365,6 +418,11 @@ static void test_dynamic_invoke_arity_exception(void **state) {
       }
     }
     assert_true(caught);
+
+    // 4. Cleanup
+    Ptr_release(v);
+    engine.retireModule("dynamic_fn_erased");
+    engine.retireModule("dynamic_arity_test_erased");
   });
 }
 
@@ -372,33 +430,40 @@ static void test_dynamic_invoke_intermediate_throw(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     JITEngine engine;
-    setup_mock_runtime_full(engine.threadsafeState);
+    auto &compState = engine.threadsafeState;
+    setup_mock_runtime_full(compState);
 
+    // 1. Create a Var and bind the identity function
+    const char *varName = "user/f-throw";
+    RTValue kw = Keyword_create(String_create(varName));
+    Var *v = Var_create(kw);
+    Ptr_retain(v);
+    Ptr_retain(v);
+    compState.varRegistry.registerObject(varName, v);
+
+    Node fnNode;
+    create_identity_fn(fnNode);
+    auto compiledFnRes = engine.compileAST(fnNode, "f_throw_impl").get();
+    RTValue (*fnBuilder)() = compiledFnRes.address.toPtr<RTValue (*)()>();
+    RTValue funcObj = fnBuilder();
+    Var_bindRoot(v, funcObj);
+
+    // 2. Call (f 1 (Numbers/add 1 "fail"))
+    // This has an arity mismatch (2 args for 1-arity f) AND an evaluation failure.
+    // Using a Var forces dynamic path so we test runtime evaluation.
     Node letNode;
     letNode.set_op(opLet);
     auto *let = letNode.mutable_subnode()->mutable_let();
 
-    std::string randomId = "random_impl";
-
-    // Binding 1: (f [x] (throw "fail"))
-    auto *bx1 = let->add_bindings();
-    auto *bxc1 = bx1->mutable_subnode()->mutable_binding();
-    bxc1->set_name("f");
-    auto *cfNode = bxc1->mutable_init();
-    create_identity_fn(*cfNode); // Use identity or a similar defined node
-                                 // instead of raw pointer
-
-    // Binding 2: (dummy (f 1 (throw "fail")))
     auto *bx2 = let->add_bindings();
     auto *bxc2 = bx2->mutable_subnode()->mutable_binding();
     bxc2->set_name("dummy");
     auto *invNode = bxc2->mutable_init();
     invNode->set_op(opInvoke);
     auto *inv = invNode->mutable_subnode()->mutable_invoke();
-    inv->mutable_fn()->set_op(opLocal);
-    inv->mutable_fn()->mutable_subnode()->mutable_local()->set_name("f");
-    inv->mutable_fn()->mutable_subnode()->mutable_local()->set_local(
-        localTypeLet);
+    inv->mutable_fn()->set_op(opVar);
+    inv->mutable_fn()->mutable_subnode()->mutable_var()->set_var(
+        std::string("#'") + varName);
 
     auto *arg1 = inv->add_args();
     arg1->set_op(opConst);
@@ -428,9 +493,7 @@ static void test_dynamic_invoke_intermediate_throw(void **state) {
     letBody->set_op(opConst);
     letBody->mutable_subnode()->mutable_const_()->set_val("nil");
 
-    auto res = engine
-                   .compileAST(letNode, "dynamic_intermediate_throw")
-                   .get();
+    auto res = engine.compileAST(letNode, "dynamic_intermediate_throw").get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
 
     bool caught = false;
@@ -440,30 +503,42 @@ static void test_dynamic_invoke_intermediate_throw(void **state) {
       caught = true;
     }
     assert_true(caught);
+
+    // 3. Cleanup
+    Ptr_release(v);
+    engine.retireModule("f_throw_impl");
+    engine.retireModule("dynamic_intermediate_throw");
   });
 }
+
 
 static void test_dynamic_invoke_nested_guidance(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     JITEngine engine;
-    setup_mock_runtime_full(engine.threadsafeState);
+    auto &compState = engine.threadsafeState;
+    setup_mock_runtime_full(compState);
 
+    // 1. Create a Var and bind the identity function
+    const char *varName = "user/f-nested";
+    RTValue kw = Keyword_create(String_create(varName));
+    Var *v = Var_create(kw);
+    Ptr_retain(v);
+    Ptr_retain(v);
+    compState.varRegistry.registerObject(varName, v);
+
+    Node fnNode;
+    create_identity_fn(fnNode);
+    auto compiledFnRes = engine.compileAST(fnNode, "f_nested_impl").get();
+    RTValue (*fnBuilder)() = compiledFnRes.address.toPtr<RTValue (*)()>();
+    RTValue funcObj = fnBuilder();
+    Var_bindRoot(v, funcObj);
+
+    // 2. Body: (let [x 1] (f (Numbers/add 1 "fail")))
     Node outerLetNode;
     outerLetNode.set_op(opLet);
-    auto *outerLet = outerLetNode.mutable_subnode()->mutable_let();
+    auto *let = outerLetNode.mutable_subnode()->mutable_let();
 
-    // (let [f (fn [x] x)] ...)
-    auto *bx1 = outerLet->add_bindings();
-    auto *bxc1 = bx1->mutable_subnode()->mutable_binding();
-    bxc1->set_name("f");
-    auto *fNode = bxc1->mutable_init();
-    create_identity_fn(*fNode);
-
-    // Body: (let [x 1] (f (throw "fail")))
-    auto *innerLetNode = outerLet->mutable_body();
-    innerLetNode->set_op(opLet);
-    auto *let = innerLetNode->mutable_subnode()->mutable_let();
     auto *bx2 = let->add_bindings();
     auto *bxc2 = bx2->mutable_subnode()->mutable_binding();
     bxc2->set_name("x");
@@ -474,10 +549,9 @@ static void test_dynamic_invoke_nested_guidance(void **state) {
     auto *invNode = let->mutable_body();
     invNode->set_op(opInvoke);
     auto *inv = invNode->mutable_subnode()->mutable_invoke();
-    inv->mutable_fn()->set_op(opLocal);
-    inv->mutable_fn()->mutable_subnode()->mutable_local()->set_name("f");
-    inv->mutable_fn()->mutable_subnode()->mutable_local()->set_local(
-        localTypeLet);
+    inv->mutable_fn()->set_op(opVar);
+    inv->mutable_fn()->mutable_subnode()->mutable_var()->set_var(
+        std::string("#'") + varName);
 
     auto *arg = inv->add_args();
     arg->set_op(opStaticCall);
@@ -497,9 +571,7 @@ static void test_dynamic_invoke_nested_guidance(void **state) {
     a2->mutable_subnode()->mutable_const_()->set_type(
         ConstNode_ConstType_constTypeString);
 
-    auto res = engine
-                   .compileAST(outerLetNode, "dynamic_nested_guidance")
-                   .get();
+    auto res = engine.compileAST(outerLetNode, "dynamic_nested_guidance").get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
 
     bool caught = false;
@@ -509,8 +581,14 @@ static void test_dynamic_invoke_nested_guidance(void **state) {
       caught = true;
     }
     assert_true(caught);
+
+    // 3. Cleanup
+    Ptr_release(v);
+    engine.retireModule("f_nested_impl");
+    engine.retireModule("dynamic_nested_guidance");
   });
 }
+
 
 int main(void) {
   initialise_memory();
@@ -520,6 +598,7 @@ int main(void) {
       cmocka_unit_test(test_dynamic_invoke_multi_arity),
       cmocka_unit_test(test_dynamic_invoke_variadic),
       cmocka_unit_test(test_dynamic_invoke_arity_exception),
+      cmocka_unit_test(test_dynamic_invoke_arity_exception_erased),
       cmocka_unit_test(test_dynamic_invoke_intermediate_throw),
       cmocka_unit_test(test_dynamic_invoke_nested_guidance),
   };

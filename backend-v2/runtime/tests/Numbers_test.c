@@ -4,6 +4,8 @@
 #include "TestTools.h"
 #include <cmocka.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdint.h>
 
 static void test_numbers_add_basic(void **state) {
   ASSERT_MEMORY_ALL_BALANCED({
@@ -61,6 +63,38 @@ static void test_numbers_invalid_args(void **state) {
   });
 }
 
+static void test_numbers_nan_tagging(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    // Standard NaN (0.0/0.0)
+    RTValue qnan = RT_boxDouble(0.0 / 0.0);
+    assert_true(RT_isDouble(qnan));
+    assert_true(getType(qnan) == doubleType);
+    // Should use the canonical Positive Quiet NaN pattern
+    assert_int_equal(qnan, 0x7FF8000000000000ULL);
+
+    // Negative NaN (forced bit pattern, should be canonicalized on boxing)
+    double neg_nan_raw;
+    uint64_t neg_nan_bits = 0xFFF8000000000000ULL;
+    memcpy(&neg_nan_raw, &neg_nan_bits, 8);
+    RTValue neg_nan = RT_boxDouble(neg_nan_raw);
+    assert_true(RT_isDouble(neg_nan));
+    assert_int_equal(neg_nan, 0x7FF8000000000000ULL);
+
+    // Negative Infinity (-1.0/0.0) - should be safe after boundary shift
+    RTValue neg_inf = RT_boxDouble(-1.0 / 0.0);
+    assert_true(RT_isDouble(neg_inf));
+    assert_int_equal(neg_inf, 0xFFF0000000000000ULL);
+
+    // Positive Infinity (1.0/0.0)
+    RTValue pos_inf = RT_boxDouble(1.0 / 0.0);
+    assert_true(RT_isDouble(pos_inf));
+    assert_int_equal(pos_inf, 0x7FF0000000000000ULL);
+
+    // Identity of NaNs via equals()
+    assert_true(equals(qnan, neg_nan));
+  });
+}
+
 int main(void) {
   initialise_memory();
   RuntimeInterface_initialise();
@@ -69,6 +103,7 @@ int main(void) {
       cmocka_unit_test(test_numbers_div_promotion),
       cmocka_unit_test(test_numbers_cmp_cross_type),
       cmocka_unit_test(test_numbers_invalid_args),
+      cmocka_unit_test(test_numbers_nan_tagging),
   };
 
   int res = cmocka_run_group_tests(tests, NULL, NULL);

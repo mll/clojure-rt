@@ -32,7 +32,8 @@ uword_t PersistentArrayMap_hash(PersistentArrayMap *self);
 String *PersistentArrayMap_toString(PersistentArrayMap *self);
 void PersistentArrayMap_destroy(PersistentArrayMap *self,
                                 bool deallocateChildren);
-void PersistentArrayMap_promoteToShared(PersistentArrayMap *self, uword_t current);
+void PersistentArrayMap_promoteToShared(PersistentArrayMap *self,
+                                        uword_t current);
 
 PersistentArrayMap *PersistentArrayMap_assoc(PersistentArrayMap *self,
                                              RTValue key, RTValue value);
@@ -42,7 +43,6 @@ RTValue PersistentArrayMap_get(PersistentArrayMap *self, RTValue key);
 RTValue PersistentArrayMap_dynamic_get(RTValue self, RTValue key);
 word_t PersistentArrayMap_indexOf(PersistentArrayMap *self, RTValue key);
 
-RTValue PersistentArrayMap_invoke(RTValue self, RTValue key, RTValue defaultVal, int32_t argCount);
 PersistentArrayMap *PersistentArrayMap_create();
 PersistentArrayMap *PersistentArrayMap_createMany(int32_t pairCount, ...);
 

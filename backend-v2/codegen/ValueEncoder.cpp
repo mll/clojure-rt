@@ -62,9 +62,17 @@ TypedValue ValueEncoder::box(TypedValue val) {
 TypedValue ValueEncoder::boxDouble(TypedValue doubleVal) {
   if (!doubleVal.type.isUnboxedType(doubleType))
     return doubleVal;
-  return TypedValue(
-      doubleVal.type.boxed(),
-      builder.CreateBitCast(doubleVal.value, types.i64Ty, "box_dbl"));
+
+  // Hardening: Canonicalize all NaNs to Positive Quiet NaN (0x7FF8000000000000)
+  Value *isNaN =
+      builder.CreateFCmpUNO(doubleVal.value, doubleVal.value, "is_nan");
+  Value *bitcast =
+      builder.CreateBitCast(doubleVal.value, types.i64Ty, "dbl_bits");
+  Value *canonicalNaN = u64(0x7FF8000000000000ULL);
+
+  Value *boxed = builder.CreateSelect(isNaN, canonicalNaN, bitcast, "box_dbl");
+
+  return TypedValue(doubleVal.type.boxed(), boxed);
 }
 
 TypedValue ValueEncoder::boxInt32(TypedValue int32Val) {

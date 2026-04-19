@@ -37,7 +37,6 @@ struct PersistentVector {
 };
 
 PersistentVector *PersistentVector_create();
-RTValue PersistentVector_invoke(RTValue self, RTValue index, int32_t argCount);
 PersistentVector *PersistentVector_createMany(int32_t objCount, ...);
 
 bool PersistentVector_equals(PersistentVector *restrict self,

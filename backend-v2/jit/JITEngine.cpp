@@ -64,10 +64,11 @@ JITEngine::captureObject(const llvm::MemoryBuffer &Obj) {
   return captured;
 }
 
-JITEngine::JITEngine(llvm::OptimizationLevel defaultOptLevel, bool defaultPrintIR, size_t numThreads)
+JITEngine::JITEngine(llvm::OptimizationLevel defaultOptLevel,
+                     bool defaultPrintIR, size_t numThreads)
     : compilationPool(std::max(numThreads / 4, size_t(1)), Priority::Low),
-      executionPool(numThreads, Priority::High),
-      optLevel(defaultOptLevel), printIR(defaultPrintIR) {
+      executionPool(numThreads, Priority::High), optLevel(defaultOptLevel),
+      printIR(defaultPrintIR) {
   if (instanceExists.exchange(true)) {
     throw std::runtime_error("Only one JITEngine instance is allowed");
   }
@@ -157,8 +158,7 @@ JITEngine::JITEngine(llvm::OptimizationLevel defaultOptLevel, bool defaultPrintI
 
 std::shared_future<JITResult>
 JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
-                          const std::string &moduleName,
-                          bool reuseIfExists) {
+                          const std::string &moduleName, bool reuseIfExists) {
   std::lock_guard<std::mutex> lock(compilationMutex);
 
   auto it = activeCompilations.find(moduleName);
@@ -211,7 +211,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               if (printIR) {
                 llvm::raw_string_ostream rs(ir);
                 module->print(rs, nullptr);
-                llvm::errs() << ir << "\n";
+                ir += "\n";
               }
 
               llvm::orc::ThreadSafeModule TSM(std::move(module), *context);
@@ -224,7 +224,8 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                     llvm::toString(std::move(Err)));
               }
 
-              // Resolve IC slot addresses BEFORE the lock to avoid Materialization Deadlock
+              // Resolve IC slot addresses BEFORE the lock to avoid
+              // Materialization Deadlock
               std::vector<void *> icSlotAddresses;
               for (const auto &icName : result.icSlotNames) {
                 auto icSym = jit->lookup(icName);
@@ -478,6 +479,12 @@ void JITEngine::registerRuntimeSymbols() {
       absoluteSymbol("exceptionToString_C", (void *)exceptionToString_C));
   runtimeSymbols.insert(
       absoluteSymbol("createException_C", (void *)createException_C));
+
+  // String methods
+  runtimeSymbols.insert(
+      absoluteSymbol("String_indexOf", (void *)String_indexOf));
+  runtimeSymbols.insert(
+      absoluteSymbol("String_indexOfFrom", (void *)String_indexOfFrom));
   runtimeSymbols.insert(
       absoluteSymbol("deleteException_C", (void *)deleteException_C));
 
@@ -540,7 +547,7 @@ void JITEngine::optimize(llvm::Module &M, const std::string &entryPoint) {
         // the host process.
         for (auto &G : M.globals()) {
           if (!G.isDeclaration() && G.hasExternalLinkage() &&
-              !G.getName().starts_with("__var_ic_slot_")) {
+              !G.getName().starts_with("__ic_slot_")) {
             G.setInitializer(nullptr);
             G.setLinkage(llvm::GlobalValue::ExternalLinkage);
             if (G.isThreadLocal()) {

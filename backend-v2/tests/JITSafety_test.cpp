@@ -1,5 +1,6 @@
 #include "../jit/JITEngine.h"
 #include "../state/ThreadsafeCompilerState.h"
+#include "runtime/String.h"
 #include <atomic>
 #include <chrono>
 #include <iostream>
@@ -34,10 +35,7 @@ static void test_jit_reclamation_stress(void **state_arg) {
     Node topNode = create42Node();
     std::string moduleName = "reclamation_target";
 
-    auto res =
-        engine
-            .compileAST(topNode, moduleName)
-            .get();
+    auto res = engine.compileAST(topNode, moduleName).get();
     auto addr = res.address;
     typedef RTValue (*FnPtr)();
     std::atomic<FnPtr> funcPtr{(FnPtr)addr.getValue()};
@@ -64,10 +62,7 @@ static void test_jit_reclamation_stress(void **state_arg) {
     }
 
     for (int i = 0; i < 50; i++) {
-      auto nextAddr = engine
-                          .compileAST(topNode, moduleName)
-                          .get()
-                          .address;
+      auto nextAddr = engine.compileAST(topNode, moduleName).get().address;
       funcPtr.store((FnPtr)nextAddr.getValue());
 
       std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -88,29 +83,23 @@ static void test_jit_reclamation_stress(void **state_arg) {
 static void setup_test_metadata(rt::ThreadsafeCompilerState &compState,
                                 rt::JITEngine &engine) {
   clojure::rt::protobuf::bytecode::Programme astClasses;
-  std::string path = "tests/rt-classes.cljb";
-  std::fstream classesInput(path, std::ios::in | std::ios::binary);
-  if (!classesInput.is_open()) {
-    path = "../tests/rt-classes.cljb";
-    classesInput.open(path, std::ios::in | std::ios::binary);
-  }
+  std::fstream classesInput("tests/rt-classes.cljb",
+                            std::ios::in | std::ios::binary);
 
-  if (classesInput.is_open()) {
-    if (!astClasses.ParseFromIstream(&classesInput)) {
-      fprintf(stderr, "Failed to parse bytecode from %s\n", path.c_str());
-      return;
-    }
-  } else {
-    fprintf(stderr, "Could not open rt-classes.cljb\n");
-    return;
+  if (!astClasses.ParseFromIstream(&classesInput)) {
+    fail_msg("Failed to parse bytecode.");
   }
 
   try {
-    auto res = engine
-                   .compileAST(astClasses.nodes(0), "__classes")
-                   .get()
-                   .address;
+    auto res =
+        engine.compileAST(astClasses.nodes(0), "__classes").get().address;
     RTValue classes = res.toPtr<RTValue (*)()>()();
+
+    retain(classes);
+    String *s = String_compactify(toString(classes));
+    printf("%s\n", String_c_str(s));
+    Ptr_release(s);
+
     compState.storeInternalClasses(classes);
   } catch (const LanguageException &e) {
     fprintf(stderr, "LanguageException during setup_test_metadata: %s\n",
@@ -202,10 +191,7 @@ static void test_compilation_error_concurrency(void **state_arg) {
 
     // Verify system stability
     Node node = create42Node();
-    (void)engine
-        .compileAST(node, "test_after_error")
-        .get()
-        .address;
+    (void)engine.compileAST(node, "test_after_error").get().address;
   });
 }
 
@@ -216,7 +202,7 @@ void test_inheritance_bigint_tostring(void **state) {
     rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
     setup_test_metadata(compState, engine);
 
-    // Create a BigInt (type 13 in rt-classes.edn)
+    // Create a BigInt (represented by bigIntegerType)
     BigInteger *bi = BigInteger_createFromInt(12345);
     RTValue biObj = RT_boxPtr(bi);
 
@@ -226,13 +212,13 @@ void test_inheritance_bigint_tostring(void **state) {
     RTValue args[1] = {biObj};
 
     // This should resolve toString from java.lang.Object
-    // because clojure.lang.BigInt (type 13) extends Object and doesn't have its
+    // because clojure.lang.BigInt extends Object and doesn't have its
     // own toString in metadata.
     void *bridgePtr =
         InstanceCallSlowPath(&icSlot, "toString", 0, args, 0, &engine);
     assert_non_null(bridgePtr);
 
-    assert_int_equal(icSlot.key, 13);
+    assert_int_equal(icSlot.key, bigIntegerType);
 
     // Call the bridge. Specialized bridge for 0-arg method takes 1 arg
     // (instance).

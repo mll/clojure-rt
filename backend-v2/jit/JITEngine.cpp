@@ -477,6 +477,12 @@ void JITEngine::registerRuntimeSymbols() {
       absoluteSymbol("exceptionToString_C", (void *)exceptionToString_C));
   runtimeSymbols.insert(
       absoluteSymbol("createException_C", (void *)createException_C));
+
+  // String methods
+  runtimeSymbols.insert(
+      absoluteSymbol("String_indexOf", (void *)String_indexOf));
+  runtimeSymbols.insert(
+      absoluteSymbol("String_indexOfFrom", (void *)String_indexOfFrom));
   runtimeSymbols.insert(
       absoluteSymbol("deleteException_C", (void *)deleteException_C));
 
@@ -539,7 +545,7 @@ void JITEngine::optimize(llvm::Module &M, const std::string &entryPoint) {
         // the host process.
         for (auto &G : M.globals()) {
           if (!G.isDeclaration() && G.hasExternalLinkage() &&
-              !G.getName().starts_with("__var_ic_slot_")) {
+              !G.getName().starts_with("__ic_slot_")) {
             G.setInitializer(nullptr);
             G.setLinkage(llvm::GlobalValue::ExternalLinkage);
             if (G.isThreadLocal()) {

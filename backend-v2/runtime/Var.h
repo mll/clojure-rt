@@ -41,9 +41,6 @@ RTValue Var_deref(Var *self);
    be valid after the call returns. */
 RTValue Var_peek(Var *self);
 
-struct FunctionMethod;
-struct FunctionMethod *VarCallSlowPath(void *slot, RTValue currentVal,
-                                       uint64_t argCount);
 RTValue Var_bindRoot(Var *self, RTValue object);
 RTValue Var_unbindRoot(Var *self);
 

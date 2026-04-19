@@ -29,6 +29,37 @@ struct LLVMTypes {
   explicit LLVMTypes(llvm::LLVMContext &ctx);
 
   llvm::Type *typeForType(const ObjectTypeSet &type);
+
+  // Frame accessors
+  llvm::Value *getFrameLeafFramePtr(llvm::IRBuilder<> &builder,
+                                   llvm::Value *framePtr);
+  llvm::Value *getFrameMethodPtr(llvm::IRBuilder<> &builder,
+                                 llvm::Value *framePtr);
+  llvm::Value *getFrameSelfPtr(llvm::IRBuilder<> &builder,
+                               llvm::Value *framePtr);
+  llvm::Value *getFrameVariadicSeqPtr(llvm::IRBuilder<> &builder,
+                                     llvm::Value *framePtr);
+  llvm::Value *getFrameBailoutEntryIndexPtr(llvm::IRBuilder<> &builder,
+                                           llvm::Value *framePtr);
+  llvm::Value *getFrameLocalsCountPtr(llvm::IRBuilder<> &builder,
+                                     llvm::Value *framePtr);
+  llvm::Value *getFrameLocalPtr(llvm::IRBuilder<> &builder,
+                                llvm::Value *framePtr, llvm::Value *index);
+  llvm::Value *getFrameLocalPtr(llvm::IRBuilder<> &builder,
+                                llvm::Value *framePtr, uint32_t index);
+
+  // Method accessors
+  llvm::Value *getMethodIsVariadicPtr(llvm::IRBuilder<> &builder,
+                                      llvm::Value *methodPtr);
+  llvm::Value *getMethodFixedArityPtr(llvm::IRBuilder<> &builder,
+                                      llvm::Value *methodPtr);
+  llvm::Value *getMethodImplementationPtr(llvm::IRBuilder<> &builder,
+                                          llvm::Value *methodPtr);
+  llvm::Value *getMethodClosedOversPtr(llvm::IRBuilder<> &builder,
+                                       llvm::Value *methodPtr);
+
+  // ClojureFunction accessors
+  uint64_t getFunctionMethodsOffset(const llvm::DataLayout &DL);
 };
 
 } // namespace rt

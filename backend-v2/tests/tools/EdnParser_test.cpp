@@ -125,7 +125,7 @@ static void test_edn_parser_class_parsing_memory(void **state) {
 
         // Verify java.lang.Long
         assert_non_null(longDesc);
-        assert_int_equal(1, (int)longDesc->type.determinedType());
+        assert_int_equal(integerType, (int)longDesc->type.determinedType());
         assert_true(longDesc->type.contains(integerType));
         // Verify ALL static fields in java.lang.Long
         assert_int_equal(4, longDesc->staticFields.size());
@@ -176,7 +176,7 @@ static void test_edn_parser_class_parsing_memory(void **state) {
 
         // Verify java.lang.String
         assert_non_null(stringDesc);
-        assert_int_equal(7, (int)stringDesc->type.determinedType());
+        assert_int_equal(stringType, (int)stringDesc->type.determinedType());
         // Verify instance fns
         auto containsIt = stringDesc->instanceFns.find("contains");
         assert_true(containsIt != stringDesc->instanceFns.end());

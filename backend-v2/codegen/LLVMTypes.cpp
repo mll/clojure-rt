@@ -31,6 +31,7 @@ LLVMTypes::LLVMTypes(LLVMContext &context) {
   frameTy = StructType::create(context,
                                {ptrTy,                     // leafFrame
                                 ptrTy,                     // method
+                                RT_valueTy,                // self
                                 RT_valueTy,                // variadicSeq
                                 i32Ty,                     // bailoutEntryIndex
                                 i32Ty,                     // localsCount
@@ -84,6 +85,78 @@ llvm::Type *LLVMTypes::typeForType(const ObjectTypeSet &type) {
   throwInternalInconsistencyException("Type not supported: " + type.toString());
 
   return voidTy;
+}
+
+llvm::Value *LLVMTypes::getFrameLeafFramePtr(llvm::IRBuilder<> &builder,
+                                            llvm::Value *framePtr) {
+  return builder.CreateStructGEP(frameTy, framePtr, 0, "leafFrame_ptr");
+}
+
+llvm::Value *LLVMTypes::getFrameMethodPtr(llvm::IRBuilder<> &builder,
+                                          llvm::Value *framePtr) {
+  return builder.CreateStructGEP(frameTy, framePtr, 1, "method_ptr");
+}
+
+llvm::Value *LLVMTypes::getFrameSelfPtr(llvm::IRBuilder<> &builder,
+                                        llvm::Value *framePtr) {
+  return builder.CreateStructGEP(frameTy, framePtr, 2, "self_ptr");
+}
+
+llvm::Value *LLVMTypes::getFrameVariadicSeqPtr(llvm::IRBuilder<> &builder,
+                                               llvm::Value *framePtr) {
+  return builder.CreateStructGEP(frameTy, framePtr, 3, "variadicSeq_ptr");
+}
+
+llvm::Value *LLVMTypes::getFrameBailoutEntryIndexPtr(llvm::IRBuilder<> &builder,
+                                                    llvm::Value *framePtr) {
+  return builder.CreateStructGEP(frameTy, framePtr, 4, "bailoutEntryIndex_ptr");
+}
+
+llvm::Value *LLVMTypes::getFrameLocalsCountPtr(llvm::IRBuilder<> &builder,
+                                               llvm::Value *framePtr) {
+  return builder.CreateStructGEP(frameTy, framePtr, 5, "localsCount_ptr");
+}
+
+llvm::Value *LLVMTypes::getFrameLocalPtr(llvm::IRBuilder<> &builder,
+                                         llvm::Value *framePtr,
+                                         llvm::Value *index) {
+  return builder.CreateInBoundsGEP(
+      frameTy, framePtr, {builder.getInt32(0), builder.getInt32(6), index},
+      "arg_ptr");
+}
+
+llvm::Value *LLVMTypes::getFrameLocalPtr(llvm::IRBuilder<> &builder,
+                                         llvm::Value *framePtr,
+                                         uint32_t index) {
+  return builder.CreateInBoundsGEP(
+      frameTy, framePtr,
+      {builder.getInt32(0), builder.getInt32(6), builder.getInt32(index)},
+      "arg_ptr");
+}
+
+llvm::Value *LLVMTypes::getMethodIsVariadicPtr(llvm::IRBuilder<> &builder,
+                                               llvm::Value *methodPtr) {
+  return builder.CreateStructGEP(methodTy, methodPtr, 1, "isVariadic_ptr");
+}
+
+llvm::Value *LLVMTypes::getMethodFixedArityPtr(llvm::IRBuilder<> &builder,
+                                               llvm::Value *methodPtr) {
+  return builder.CreateStructGEP(methodTy, methodPtr, 2, "fixedArity_ptr");
+}
+
+llvm::Value *LLVMTypes::getMethodImplementationPtr(llvm::IRBuilder<> &builder,
+                                                   llvm::Value *methodPtr) {
+  return builder.CreateStructGEP(methodTy, methodPtr, 4,
+                                 "baselineImplementation_ptr");
+}
+
+llvm::Value *LLVMTypes::getMethodClosedOversPtr(llvm::IRBuilder<> &builder,
+                                                llvm::Value *methodPtr) {
+  return builder.CreateStructGEP(methodTy, methodPtr, 6, "closedOvers_ptr");
+}
+
+uint64_t LLVMTypes::getFunctionMethodsOffset(const llvm::DataLayout &DL) {
+  return DL.getStructLayout(clojureFunctionTy)->getElementOffset(5);
 }
 
 } // namespace rt

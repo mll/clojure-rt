@@ -8,6 +8,13 @@
   {:object-type 17
    :extends java.lang.Object}
 
+
+;; Assertion error is here just to enable assert.
+  java.lang.AssertionError 
+  {:object-type 21
+   :extends java.lang.Object
+   :constructor [{:args [java.lang.String] :type :call :symbol "Exception_createAssertionErrorWithMessage"}]}
+
   java.lang.Nil
   {:object-type 12
    :extends java.lang.Object}
@@ -144,7 +151,7 @@
           {:args [:ratio :int]     :type :intrinsic :symbol "FCmpOGE_RI"    :returns :bool}
           {:args [:bigint :bigint] :type :call      :symbol "BigInteger_gte" :returns :bool}
           {:args [:ratio :ratio]   :type :call      :symbol "Ratio_gte"      :returns :bool}
-          {:args [:any :any]       :type :call      :symbol "gte"           :returns :bool}]
+          {:args [:any :any]       :type :call      :symbol "Numbers_gte"           :returns :bool}]
 
 
     gt   [{:args [:double :double] :type :intrinsic :symbol "FCmpOGT"       :returns :bool}
@@ -161,7 +168,7 @@
           {:args [:ratio :int]     :type :intrinsic :symbol "FCmpOGT_RI"    :returns :bool}
           {:args [:bigint :bigint] :type :call      :symbol "BigInteger_gt" :returns :bool}
           {:args [:ratio :ratio]   :type :call      :symbol "Ratio_gt"      :returns :bool}
-          {:args [:any :any]       :type :call      :symbol "gt"            :returns :bool}]
+          {:args [:any :any]       :type :call      :symbol "Numbers_gt"            :returns :bool}]
     lt   [{:args [:double :double] :type :intrinsic :symbol "FCmpOLT"        :returns :bool}
           {:args [:int :int]       :type :intrinsic :symbol "ICmpSLT"        :returns :bool}
           {:args [:int :double]    :type :intrinsic :symbol "ICmpSLT_ID"     :returns :bool}
@@ -176,7 +183,7 @@
           {:args [:ratio :int]     :type :intrinsic :symbol "FCmpOLT_RI"     :returns :bool}
           {:args [:bigint :bigint] :type :call      :symbol "BigInteger_lt"  :returns :bool}
           {:args [:ratio :ratio]   :type :call      :symbol "Ratio_lt"       :returns :bool}
-          {:args [:any :any]       :type :call      :symbol "lt"             :returns :bool}]
+          {:args [:any :any]       :type :call      :symbol "Numbers_lt"             :returns :bool}]
     lte  [{:args [:double :double] :type :intrinsic :symbol "FCmpOLE"       :returns :bool}
           {:args [:int :int]       :type :intrinsic :symbol "ICmpSLE"       :returns :bool}
           {:args [:int :double]    :type :intrinsic :symbol "ICmpSLE_ID"    :returns :bool}
@@ -191,7 +198,7 @@
           {:args [:ratio :int]     :type :intrinsic :symbol "FCmpOLE_RI"    :returns :bool}
           {:args [:bigint :bigint] :type :call      :symbol "BigInteger_lte" :returns :bool}
           {:args [:ratio :ratio]   :type :call      :symbol "Ratio_lte"      :returns :bool}
-          {:args [:any :any]       :type :call      :symbol "lte"           :returns :bool}]}}
+          {:args [:any :any]       :type :call      :symbol "Numbers_lte"           :returns :bool}]}}
 
 
 

@@ -2,6 +2,7 @@
 #include "../bridge/Exceptions.h"
 #include "../bridge/SourceLocation.h"
 #include "../cljassert.h"
+#include "../tools/RandomID.h"
 #include "CleanupChainGuard.h"
 #include "TypedValue.h"
 #include "runtime/Object.h"
@@ -95,14 +96,10 @@ std::string CodeGen::generateInstanceCallBridge(
     const ObjectTypeSet &instanceType,
     const std::vector<ObjectTypeSet> &argTypes) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
-  static thread_local std::mt19937 gen(std::random_device{}());
-  std::uniform_int_distribution<uint64_t> dist;
-  std::stringstream ss;
-  ss << std::hex << dist(gen);
 
   std::string funcName = moduleName + "_" +
                          std::to_string(instanceType.determinedType()) + "_" +
-                         ss.str();
+                         generateRandomHex(16);
   // 1. Define Signature: (Instance, Arg1, ...) -> RTValue
   // Specialized arguments use natural LLVM types for unboxed primitives
   std::vector<llvm::Type *> llvmArgTypes;
@@ -175,10 +172,6 @@ llvm::Function *CodeGen::generateBaselineMethod(
     const FnMethodNode &method,
     const std::vector<std::pair<std::string, ObjectTypeSet>> &captureInfo) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
-  static thread_local std::mt19937 gen(std::random_device{}());
-  std::uniform_int_distribution<uint64_t> dist;
-  std::stringstream ss;
-  ss << std::hex << dist(gen);
 
   std::string funcName = "fn_";
   if (!suggestedFunctionName.empty()) {
@@ -188,7 +181,7 @@ llvm::Function *CodeGen::generateBaselineMethod(
         [](unsigned char c) { return !std::isalnum(c); }, '_');
     funcName += sanitized + "_";
   }
-  funcName += ss.str();
+  funcName += generateRandomHex(16);
 
   // Create the function with baseline signature: (Frame*, Arg0, Arg1, Arg2,
   // Arg3, Arg4) -> RTValue
@@ -267,9 +260,8 @@ llvm::Function *CodeGen::generateBaselineMethod(
     Value *val = nullptr;
 
     if (isVariadic && i == numParams - 1) {
-      // It's the variadic parameter. Unpack from frame->variadicSeq (index 2)
-      Value *variadicSeqPtr = Builder.CreateStructGEP(types.frameTy, framePtr,
-                                                      2, "variadicSeq_ptr");
+      // It's the variadic parameter. Unpack from frame->variadicSeq (index 3)
+      Value *variadicSeqPtr = types.getFrameVariadicSeqPtr(Builder, framePtr);
       val = Builder.CreateLoad(types.RT_valueTy, variadicSeqPtr, "variadicSeq");
     } else {
       // Regular parameter
@@ -277,12 +269,10 @@ llvm::Function *CodeGen::generateBaselineMethod(
         // From registers
         val = regArgs[i];
       } else {
-        // Accessing element i-5 in the flexible array (field 5 of
+        // Accessing element i-5 in the flexible array (field 6 of
         // Clojure_Frame)
-        Value *argPtr = Builder.CreateInBoundsGEP(
-            types.frameTy, framePtr,
-            {Builder.getInt32(0), Builder.getInt32(5), Builder.getInt32(i - 5)},
-            "arg_ptr");
+        Value *argPtr =
+            types.getFrameLocalPtr(Builder, framePtr, (uint32_t)(i - 5));
         val = Builder.CreateLoad(types.RT_valueTy, argPtr, "arg_val");
       }
     }
@@ -298,14 +288,13 @@ llvm::Function *CodeGen::generateBaselineMethod(
   // 2. Unpack closed overs (captures) with type propagation
   if (!captureInfo.empty()) {
     // a. Get method pointer from frame
-    Value *methodPtrPtr =
-        Builder.CreateStructGEP(types.frameTy, framePtr, 1, "method_ptr_ptr");
+    Value *methodPtrPtr = types.getFrameMethodPtr(Builder, framePtr);
     Value *methodPtr =
         Builder.CreateLoad(types.ptrTy, methodPtrPtr, "method_ptr");
 
     // b. Load closedOvers array pointer from method
-    Value *closedOversPtrPtr = Builder.CreateStructGEP(
-        types.methodTy, methodPtr, 6, "closedOvers_ptr_ptr");
+    Value *closedOversPtrPtr =
+        types.getMethodClosedOversPtr(Builder, methodPtr);
     Value *closedOversPtr =
         Builder.CreateLoad(types.ptrTy, closedOversPtrPtr, "closedOvers_ptr");
 

@@ -62,13 +62,11 @@ TypedValue CodeGen::codegen(const Node &node, const RecurNode &subnode,
   // last expression of recur. We need to store it in frame->variadicSeq.
   if (target.isVariadic) {
     Value *variadicSeq = valueEncoder.box(newArgs.back()).value;
-    Value *variadicSeqPtr = Builder.CreateStructGEP(
-        types.frameTy, target.framePtr, 2, "variadicSeq_ptr");
+    Value *variadicSeqPtr = types.getFrameVariadicSeqPtr(Builder, target.framePtr);
     Builder.CreateStore(variadicSeq, variadicSeqPtr);
     newArgs.pop_back();
   } else {
-    Value *variadicSeqPtr = Builder.CreateStructGEP(
-        types.frameTy, target.framePtr, 2, "variadicSeq_ptr");
+    Value *variadicSeqPtr = types.getFrameVariadicSeqPtr(Builder, target.framePtr);
     Builder.CreateStore(valueEncoder.boxNil().value, variadicSeqPtr);
   }
 
@@ -84,11 +82,8 @@ TypedValue CodeGen::codegen(const Node &node, const RecurNode &subnode,
   // Arguments beyond index 4 go to the frame
   for (int i = 5; i < (int)newArgs.size(); ++i) {
     Value *val = valueEncoder.box(newArgs[i]).value;
-    // Accessing element i-5 in the flexible array (field 5 of Clojure_Frame)
-    Value *argPtr = Builder.CreateInBoundsGEP(
-        types.frameTy, target.framePtr,
-        {Builder.getInt32(0), Builder.getInt32(5), Builder.getInt32(i - 5)},
-        "arg_ptr");
+    // Accessing element i-5 in the flexible array (field 6 of Clojure_Frame)
+    Value *argPtr = types.getFrameLocalPtr(Builder, target.framePtr, (uint32_t)(i - 5));
     Builder.CreateStore(val, argPtr);
   }
   // 6. Emit EBR checkpoint (unconditionally)

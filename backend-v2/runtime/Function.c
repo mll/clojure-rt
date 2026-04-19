@@ -146,3 +146,74 @@ RTValue RT_packVariadic(uword_t argCount, RTValue *args, uword_t fixedArity) {
   if (argCount <= fixedArity) return RT_boxNil();
   return RT_createListFromArray((int32_t)(argCount - fixedArity), args + fixedArity);
 }
+
+/* --- Universal Callable Bridges --- */
+
+static RTValue Baseline_Keyword_Invoke_1(Frame *frame, RTValue arg0, RTValue a1, RTValue a2, RTValue a3, RTValue a4) {
+    return Keyword_invoke(frame->self, arg0, RT_boxNil());
+}
+
+static RTValue Baseline_Keyword_Invoke_2(Frame *frame, RTValue arg0, RTValue arg1, RTValue a2, RTValue a3, RTValue a4) {
+    return Keyword_invoke(frame->self, arg0, arg1);
+}
+
+static RTValue Baseline_Map_Invoke_1(Frame *frame, RTValue arg0, RTValue a1, RTValue a2, RTValue a3, RTValue a4) {
+    return PersistentArrayMap_dynamic_get(frame->self, arg0);
+}
+
+static RTValue Baseline_Vector_Invoke_1(Frame *frame, RTValue arg0, RTValue a1, RTValue a2, RTValue a3, RTValue a4) {
+    return PersistentVector_dynamic_nth((PersistentVector *)RT_unboxPtr(frame->self), arg0);
+}
+
+// Global method descriptors for non-function callables
+struct FunctionMethod Global_Keyword_Method_1 = { .fixedArity = 1, .isVariadic = false, .baselineImplementation = Baseline_Keyword_Invoke_1 };
+struct FunctionMethod Global_Keyword_Method_2 = { .fixedArity = 2, .isVariadic = false, .baselineImplementation = Baseline_Keyword_Invoke_2 };
+struct FunctionMethod Global_Map_Method_1     = { .fixedArity = 1, .isVariadic = false, .baselineImplementation = Baseline_Map_Invoke_1     };
+struct FunctionMethod Global_Vector_Method_1  = { .fixedArity = 1, .isVariadic = false, .baselineImplementation = Baseline_Vector_Invoke_1  };
+
+struct FunctionMethod *RT_updateICSlot(void *slot, RTValue currentVal,
+                                     uint64_t argCount) {
+  objectType type = getType(currentVal);
+  struct FunctionMethod *method = NULL;
+
+  if (type == functionType) {
+    method = Function_extractMethod(currentVal, argCount);
+  } else if (type == keywordType) {
+    if (argCount == 1) method = &Global_Keyword_Method_1;
+    else if (argCount == 2) method = &Global_Keyword_Method_2;
+  } else if (type == persistentArrayMapType) {
+    if (argCount == 1) method = &Global_Map_Method_1;
+  } else if (type == persistentVectorType) {
+    if (argCount == 1) method = &Global_Vector_Method_1;
+  }
+
+  if (!method) {
+    throwIllegalStateException_C("Attempted to invoke non-callable value or invalid arity");
+  }
+
+  // IC Ownership: The IC slot owns a reference to the callable object (key).
+  retain(currentVal);
+
+  struct {
+    RTValue key;
+    void *method;
+  } __attribute__((aligned(16))) pair;
+  pair.key = currentVal;
+  pair.method = method;
+
+  typedef __int128_t int128;
+  int128 *dest = (int128 *)slot;
+  int128 src;
+  memcpy(&src, &pair, 16);
+  int128 old_val = __atomic_exchange_n(dest, src, __ATOMIC_ACQ_REL);
+
+  struct {
+    RTValue key;
+    void *method;
+  } *old_pair = (void *)&old_val;
+
+  if (old_pair->key != 0) {
+    release(old_pair->key);
+  }
+  return method;
+}

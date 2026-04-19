@@ -91,11 +91,24 @@ static void test_ebr_flush_on_invoke(void **state) {
     
     body->set_op(opInvoke);
     auto *inv = body->mutable_subnode()->mutable_invoke();
-    auto *innerFn = inv->mutable_fn();
-    innerFn->set_op(opConst);
-    innerFn->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeKeyword);
-    innerFn->mutable_subnode()->mutable_const_()->set_val(":foo"); 
-    
+    // fn = (fn [x] x)
+    auto *outerInvFn = inv->mutable_fn();
+    outerInvFn->set_op(opFn);
+    auto *innerFn = outerInvFn->mutable_subnode()->mutable_fn();
+    innerFn->set_maxfixedarity(1);
+    auto *m1 = innerFn->add_methods();
+    auto *mn1 = m1->mutable_subnode()->mutable_fnmethod();
+    mn1->set_fixedarity(1);
+    auto *p1 = mn1->add_params();
+    p1->set_op(opBinding);
+    p1->mutable_subnode()->mutable_binding()->set_name("x");
+    auto *innerBody = mn1->mutable_body();
+    innerBody->set_op(opLocal);
+    auto *ln = innerBody->mutable_subnode()->mutable_local();
+    ln->set_name("x");
+    ln->set_local(localTypeArg);
+
+    // arg = 1
     auto *arg = inv->add_args();
     arg->set_op(opConst);
     arg->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);

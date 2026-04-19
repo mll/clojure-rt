@@ -10,7 +10,7 @@ typedef uint64_t RTValue;
 
 // High 16-bit Tags (Matching your LLVM ValueEncoder)
 #define RT_TAG_MASK         0xFFFF000000000000ULL
-#define RT_TAG_DOUBLE_START 0xFFF0000000000000ULL
+#define RT_TAG_DOUBLE_START 0xFFF1000000000000ULL
 #define RT_TAG_INT32        0xFFFF000000000000ULL
 #define RT_TAG_PTR          0xFFFE000000000000ULL
 #define RT_TAG_BOOL         0xFFFD000000000000ULL
@@ -50,6 +50,7 @@ static inline RTValue RT_boxPtr(void* p) {
    a General Purpose register). */
 
 static inline RTValue RT_boxDouble(double d) {
+    if (d != d) return 0x7FF8000000000000ULL; // Canonical Quiet NaN
     RTValue v;
     memcpy(&v, &d, sizeof(double));
     return v;

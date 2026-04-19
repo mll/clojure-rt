@@ -15,7 +15,7 @@ typedef struct InvokationCache InvokationCache;
 
 struct FunctionMethod {
   unsigned char index;
-  unsigned char isVariadic;  
+  unsigned char isVariadic;
   unsigned char fixedArity;
   unsigned char closedOversCount;
   void *baselineImplementation;
@@ -24,12 +24,13 @@ struct FunctionMethod {
 };
 
 typedef struct Frame {
-  struct Frame *leafFrame;
-  struct FunctionMethod *method;
-  RTValue variadicSeq;
-  int32_t bailoutEntryIndex;
-  int32_t localsCount;
-  RTValue locals[];
+  struct Frame *leafFrame;       // 0
+  struct FunctionMethod *method; // 1
+  RTValue self;                  // 2
+  RTValue variadicSeq;           // 3
+  int32_t bailoutEntryIndex;     // 4
+  int32_t localsCount;           // 5
+  RTValue locals[];              // 6...
 } Frame;
 
 typedef struct FunctionMethod FunctionMethod;
@@ -47,7 +48,8 @@ struct ClojureFunction {
 
 typedef struct ClojureFunction ClojureFunction;
 
-struct ClojureFunction *Function_create(uword_t methodCount, uword_t maxArity, bool once);
+struct ClojureFunction *Function_create(uword_t methodCount, uword_t maxArity,
+                                        bool once);
 
 void Function_fillMethod(struct ClojureFunction *self, uword_t position,
                          uword_t index, uword_t fixedArity, bool isVariadic,
@@ -62,6 +64,18 @@ void Function_destroy(ClojureFunction *self);
 void Function_cleanupOnce(ClojureFunction *self);
 RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount);
 FunctionMethod *Function_extractMethod(RTValue funObj, uword_t argCount);
+struct FunctionMethod *RT_updateICSlot(void *slot, RTValue currentVal,
+                                       uint64_t argCount);
+
+/* Global bridges for Keywords, Maps, etc. */
+extern struct FunctionMethod Global_Keyword_Method_1;
+extern struct FunctionMethod Global_Keyword_Method_2;
+extern struct FunctionMethod Global_Map_Method_1;
+extern struct FunctionMethod Global_Map_Method_2;
+extern struct FunctionMethod Global_Vector_Method_1;
+extern struct FunctionMethod Global_Vector_Method_2;
+extern struct FunctionMethod Global_Set_Method_1;
+
 RTValue RT_packVariadic(uword_t argCount, RTValue *args, uword_t fixedArity);
 
 #ifdef __cplusplus

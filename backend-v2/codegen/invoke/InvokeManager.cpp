@@ -1,4 +1,5 @@
 #include "InvokeManager.h"
+#include "../../tools/RandomID.h"
 #include "../../bridge/Exceptions.h"
 #include "../../tools/EdnParser.h"
 #include "../../types/ConstantBigInteger.h"
@@ -8,6 +9,7 @@
 #include "../../types/ConstantRatio.h"
 #include "../CleanupChainGuard.h"
 #include "../CodeGen.h"
+#include "codegen/MemoryManagement.h"
 
 #include "llvm/IR/MDBuilder.h"
 #include <cstddef>
@@ -198,15 +200,15 @@ bool InvokeManager::canThrow(const std::string &fname) const {
   return safeFunctions.find(fname) == safeFunctions.end();
 }
 
-llvm::Value *InvokeManager::invokeRaw(llvm::Value *fpointer,
-                                      llvm::FunctionType *type,
-                                      const std::vector<llvm::Value *> &args,
-                                      CleanupChainGuard *guard, bool skipGuard,
-                                      const std::vector<TypedValue> &extraCleanup) {
+llvm::Value *
+InvokeManager::invokeRaw(llvm::Value *fpointer, llvm::FunctionType *type,
+                         const std::vector<llvm::Value *> &args,
+                         CleanupChainGuard *guard, bool consumesArgs,
+                         const std::vector<TypedValue> &extraCleanup) {
   BasicBlock *lpadToUse =
       (codeGen.hasLandingPad() || !extraCleanup.empty())
           ? codeGen.getMemoryManagement().getLandingPad(
-                (guard && skipGuard) ? guard->size() : 0, extraCleanup)
+                (guard && consumesArgs) ? guard->size() : 0, extraCleanup)
           : nullptr;
   Value *callResult;
   bool isVoid = type->getReturnType()->isVoidTy();
@@ -230,14 +232,17 @@ llvm::Value *InvokeManager::invokeRaw(llvm::Value *fpointer,
                                     isVoid ? std::string("")
                                            : std::string("call_pointer"));
   }
+  for (const TypedValue &tv : extraCleanup) {
+    codeGen.getMemoryManagement().dynamicRelease(tv);
+  }
   return callResult;
 }
 
-llvm::Value *InvokeManager::invokeRaw(const std::string &fname,
-                                      llvm::FunctionType *type,
-                                      const std::vector<llvm::Value *> &args,
-                                      CleanupChainGuard *guard, bool skipGuard,
-                                      const std::vector<TypedValue> &extraCleanup) {
+llvm::Value *
+InvokeManager::invokeRaw(const std::string &fname, llvm::FunctionType *type,
+                         const std::vector<llvm::Value *> &args,
+                         CleanupChainGuard *guard, bool consumesArgs,
+                         const std::vector<TypedValue> &extraCleanup) {
   Function *toCall = theModule.getFunction(fname);
   if (!toCall) {
     toCall =
@@ -246,7 +251,7 @@ llvm::Value *InvokeManager::invokeRaw(const std::string &fname,
   BasicBlock *lpadToUse =
       (canThrow(fname) && (codeGen.hasLandingPad() || !extraCleanup.empty()))
           ? codeGen.getMemoryManagement().getLandingPad(
-                (guard && skipGuard) ? guard->size() : 0, extraCleanup)
+                (guard && consumesArgs) ? guard->size() : 0, extraCleanup)
           : nullptr;
   Value *callResult;
   bool isVoid = type->getReturnType()->isVoidTy();
@@ -286,17 +291,18 @@ llvm::Value *InvokeManager::invokeRaw(const std::string &fname,
     // call->setTailCallKind(llvm::CallInst::TCK_MustTail);
     callResult = call;
   }
+  for (const TypedValue &tv : extraCleanup) {
+    codeGen.getMemoryManagement().dynamicRelease(tv);
+  }
   return callResult;
 }
 
-TypedValue
-InvokeManager::invokeRuntime(const std::string &fname,
-                             const ObjectTypeSet *retValType,
-                             const std::vector<ObjectTypeSet> &argTypes,
-                             const std::vector<TypedValue> &args,
-                             const bool isVariadic, CleanupChainGuard *guard,
-                             bool skipGuard,
-                             const std::vector<TypedValue> &extraCleanup) {
+TypedValue InvokeManager::invokeRuntime(
+    const std::string &fname, const ObjectTypeSet *retValType,
+    const std::vector<ObjectTypeSet> &argTypes,
+    const std::vector<TypedValue> &args, const bool isVariadic,
+    CleanupChainGuard *guard, bool consumesArgs,
+    const std::vector<TypedValue> &extraCleanup) {
   std::vector<llvm::Type *> llvmTypes;
   for (auto &at : argTypes) {
     if (at.isBoxedType())
@@ -339,12 +345,13 @@ InvokeManager::invokeRuntime(const std::string &fname,
 
   return TypedValue(
       retValType ? *retValType : ObjectTypeSet::all(),
-      invokeRaw(fname, functionType, argVals, guard, skipGuard, extraCleanup));
+      invokeRaw(fname, functionType, argVals, guard, consumesArgs, extraCleanup));
 }
 
 TypedValue InvokeManager::generateRawMethodCall(
-    llvm::Value *methodPtr, TypedValue self, const std::vector<TypedValue> &args,
-    CleanupChainGuard *guard, const clojure::rt::protobuf::bytecode::Node *node,
+    llvm::Value *methodPtr, TypedValue self,
+    const std::vector<TypedValue> &args, CleanupChainGuard *guard,
+    const clojure::rt::protobuf::bytecode::Node *node,
     const std::vector<TypedValue> &extraCleanup) {
 
   size_t argCount = args.size();
@@ -352,20 +359,17 @@ TypedValue InvokeManager::generateRawMethodCall(
   llvm::Function *currentFn = builder.GetInsertBlock()->getParent();
 
   // 1. Load method metadata from FunctionMethod struct
-  Value *isVariadicPtr =
-      builder.CreateStructGEP(types.methodTy, methodPtr, 1, "isVariadic_ptr");
+  Value *isVariadicPtr = types.getMethodIsVariadicPtr(builder, methodPtr);
   Value *isVariadic =
       builder.CreateLoad(builder.getInt8Ty(), isVariadicPtr, "isVariadic");
   Value *isVariadicBool =
       builder.CreateICmpNE(isVariadic, builder.getInt8(0), "isVariadic_bool");
 
-  Value *fixedArityPtr =
-      builder.CreateStructGEP(types.methodTy, methodPtr, 2, "fixedArity_ptr");
+  Value *fixedArityPtr = types.getMethodFixedArityPtr(builder, methodPtr);
   Value *fixedArity =
       builder.CreateLoad(builder.getInt8Ty(), fixedArityPtr, "fixedArity");
 
-  Value *implPtrPtr = builder.CreateStructGEP(
-      types.methodTy, methodPtr, 4, "baselineImplementation_ptr_ptr");
+  Value *implPtrPtr = types.getMethodImplementationPtr(builder, methodPtr);
   Value *implPtr = builder.CreateLoad(types.ptrTy, implPtrPtr, "impl_ptr");
 
   // 2. Allocate Frame on stack
@@ -384,7 +388,8 @@ TypedValue InvokeManager::generateRawMethodCall(
         types.i8Ty, ConstantInt::get(types.i64Ty, totalSize), "frame_raw");
     cast<AllocaInst>(framePtrRaw)->setAlignment(Align(16));
   }
-  Value *framePtr = builder.CreateBitCast(framePtrRaw, types.ptrTy, "frame_ptr");
+  Value *framePtr =
+      builder.CreateBitCast(framePtrRaw, types.ptrTy, "frame_ptr");
 
   // 3. Initialize Frame fields
   llvm::Value *currentFrame =
@@ -392,10 +397,10 @@ TypedValue InvokeManager::generateRawMethodCall(
           ? static_cast<llvm::Value *>(&*currentFn->arg_begin())
           : static_cast<llvm::Value *>(
                 ConstantPointerNull::get(cast<PointerType>(types.ptrTy)));
-  builder.CreateStore(currentFrame,
-                      builder.CreateStructGEP(types.frameTy, framePtr, 0));
-  builder.CreateStore(methodPtr,
-                      builder.CreateStructGEP(types.frameTy, framePtr, 1));
+  builder.CreateStore(currentFrame, types.getFrameLeafFramePtr(builder, framePtr));
+  builder.CreateStore(methodPtr, types.getFrameMethodPtr(builder, framePtr));
+  builder.CreateStore(valueEncoder.box(self).value,
+                      types.getFrameSelfPtr(builder, framePtr));
 
   // variadicSeq
   BasicBlock *variadicBB =
@@ -418,30 +423,27 @@ TypedValue InvokeManager::generateRawMethodCall(
     builder.restoreIP(IP);
 
     for (int i = 0; i < (int)argCount; ++i) {
-      builder.CreateStore(
-          valueEncoder.box(args[i]).value,
-          builder.CreateInBoundsGEP(types.RT_valueTy, allArgsArray,
-                                    {builder.getInt32(i)}));
+      builder.CreateStore(valueEncoder.box(args[i]).value,
+                          builder.CreateInBoundsGEP(types.RT_valueTy,
+                                                    allArgsArray,
+                                                    {builder.getInt32(i)}));
     }
 
     FunctionType *packTy = FunctionType::get(
         types.RT_valueTy, {types.i64Ty, types.ptrTy, types.i64Ty}, false);
-    Value *vSeq = invokeRaw(
-        "RT_packVariadic", packTy,
-        {builder.getInt64(argCount), allArgsArray,
-         builder.CreateZExt(fixedArity, types.i64Ty)},
-        guard, false);
-    builder.CreateStore(vSeq,
-                        builder.CreateStructGEP(types.frameTy, framePtr, 2));
-    
+    Value *vSeq = invokeRaw("RT_packVariadic", packTy,
+                            {builder.getInt64(argCount), allArgsArray,
+                             builder.CreateZExt(fixedArity, types.i64Ty)},
+                            guard, false);
+    builder.CreateStore(vSeq, types.getFrameVariadicSeqPtr(builder, framePtr));
+
     builder.CreateBr(packingDoneBB);
   }
 
   // --- No Variadic Path ---
   builder.SetInsertPoint(noVariadicBB);
   Value *nilVal = valueEncoder.boxNil().value;
-  builder.CreateStore(nilVal,
-                      builder.CreateStructGEP(types.frameTy, framePtr, 2));
+  builder.CreateStore(nilVal, types.getFrameVariadicSeqPtr(builder, framePtr));
   builder.CreateBr(packingDoneBB);
 
   // --- Merge ---
@@ -449,16 +451,13 @@ TypedValue InvokeManager::generateRawMethodCall(
 
   // 4. bailoutEntryIndex & localsCount
   builder.CreateStore(ConstantInt::get(types.i32Ty, 0),
-                      builder.CreateStructGEP(types.frameTy, framePtr, 3));
+                      types.getFrameBailoutEntryIndexPtr(builder, framePtr));
   builder.CreateStore(ConstantInt::get(types.i32Ty, overflowArgs),
-                      builder.CreateStructGEP(types.frameTy, framePtr, 4));
+                      types.getFrameLocalsCountPtr(builder, framePtr));
 
   // 5. locals (overflow args > 5)
   for (int i = 0; i < overflowArgs; ++i) {
-    Value *localPtr = builder.CreateInBoundsGEP(
-        types.frameTy, framePtr,
-        {builder.getInt32(0), builder.getInt32(5), builder.getInt32(i)},
-        "arg_ptr");
+    Value *localPtr = types.getFrameLocalPtr(builder, framePtr, (uint32_t)i);
     builder.CreateStore(valueEncoder.box(args[5 + i]).value, localPtr);
   }
 
@@ -477,6 +476,69 @@ TypedValue InvokeManager::generateRawMethodCall(
   Value *res = invokeRaw(implPtr, types.baselineFunctionTy, callArgs, guard,
                          true, extraCleanup);
   return TypedValue(ObjectTypeSet::dynamicType(), res);
+}
+
+llvm::Value *InvokeManager::generateICLookup(
+    llvm::Value *currentVal, size_t argCount, CleanupChainGuard *guard) {
+  auto &TheContext = theModule.getContext();
+  llvm::Function *currentFn = builder.GetInsertBlock()->getParent();
+
+  // 1. Setup IC slot: { RTValue key, FunctionMethod* value }
+  auto *slotTy = StructType::get(TheContext, {types.RT_valueTy, types.ptrTy});
+  std::string slotName = "__ic_slot_" + generateRandomHex(16);
+  icSlotNames.push_back(slotName);
+
+  auto *init = ConstantStruct::get(
+      slotTy, {ConstantInt::get(types.RT_valueTy, 0),
+               ConstantPointerNull::get(cast<PointerType>(types.ptrTy))});
+
+  auto *slotGlobal = new GlobalVariable(
+      theModule, slotTy, false, GlobalValue::ExternalLinkage, init, slotName);
+  slotGlobal->setAlignment(Align(16));
+
+  // 2. Load from IC slot (Atomic 128-bit load)
+  Type *i128Ty = IntegerType::get(TheContext, 128);
+  LoadInst *pair =
+      builder.CreateAlignedLoad(i128Ty, slotGlobal, Align(16), "ic_pair");
+  pair->setAtomic(AtomicOrdering::Acquire);
+
+  Value *cachedKey = builder.CreateTrunc(pair, types.i64Ty, "cached_key");
+  Value *cachedMethodVal128 = builder.CreateLShr(pair, 64);
+  Value *cachedMethodVal64 =
+      builder.CreateTrunc(cachedMethodVal128, types.i64Ty, "cached_method_v64");
+  Value *cachedMethod =
+      builder.CreateIntToPtr(cachedMethodVal64, types.ptrTy, "cached_method");
+
+  // 3. Compare and Branch
+  BasicBlock *hitBB = BasicBlock::Create(TheContext, "ic_hit", currentFn);
+  BasicBlock *missBB = BasicBlock::Create(TheContext, "ic_miss", currentFn);
+  BasicBlock *callBB = BasicBlock::Create(TheContext, "ic_call", currentFn);
+
+  Value *isHit = builder.CreateICmpEQ(cachedKey, currentVal);
+  builder.CreateCondBr(isHit, hitBB, missBB);
+
+  // --- HIT PATH ---
+  builder.SetInsertPoint(hitBB);
+  builder.CreateBr(callBB);
+
+  // --- MISS PATH ---
+  builder.SetInsertPoint(missBB);
+  FunctionType *slowPathSig = FunctionType::get(
+      types.ptrTy, {types.ptrTy, types.RT_valueTy, types.i64Ty}, false);
+  Value *newMethod = invokeRaw(
+      "RT_updateICSlot", slowPathSig,
+      {slotGlobal, currentVal, builder.getInt64(argCount)}, guard, false);
+
+  BasicBlock *missPathEnd = builder.GetInsertBlock();
+  builder.CreateBr(callBB);
+
+  // --- MERGE ---
+  builder.SetInsertPoint(callBB);
+  PHINode *methodToCall = builder.CreatePHI(types.ptrTy, 2, "method_to_call");
+  methodToCall->addIncoming(cachedMethod, hitBB);
+  methodToCall->addIncoming(newMethod, missPathEnd);
+
+  return methodToCall;
 }
 
 } // namespace rt

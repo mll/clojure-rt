@@ -37,10 +37,10 @@ void MemoryManagement::initFunction(llvm::Function *F) {
 }
 
 void MemoryManagement::pushState(llvm::Function *F) {
-  stateStack.push_back({exceptionSlot, terminalResumeBB, std::move(cleanupStack),
-                        std::move(activeResources), totalPushedResources,
-                        resourcesWithCleanup, std::move(lpadCache),
-                        activeUnwindGuidance});
+  stateStack.push_back({exceptionSlot, terminalResumeBB,
+                        std::move(cleanupStack), std::move(activeResources),
+                        totalPushedResources, resourcesWithCleanup,
+                        std::move(lpadCache), activeUnwindGuidance});
   initFunction(F);
 }
 
@@ -93,8 +93,7 @@ void MemoryManagement::pushResource(TypedValue val) {
 
 void MemoryManagement::popResource() {
   if (activeResources.empty()) {
-    throwInternalInconsistencyException(
-        "popResource() called on empty stack");
+    throwInternalInconsistencyException("popResource() called on empty stack");
   }
 
   TypedValue val = activeResources.back();
@@ -245,7 +244,7 @@ void MemoryManagement::dynamicMemoryGuidance(
   }
 }
 
-void MemoryManagement::dynamicRetain(TypedValue &target) {
+void MemoryManagement::dynamicRetain(const TypedValue &target) {
   if (target.type.isScalar() || target.type.isBoxedScalar())
     return;
   Metadata *metaPtr = dyn_cast<Metadata>(MDString::get(context, "retain"));
@@ -258,7 +257,7 @@ void MemoryManagement::dynamicRetain(TypedValue &target) {
   }
 }
 
-TypedValue MemoryManagement::dynamicRelease(TypedValue &target) {
+TypedValue MemoryManagement::dynamicRelease(const TypedValue &target) {
   if (target.type.isScalar() || target.type.isBoxedScalar())
     return TypedValue(ObjectTypeSet(booleanType),
                       ConstantInt::get(context, APInt(1, 0)));
@@ -273,7 +272,7 @@ TypedValue MemoryManagement::dynamicRelease(TypedValue &target) {
   return release;
 }
 
-void MemoryManagement::dynamicIsReusable(TypedValue &target) {}
+void MemoryManagement::dynamicIsReusable(const TypedValue &target) {}
 
 // CleanupChainGuard implementation
 CleanupChainGuard::CleanupChainGuard(CodeGen &c) : cg(c) {}

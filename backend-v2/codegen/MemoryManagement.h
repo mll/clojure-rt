@@ -26,16 +26,16 @@ public:
 
   void dynamicMemoryGuidance(const MemoryManagementGuidance &guidance);
 
-  void dynamicRetain(TypedValue &target);
-  TypedValue dynamicRelease(TypedValue &target);
-  void dynamicIsReusable(TypedValue &target);
+  void dynamicRetain(const TypedValue &target);
+  TypedValue dynamicRelease(const TypedValue &target);
+  void dynamicIsReusable(const TypedValue &target);
 
   // Exception safety / Resource management
   void pushResource(TypedValue val);
   void popResource();
-  llvm::BasicBlock *getLandingPad(
-      size_t skipCount = 0,
-      const std::vector<TypedValue> &extraCleanup = {});
+  llvm::BasicBlock *
+  getLandingPad(size_t skipCount = 0,
+                const std::vector<TypedValue> &extraCleanup = {});
   bool hasPushedResources() const { return !activeResources.empty(); }
   bool hasActiveGuidance() const {
     return activeUnwindGuidance != nullptr && !activeUnwindGuidance->empty();

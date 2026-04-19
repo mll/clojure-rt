@@ -76,8 +76,9 @@ void RuntimeInterface_cleanup() {
 
 void printReferenceCounts() {
   printf("Ref counters: ");
-  for (unsigned char i = integerType; i <= varType; i++) {
-    printf("%lu/%lu ", allocationCount[i - 1], objectCount[i - 1]);
+  // Iterate through all defined types in the enum
+  for (unsigned char i = stringType; i <= bridgedObjectType; i++) {
+    printf("%lu/%lu ", (unsigned long)allocationCount[i - 1], (unsigned long)objectCount[i - 1]);
   }
   printf("\n");
 }

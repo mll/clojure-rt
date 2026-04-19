@@ -483,11 +483,16 @@ void registerMathIntrinsics(InvokeManager &mgr) {
                                   const std::string &errorMessage) {
     return [&mgr, &theModule, &types, llvmIntrinsic, errorMessage](
                llvm::IRBuilder<> &b, std::vector<llvm::Value *> args) {
-      Function *fn = Intrinsic::getOrInsertDeclaration(
-          &theModule,
-          llvmIntrinsic == "sadd" ? Intrinsic::sadd_with_overflow
-                                  : Intrinsic::ssub_with_overflow,
-          {b.getInt32Ty()});
+      Intrinsic::ID id = Intrinsic::not_intrinsic;
+      if (llvmIntrinsic == "sadd")
+        id = Intrinsic::sadd_with_overflow;
+      else if (llvmIntrinsic == "ssub")
+        id = Intrinsic::ssub_with_overflow;
+      else if (llvmIntrinsic == "smul")
+        id = Intrinsic::smul_with_overflow;
+
+      Function *fn =
+          Intrinsic::getOrInsertDeclaration(&theModule, id, {b.getInt32Ty()});
       Value *resStruct = b.CreateCall(fn, args);
       Value *res = b.CreateExtractValue(resStruct, {0});
       Value *overflow = b.CreateExtractValue(resStruct, {1});
@@ -524,9 +529,7 @@ void registerMathIntrinsics(InvokeManager &mgr) {
   intrinsics["FMul"] = [](auto &b, auto args) {
     return b.CreateFMul(args[0], args[1]);
   };
-  intrinsics["Mul"] = [](auto &b, auto args) {
-    return b.CreateMul(args[0], args[1]);
-  };
+  intrinsics["Mul"] = createCheckedOp("smul", "Integer overflow");
   intrinsics["FDiv"] = [](auto &b, auto args) {
     return b.CreateFDiv(args[0], args[1]);
   };

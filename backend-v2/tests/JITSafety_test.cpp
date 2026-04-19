@@ -85,17 +85,7 @@ static void setup_test_metadata(rt::ThreadsafeCompilerState &compState,
   clojure::rt::protobuf::bytecode::Programme astClasses;
   std::fstream classesInput("tests/rt-classes.cljb",
                             std::ios::in | std::ios::binary);
-    "../../backend-v2/tests/rt-classes.cljb"
-  };
 
-  std::fstream classesInput;
-  std::string finalPath;
-  for (const auto& p : paths) {
-    classesInput.open(p, std::ios::in | std::ios::binary);
-    if (classesInput.is_open()) {
-      finalPath = p;
-      break;
-    }
   if (!astClasses.ParseFromIstream(&classesInput)) {
     fail_msg("Failed to parse bytecode.");
   }

@@ -28,7 +28,7 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState,
   // Load metadata
   Programme astClasses;
   {
-    std::fstream classesInput("rt-classes.cljb",
+    std::fstream classesInput("tests/rt-classes.cljb",
                               std::ios::in | std::ios::binary);
     if (!astClasses.ParseFromIstream(&classesInput)) {
       fail_msg("Failed to parse bytecode.");
@@ -37,10 +37,7 @@ static void setup_compiler_state(rt::ThreadsafeCompilerState &compState,
 
   // Initialize compiler state with metadata
   llvm::orc::ExecutorAddr resClasses =
-      engine
-          .compileAST(astClasses.nodes(0), "__classes")
-          .get()
-          .address;
+      engine.compileAST(astClasses.nodes(0), "__classes").get().address;
   RTValue classes = resClasses.toPtr<RTValue (*)()>()();
   auto classesList = rt::buildClasses(classes);
   for (auto &desc : classesList) {
@@ -83,10 +80,8 @@ static void test_integer_overflow_add(void **state) {
         ConstNode_ConstType_constTypeNumber);
     arg2->mutable_subnode()->mutable_const_()->set_val("1");
 
-    auto resCall = engine
-                       .compileAST(callNode, "__test_overflow_add")
-                       .get()
-                       .address;
+    auto resCall =
+        engine.compileAST(callNode, "__test_overflow_add").get().address;
 
     try {
       resPtrToValue(resCall);
@@ -127,10 +122,8 @@ static void test_integer_overflow_sub(void **state) {
         ConstNode_ConstType_constTypeNumber);
     arg2->mutable_subnode()->mutable_const_()->set_val("1");
 
-    auto resCall = engine
-                       .compileAST(callNode, "__test_overflow_sub")
-                       .get()
-                       .address;
+    auto resCall =
+        engine.compileAST(callNode, "__test_overflow_sub").get().address;
 
     try {
       resPtrToValue(resCall);
@@ -171,10 +164,8 @@ static void test_integer_overflow_mul(void **state) {
         ConstNode_ConstType_constTypeNumber);
     arg2->mutable_subnode()->mutable_const_()->set_val("2");
 
-    auto resCall = engine
-                       .compileAST(callNode, "__test_overflow_mul")
-                       .get()
-                       .address;
+    auto resCall =
+        engine.compileAST(callNode, "__test_overflow_mul").get().address;
 
     try {
       resPtrToValue(resCall);

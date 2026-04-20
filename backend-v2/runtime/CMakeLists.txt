@@ -39,7 +39,8 @@ set(SOURCES
     Numbers.c
     Exception.c
     BridgedObject.c
-    Ebr.c)
+    Ebr.c
+    StringBuilder.c)
 
 add_library(runtime STATIC ${SOURCES})
 target_compile_options(runtime PRIVATE $<$<PLATFORM_ID:Linux>:-femulated-tls>)
@@ -188,6 +189,7 @@ set(TEST_MODULES
     RefcountPerf_test
     Numbers_test
     Exception_test
+    StringBuilder_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

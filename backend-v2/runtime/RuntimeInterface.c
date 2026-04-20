@@ -2,6 +2,7 @@
 #include "ConcurrentHashMap.h"
 #include "Ebr.h"
 
+#include "ObjectProto.h"
 #include "PersistentArrayMap.h"
 #include "PersistentVector.h"
 #include "Symbol.h"
@@ -77,8 +78,9 @@ void RuntimeInterface_cleanup() {
 void printReferenceCounts() {
   printf("Ref counters: ");
   // Iterate through all defined types in the enum
-  for (unsigned char i = stringType; i <= bridgedObjectType; i++) {
-    printf("%lu/%lu ", (unsigned long)allocationCount[i - 1], (unsigned long)objectCount[i - 1]);
+  for (unsigned char i = stringType; i <= stringBuilderType; i++) {
+    printf("%lu/%lu ", (unsigned long)allocationCount[i - 1],
+           (unsigned long)objectCount[i - 1]);
   }
   printf("\n");
 }

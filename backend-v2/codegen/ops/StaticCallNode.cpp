@@ -167,19 +167,18 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
       if (fid->argTypes[i].isDetermined()) {
         if (!argRuntimeTypes[i]) {
           TypedValue boxed = this->valueEncoder.box(args[i]);
-          ObjectTypeSet retType(integerType, false);
-          std::vector<ObjectTypeSet> pArgTypes = {ObjectTypeSet::dynamicType()};
-          std::vector<TypedValue> pArgVals = {boxed};
-          TypedValue typeVal = this->invokeManager.invokeRuntime(
-              "getType", &retType, pArgTypes, pArgVals);
-          argRuntimeTypes[i] = typeVal.value;
+          FunctionType *getTypeSig = FunctionType::get(
+              this->types.wordTy, {this->types.RT_valueTy}, false);
+          argRuntimeTypes[i] = this->invokeManager.invokeRaw(
+              "getType", getTypeSig, {boxed.value}, &guard, true);
         }
 
-        uint32_t target = fid->argTypes[i].determinedType();
+        uint32_t targetID = fid->argTypes[i].determinedType();
         Value *targetVal =
-            ConstantInt::get(this->types.i32Ty, (uint32_t)target);
-        Value *isType =
-            this->Builder.CreateICmpEQ(argRuntimeTypes[i], targetVal);
+            ConstantInt::get(this->types.i32Ty, (uint32_t)targetID);
+        Value *isType = this->Builder.CreateICmpEQ(
+            this->Builder.CreateTrunc(argRuntimeTypes[i], this->types.i32Ty),
+            targetVal);
 
         if (match) {
           match = this->Builder.CreateAnd(match, isType);
@@ -199,29 +198,11 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
     std::vector<TypedValue> specializedArgs;
     for (size_t i = 0; i < args.size(); i++) {
       if (fid->argTypes[i].isDetermined()) {
-        uint32_t target = fid->argTypes[i].determinedType();
-        llvm::Value *unboxedVal = nullptr;
-        if (target == integerType)
-          unboxedVal = this->valueEncoder.unboxInt32(args[i]).value;
-        else if (target == doubleType)
-          unboxedVal = this->valueEncoder.unboxDouble(args[i]).value;
-        else if (target == booleanType)
-          unboxedVal = this->valueEncoder.unboxBool(args[i]).value;
-        else if (target == stringType || target == persistentListType ||
-                 target == persistentVectorType || target == bigIntegerType ||
-                 target == ratioType || target == keywordType ||
-                 target == symbolType || target == functionType ||
-                 target == classType || target == persistentArrayMapType ||
-                 target == varType || target == exceptionType ||
-                 target == bridgedObjectType) {
-          unboxedVal = this->valueEncoder.unboxPointer(args[i]).value;
-        } else if (target == nilType) {
-          unboxedVal = args[i].value;
-        } else {
-          unboxedVal = this->valueEncoder.unbox(args[i]).value;
+        TypedValue valToUnbox = args[i];
+        if (valToUnbox.type.isBoxedType()) {
+          valToUnbox = TypedValue(fid->argTypes[i].boxed(), valToUnbox.value);
         }
-        // CRITICAL: Set the verified type so InvokeManager doesn't complain
-        specializedArgs.push_back(TypedValue(fid->argTypes[i], unboxedVal));
+        specializedArgs.push_back(this->valueEncoder.unbox(valToUnbox));
       } else {
         specializedArgs.push_back(this->valueEncoder.box(args[i]));
       }

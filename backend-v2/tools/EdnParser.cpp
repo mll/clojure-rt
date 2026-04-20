@@ -20,16 +20,27 @@ ClassDescription::~ClassDescription() {
   }
 }
 
-TemporaryClassData::~TemporaryClassData() {
-  for (auto const &d : classesByName) {
-    Ptr_release(d.second);
-  }
-  for (auto const &d : classesById) {
-    Ptr_release(d.second);
+TemporaryClassData::TemporaryClassData(RTValue from) {
+  try {
+    scanMetadata(from);
+  } catch (...) {
+    clear();
+    throw;
   }
 }
 
-TemporaryClassData::TemporaryClassData(RTValue from) { scanMetadata(from); }
+void TemporaryClassData::clear() {
+  for (auto const &d : classesByName) {
+    Ptr_release(d.second);
+  }
+  classesByName.clear();
+  for (auto const &d : classesById) {
+    Ptr_release(d.second);
+  }
+  classesById.clear();
+}
+
+TemporaryClassData::~TemporaryClassData() { clear(); }
 
 void TemporaryClassData::scanMetadata(RTValue from) {
   ConsumedValue root(from);
@@ -89,21 +100,37 @@ void TemporaryClassData::scanMetadata(RTValue from) {
     if (getType(aliasWrapper.get()) == keywordType) {
       // toString consumes.
       String *ss = String_compactify(::toString(aliasWrapper.take()));
+      string sAlias = string(String_c_str(ss));
+      auto it = classesByName.find(sAlias);
+      if (it != classesByName.end()) {
+        Ptr_release(it->second);
+      }
       Ptr_retain(pMap); // for storage
-      classesByName[string(String_c_str(ss))] = pMap;
+      classesByName[sAlias] = pMap;
       Ptr_release(ss);
     } else if (getType(aliasWrapper.get()) != nilType) {
       throwInternalInconsistencyException(":alias must be a keyword.");
     }
 
+    int32_t id = RT_unboxInt32(classIdWrapper.get());
+    if (classesById.find(id) != classesById.end()) {
+      throwInternalInconsistencyException("Duplicate class id: " +
+                                          to_string(id));
+    }
+
     Ptr_retain(pMap); // for storage
-    classesById[RT_unboxInt32(classIdWrapper.get())] = pMap;
+    classesById[id] = pMap;
 
     // toString consumes. Protect borrowed key.
     retain(key);
     String *s = String_compactify(::toString(key));
+    string sName = string(String_c_str(s));
+    auto itName = classesByName.find(sName);
+    if (itName != classesByName.end()) {
+      Ptr_release(itName->second);
+    }
     Ptr_retain(pMap); // for storage
-    classesByName[string(String_c_str(s))] = pMap;
+    classesByName[sName] = pMap;
     Ptr_release(s);
   }
 }

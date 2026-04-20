@@ -381,6 +381,8 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(absoluteSymbol("hash", (void *)::hash));
   runtimeSymbols.insert(absoluteSymbol("toString", (void *)toString));
   runtimeSymbols.insert(
+      absoluteSymbol("identical_managed", (void *)identical_managed));
+  runtimeSymbols.insert(
       absoluteSymbol("equals_managed", (void *)equals_managed));
 
   runtimeSymbols.insert(absoluteSymbol("Ptr_retain", (void *)Ptr_retain));

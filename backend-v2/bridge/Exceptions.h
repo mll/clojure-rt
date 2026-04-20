@@ -112,6 +112,10 @@ extern "C" [[noreturn]] void
 throwNoMatchingOverloadException_C(const char *className,
                                    const char *methodName);
 
+extern "C" [[noreturn]] void
+throwNoMatchingConstructorException_C(const char *className,
+                                       int arity);
+
 extern "C" String *exceptionToString_C(void *exception);
 extern "C" void *createException_C(const char *className, String *message,
                                    RTValue payload);

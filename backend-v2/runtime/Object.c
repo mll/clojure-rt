@@ -79,6 +79,7 @@ extern uword_t Ptr_hash(void *self);
 extern bool Ptr_equals(void *self, void *other);
 extern bool Ptr_isReusable(void *self);
 bool equals_managed(RTValue self, RTValue other);
+bool identical_managed(RTValue v1, RTValue v2);
 extern void Object_promoteToShared(Object *restrict self);
 extern void Object_promoteToSharedShallow(Object *restrict self,
                                           uword_t current);

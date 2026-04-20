@@ -181,7 +181,14 @@ llvm::Function *CodeGen::generateBaselineMethod(
         [](unsigned char c) { return !std::isalnum(c); }, '_');
     funcName += sanitized + "_";
   }
+  funcName += "arity_" + std::to_string(method.fixedarity()) + "_";
+  if (method.isvariadic()) {
+    funcName += "variadic_";
+  }
   funcName += generateRandomHex(16);
+
+  std::string savedSuggestedFunctionName = suggestedFunctionName;
+  suggestedFunctionName = "";
 
   // Create the function with baseline signature: (Frame*, Arg0, Arg1, Arg2,
   // Arg3, Arg4) -> RTValue
@@ -351,6 +358,7 @@ llvm::Function *CodeGen::generateBaselineMethod(
   variableTypesBindingsStack.pop();
 
   verifyFunction(*F);
+  suggestedFunctionName = savedSuggestedFunctionName;
   return F;
 }
 

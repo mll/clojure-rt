@@ -33,20 +33,20 @@
 using namespace std;
 using namespace llvm;
 
+#include <iomanip>
+
 class ExecutionTimer {
   std::string name;
-  std::chrono::high_resolution_clock::time_point start;
+  std::chrono::steady_clock::time_point start;
 
 public:
   ExecutionTimer(const std::string &n)
-      : name(n), start(std::chrono::high_resolution_clock::now()) {}
+      : name(n), start(std::chrono::steady_clock::now()) {}
   ~ExecutionTimer() {
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-            .count();
-    std::cout << "[TIMER] " << name << " took " << duration << " ms"
-              << std::endl;
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double, std::milli> duration = end - start;
+    std::cout << "[TIMER] " << name << " took " << std::fixed
+              << std::setprecision(3) << duration.count() << " ms" << std::endl;
   }
 };
 
@@ -130,11 +130,15 @@ int main(int argc, char *argv[]) {
     cout << "Compiling root..." << endl;
     for (int j = 0; j < astRoot.nodes_size(); j++) {
       std::string moduleName = "__repl__" + std::to_string(j);
-      ExecutionTimer t("Executing " + moduleName);
       auto topLevelNode = astRoot.nodes(j);
       cout << "=============================" << endl;
-      cout << "Compiling!!!" << endl;
-      auto res = engine.compileAST(topLevelNode, moduleName).get();
+
+      rt::JITResult res;
+      {
+        ExecutionTimer t("Compiling " + moduleName);
+        cout << "Compiling!!!" << endl;
+        res = engine.compileAST(topLevelNode, moduleName).get();
+      }
 
       if (!res.optimizedIR.empty()) {
         cout << "\n=== Optimized LLVM IR for: '" << moduleName << "' ===\n";
@@ -142,14 +146,17 @@ int main(int argc, char *argv[]) {
         cout << "===============================================\n" << endl;
       }
 
-      RTValue whaat = res.address.toPtr<RTValue (*)()>()();
-      String *s = toString(whaat);
-      s = String_compactify(s);
+      {
+        ExecutionTimer t("Executing " + moduleName);
+        RTValue whaat = res.address.toPtr<RTValue (*)()>()();
+        String *s = toString(whaat);
+        s = String_compactify(s);
 
-      cout << "========== Result ==========" << endl;
-      cout << std::string(String_c_str(s)) << endl;
-      cout << "========== /Result ==========" << endl;
-      Ptr_release(s);
+        cout << "========== Result ==========" << endl;
+        cout << std::string(String_c_str(s)) << endl;
+        cout << "========== /Result ==========" << endl;
+        Ptr_release(s);
+      }
     }
     retVal = 0;
   } catch (const rt::LanguageException &e) {

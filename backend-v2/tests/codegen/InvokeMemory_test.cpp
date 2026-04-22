@@ -7,6 +7,9 @@
 #include <iostream>
 #include <memory>
 
+#include "../../runtime/Exception.h"
+#include "../../runtime/Object.h"
+
 extern "C" {
 #include "../../runtime/tests/TestTools.h"
 #include <cmocka.h>
@@ -15,14 +18,15 @@ void delete_class_description(void *ptr);
 void *createException_C(const char *className, String *message,
                         RTValue payload);
 String *String_create(const char *s);
-void *Exception_create();
+RTValue Exception_create();
 }
 
-extern "C" void *Exception_create() {
+extern "C" RTValue Exception_create() {
   String *msg = String_create("");
-  void *ex = createException_C("java.lang.Exception", msg, 0);
-  Ptr_release(msg);
-  return (void *)ex;
+  ::Exception *self = (::Exception *)allocate(sizeof(::Exception));
+  Object_create((Object *)self, exceptionType);
+  self->bridgedData = createException_C("java.lang.Exception", msg, 0);
+  return RT_boxPtr(self);
 }
 
 using namespace rt;

@@ -324,6 +324,9 @@ llvm::Function *CodeGen::generateBaselineMethod(
               valueEncoder.unboxDouble(TypedValue(type.boxed(), valRaw)).value;
         } else if (type.isUnboxedType(booleanType)) {
           val = valueEncoder.unboxBool(TypedValue(type.boxed(), valRaw)).value;
+        } else if (type.isUnboxedPointer()) {
+          val =
+              valueEncoder.unboxPointer(TypedValue(type.boxed(), valRaw)).value;
         }
       }
 

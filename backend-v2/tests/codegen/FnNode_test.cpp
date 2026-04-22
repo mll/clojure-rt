@@ -216,12 +216,65 @@ static void test_multi_arity_fn(void **state) {
   });
 }
 
+static void test_fn_bigint_arg(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+    
+    // AST: (let [f (fn [x] x)] (f 123N))
+    Node letNode;
+    letNode.set_op(opLet);
+    auto *let = letNode.mutable_subnode()->mutable_let();
+
+    auto *b = let->add_bindings();
+    b->set_op(opBinding);
+    auto *bn = b->mutable_subnode()->mutable_binding();
+    bn->set_name("f");
+    auto *init = bn->mutable_init();
+    init->set_op(opFn);
+    auto *fn = init->mutable_subnode()->mutable_fn();
+    fn->set_maxfixedarity(1);
+    auto *m = fn->add_methods();
+    auto *mn = m->mutable_subnode()->mutable_fnmethod();
+    mn->set_fixedarity(1);
+    auto *p = mn->add_params();
+    p->set_op(opBinding);
+    p->mutable_subnode()->mutable_binding()->set_name("x");
+    auto *body = mn->mutable_body();
+    body->set_op(opLocal);
+    body->mutable_subnode()->mutable_local()->set_name("x");
+
+    auto *letBody = let->mutable_body();
+    letBody->set_op(opInvoke);
+    auto *inv = letBody->mutable_subnode()->mutable_invoke();
+    inv->mutable_fn()->set_op(opLocal);
+    inv->mutable_fn()->mutable_subnode()->mutable_local()->set_name("f");
+    inv->mutable_fn()->mutable_subnode()->mutable_local()->set_local(localTypeLet);
+
+    auto *arg = inv->add_args();
+    arg->set_op(opConst);
+    arg->mutable_subnode()->mutable_const_()->set_val("123");
+    arg->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    arg->set_tag("clojure.lang.BigInt");
+
+    auto res = engine.compileAST(letNode, "fn_bigint_arg_test").get();
+    RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
+    RTValue result = func();
+    
+    assert_int_equal(bigIntegerType, getType(result));
+    assert_int_equal(123, mpz_get_si(((BigInteger*)RT_unboxPtr(result))->value));
+    
+    release(result);
+  });
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_simple_fn),
       cmocka_unit_test(test_fn_capture_unboxing_int),
       cmocka_unit_test(test_multi_arity_fn),
+      cmocka_unit_test(test_fn_bigint_arg),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);

@@ -260,3 +260,14 @@ struct FunctionMethod *RT_updateICSlot(void *slot, RTValue currentVal,
   }
   return method;
 }
+
+void Function_promoteToShared(ClojureFunction *self, uword_t count) {
+  for (uword_t i = 0; i < self->methodCount; i++) {
+    FunctionMethod *method = &(self->methods[i]);
+    for (uword_t j = 0; j < method->closedOversCount; j++) {
+      promoteToShared(method->closedOvers[j]);
+    }
+  }
+  Object_promoteToSharedShallow((Object *)self, count);
+}
+

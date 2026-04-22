@@ -32,11 +32,15 @@ set(TEST_MODULES
     codegen/ThrowNode_test
     codegen/FnNode_test
     codegen/InvokeNode_test
+    codegen/InvokeMemory_test
     codegen/VarCallIC_test
     codegen/VarCallLeak_repro
     codegen/DynamicInvoke_test
     codegen/IFnInvoke_test
     codegen/NewNodeDispatch_test
+    codegen/VariadicInvoke_test
+    codegen/Concurrency_test
+    codegen/RecurNode_test
     codegen/EBRFlush_test
     state/ClassRegistration_test
     VarUAF_repro_test

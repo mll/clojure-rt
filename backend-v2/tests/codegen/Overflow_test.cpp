@@ -177,12 +177,52 @@ static void test_integer_overflow_mul(void **state) {
   });
 }
 
+static void test_bigint_arithmetic(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
+    setup_compiler_state(compState, engine);
+
+    // Create a StaticCallNode for (clojure.lang.Numbers/add 100 200N)
+    Node callNode;
+    callNode.set_op(opStaticCall);
+    auto *sc = callNode.mutable_subnode()->mutable_staticcall();
+    sc->set_class_("clojure.lang.Numbers");
+    sc->set_method("add");
+
+    auto *arg1 = sc->add_args();
+    arg1->set_op(opConst);
+    arg1->set_tag("long");
+    arg1->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
+    arg1->mutable_subnode()->mutable_const_()->set_val("100");
+
+    auto *arg2 = sc->add_args();
+    arg2->set_op(opConst);
+    arg2->set_tag("clojure.lang.BigInt");
+    arg2->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeNumber);
+    arg2->mutable_subnode()->mutable_const_()->set_val("200");
+
+    auto resCall =
+        engine.compileAST(callNode, "__test_bigint_add").get().address;
+
+    RTValue result = resPtrToValue(resCall);
+    assert_int_equal(bigIntegerType, getType(result));
+    
+    // Cleanup
+    release(result);
+  });
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_integer_overflow_add),
       cmocka_unit_test(test_integer_overflow_sub),
       cmocka_unit_test(test_integer_overflow_mul),
+      cmocka_unit_test(test_bigint_arithmetic),
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);

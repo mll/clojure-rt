@@ -141,7 +141,7 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
         node.otag() == "clojure.lang.Ratio" ||
         node.tag() == "class clojure.lang.Ratio" ||
         node.otag() == "class clojure.lang.Ratio") {
-      return ObjectTypeSet(ratioType, true, new ConstantRatio(subnode.val()))
+      return ObjectTypeSet(ratioType, false, new ConstantRatio(subnode.val()))
           .restriction(typeRestrictions);
     }
 
@@ -149,7 +149,7 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
         node.otag() == "clojure.lang.BigInt" ||
         node.tag() == "class clojure.lang.BigInt" ||
         node.otag() == "class clojure.lang.BigInt") {
-      return ObjectTypeSet(bigIntegerType, true,
+      return ObjectTypeSet(bigIntegerType, false,
                            new ConstantBigInteger(subnode.val()))
           .restriction(typeRestrictions);
     }
@@ -173,7 +173,7 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
                                  new ConstantInteger((int32_t)val))
                 .restriction(typeRestrictions);
           } else {
-            return ObjectTypeSet(bigIntegerType, true,
+            return ObjectTypeSet(bigIntegerType, false,
                                  new ConstantBigInteger(subnode.val()))
                 .restriction(typeRestrictions);
           }

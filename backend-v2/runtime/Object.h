@@ -447,6 +447,10 @@ inline void Object_promoteToShared(Object *restrict self) {
     PersistentVectorNode_promoteToShared((PersistentVectorNode *)self, count);
     break;
 
+  case functionType:
+    Function_promoteToShared((ClojureFunction *)self, count);
+    break;
+
   default:
     Object_promoteToSharedShallow(self, count);
     break;

@@ -7,7 +7,7 @@ ThreadPool::ThreadPool(size_t threads, Priority priority) : stop(false) {
   for (size_t i = 0; i < threads; ++i)
     workers.emplace_back([this, priority] {
       Ebr_register_thread();
-      Ebr_enter_critical();
+
       if (priority == Priority::Low)
         this->setLowPriority();
       for (;;) {
@@ -17,7 +17,6 @@ ThreadPool::ThreadPool(size_t threads, Priority priority) : stop(false) {
           this->condition.wait(
               lock, [this] { return this->stop || !this->tasks.empty(); });
           if (this->stop && this->tasks.empty()) {
-            Ebr_leave_critical();
             Ebr_unregister_thread();
             return;
           }
@@ -25,8 +24,9 @@ ThreadPool::ThreadPool(size_t threads, Priority priority) : stop(false) {
           task = std::move(this->tasks.front());
           this->tasks.pop();
         }
+        Ebr_enter_critical();
         task();
-        Ebr_flush_critical();
+        Ebr_leave_critical();
       }
     });
 }

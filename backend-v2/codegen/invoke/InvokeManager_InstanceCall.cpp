@@ -1,10 +1,10 @@
 #include "../../bridge/Exceptions.h"
 #include "../../tools/EdnParser.h"
 #include "../../tools/RTValueWrapper.h"
+#include "../../tools/RandomID.h"
 #include "../../types/ConstantClass.h"
 #include "../CodeGen.h"
 #include "InvokeManager.h"
-#include "../../tools/RandomID.h"
 #include "llvm/IR/MDBuilder.h"
 #include <cstdint>
 #include <sstream>
@@ -38,8 +38,8 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
         "mode");
   }
 
-  cout << "Generating dynamic instance call for method: " << methodName << endl;
-  // Allocate an Inline Cache slot as a global variable in the module
+  // cout << "Generating dynamic instance call for method: " << methodName <<
+  // endl; Allocate an Inline Cache slot as a global variable in the module
   auto *slotTy = StructType::get(TheContext, {types.wordTy, types.ptrTy});
 
   std::stringstream ss;
@@ -379,8 +379,9 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
         uint32_t target = fid->argTypes[i].determinedType();
         Value *targetVal =
             ConstantInt::get(this->types.i32Ty, (uint32_t)target);
-        Value *isType =
-            this->builder.CreateICmpEQ(this->builder.CreateTrunc(argRuntimeTypes[i], this->types.i32Ty), targetVal);
+        Value *isType = this->builder.CreateICmpEQ(
+            this->builder.CreateTrunc(argRuntimeTypes[i], this->types.i32Ty),
+            targetVal);
 
         if (match) {
           match = this->builder.CreateAnd(match, isType);

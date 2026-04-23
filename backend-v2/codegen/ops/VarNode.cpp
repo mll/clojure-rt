@@ -11,7 +11,7 @@ TypedValue CodeGen::codegen(const Node &node, const VarNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
   auto varName = subnode.var().substr(2);
   ScopedRef<Var> var(compilerState.varRegistry.getCurrent(varName.c_str()));
-  cout << "Derefing var " << varName << endl;
+
   if (!var)
     throwCodeGenerationException(
         "Unable to resolve var: " + varName + " in this context", node);

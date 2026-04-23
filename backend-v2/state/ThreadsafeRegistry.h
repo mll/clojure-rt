@@ -4,6 +4,7 @@
 #include "../RuntimeHeaders.h"
 #include "../bridge/Exceptions.h"
 #include "runtime/Object.h"
+#include "runtime/RTValue.h"
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -45,6 +46,7 @@ public:
     auto it = registry.find(key);
 
     if (manageRuntimeMemory && it != registry.end()) {
+      promoteToShared(RT_boxPtr(it->second));
       Ptr_release((void *)it->second);
     }
 
@@ -58,15 +60,20 @@ public:
     auto it = registry.find(key);
 
     if (it != registry.end()) {
-      if (manageRuntimeMemory)
+      if (manageRuntimeMemory) {
         Ptr_retain((void *)it->second);
+      }
       return it->second;
     }
 
     T *newDef = factory();
     registry[key] = newDef;
-    if (manageRuntimeMemory)
-      Ptr_retain(newDef); // Still need to return a fresh reference if it's being returned
+    if (manageRuntimeMemory) {
+      promoteToShared(RT_boxPtr(newDef));
+      Ptr_retain(newDef); // Still need to return a fresh reference if it's
+                          // being returned
+    }
+
     return newDef;
   }
 

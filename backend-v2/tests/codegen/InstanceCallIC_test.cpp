@@ -219,9 +219,9 @@ static void test_instance_call_ic_atomicity(void **state) {
       release(fn());
     }
 
-    const int numThreads = 8;
-    const int iterationsForSwitcher = 1000;
-    const int iterationsForObservers = 100000;
+    const int numThreads = 16;
+    const int iterationsForSwitcher = 5000;
+    const int iterationsForObservers = 500000;
     std::atomic<bool> failed{false};
     std::atomic<int> readyCount{0};
     std::atomic<bool> start{false};

@@ -83,7 +83,7 @@ InstanceCallSlowPath(void *slot, const char *methodName, int32_t argCount,
      * from stack.
      */
 
-    std::cout << future.get().optimizedIR << std::endl;
+    // std::cout << future.get().optimizedIR << std::endl;
 
     // Block until the JIT compilation is finished and get the executable
     // address

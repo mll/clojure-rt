@@ -18,15 +18,17 @@ LLVMTypes::LLVMTypes(LLVMContext &context) {
   voidTy = Type::getVoidTy(context);
   RT_valueTy = i64Ty;
 
-  RT_objectTy = StructType::create(context,
-                                   {
-                                       wordTy, // atomicRefCount
-                                       i32Ty,  // type (enum)
+  std::vector<Type *> objectFields = {wordTy, i32Ty};
+  if (K_WORD_SIZE == 8) {
 #ifdef USE_MEMORY_BANKS
-                                       Type::getInt8Ty(Ctx) // bankId
+    objectFields.push_back(i8Ty);                    // bankId
+    objectFields.push_back(ArrayType::get(i8Ty, 3)); // padding to 16
+#else
+    objectFields.push_back(i32Ty); // padding to 16
 #endif
-                                   },
-                                   "Clojure_Object");
+  }
+
+  RT_objectTy = StructType::create(context, objectFields, "Clojure_Object");
 
   frameTy = StructType::create(context,
                                {ptrTy,                     // leafFrame

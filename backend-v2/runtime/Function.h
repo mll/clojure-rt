@@ -62,6 +62,8 @@ uword_t Function_hash(ClojureFunction *self);
 String *Function_toString(ClojureFunction *self);
 void Function_destroy(ClojureFunction *self);
 void Function_cleanupOnce(ClojureFunction *self);
+void Function_promoteToShared(ClojureFunction *self, uword_t count);
+
 RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount);
 FunctionMethod *Function_extractMethod(RTValue funObj, uword_t argCount);
 struct FunctionMethod *RT_updateICSlot(void *slot, RTValue currentVal,

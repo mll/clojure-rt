@@ -46,7 +46,7 @@ static void test_let_basic(void **state) {
     bxc->mutable_init()->mutable_subnode()->mutable_const_()->set_type(
         ConstNode_ConstType_constTypeNumber);
 
-    // Binding y = 2
+    // Binding y = 2N (BigInt)
     auto *by = let->add_bindings();
     by->set_op(opBinding);
     auto *byc = by->mutable_subnode()->mutable_binding();
@@ -55,6 +55,7 @@ static void test_let_basic(void **state) {
     byc->mutable_init()->mutable_subnode()->mutable_const_()->set_val("2");
     byc->mutable_init()->mutable_subnode()->mutable_const_()->set_type(
         ConstNode_ConstType_constTypeNumber);
+    byc->mutable_init()->set_tag("clojure.lang.BigInt");
 
     // Body: (StaticCall rt.Core/Numbers_add x y)
     auto *body = let->mutable_body();
@@ -96,7 +97,9 @@ static void test_let_basic(void **state) {
                      .get()
                      .address;
       RTValue result = res.toPtr<RTValue (*)()>()();
-      assert_int_equal(RT_unboxInt32(result), 3);
+      assert_int_equal(getType(result), bigIntegerType);
+      assert_int_equal(mpz_get_si(((BigInteger*)RT_unboxPtr(result))->value), 3);
+      release(result);
     } catch (const rt::LanguageException &e) {
       cout << "Caught LanguageException: " << rt::getExceptionString(e) << endl;
       assert_true(false);

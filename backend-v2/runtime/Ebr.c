@@ -90,7 +90,7 @@ typedef struct ThreadState {
   atomic_uint local_epoch;
   atomic_bool active;
   atomic_bool terminated;
-  uword_t pending_count;
+  size_t pending_count;
   _Atomic(struct ThreadState *) next;
 } ThreadState;
 
@@ -152,6 +152,7 @@ void Ebr_register_thread() {
   atomic_init(&s->local_epoch, 0U);
   atomic_init(&s->active, false);
   atomic_init(&s->terminated, false);
+  s->pending_count = 0;
   ThreadState *old_head;
   do {
     old_head = atomic_load_explicit(&registry_head, memory_order_relaxed);
@@ -175,6 +176,8 @@ void Ebr_unregister_thread() {
 
 void Ebr_force_reclaim() {
   // There should be only two threads left: the current thread and the reclaimer
+  EBR_LOG("Entering force reclaim. active threads: %zu",
+          atomic_load(&active_threads));
   int wait_ms = 0;
   while (atomic_load(&active_threads) > 2) {
     usleep(1000);
@@ -190,6 +193,8 @@ void Ebr_force_reclaim() {
   // Keep reclaiming until there are no more objects to reclaim.
   // We use the synchronization_mutex to properly wait for the background
   // reclaimer thread if it is currently holding the "stolen" pending list.
+  EBR_LOG("Force Reclaim: Entering loop - waiting for pending_reclamation to "
+          "be empty.");
   int sync_wait_ms = 0;
   while (true) {
     Ebr_flush_critical();
@@ -208,7 +213,8 @@ void Ebr_force_reclaim() {
     sync_wait_ms++;
     if (sync_wait_ms >= 1000 && (sync_wait_ms % 1000 == 0)) {
       fprintf(stderr,
-              "[EBR WARNING] Ebr_force_reclaim waiting to empty pending_reclamation. Waited %d seconds.\n",
+              "[EBR WARNING] Ebr_force_reclaim waiting to empty "
+              "pending_reclamation. Waited %d seconds.\n",
               sync_wait_ms / 1000);
     }
   }
@@ -264,7 +270,7 @@ void autorelease(RTValue value) {
   EBR_LOG("Object %p retired (epoch: %u, pending: %zu).", RT_unboxPtr(value),
           current_ep, thread_state->pending_count);
   if (thread_state->pending_count++ % EBR_RECLAIM_THRESHOLD == 0) {
-    EBR_LOG("Reclaim threshold reached. Signaling reclaimer.");
+    EBR_LOG("autorelease: Reclaim threshold reached. Signaling reclaimer.");
     pthread_cond_signal(&reclaimer_cond);
   }
 }
@@ -273,9 +279,8 @@ size_t Ebr_synchronize_and_reclaim() {
   pthread_mutex_lock(&synchronization_mutex);
   unsigned int current_global =
       atomic_load_explicit(&global_epoch, memory_order_relaxed);
-#ifdef EBR_DEBUG
+
   EBR_LOG("Sync/Reclaim start (global_epoch: %u).", current_global);
-#endif
 
   issue_global_barrier();
 
@@ -289,11 +294,11 @@ size_t Ebr_synchronize_and_reclaim() {
           atomic_load_explicit(&curr_thread->local_epoch, memory_order_relaxed);
       if (local_ep != current_global) {
         can_advance = false;
-#ifdef EBR_DEBUG
+
         EBR_LOG(
             "Thread %p is active in epoch %u (global: %u). Blocking advance.",
             curr_thread, local_ep, current_global);
-#endif
+
         break;
       }
     }
@@ -362,32 +367,38 @@ size_t Ebr_synchronize_and_reclaim() {
 
 void *Ebr_reclaimer_thread_func(void *arg) {
   Ebr_register_thread();
-  EBR_LOG("Reclaimer thread started.");
+  EBR_LOG("Reclaimer: Thread started.");
 
-  while (reclaimer_running) {
+  while (true) {
     pthread_mutex_lock(&reclaimer_mutex);
+    if (!reclaimer_running) {
+      pthread_mutex_unlock(&reclaimer_mutex);
+      break;
+    }
+    EBR_LOG("Reclaimer: Thread going to sleep");
     pthread_cond_wait(&reclaimer_cond, &reclaimer_mutex);
     pthread_mutex_unlock(&reclaimer_mutex);
 
-    EBR_LOG("Reclaimer thread woken up. Running synchronization...");
+    EBR_LOG("Reclaimer: Thread woken up. Running sync/reclaim...");
     Ebr_synchronize_and_reclaim();
   }
-  EBR_LOG("Reclaimer thread exiting.");
+  EBR_LOG("Reclaimer: thread exiting.");
   Ebr_unregister_thread();
   return NULL;
 }
 
 void Ebr_shutdown() {
-  EBR_LOG("Shutting down EBR system.");
+  EBR_LOG("Shutdown: Shutting down EBR system.");
   pthread_mutex_lock(&reclaimer_mutex);
   atomic_store_explicit(&reclaimer_running, false, memory_order_release);
-  pthread_cond_broadcast(&reclaimer_cond);
   pthread_mutex_unlock(&reclaimer_mutex);
+  pthread_cond_broadcast(&reclaimer_cond);
 
   if (reclaimer_thread_id != 0) {
+    EBR_LOG("Shutdown: Waiting for reclaimer thread to finish.");
     pthread_join(reclaimer_thread_id, NULL);
   }
-
+  EBR_LOG("Shutdown: Reclaimer thread shut down.");
   RetiredObject *cur_garbage = atomic_exchange_explicit(
       &pending_reclamation, NULL, memory_order_acq_rel);
 
@@ -403,9 +414,8 @@ void Ebr_shutdown() {
     final_reclaim++;
 #endif
   }
-#ifdef EBR_DEBUG
+
   EBR_LOG("Shutdown: Reclaimed last %d pending objects.", final_reclaim);
-#endif
 
   ThreadState *curr_thread =
       atomic_exchange_explicit(&registry_head, NULL, memory_order_acq_rel);
@@ -420,9 +430,8 @@ void Ebr_shutdown() {
     thread_states_freed++;
 #endif
   }
-#ifdef EBR_DEBUG
   EBR_LOG("Shutdown: Freed %d thread state structures.", thread_states_freed);
-#endif
 
   thread_state = NULL;
+  EBR_LOG("Shutdown: EBR system shut down successfully.");
 }

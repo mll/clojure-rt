@@ -43,6 +43,7 @@ set(TEST_MODULES
     codegen/RecurNode_test
     codegen/EBRFlush_test
     state/ClassRegistration_test
+    state/ProtocolValidation_test
     VarUAF_repro_test
     JITSafety_test
 )

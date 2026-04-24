@@ -197,13 +197,62 @@ ClassDescription::ClassDescription(RTValue from,
   Ptr_release(compactifiedName);
 
   retain(root.get());
+  ConsumedValue isInterfaceWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("is-interface"))));
+  if (getType(isInterfaceWrapper.get()) == booleanType) {
+    this->isInterface = RT_unboxBool(isInterfaceWrapper.get());
+  }
+
+  retain(root.get());
   ConsumedValue extendsWrapper(PersistentArrayMap_get(
       description, Keyword_create(String_create("extends"))));
   if (getType(extendsWrapper.get()) == symbolType ||
       getType(extendsWrapper.get()) == stringType) {
     String *sParent = String_compactify(::toString(extendsWrapper.take()));
     this->parentName = String_c_str(sParent);
+    this->parentNames.push_back(this->parentName);
     Ptr_release(sParent);
+  } else if (getType(extendsWrapper.get()) == persistentVectorType) {
+    PersistentVector *vec =
+        (PersistentVector *)RT_unboxPtr(extendsWrapper.get());
+    for (uword_t i = 0; i < vec->count; i++) {
+      retain(RT_boxPtr(vec));
+      ConsumedValue v(PersistentVector_nth(vec, i));
+      String *s = String_compactify(::toString(v.take()));
+      this->parentNames.push_back(String_c_str(s));
+      Ptr_release(s);
+    }
+  }
+
+  retain(root.get());
+  ConsumedValue implWrapper(PersistentArrayMap_get(
+      description, Keyword_create(String_create("implements"))));
+
+  if (getType(implWrapper.get()) == persistentArrayMapType) {
+    PersistentArrayMap *map =
+        (PersistentArrayMap *)RT_unboxPtr(implWrapper.get());
+    for (uword_t i = 0; i < map->count; i++) {
+      RTValue key = map->keys[i];
+      RTValue value = map->values[i];
+      if (getType(key) != symbolType && getType(key) != stringType) {
+        throwInternalInconsistencyException(
+            "Implements collection key is not a symbol or string.");
+      }
+      if (getType(value) != persistentArrayMapType) {
+        throwInternalInconsistencyException(
+            "Implements collection value is not a map.");
+      }
+
+      retain(key);
+      String *ss = String_compactify(::toString(key));
+      string sProtoName = String_c_str(ss);
+      Ptr_release(ss);
+
+      // parse protocol methods
+      retain(value);
+      this->implements[sProtoName] =
+          parseIntrinsics(value, classData, this->type, true);
+    }
   }
 
   retain(root.get());

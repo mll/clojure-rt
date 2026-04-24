@@ -55,10 +55,12 @@ class ClassDescription {
                                const ObjectTypeSet &thisType);
 
 public:
+  bool isInterface = false;
   ObjectTypeSet type;
   ::Class *extends;
   string name;
   string parentName;
+  vector<string> parentNames;
   unordered_map<string, RTValue> staticFields;
   vector<RTValue> staticFieldValues;
   unordered_map<string, int32_t> staticFieldIndices;
@@ -68,8 +70,10 @@ public:
   vector<IntrinsicDescription> constructors;
   unordered_map<string, vector<IntrinsicDescription>> staticFns;
   unordered_map<string, vector<IntrinsicDescription>> instanceFns;
+  unordered_map<string, unordered_map<string, vector<IntrinsicDescription>>>
+      implements;
 
-  vector<Class *> interfaces;
+  vector<::Class *> interfaces;
 
   ClassDescription() = default;
   ClassDescription(RTValue from, TemporaryClassData &classData);

@@ -4,10 +4,12 @@
 #include "../../tools/EdnParser.h"
 #include "bytecode.pb.h"
 #include "runtime/ObjectProto.h"
-#include <memory>
-#include <vector>
-
 extern "C" {
+#include "../../runtime/PersistentArrayMap.h"
+#include "../../runtime/PersistentVector.h"
+#include "../../runtime/Keyword.h"
+#include "../../runtime/Symbol.h"
+#include "../../runtime/String.h"
 #include "../../runtime/tests/TestTools.h"
 #include <cmocka.h>
 }
@@ -24,6 +26,12 @@ extern "C" {
 RTValue MyClass_create() {
   Object *obj = (Object *)malloc(sizeof(Object));
   Object_create(obj, (objectType)1000);
+  return (RTValue)(uintptr_t)obj;
+}
+
+RTValue C1_create() {
+  Object *obj = (Object *)malloc(sizeof(Object));
+  Object_create(obj, (objectType)1001);
   return (RTValue)(uintptr_t)obj;
 }
 
@@ -314,6 +322,80 @@ static void test_is_instance_refcounted_local(void **state) {
   });
 }
 
+static void test_is_instance_protocol(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
+
+    // 1. Define Protocol P1
+    PersistentArrayMap *p1Map = PersistentArrayMap_empty();
+    p1Map = PersistentArrayMap_assoc(
+        p1Map, Keyword_create(String_create("is-interface")), RT_boxBool(true));
+    p1Map = PersistentArrayMap_assoc(
+        p1Map, Keyword_create(String_create("name")),
+        RT_boxPtr(String_create("P1")));
+    p1Map = PersistentArrayMap_assoc(
+        p1Map, Keyword_create(String_create("object-type")), RT_boxInt32(2001));
+    
+    PersistentArrayMap *protoRoot = PersistentArrayMap_empty();
+    protoRoot = PersistentArrayMap_assoc(
+        protoRoot, Symbol_create(String_create("P1")), RT_boxPtr(p1Map));
+    compState.storeInternalProtocols(RT_boxPtr(protoRoot));
+
+    // 2. Define Class C1 implementing P1
+    PersistentArrayMap *c1Map = PersistentArrayMap_empty();
+    c1Map = PersistentArrayMap_assoc(
+        c1Map, Keyword_create(String_create("object-type")), RT_boxInt32(1001));
+    c1Map = PersistentArrayMap_assoc(c1Map, Keyword_create(String_create("name")),
+                                   RT_boxPtr(String_create("C1")));
+    
+    PersistentArrayMap *p1Impl = PersistentArrayMap_empty();
+    PersistentArrayMap *impls = PersistentArrayMap_empty();
+    impls = PersistentArrayMap_assoc(
+        impls, Symbol_create(String_create("P1")), RT_boxPtr(p1Impl));
+    c1Map = PersistentArrayMap_assoc(
+        c1Map, Keyword_create(String_create("implements")), RT_boxPtr(impls));
+
+    PersistentVector *ctors = PersistentVector_create();
+    PersistentArrayMap *ctorDesc = PersistentArrayMap_empty();
+    ctorDesc = PersistentArrayMap_assoc(ctorDesc, Keyword_create(String_create("type")), Keyword_create(String_create("call")));
+    ctorDesc = PersistentArrayMap_assoc(ctorDesc, Keyword_create(String_create("symbol")), RT_boxPtr(String_create("C1_create")));
+    ctorDesc = PersistentArrayMap_assoc(ctorDesc, Keyword_create(String_create("args")), RT_boxPtr(PersistentVector_create()));
+    ctors = PersistentVector_conj(ctors, RT_boxPtr(ctorDesc));
+    c1Map = PersistentArrayMap_assoc(c1Map, Keyword_create(String_create("constructor")), RT_boxPtr(ctors));
+
+    PersistentArrayMap *classRoot = PersistentArrayMap_empty();
+    classRoot = PersistentArrayMap_assoc(
+        classRoot, Symbol_create(String_create("C1")), RT_boxPtr(c1Map));
+    compState.storeInternalClasses(RT_boxPtr(classRoot));
+
+    // 3. Test (instance? P1 (C1.))
+    Node node;
+    node.set_op(opIsInstance);
+    auto *is = node.mutable_subnode()->mutable_isinstance();
+    is->set_class_("P1");
+
+    auto *target = is->mutable_target();
+    target->set_op(opNew);
+    auto *nn = target->mutable_subnode()->mutable_new_();
+    nn->mutable_class_()->set_op(opConst);
+    nn->mutable_class_()->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeClass);
+    nn->mutable_class_()->mutable_subnode()->mutable_const_()->set_val("C1");
+
+    auto res = engine
+                   .compileAST(node, "test_is_instance_protocol")
+                   .get()
+                   .address;
+
+    RTValue result = resPtrToValue(res);
+    assert_true(RT_isBool(result));
+    assert_true(RT_unboxBool(result));
+    release(result);
+  });
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
@@ -323,6 +405,7 @@ int main(void) {
       cmocka_unit_test(test_is_instance_class_prefix),
       cmocka_unit_test(test_is_instance_any_type_regression),
       cmocka_unit_test(test_is_instance_refcounted_local),
+      cmocka_unit_test(test_is_instance_protocol),
   };
 
   int result = cmocka_run_group_tests(tests, NULL, NULL);

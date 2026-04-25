@@ -142,11 +142,11 @@ static void test_protocol_inheritance_and_isinstance(void **state) {
     assert_non_null(clsP2);
 
     // Note: Class_isInstance won't work for protocols since they are external
-    // but we can check the implementedProtocols map
-    auto it = compState.implementedProtocols.find(clsC1);
-    assert_true(it != compState.implementedProtocols.end());
-    assert_int_equal(1, it->second.size());
-    assert_ptr_equal(clsP2, it->second[0]->interface);
+    // but we can check the implementedProtocols directly in the class
+    ClassList *list = atomic_load(&clsC1->implementedProtocols);
+    assert_non_null(list);
+    assert_int_equal(1, list->count);
+    assert_ptr_equal(clsP2, list->classes[0]);
 
     Ptr_release(clsC1);
     Ptr_release(clsP1);

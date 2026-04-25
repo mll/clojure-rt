@@ -15,23 +15,23 @@ extern "C" {
 #include <unistd.h>
 
 typedef struct Object Object;
-typedef struct Class Interface;
+typedef struct Class Protocol;
 
-typedef struct ImplementedInterface {
-  Interface *interface;
-  ClojureFunction **functions;
-} ImplementedInterface;
+typedef struct ClassList {
+  int32_t count;
+  struct Class *classes[];
+} ClassList;
 
 typedef struct Class {
   Object super;
   int32_t registerId;
-  bool isInterface;
+  bool isProtocol;
 
   String *name;
   String *className;
 
-  int32_t superclassCount;
-  struct Class **superclasses;
+  _Atomic(struct ClassList *) superclasses;
+  _Atomic(struct ClassList *) implementedProtocols;
 
   void *compilerExtension;
   void (*compilerExtensionDestructor)(void *);
@@ -42,9 +42,11 @@ typedef struct Class {
 Class *Class_create(String *name, String *className, int32_t superclassCount,
                     Class **superclasses);
 
-Class *Class_createInterface(String *name, String *className,
-                             int32_t extendsInterfaceCount,
-                             Class **extendsInterfaces);
+Class *Class_createProtocol(String *name, String *className,
+                             int32_t extendsProtocolCount,
+                             Class **extendsProtocols);
+
+void Class_addProtocol(Class *self, Protocol *proto);
 
 bool Class_equals(Class *self, Class *other);
 int32_t Class_hash(Class *self);

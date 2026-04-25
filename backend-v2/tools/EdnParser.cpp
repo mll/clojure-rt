@@ -200,7 +200,7 @@ ClassDescription::ClassDescription(RTValue from,
   ConsumedValue isInterfaceWrapper(PersistentArrayMap_get(
       description, Keyword_create(String_create("is-interface"))));
   if (getType(isInterfaceWrapper.get()) == booleanType) {
-    this->isInterface = RT_unboxBool(isInterfaceWrapper.get());
+    this->isProtocol = RT_unboxBool(isInterfaceWrapper.get());
   }
 
   retain(root.get());
@@ -285,17 +285,6 @@ ClassDescription::ClassDescription(RTValue from,
       this->instanceFields[String_c_str(ss)] = (int32_t)i;
       Ptr_release(ss);
     }
-  }
-
-  retain(root.get());
-  ConsumedValue interfacesWrapper(PersistentArrayMap_get(
-      description, Keyword_create(String_create("interfaces"))));
-
-  if (getType(interfacesWrapper.get()) == persistentVectorType) {
-    // These will be resolved later or stored as names.
-    // For now, let's assume classData can help or we store them as symbols.
-    // Actually, the previous implementation had ImplementedInterface**
-    // implementedInterfaces; which were resolved Classes.
   }
 
   retain(root.get());

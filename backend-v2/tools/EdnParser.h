@@ -55,7 +55,7 @@ class ClassDescription {
                                const ObjectTypeSet &thisType);
 
 public:
-  bool isInterface = false;
+  bool isProtocol = false;
   ObjectTypeSet type;
   ::Class *extends;
   string name;
@@ -73,7 +73,7 @@ public:
   unordered_map<string, unordered_map<string, vector<IntrinsicDescription>>>
       implements;
 
-  vector<::Class *> interfaces;
+  vector<::Class *> protocols;
 
   ClassDescription() = default;
   ClassDescription(RTValue from, TemporaryClassData &classData);

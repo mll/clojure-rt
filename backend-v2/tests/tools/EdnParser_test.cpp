@@ -1033,9 +1033,10 @@ static void test_class_inheritance_linkage(void **state) {
     assert_non_null(child);
 
     // Check linkage
-    assert_int_equal(1, child->superclassCount);
-    assert_non_null(child->superclasses);
-    assert_ptr_equal(parent, child->superclasses[0]);
+    ClassList *supers = atomic_load(&child->superclasses);
+    assert_non_null(supers);
+    assert_int_equal(1, supers->count);
+    assert_ptr_equal(parent, supers->classes[0]);
 
     rt::ClassDescription *childDesc =
         static_cast<rt::ClassDescription *>(child->compilerExtension);
@@ -1745,12 +1746,13 @@ static void test_class_inheritance_runtime(void **state) {
     assert_non_null(clsA);
     assert_non_null(clsB);
 
-    assert_int_equal(0, clsA->superclassCount);
-    assert_null(clsA->superclasses);
+    ClassList *supersA = atomic_load(&clsA->superclasses);
+    assert_true(supersA == nullptr || supersA->count == 0);
 
-    assert_int_equal(1, clsB->superclassCount);
-    assert_non_null(clsB->superclasses);
-    assert_ptr_equal(clsA, clsB->superclasses[0]);
+    ClassList *supersB = atomic_load(&clsB->superclasses);
+    assert_non_null(supersB);
+    assert_int_equal(1, supersB->count);
+    assert_ptr_equal(clsA, supersB->classes[0]);
 
     // Test Class_isInstance
     assert_true(Class_isInstance(clsA, clsB));

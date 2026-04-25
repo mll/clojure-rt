@@ -7,17 +7,7 @@ namespace rt {
 
 extern "C" void delete_class_description(void *ptr);
 
-ThreadsafeCompilerState::~ThreadsafeCompilerState() {
-  for (auto const &pair : implementedProtocols) {
-    for (auto impl : pair.second) {
-      if (impl->interface) {
-        Ptr_release(impl->interface);
-      }
-      deallocate(impl);
-    }
-  }
-  implementedProtocols.clear();
-}
+ThreadsafeCompilerState::~ThreadsafeCompilerState() {}
 
 void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
   auto descriptions = buildClasses(from);
@@ -47,10 +37,11 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
 
         if (!desc->parentName.empty() || !desc->parentNames.empty()) {
           // Populate runtime Class superclasses
-          c->superclassCount = (int32_t)desc->parentNames.size();
-          c->superclasses =
-              (::Class **)allocate(sizeof(::Class *) * c->superclassCount);
-          for (int32_t i = 0; i < c->superclassCount; i++) {
+          int32_t count = (int32_t)desc->parentNames.size();
+          ClassList *list =
+              (ClassList *)allocate(sizeof(ClassList) + sizeof(::Class *) * count);
+          list->count = count;
+          for (int32_t i = 0; i < count; i++) {
             ::Class *pc = nullptr;
             auto it2 = localMap.find(desc->parentNames[i]);
             if (it2 != localMap.end()) {
@@ -63,7 +54,7 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
               }
             }
             if (pc) {
-              c->superclasses[i] = pc;
+              list->classes[i] = pc;
               if (i == 0) {
                 desc->extends = pc;
                 Ptr_retain(pc); // Extra retain for desc->extends
@@ -73,6 +64,12 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
                   "Parent class/protocol not found: " + desc->parentNames[i]);
             }
           }
+          // Atomic store to publish superclasses.
+          // Note: The initial empty list from Class_create is leaked here unless we destroy it.
+          // But Class_create was called with 0 superclasses, so it allocated an empty ClassList.
+          ClassList *oldList = atomic_load_explicit(&c->superclasses, memory_order_relaxed);
+          atomic_store_explicit(&c->superclasses, list, memory_order_relaxed);
+          if (oldList) deallocate(oldList);
         }
       }
 
@@ -112,23 +109,28 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
     ClassDescription *desc =
         static_cast<ClassDescription *>(c->compilerExtension);
 
-    if (!desc->implements.empty()) {
-      std::vector<ImplementedInterface *> classImpls;
-      for (auto const &[protoName, implMethods] : desc->implements) {
-        ::Class *proto = protocolRegistry.getCurrent(protoName.c_str());
-        if (!proto)
-          continue;
+      if (!desc->implements.empty()) {
+        std::vector<::Class *> classImpls;
+        for (auto const &[protoName, protoMethods] : desc->implements) {
+          ::Class *proto = protocolRegistry.getCurrent(protoName.c_str());
+          if (!proto) {
+            continue;
+          }
+          // proto was already retained by getCurrent. Ownership transferred to c->implementedProtocols.
+          classImpls.push_back(proto);
+        }
 
-        ImplementedInterface *impl =
-            (ImplementedInterface *)allocate(sizeof(ImplementedInterface));
-        impl->interface = proto;
-        // proto was already retained by getCurrent. Ownership transferred to impl.
-        // functions will be filled by JIT later
-        impl->functions = nullptr;
-        classImpls.push_back(impl);
+        if (!classImpls.empty()) {
+          int32_t count = (int32_t)classImpls.size();
+          ClassList *list =
+              (ClassList *)allocate(sizeof(ClassList) + sizeof(::Class *) * count);
+          list->count = count;
+          for (int i = 0; i < count; i++) {
+            list->classes[i] = classImpls[i];
+          }
+          atomic_store_explicit(&c->implementedProtocols, list, memory_order_relaxed);
+        }
       }
-      implementedProtocols[c] = std::move(classImpls);
-    }
   }
 
   try {
@@ -153,8 +155,7 @@ void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {
   for (auto &desc : descriptions) {
     String *nameStr = String_createDynamicStr(desc->name.c_str());
     String *classNameStr = String_createDynamicStr(desc->name.c_str());
-
-    ::Class *c = Class_createInterface(nameStr, classNameStr, 0, NULL);
+    ::Class *c = Class_createProtocol(nameStr, classNameStr, 0, NULL);
     localMap[desc->name] = c;
     if (desc->type.isDetermined()) {
       c->registerId = desc->type.determinedType();
@@ -171,10 +172,11 @@ void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {
           static_cast<ClassDescription *>(c->compilerExtension);
 
       if (!desc->parentNames.empty()) {
-        c->superclassCount = (int32_t)desc->parentNames.size();
-        c->superclasses =
-            (::Class **)allocate(sizeof(::Class *) * c->superclassCount);
-        for (int32_t i = 0; i < c->superclassCount; i++) {
+        int32_t count = (int32_t)desc->parentNames.size();
+        ClassList *list =
+            (ClassList *)allocate(sizeof(ClassList) + sizeof(::Class *) * count);
+        list->count = count;
+        for (int32_t i = 0; i < count; i++) {
           ::Class *pc = nullptr;
           auto it = localMap.find(desc->parentNames[i]);
           if (it != localMap.end()) {
@@ -187,7 +189,7 @@ void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {
             }
           }
           if (pc) {
-            c->superclasses[i] = pc;
+            list->classes[i] = pc;
             // Class_destroy will release each superclass, so we need a retain
             // here (the one from getCurrent/localMap is consumed here)
             if (i == 0) {
@@ -199,6 +201,9 @@ void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {
                 "Extended protocol not found: " + desc->parentNames[i]);
           }
         }
+        ClassList *oldList = atomic_load_explicit(&c->superclasses, memory_order_relaxed);
+        atomic_store_explicit(&c->superclasses, list, memory_order_relaxed);
+        if (oldList) deallocate(oldList);
       }
     }
 
@@ -275,10 +280,13 @@ void ThreadsafeCompilerState::validateProtocolImplementations(
                 }
               }
               // Also add parents of this protocol
-              for (int j = 0; j < curr->superclassCount; j++) {
-                ::Class *parent = curr->superclasses[j];
-                Ptr_retain(parent);
-                queue.push_back(parent);
+              ClassList *supers = atomic_load_explicit(&curr->superclasses, memory_order_acquire);
+              if (supers) {
+                for (int j = 0; j < supers->count; j++) {
+                  ::Class *parent = supers->classes[j];
+                  Ptr_retain(parent);
+                  queue.push_back(parent);
+                }
               }
             }
           }

@@ -33,10 +33,6 @@ public:
   void storeInternalClasses(RTValue from);
   void storeInternalProtocols(RTValue from);
 
-  // Map from class to its implemented protocols
-  std::unordered_map<::Class *, std::vector<ImplementedInterface *>>
-      implementedProtocols;
-
   void validateProtocolImplementations(const std::vector<::Class *> &classes);
 
 private:

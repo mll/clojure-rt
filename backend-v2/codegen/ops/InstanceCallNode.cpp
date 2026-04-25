@@ -16,7 +16,7 @@ using namespace clojure::rt::protobuf::bytecode;
 namespace rt {
 
 /* The node currently supports only the simplest case - no inheritance, no
- * interfaces. TODO: implement full support for inheritance and interfaces.
+ * protocols. TODO: implement full support for inheritance and protocols.
  */
 TypedValue CodeGen::codegen(const Node &node, const InstanceCallNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {

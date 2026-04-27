@@ -50,11 +50,6 @@ private:
   std::unordered_map<std::string, TypeIntrinsicCall> typeIntrinsics;
   std::vector<std::string> icSlotNames;
 
-  TypedValue generateDeterminedInstanceCall(
-      const std::string &methodName, TypedValue instance,
-      const std::vector<TypedValue> &args, CleanupChainGuard *guard = nullptr,
-      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
-
   TypedValue generateDynamicInstanceCall(
       const std::string &methodName, TypedValue instance,
       const std::vector<TypedValue> &args, CleanupChainGuard *guard = nullptr,
@@ -98,6 +93,11 @@ public:
   TypedValue generateIntrinsic(const IntrinsicDescription &id,
                                const std::vector<TypedValue> &args,
                                CleanupChainGuard *guard = nullptr);
+
+  TypedValue generateDeterminedInstanceCall(
+      const std::string &methodName, TypedValue instance,
+      const std::vector<TypedValue> &args, CleanupChainGuard *guard = nullptr,
+      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
 
   TypedValue generateInstanceCall(
       const std::string &methodName, TypedValue instance,

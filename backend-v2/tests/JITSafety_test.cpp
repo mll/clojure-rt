@@ -142,7 +142,6 @@ static void test_compilation_error_concurrency(void **state_arg) {
 
     // We need a real String object for the receiver
     RTValue strObj = RT_boxPtr(String_create("test"));
-    retain(strObj);
 
     auto t1 = std::thread([&]() {
       while (!start)
@@ -218,7 +217,7 @@ void test_inheritance_bigint_tostring(void **state) {
         InstanceCallSlowPath(&icSlot, "toString", 0, args, 0, &engine);
     assert_non_null(bridgePtr);
 
-    assert_int_equal(icSlot.key, bigIntegerType);
+    assert_int_equal((icSlot.key & 0xFFFFFFFFULL), (uint64_t)bigIntegerType);
 
     // Call the bridge. Specialized bridge for 0-arg method takes 1 arg
     // (instance).

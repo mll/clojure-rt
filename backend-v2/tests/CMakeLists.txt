@@ -19,6 +19,7 @@ set(TEST_MODULES
     codegen/MathIntrinsicsRepro_test
     codegen/InstanceCallNode_test
     codegen/InstanceCallIC_test
+    codegen/ProtocolInstanceCall_test
     codegen/VoidInvokeRepro_test
     codegen/DCE_test
     codegen/O3_DebugInfo_test

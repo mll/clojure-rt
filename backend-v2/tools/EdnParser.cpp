@@ -459,19 +459,30 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
 
     vector<IntrinsicDescription> descriptions;
     PersistentVector *vec = (PersistentVector *)RT_unboxPtr(value);
+    uword_t count = vec->count;
 
-    uword_t count = vec->count; // Safe borrowed access.
+    bool isSingleSignature = false;
+    if (count > 0) {
+      PersistentVectorNode *node = PersistentVector_nthBlock(vec, 0);
+      if (getType(node->array[0]) == keywordType) {
+        isSingleSignature = true;
+      }
+    }
 
-    // PersistentVector_iterator does not consume vec.
-    PersistentVectorIterator it = PersistentVector_iterator(vec);
-
-    for (uword_t j = 0; j < count; j++) {
-      RTValue intrinsicRaw = PersistentVector_iteratorGet(&it);
-      // IntrinsicDescription constructor consumes. Protect borrowed entry.
-      retain(intrinsicRaw);
+    if (isSingleSignature) {
+      retain(value);
       descriptions.push_back(
-          IntrinsicDescription(intrinsicRaw, classData, thisType, isInstance));
-      PersistentVector_iteratorNext(&it);
+          IntrinsicDescription(value, classData, thisType, isInstance));
+    } else {
+      // It's a vector of descriptions (maps or signature vectors)
+      PersistentVectorIterator it = PersistentVector_iterator(vec);
+      for (uword_t j = 0; j < count; j++) {
+        RTValue item = PersistentVector_iteratorGet(&it);
+        retain(item);
+        descriptions.push_back(
+            IntrinsicDescription(item, classData, thisType, isInstance));
+        PersistentVector_iteratorNext(&it);
+      }
     }
 
     // toString consumes. Protect borrowed key for the map.
@@ -530,8 +541,92 @@ IntrinsicDescription::IntrinsicDescription(
   this->isInstance = isInstance;
   this->returnsProvided = false;
   ConsumedValue root(from);
+
+  if (getType(root.get()) == persistentVectorType) {
+    // It's a signature vector: [:this :any]
+    this->type = CallType::Call;
+    this->symbol = ""; // Abstract/dynamic
+    this->returnType = defaultReturnType;
+
+    PersistentVector *argsVector = (PersistentVector *)RT_unboxPtr(root.get());
+    uword_t argCnt = argsVector->count;
+    bool firstArgIsThis = false;
+    PersistentVectorIterator it = PersistentVector_iterator(argsVector);
+    for (uword_t j = 0; j < argCnt; j++) {
+      RTValue argRaw = PersistentVector_iteratorGet(&it);
+      retain(argRaw);
+      String *argStr = String_compactify(::toString(argRaw));
+      string sArgKey = String_c_str(argStr);
+      Ptr_release(argStr);
+
+      if (sArgKey == ":this") {
+        if (!isInstance) {
+          throwInternalInconsistencyException(
+              ":this used in a static function/intrinsic.");
+        }
+        if (j != 0) {
+          throwInternalInconsistencyException(
+              ":this must be the first argument.");
+        }
+        if (thisType.isDetermined() &&
+            thisType.determinedType() == objectRootType) {
+          this->argTypes.push_back(ObjectTypeSet::dynamicType());
+        } else {
+          this->argTypes.push_back(thisType);
+        }
+        firstArgIsThis = true;
+      } else if (sArgKey == ":any") {
+        this->argTypes.push_back(ObjectTypeSet::dynamicType());
+      } else if (sArgKey == ":nil") {
+        this->argTypes.push_back(ObjectTypeSet(nilType));
+      } else if (sArgKey == ":int") {
+        this->argTypes.push_back(ObjectTypeSet(integerType));
+      } else if (sArgKey == ":bool") {
+        this->argTypes.push_back(ObjectTypeSet(booleanType));
+      } else if (sArgKey == ":string") {
+        this->argTypes.push_back(ObjectTypeSet(stringType));
+      } else if (sArgKey == ":symbol") {
+        this->argTypes.push_back(ObjectTypeSet(symbolType));
+      } else if (sArgKey == ":keyword") {
+        this->argTypes.push_back(ObjectTypeSet(keywordType));
+      } else if (sArgKey == ":double") {
+        this->argTypes.push_back(ObjectTypeSet(doubleType));
+      } else {
+        if (classData.classesByName.find(sArgKey) ==
+            classData.classesByName.end()) {
+          throwInternalInconsistencyException("Unknown arg type: " + sArgKey);
+        }
+        PersistentArrayMap *argClassMap = classData.classesByName[sArgKey];
+
+        // PersistentArrayMap_get consumes argClassMap.
+        Ptr_retain(argClassMap);
+        RTValue argTypeRaw = PersistentArrayMap_get(
+            argClassMap, Keyword_create(String_create("object-type")));
+        ConsumedValue atWrapper(argTypeRaw);
+
+        if (getType(atWrapper.get()) == integerType) {
+          objectType t = (objectType)RT_unboxInt32(atWrapper.get());
+          if (t == objectRootType) {
+            this->argTypes.push_back(ObjectTypeSet::dynamicType());
+          } else {
+            this->argTypes.push_back(ObjectTypeSet(t));
+          }
+        } else {
+          this->argTypes.push_back(ObjectTypeSet(classType));
+        }
+      }
+      PersistentVector_iteratorNext(&it);
+    }
+    if (isInstance && !firstArgIsThis) {
+      throwInternalInconsistencyException(
+          "Instance method signature missing :this argument");
+    }
+    return;
+  }
+
   if (getType(root.get()) != persistentArrayMapType) {
-    throwInternalInconsistencyException("Intrinsic description is not a map");
+    throwInternalInconsistencyException(
+        "Intrinsic description is not a map or vector");
   }
 
   PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(root.get());
@@ -682,6 +777,18 @@ IntrinsicDescription::IntrinsicDescription(
       this->returnType = ObjectTypeSet::dynamicType();
     } else if (sRetKey == ":nil") {
       this->returnType = ObjectTypeSet(nilType);
+    } else if (sRetKey == ":int") {
+      this->returnType = ObjectTypeSet(integerType);
+    } else if (sRetKey == ":bool") {
+      this->returnType = ObjectTypeSet(booleanType);
+    } else if (sRetKey == ":string") {
+      this->returnType = ObjectTypeSet(stringType);
+    } else if (sRetKey == ":symbol") {
+      this->returnType = ObjectTypeSet(symbolType);
+    } else if (sRetKey == ":keyword") {
+      this->returnType = ObjectTypeSet(keywordType);
+    } else if (sRetKey == ":double") {
+      this->returnType = ObjectTypeSet(doubleType);
     } else if (classData.classesByName.find(sRetKey) !=
                classData.classesByName.end()) {
       PersistentArrayMap *retClassMap = classData.classesByName[sRetKey];

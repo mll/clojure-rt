@@ -6,6 +6,7 @@
 namespace rt {
 
 extern "C" void delete_class_description(void *ptr);
+extern "C" _Atomic(uword_t) globalMethodICEpoch;
 
 ThreadsafeCompilerState::~ThreadsafeCompilerState() {}
 
@@ -145,6 +146,7 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
     // let the exception propagate and the caller destroys the state.
     throw;
   }
+  atomic_fetch_add_explicit(&globalMethodICEpoch, 1, memory_order_release);
 }
 
 void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {
@@ -235,6 +237,7 @@ void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {
     }
     throw;
   }
+  atomic_fetch_add_explicit(&globalMethodICEpoch, 1, memory_order_release);
 }
 
 void ThreadsafeCompilerState::validateProtocolImplementations(

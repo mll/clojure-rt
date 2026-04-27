@@ -30,6 +30,8 @@ TypedValue CodeGen::codegen(const Node &node, const IsInstanceNode &subnode,
   string className = subnode.class_();
   if (className.find("class ") == 0) {
     className = className.substr(6);
+  } else if (className.find("interface ") == 0) {
+    className = className.substr(10);
   }
 
   Value *classNameGlobal =
@@ -56,6 +58,8 @@ ObjectTypeSet CodeGen::getType(const Node &node, const IsInstanceNode &subnode,
   string className = subnode.class_();
   if (className.find("class ") == 0) {
     className = className.substr(6);
+  } else if (className.find("interface ") == 0) {
+    className = className.substr(10);
   }
   ::Class *clsRaw =
       this->compilerState.classRegistry.getCurrent(className.c_str());

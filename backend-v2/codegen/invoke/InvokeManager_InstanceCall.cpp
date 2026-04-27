@@ -12,18 +12,24 @@
 using namespace llvm;
 using namespace std;
 
+extern "C" _Atomic(uword_t) globalMethodICEpoch;
+
 namespace rt {
 
 TypedValue InvokeManager::generateInstanceCall(
     const std::string &methodName, TypedValue instance,
     const std::vector<TypedValue> &args, CleanupChainGuard *guard,
     const clojure::rt::protobuf::bytecode::Node *node) {
-  if (!instance.type.isDetermined()) {
-    return generateDynamicInstanceCall(methodName, instance, args, guard, node);
-  } else {
-    return generateDeterminedInstanceCall(methodName, instance, args, guard,
-                                          node);
-  }
+  /* Instance call is always dynamic because protocols can change at any time so
+   * we always need IC. Once we implement T2 we will add the static path again
+   */
+
+  // if (!instance.type.isDetermined()) {
+  return generateDynamicInstanceCall(methodName, instance, args, guard, node);
+  // } else {
+  // return generateDeterminedInstanceCall(methodName, instance, args, guard,
+  //                                       node);
+  // }
 }
 
 TypedValue InvokeManager::generateDynamicInstanceCall(
@@ -108,7 +114,19 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
   BasicBlock *slowPath = BasicBlock::Create(TheContext, "ic_miss", currentFn);
   BasicBlock *callBB = BasicBlock::Create(TheContext, "ic_call", currentFn);
 
-  Value *isHit = builder.CreateICmpEQ(cachedTag, currentTypeIdent);
+  // Load current epoch
+  Value *epochPtr =
+      ConstantInt::get(types.i64Ty, (uintptr_t)&globalMethodICEpoch);
+  epochPtr = builder.CreateIntToPtr(epochPtr, types.ptrTy);
+  Value *currentEpoch =
+      builder.CreateLoad(types.wordTy, epochPtr, "current_epoch");
+
+  // Combine epoch and type: (epoch << 32) | type
+  Value *shiftedEpoch = builder.CreateShl(currentEpoch, 32, "shifted_epoch");
+  Value *currentKey =
+      builder.CreateOr(shiftedEpoch, currentTypeIdent, "current_ic_key");
+
+  Value *isHit = builder.CreateICmpEQ(cachedTag, currentKey);
   builder.CreateCondBr(isHit, fastPath, slowPath);
 
   // --- SLOW PATH: Call Bouncer ---
@@ -220,11 +238,23 @@ TypedValue InvokeManager::generateDeterminedInstanceCall(
   Ptr_retain(curr_cls);
 
   while (curr_ext) {
+    // 1. Search in classs own methods
     auto it = curr_ext->instanceFns.find(methodName);
     if (it != curr_ext->instanceFns.end()) {
       versions_ptr = &it->second;
       break;
     }
+
+    // 2. Search in implemented protocols
+    for (auto const &[protoName, protoMethods] : curr_ext->implements) {
+      auto itP = protoMethods.find(methodName);
+      if (itP != protoMethods.end()) {
+        versions_ptr = &itP->second;
+        break;
+      }
+    }
+    if (versions_ptr)
+      break;
 
     if (curr_ext->parentName.empty() ||
         curr_ext->parentName == curr_ext->name) {
@@ -492,11 +522,23 @@ InvokeManager::predictInstanceCallType(const std::string &methodName,
   Ptr_retain(curr_cls);
 
   while (curr_ext) {
+    // 1. Search in classs own methods
     auto it = curr_ext->instanceFns.find(methodName);
     if (it != curr_ext->instanceFns.end()) {
       versions_ptr = &it->second;
       break;
     }
+
+    // 2. Search in implemented protocols
+    for (auto const &[protoName, protoMethods] : curr_ext->implements) {
+      auto itP = protoMethods.find(methodName);
+      if (itP != protoMethods.end()) {
+        versions_ptr = &itP->second;
+        break;
+      }
+    }
+    if (versions_ptr)
+      break;
 
     if (curr_ext->parentName.empty() ||
         curr_ext->parentName == curr_ext->name) {

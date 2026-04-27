@@ -230,6 +230,39 @@ static void test_is_instance_class_prefix(void **state) {
   });
 }
 
+static void test_is_instance_interface_prefix(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    JITEngine engine;
+    ThreadsafeCompilerState &compilerState = engine.threadsafeState;
+    setup_test_metadata(compilerState);
+
+    Node node;
+    node.set_op(opIsInstance);
+    auto *is = node.mutable_subnode()->mutable_isinstance();
+    is->set_class_("interface MyClass");
+
+    auto *target = is->mutable_target();
+    target->set_op(opNew);
+    auto *nn = target->mutable_subnode()->mutable_new_();
+    auto *clsNode = nn->mutable_class_();
+    clsNode->set_op(opConst);
+    clsNode->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeClass);
+    clsNode->mutable_subnode()->mutable_const_()->set_val("MyClass");
+
+    auto res = engine
+                   .compileAST(node, "test_is_instance_interface_prefix")
+                   .get()
+                   .address;
+
+    RTValue result = resPtrToValue(res);
+    assert_true(RT_isBool(result));
+    assert_true(RT_unboxBool(result));
+    release(result);
+  });
+}
+
 static void test_is_instance_any_type_regression(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
@@ -403,6 +436,7 @@ int main(void) {
       cmocka_unit_test(test_is_instance_compile_time_false),
       cmocka_unit_test(test_is_instance_runtime),
       cmocka_unit_test(test_is_instance_class_prefix),
+      cmocka_unit_test(test_is_instance_interface_prefix),
       cmocka_unit_test(test_is_instance_any_type_regression),
       cmocka_unit_test(test_is_instance_refcounted_local),
       cmocka_unit_test(test_is_instance_protocol),

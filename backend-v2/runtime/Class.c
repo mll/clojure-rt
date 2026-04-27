@@ -1,18 +1,22 @@
+#include "BridgedObject.h"
+#include "Ebr.h"
+#include "RTValue.h"
 #include "Class.h"
 #include "Hash.h"
 #include "Object.h"
 #include "word.h"
 #include <stdarg.h>
+#include <stdatomic.h>
 
 Class *ClassLookupByName(const char *className, void *jitEngine);
 Class *ClassLookupByRegisterId(int32_t registerId, void *jitEngine);
 
-Class *Class_createInterface(String *name, String *className,
-                             int32_t extendsInterfaceCount,
-                             Class **extendsInterfaces) {
+Class *Class_createProtocol(String *name, String *className,
+                             int32_t extendsProtocolCount,
+                             Class **extendsProtocols) {
   Class *retVal =
-      Class_create(name, className, extendsInterfaceCount, extendsInterfaces);
-  retVal->isInterface = true;
+      Class_create(name, className, extendsProtocolCount, extendsProtocols);
+  retVal->isProtocol = true;
   return retVal;
 }
 
@@ -20,12 +24,23 @@ Class *Class_create(String *name, String *className, int32_t superclassCount,
                     Class **superclasses) {
 
   Class *self = allocate(sizeof(Class));
-  self->isInterface = false;
+  self->isProtocol = false;
   self->registerId = 0; // unregistered
   self->name = name;
   self->className = className;
-  self->superclassCount = superclassCount;
-  self->superclasses = superclasses;
+
+  ClassList *list = allocate(sizeof(ClassList) + sizeof(Class *) * superclassCount);
+  list->count = superclassCount;
+  for (int32_t i = 0; i < superclassCount; i++) {
+    list->classes[i] = superclasses[i];
+    // superclasses[i] was already retained or owned by the caller's expectation
+  }
+  atomic_init(&self->superclasses, list);
+  if (superclasses) {
+    deallocate(superclasses);
+  }
+
+  atomic_init(&self->implementedProtocols, NULL);
 
   self->compilerExtension = NULL;
   self->compilerExtensionDestructor = NULL;
@@ -56,13 +71,20 @@ String *Class_toString(Class *self) {
 void Class_destroy(Class *self) {
   Ptr_release(self->name);
   Ptr_release(self->className);
-  if (self->superclasses) {
-    for (int32_t i = 0; i < self->superclassCount; i++)
-      Ptr_release(self->superclasses[i]);
+  ClassList *supers = atomic_load_explicit(&self->superclasses, memory_order_relaxed);
+  if (supers) {
+    for (int32_t i = 0; i < supers->count; i++)
+      Ptr_release(supers->classes[i]);
+    deallocate(supers);
   }
 
-  if (self->superclasses)
-    deallocate(self->superclasses);
+  ClassList *list = atomic_load_explicit(&self->implementedProtocols, memory_order_relaxed);
+  if (list) {
+    for (int32_t i = 0; i < list->count; i++) {
+      Ptr_release(list->classes[i]);
+    }
+    deallocate(list);
+  }
 
   if (self->compilerExtension && self->compilerExtensionDestructor) {
     self->compilerExtensionDestructor(self->compilerExtension);
@@ -84,17 +106,74 @@ bool Class_isInstanceClassName(const char *className, void *jitEngine,
 }
 
 /* outside refcount system */
-/* TODO: This is not yet done for interfaces */
+/* TODO: This is not yet done for protocols */
 bool Class_isInstance(Class *current, Class *target) {
   assert(target && "Target must not be null");
   assert(current && "Current must not be null");
   if (current->registerId == target->registerId || current->registerId == objectRootType) {
     return true;
   }
-  for (int32_t i = 0; i < target->superclassCount; i++) {
-    if (Class_isInstance(current, target->superclasses[i])) {
-      return true;
+  ClassList *supers = atomic_load_explicit(&target->superclasses, memory_order_acquire);
+  if (supers) {
+    for (int32_t i = 0; i < supers->count; i++) {
+      if (Class_isInstance(current, supers->classes[i])) {
+        return true;
+      }
+    }
+  }
+  ClassList *list = atomic_load_explicit(&target->implementedProtocols, memory_order_acquire);
+  if (list) {
+    for (int32_t i = 0; i < list->count; i++) {
+      if (Class_isInstance(current, list->classes[i])) {
+        return true;
+      }
     }
   }
   return false;
+}
+
+static void reclaim_class_list_destructor(void *contents, void *jit) {
+  ClassList *list = (ClassList *)contents;
+  for (int32_t i = 0; i < list->count; i++) {
+    Ptr_release(list->classes[i]);
+  }
+  deallocate(list);
+}
+
+void Class_addProtocol(Class *self, Protocol *proto) {
+  Ptr_retain(proto);
+  while (true) {
+    ClassList *oldList =
+        atomic_load_explicit(&self->implementedProtocols, memory_order_acquire);
+
+    int32_t oldCount = oldList ? oldList->count : 0;
+    int32_t newCount = oldCount + 1;
+    ClassList *newList =
+        allocate(sizeof(ClassList) + sizeof(Class *) * newCount);
+    newList->count = newCount;
+    for (int32_t i = 0; i < oldCount; i++) {
+      newList->classes[i] = oldList->classes[i];
+      Ptr_retain(newList->classes[i]);
+    }
+    newList->classes[oldCount] = proto;
+    // proto was retained at the start of function.
+
+    if (atomic_compare_exchange_strong_explicit(
+            &self->implementedProtocols, &oldList, newList,
+            memory_order_release, memory_order_relaxed)) {
+      if (oldList) {
+        BridgedObject *bridge =
+            BridgedObject_create(oldList, reclaim_class_list_destructor, NULL);
+        autorelease(RT_boxPtr(bridge));
+      }
+      break;
+    } else {
+      // Failed CAS, cleanup newList and retry
+      for (int32_t i = 0; i < newCount - 1; i++) {
+        Ptr_release(newList->classes[i]);
+      }
+      // We keep proto retained for the next attempt
+      deallocate(newList);
+    }
+  }
 }

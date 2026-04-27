@@ -7,6 +7,7 @@
 #include "bridge/Exceptions.h"
 #include "bytecode.pb.h"
 #include "codegen/TypedValue.h"
+#include "types/ObjectTypeSet.h"
 #include <sstream>
 
 using namespace std;
@@ -31,13 +32,18 @@ TypedValue CodeGen::codegen(const Node &node, const HostInteropNode &subnode,
 
 ObjectTypeSet CodeGen::getType(const Node &node, const HostInteropNode &subnode,
                                const ObjectTypeSet &typeRestrictions) {
-  if (subnode.isassignable()) {
-    return ObjectTypeSet::all();
-  }
+  /* Instance call is always dynamic because protocols can change at any time so
+   * we always need IC. Once we implement T2 we will add the static path again
+   */
+  return ObjectTypeSet::dynamicType();
+  // if (subnode.isassignable()) {
+  //   return ObjectTypeSet::all();
+  // }
 
-  auto targetType = getType(subnode.target(), ObjectTypeSet::all());
-  return this->invokeManager.predictInstanceCallType(subnode.morf(), targetType,
-                                                     {});
+  // auto targetType = getType(subnode.target(), ObjectTypeSet::all());
+  // return this->invokeManager.predictInstanceCallType(subnode.morf(),
+  // targetType,
+  //                                                    {});
 }
 
 } // namespace rt

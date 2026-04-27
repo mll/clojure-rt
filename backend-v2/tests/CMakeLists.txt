@@ -19,6 +19,7 @@ set(TEST_MODULES
     codegen/MathIntrinsicsRepro_test
     codegen/InstanceCallNode_test
     codegen/InstanceCallIC_test
+    codegen/ProtocolInstanceCall_test
     codegen/VoidInvokeRepro_test
     codegen/DCE_test
     codegen/O3_DebugInfo_test
@@ -43,6 +44,7 @@ set(TEST_MODULES
     codegen/RecurNode_test
     codegen/EBRFlush_test
     state/ClassRegistration_test
+    state/ProtocolValidation_test
     VarUAF_repro_test
     JITSafety_test
 )

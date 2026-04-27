@@ -20,15 +20,22 @@ namespace rt {
 class ThreadsafeCompilerState {
 public:
   ThreadsafeRegistry<::Class> classRegistry;
+  ThreadsafeRegistry<::Class> protocolRegistry;
   ThreadsafeRegistry<const Node> functionAstRegistry;
   ThreadsafeRegistry<::Var> varRegistry;
 
   ThreadsafeCompilerState()
-      : classRegistry(true, 1000), functionAstRegistry(false),
-        varRegistry(true) {}
+      : classRegistry(true, 1000), protocolRegistry(true, 2000),
+        functionAstRegistry(false), varRegistry(true) {}
+
+  ~ThreadsafeCompilerState();
 
   void storeInternalClasses(RTValue from);
   void storeInternalProtocols(RTValue from);
+
+  void validateProtocolImplementations(const std::vector<::Class *> &classes);
+
+private:
 };
 } // namespace rt
 

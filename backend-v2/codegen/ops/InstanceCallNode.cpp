@@ -16,7 +16,7 @@ using namespace clojure::rt::protobuf::bytecode;
 namespace rt {
 
 /* The node currently supports only the simplest case - no inheritance, no
- * interfaces. TODO: implement full support for inheritance and interfaces.
+ * protocols. TODO: implement full support for inheritance and protocols.
  */
 TypedValue CodeGen::codegen(const Node &node, const InstanceCallNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
@@ -41,14 +41,19 @@ TypedValue CodeGen::codegen(const Node &node, const InstanceCallNode &subnode,
 ObjectTypeSet CodeGen::getType(const Node &node,
                                const InstanceCallNode &subnode,
                                const ObjectTypeSet &typeRestrictions) {
-  auto instanceType = getType(subnode.instance(), ObjectTypeSet::all());
-  std::vector<ObjectTypeSet> args;
-  for (int i = 0; i < subnode.args_size(); i++) {
-    args.push_back(getType(subnode.args(i), ObjectTypeSet::all()).unboxed());
-  }
+  return ObjectTypeSet::dynamicType();
+  /* Instance call is always dynamic because protocols can change at any time so
+   * we always need IC. Once we implement T2 we will add the static path again
+   */
 
-  return this->invokeManager.predictInstanceCallType(subnode.method(),
-                                                     instanceType, args);
+  // auto instanceType = getType(subnode.instance(), ObjectTypeSet::all());
+  // std::vector<ObjectTypeSet> args;
+  // for (int i = 0; i < subnode.args_size(); i++) {
+  //   args.push_back(getType(subnode.args(i), ObjectTypeSet::all()).unboxed());
+  // }
+
+  // return this->invokeManager.predictInstanceCallType(subnode.method(),
+  //                                                    instanceType, args);
 }
 
 } // namespace rt

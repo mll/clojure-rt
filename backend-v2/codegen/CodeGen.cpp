@@ -158,8 +158,8 @@ std::string CodeGen::generateInstanceCallBridge(
   // 5. Generate the specialized instance call
   // This will emit direct calls or a dispatch tree based on the provided
   // types.
-  TypedValue result =
-      invokeManager.generateInstanceCall(methodName, instanceTV, callArgs);
+  TypedValue result = invokeManager.generateDeterminedInstanceCall(
+      methodName, instanceTV, callArgs);
 
   // 6. Ensure result is boxed and return
   Builder.CreateRet(valueEncoder.box(result).value);

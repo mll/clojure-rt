@@ -14,7 +14,10 @@ ClassLookupByName(const char *className, void *jitEngine) {
   JITEngine *engine = static_cast<JITEngine *>(jitEngine);
   Class *cls = engine->threadsafeState.classRegistry.getCurrent(className);
   if (!cls) {
-    throwInternalInconsistencyException("ClassLookup: class not found: " +
+    cls = engine->threadsafeState.protocolRegistry.getCurrent(className);
+  }
+  if (!cls) {
+    throwInternalInconsistencyException("ClassLookup: class/protocol not found: " +
                                         std::string(className));
   }
   return cls;
@@ -27,6 +30,9 @@ ClassLookupByRegisterId(int32_t registerId, void *jitEngine) {
   }
   JITEngine *engine = static_cast<JITEngine *>(jitEngine);
   Class *cls = engine->threadsafeState.classRegistry.getCurrent(registerId);
+  if (!cls) {
+    cls = engine->threadsafeState.protocolRegistry.getCurrent(registerId);
+  }
   if (!cls) {
     return nullptr;
   }

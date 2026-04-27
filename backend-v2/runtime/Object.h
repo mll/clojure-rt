@@ -54,6 +54,7 @@ void printReferenceCounts();
 
 extern _Atomic(uword_t) allocationCount[256];
 extern _Atomic(uword_t) objectCount[256];
+extern _Atomic(uword_t) globalMethodICEpoch;
 #define TRACING_LIMIT 256
 
 // bank 0 - 32 bytes 2^5

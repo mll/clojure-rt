@@ -825,6 +825,62 @@ static void test_intrinsic_type_invalid(void **state) {
   }
 }
 
+static void test_protocol_signatures(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
+    // {P1 {:is-interface true,
+    //      :instance-fns {swap [[:this :any] [:this :any :any]],
+    //                     count [:this]}}}
+    PersistentVector *swapSig1 = PersistentVector_create();
+    swapSig1 = PersistentVector_conj(swapSig1, Keyword_create(String_create("this")));
+    swapSig1 = PersistentVector_conj(swapSig1, Keyword_create(String_create("any")));
+
+    PersistentVector *swapSig2 = PersistentVector_create();
+    swapSig2 = PersistentVector_conj(swapSig2, Keyword_create(String_create("this")));
+    swapSig2 = PersistentVector_conj(swapSig2, Keyword_create(String_create("any")));
+    swapSig2 = PersistentVector_conj(swapSig2, Keyword_create(String_create("any")));
+
+    PersistentVector *swapOverloads = PersistentVector_create();
+    swapOverloads = PersistentVector_conj(swapOverloads, RT_boxPtr(swapSig1));
+    swapOverloads = PersistentVector_conj(swapOverloads, RT_boxPtr(swapSig2));
+
+    PersistentVector *countSig = PersistentVector_create();
+    countSig = PersistentVector_conj(countSig, Keyword_create(String_create("this")));
+
+    PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
+    fnsMap = PersistentArrayMap_assoc(fnsMap, Symbol_create(String_create("swap")), RT_boxPtr(swapOverloads));
+    fnsMap = PersistentArrayMap_assoc(fnsMap, Symbol_create(String_create("count")), RT_boxPtr(countSig));
+
+    PersistentArrayMap *classMap = PersistentArrayMap_empty();
+    classMap = PersistentArrayMap_assoc(classMap, Keyword_create(String_create("is-interface")), RT_boxBool(true));
+    classMap = PersistentArrayMap_assoc(classMap, Keyword_create(String_create("instance-fns")), RT_boxPtr(fnsMap));
+
+    PersistentArrayMap *rootMap = PersistentArrayMap_empty();
+    rootMap = PersistentArrayMap_assoc(rootMap, Symbol_create(String_create("P1")), RT_boxPtr(classMap));
+
+    auto classes = buildClasses(RT_boxPtr(rootMap));
+    assert_int_equal(1, classes.size());
+
+    auto &c = *classes[0];
+    assert_true(c.isProtocol);
+
+    // Check swap
+    auto itSwap = c.instanceFns.find("swap");
+    assert_true(itSwap != c.instanceFns.end());
+    assert_int_equal(2, itSwap->second.size());
+    assert_int_equal(2, itSwap->second[0].argTypes.size());
+    assert_int_equal(3, itSwap->second[1].argTypes.size());
+
+    // Check count
+    auto itCount = c.instanceFns.find("count");
+    assert_true(itCount != c.instanceFns.end());
+    assert_int_equal(1, itCount->second.size());
+    assert_int_equal(1, itCount->second[0].argTypes.size());
+  });
+}
+
 static void test_intrinsic_symbol_not_string(void **state) {
   (void)state;
   try {
@@ -1033,9 +1089,10 @@ static void test_class_inheritance_linkage(void **state) {
     assert_non_null(child);
 
     // Check linkage
-    assert_int_equal(1, child->superclassCount);
-    assert_non_null(child->superclasses);
-    assert_ptr_equal(parent, child->superclasses[0]);
+    ClassList *supers = atomic_load(&child->superclasses);
+    assert_non_null(supers);
+    assert_int_equal(1, supers->count);
+    assert_ptr_equal(parent, supers->classes[0]);
 
     rt::ClassDescription *childDesc =
         static_cast<rt::ClassDescription *>(child->compilerExtension);
@@ -1745,12 +1802,13 @@ static void test_class_inheritance_runtime(void **state) {
     assert_non_null(clsA);
     assert_non_null(clsB);
 
-    assert_int_equal(0, clsA->superclassCount);
-    assert_null(clsA->superclasses);
+    ClassList *supersA = atomic_load(&clsA->superclasses);
+    assert_true(supersA == nullptr || supersA->count == 0);
 
-    assert_int_equal(1, clsB->superclassCount);
-    assert_non_null(clsB->superclasses);
-    assert_ptr_equal(clsA, clsB->superclasses[0]);
+    ClassList *supersB = atomic_load(&clsB->superclasses);
+    assert_non_null(supersB);
+    assert_int_equal(1, supersB->count);
+    assert_ptr_equal(clsA, supersB->classes[0]);
 
     // Test Class_isInstance
     assert_true(Class_isInstance(clsA, clsB));
@@ -1783,6 +1841,7 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_intrinsic_value_not_vector),
       cmocka_unit_test(test_intrinsic_type_not_keyword),
       cmocka_unit_test(test_intrinsic_type_invalid),
+      cmocka_unit_test(test_protocol_signatures),
       cmocka_unit_test(test_intrinsic_symbol_not_string),
       cmocka_unit_test(test_intrinsic_args_not_vector),
       cmocka_unit_test(test_unknown_arg_type),

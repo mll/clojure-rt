@@ -60,8 +60,7 @@ static void test_async_stack_trace_friendly(void **state) {
 
     try {
       RTValue args[1] = {strObj};
-      // Slow path has a peculiar semantics. It does not consume when successful
-      // and it does when throws.
+      // Slow path NEVER consumes arguments.
       InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, &engine);
       fail_msg("Expected an exception from .contas");
     } catch (const LanguageException &e) {
@@ -82,6 +81,7 @@ static void test_async_stack_trace_friendly(void **state) {
       // 3. But it should show the main test thread (the end of the chain)
       assert_non_null(strstr(trace.c_str(), "test_async_stack_trace_friendly"));
     }
+    release(strObj);
   });
 }
 
@@ -96,8 +96,7 @@ static void test_async_stack_trace_debug(void **state) {
 
     try {
       RTValue args[1] = {strObj};
-      // Slow path has a peculiar semantics. It does not consume when successful
-      // and it does when throws.
+      // Slow path NEVER consumes arguments.
       InstanceCallSlowPath(&icSlot, "contas", 0, args, 0, &engine);
       fail_msg("Expected an exception from .contas");
     } catch (const LanguageException &e) {
@@ -109,6 +108,7 @@ static void test_async_stack_trace_debug(void **state) {
       assert_non_null(strstr(trace.c_str(), "InstanceCallSlowPath"));
       assert_non_null(strstr(trace.c_str(), "test_async_stack_trace_debug"));
     }
+    release(strObj);
   });
 }
 

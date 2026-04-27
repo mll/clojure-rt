@@ -8,9 +8,8 @@
   {:object-type 17
    :extends java.lang.Object}
 
-
-;; Assertion error is here just to enable assert.
-  java.lang.AssertionError 
+  ;; Assertion error is here just to enable assert.
+  java.lang.AssertionError
   {:object-type 21
    :extends java.lang.Object
    :constructor [{:args [java.lang.String] :type :call :symbol "Exception_createAssertionErrorWithMessage"}]}
@@ -76,35 +75,35 @@
            {:args [:int :double]    :type :intrinsic :symbol "Add_ID"       :returns :double}
            {:args [:double :int]    :type :intrinsic :symbol "Add_DI"       :returns :double}
            {:args [:int :bigint]    :type :intrinsic :symbol "Add_IB"       :returns :bigint}
-            {:args [:bigint :int]    :type :intrinsic :symbol "Add_BI"       :returns :bigint}
-            {:args [:bigint :double] :type :intrinsic :symbol "Add_BD"       :returns :double}
-            {:args [:double :bigint] :type :intrinsic :symbol "Add_DB"       :returns :double}
-            {:args [:ratio :double]  :type :intrinsic :symbol "Add_RD"       :returns :double}
-            {:args [:double :ratio]  :type :intrinsic :symbol "Add_DR"       :returns :double}
-            {:args [:bigint :ratio]  :type :intrinsic :symbol "Add_BR"       :returns :any}
-            {:args [:ratio :bigint]  :type :intrinsic :symbol "Add_RB"       :returns :any}
-            {:args [:int :ratio]     :type :intrinsic :symbol "Add_IR"       :returns :any}
-            {:args [:ratio :int]     :type :intrinsic :symbol "Add_RI"       :returns :any}
-            {:args [:bigint :bigint] :type :call      :symbol "BigInteger_add" :returns :bigint}
-            {:args [:ratio :ratio]   :type :call      :symbol "Ratio_add"      :returns :any}
-            {:args [:any :any]       :type :call      :symbol "Numbers_add"  :returns :any}]
+           {:args [:bigint :int]    :type :intrinsic :symbol "Add_BI"       :returns :bigint}
+           {:args [:bigint :double] :type :intrinsic :symbol "Add_BD"       :returns :double}
+           {:args [:double :bigint] :type :intrinsic :symbol "Add_DB"       :returns :double}
+           {:args [:ratio :double]  :type :intrinsic :symbol "Add_RD"       :returns :double}
+           {:args [:double :ratio]  :type :intrinsic :symbol "Add_DR"       :returns :double}
+           {:args [:bigint :ratio]  :type :intrinsic :symbol "Add_BR"       :returns :any}
+           {:args [:ratio :bigint]  :type :intrinsic :symbol "Add_RB"       :returns :any}
+           {:args [:int :ratio]     :type :intrinsic :symbol "Add_IR"       :returns :any}
+           {:args [:ratio :int]     :type :intrinsic :symbol "Add_RI"       :returns :any}
+           {:args [:bigint :bigint] :type :call      :symbol "BigInteger_add" :returns :bigint}
+           {:args [:ratio :ratio]   :type :call      :symbol "Ratio_add"      :returns :any}
+           {:args [:any :any]       :type :call      :symbol "Numbers_add"  :returns :any}]
     minus [{:args [:double :double] :type :intrinsic :symbol "FSub"         :returns :double}
            {:args [:int :int]       :type :intrinsic :symbol "Sub"          :returns :int}
            {:args [:int :double]    :type :intrinsic :symbol "Sub_ID"       :returns :double}
            {:args [:double :int]    :type :intrinsic :symbol "Sub_DI"       :returns :double}
            {:args [:int :bigint]    :type :intrinsic :symbol "Sub_IB"       :returns :bigint}
-            {:args [:bigint :int]    :type :intrinsic :symbol "Sub_BI"       :returns :bigint}
-            {:args [:bigint :double] :type :intrinsic :symbol "Sub_BD"       :returns :double}
-            {:args [:double :bigint] :type :intrinsic :symbol "Sub_DB"       :returns :double}
-            {:args [:ratio :double]  :type :intrinsic :symbol "Sub_RD"       :returns :double}
-            {:args [:double :ratio]  :type :intrinsic :symbol "Sub_DR"       :returns :double}
-            {:args [:bigint :ratio]  :type :intrinsic :symbol "Sub_BR"       :returns :any}
-            {:args [:ratio :bigint]  :type :intrinsic :symbol "Sub_RB"       :returns :any}
-            {:args [:int :ratio]     :type :intrinsic :symbol "Sub_IR"       :returns :any}
-            {:args [:ratio :int]     :type :intrinsic :symbol "Sub_RI"       :returns :any}
-            {:args [:bigint :bigint] :type :call      :symbol "BigInteger_sub" :returns :bigint}
-            {:args [:ratio :ratio]   :type :call      :symbol "Ratio_sub"      :returns :any}
-            {:args [:any :any]       :type :call      :symbol "Numbers_sub"    :returns :any}]
+           {:args [:bigint :int]    :type :intrinsic :symbol "Sub_BI"       :returns :bigint}
+           {:args [:bigint :double] :type :intrinsic :symbol "Sub_BD"       :returns :double}
+           {:args [:double :bigint] :type :intrinsic :symbol "Sub_DB"       :returns :double}
+           {:args [:ratio :double]  :type :intrinsic :symbol "Sub_RD"       :returns :double}
+           {:args [:double :ratio]  :type :intrinsic :symbol "Sub_DR"       :returns :double}
+           {:args [:bigint :ratio]  :type :intrinsic :symbol "Sub_BR"       :returns :any}
+           {:args [:ratio :bigint]  :type :intrinsic :symbol "Sub_RB"       :returns :any}
+           {:args [:int :ratio]     :type :intrinsic :symbol "Sub_IR"       :returns :any}
+           {:args [:ratio :int]     :type :intrinsic :symbol "Sub_RI"       :returns :any}
+           {:args [:bigint :bigint] :type :call      :symbol "BigInteger_sub" :returns :bigint}
+           {:args [:ratio :ratio]   :type :call      :symbol "Ratio_sub"      :returns :any}
+           {:args [:any :any]       :type :call      :symbol "Numbers_sub"    :returns :any}]
     multiply [{:args [:double :double] :type :intrinsic :symbol "FMul"      :returns :double}
               {:args [:int :int]       :type :intrinsic :symbol "Mul"       :returns :int}
               {:args [:int :double]    :type :intrinsic :symbol "Mul_ID"    :returns :double}
@@ -279,7 +278,7 @@
   java.lang.String
   {:extends java.lang.Object
    :object-type 1
-    :constructor [{:args [] :type :call :symbol "String_createEmpty" :returns java.lang.String}]
+   :constructor [{:args [] :type :call :symbol "String_createEmpty" :returns java.lang.String}]
    :static-fns
    {print [{:args [:any] :type :call :symbol "print" :returns :nil}]}
    :instance-fns
@@ -297,23 +296,22 @@
 
   clojure.lang.Util
   {:static-fns
-    {equiv [{:args [:int :int]       :type :intrinsic :symbol "ICmpEQ"         :returns :bool}
-            {:args [:double :double] :type :intrinsic :symbol "FCmpOEQ"        :returns :bool}
-            {:args [:bigint :double] :type :intrinsic :symbol "FCmpOEQ_BD"     :returns :bool}
-            {:args [:bigint :int]    :type :call      :symbol "BigInteger_equalsInt" :returns :bool}
-            {:args [:int :bigint]    :type :call      :symbol "BigInteger_intEquals" :returns :bool}
-            {:args [:double :bigint] :type :intrinsic :symbol "FCmpOEQ_DB"     :returns :bool}
-            {:args [:ratio :double]  :type :intrinsic :symbol "FCmpOEQ_RD"     :returns :bool}
-            {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOEQ_DR"     :returns :bool}
-            {:args [:int :double]    :type :intrinsic :symbol "FCmpOEQ_ID"     :returns :bool}
-            {:args [:double :int]    :type :intrinsic :symbol "FCmpOEQ_DI"     :returns :bool}
-            {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}]
-     identical [{:args [:any :any]       :type :call      :symbol "identical_managed" :returns :bool}]}}
-
-
+   {equiv [{:args [:int :int]       :type :intrinsic :symbol "ICmpEQ"         :returns :bool}
+           {:args [:double :double] :type :intrinsic :symbol "FCmpOEQ"        :returns :bool}
+           {:args [:bigint :double] :type :intrinsic :symbol "FCmpOEQ_BD"     :returns :bool}
+           {:args [:bigint :int]    :type :call      :symbol "BigInteger_equalsInt" :returns :bool}
+           {:args [:int :bigint]    :type :call      :symbol "BigInteger_intEquals" :returns :bool}
+           {:args [:double :bigint] :type :intrinsic :symbol "FCmpOEQ_DB"     :returns :bool}
+           {:args [:ratio :double]  :type :intrinsic :symbol "FCmpOEQ_RD"     :returns :bool}
+           {:args [:double :ratio]  :type :intrinsic :symbol "FCmpOEQ_DR"     :returns :bool}
+           {:args [:int :double]    :type :intrinsic :symbol "FCmpOEQ_ID"     :returns :bool}
+           {:args [:double :int]    :type :intrinsic :symbol "FCmpOEQ_DI"     :returns :bool}
+           {:args [:any :any]       :type :call      :symbol "equals_managed" :returns :bool}]
+    identical [{:args [:any :any]       :type :call      :symbol "identical_managed" :returns :bool}]}}
   clojure.lang.PersistentVector
   {:object-type 4
    :extends java.lang.Object
+   :implements {clojure.lang.Counted {count [{:args [:this] :type :call :symbol "PersistentVector_count" :returns :int}]}}
    :instance-fns
    {asTransient [{:args [:this] :type :call :symbol "PersistentVector_transient" :returns clojure.lang.PersistentVector}]
     persistent [{:args [:this] :type :call :symbol "PersistentVector_persistent_BANG_" :returns clojure.lang.PersistentVector}]

@@ -30,6 +30,8 @@ TypedValue CodeGen::codegen(const Node &node, const IsInstanceNode &subnode,
   string className = subnode.class_();
   if (className.find("class ") == 0) {
     className = className.substr(6);
+  } else if (className.find("interface ") == 0) {
+    className = className.substr(10);
   }
 
   Value *classNameGlobal =
@@ -56,11 +58,19 @@ ObjectTypeSet CodeGen::getType(const Node &node, const IsInstanceNode &subnode,
   string className = subnode.class_();
   if (className.find("class ") == 0) {
     className = className.substr(6);
+  } else if (className.find("interface ") == 0) {
+    className = className.substr(10);
   }
-  ScopedRef<::Class> cls(
-      this->compilerState.classRegistry.getCurrent(className.c_str()));
+  ::Class *clsRaw =
+      this->compilerState.classRegistry.getCurrent(className.c_str());
+  if (!clsRaw) {
+    clsRaw = this->compilerState.protocolRegistry.getCurrent(className.c_str());
+  }
+  ScopedRef<::Class> cls(clsRaw);
+
   if (!cls) {
-    throwCodeGenerationException("Class " + className + " not found", node);
+    throwCodeGenerationException("Class/Protocol " + className + " not found",
+                                 node);
   }
 
   ScopedRef<::Class> target(this->compilerState.classRegistry.getCurrent(

@@ -44,6 +44,13 @@
    :instance-fns {dropFirst [:this]
                   reduce [:this :any]}}
 
+  clojure.lang.IChunkedSeq
+  {:extends [clojure.lang.ISeq clojure.lang.Sequential]
+   :is-interface true
+   :instance-fns {chunkedFirst [:this]
+                  chunkedNext [:this]
+                  chunkedMore [:this]}}
+
   clojure.lang.Sequable
   {:is-interface true
    :instance-fns {seq [:this]}}
@@ -79,39 +86,39 @@
   clojure.lang.IExceptionInfo
   {:is-interface true
    :instance-fns {getData [:this]}}
-  
+
   java.util.concurrent.Callable
   {:is-interface true
    :instance-fns {call [:this]}}
-  
+
   java.lang.Runnable
   {:is-interface true
    :instance-fns {run [:this]}}
-  
-  clojure.lang.IFn 
+
+  clojure.lang.IFn
   {:is-interface true
    :extends [java.util.concurrent.Callable java.lang.Runnable]
-   :instance-fns {invoke [[:this] [:this :any] [:this :any :any] [:this :any :any :any] [:this :any :any :any :any] 
-                         [:this :any :any :any :any :any] [:this :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any] [:this :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any] [:this :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any] 
-                         [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any]]
+   :instance-fns {invoke [[:this] [:this :any] [:this :any :any] [:this :any :any :any] [:this :any :any :any :any]
+                          [:this :any :any :any :any :any] [:this :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any] [:this :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any] [:this :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any]
+                          [:this :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any :any]]
                   applyTo [:this :any]}}
 
   clojure.lang.IHashEq
   {:is-interface true
    :instance-fns {hasheq [:this]}}
 
-  clojure.lang.IKVReduce 
+  clojure.lang.IKVReduce
   {:is-interface true
    :instance-fns {kvreduce [:this :any :any]}}
 
@@ -122,7 +129,7 @@
   clojure.lang.ILookup
   {:is-interface true
    :instance-fns {valAt [[:this :any] [:this :any :any]]}}
-  
+
   clojure.lang.ILookupSite
   {:is-interface true
    :instance-fns {fault [:this :any]}}

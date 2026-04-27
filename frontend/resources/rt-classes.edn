@@ -319,6 +319,25 @@
     assoc [{:args [:this :int :any] :type :call :symbol "PersistentVector_assoc_BANG_" :returns clojure.lang.PersistentVector}]
     pop [{:args [:this] :type :call :symbol "PersistentVector_pop_BANG_" :returns clojure.lang.PersistentVector}]}}
 
+
+clojure.lang.PersistentList
+  {:object-type 3
+   :extends java.lang.Object
+   :implements {clojure.lang.IPersistentList {}
+                clojure.lang.Sequential {}
+                clojure.lang.Counted {count [{:args [:this] :type :call :symbol "PersistentList_count" :returns :int}]}
+                clojure.lang.IPersistentStack {peek [{:args [:this] :type :call :symbol "PersistentList_first" :returns :any}]
+                                               pop [{:args [:this] :type :call :symbol "PersistentList_pop" :returns clojure.lang.PersistentList}]}
+                clojure.lang.IPersistentCollection {count [{:args [:this] :type :call :symbol "PersistentList_count" :returns :int}] 
+                                                    cons [{:args [:this :any] :type :call :symbol "PersistentList_conj" :returns clojure.lang.PersistentList}]  
+                                                    equiv [{:args [:this :any] :type :call :symbol "PersistentList_equals_managed" :returns :bool}]  
+                                                    empty [{:args [:this] :type :call :symbol "PersistentList_empty" :returns clojure.lang.PersistentList}]}
+                clojure.lang.ISeq {first [{:args [:this] :type :call :symbol "PersistentList_first" :returns :any}]
+                                   next [{:args [:this] :type :call :symbol "PersistentList_next" :returns :any}]
+                                   more [{:args [:this] :type :call :symbol "PersistentList_identity" :returns clojure.lang.PersistentList}]
+                                   cons [{:args [:this :any] :type :call :symbol "PersistentList_conj" :returns clojure.lang.PersistentList}]}
+                clojure.lang.Sequable {seq [{:args [:this] :type :call :symbol "PersistentList_identity" :returns clojure.lang.PersistentList}]}}}
+
   clojure.lang.RT
   {:static-fns
    {conj [{:args [clojure.lang.PersistentVector :any] :type :call :symbol "PersistentVector_conj" :returns clojure.lang.PersistentVector}]

@@ -71,8 +71,8 @@ static std::mutex gSymbolizerMutex;
 
 void registerJitFunction(
     uword_t address, uword_t size, const char *name, const void *objectData,
-    size_t objectSize,
-    std::map<rt::SourceLocation, std::string> locationToForm) {
+    size_t objectSize, std::map<rt::SourceLocation, std::string> locationToForm,
+    std::map<rt::BaseSourceLocation, std::string> locationToContextForm) {
   std::lock_guard<std::mutex> lock(gJitMapMutex);
   JitFunctionEntry entry;
   entry.size = size;
@@ -83,18 +83,19 @@ void registerJitFunction(
                                 objectSize);
   }
   entry.locationToForm = std::move(locationToForm);
+  entry.locationToContextForm = std::move(locationToContextForm);
   gJitFunctions[address] = std::move(entry);
 }
 
 void registerJitFunction(uword_t address, uword_t size, const char *name,
                          const void *objectData, size_t objectSize) {
-  registerJitFunction(address, size, name, objectData, objectSize, {});
+  registerJitFunction(address, size, name, objectData, objectSize, {}, {});
 }
 
 extern "C" void registerJitFunction_C(uword_t address, uword_t size,
                                       const char *name, const void *objectData,
                                       size_t objectSize) {
-  registerJitFunction(address, size, name, objectData, objectSize, {});
+  registerJitFunction(address, size, name, objectData, objectSize, {}, {});
 }
 
 static bool isInfrastructureFrame(const std::string &name,
@@ -460,15 +461,22 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
                 for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames(); ++i) {
                   auto &info = inlinedInfo.getFrame(i);
                   if (info.FileName != "<invalid>") {
-                    SourceLocation loc;
-                    loc.file = info.FileName;
-                    loc.line = info.Line;
-                    loc.column = info.Column;
-                    auto formIt = entry.locationToForm.find(loc);
+                    SourceLocation exactLoc(info.FileName, info.Line, info.Column, info.Discriminator);
+                    BaseSourceLocation baseLoc(exactLoc);
+                    // Try to find exact form
+                    auto exactIt = entry.locationToForm.find(exactLoc);
+                    if (exactIt != entry.locationToForm.end()) {
+                      this->exactForm = exactIt->second;
+                    }
 
-                    if (formIt == entry.locationToForm.end() &&
-                        !entry.locationToForm.empty()) {
-                      // Try a fuzzy match based on basename and line
+                    // Try to find context form
+                    auto contextIt = entry.locationToContextForm.find(baseLoc);
+                    if (contextIt != entry.locationToContextForm.end()) {
+                      this->form = contextIt->second;
+                    }
+
+                    // If either is missing, try fuzzy matching for BOTH
+                    if (this->exactForm.empty() || this->form.empty()) {
                       std::string base = info.FileName;
                       size_t lastS = base.find_last_of('/');
                       if (lastS != std::string::npos)
@@ -480,23 +488,35 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
                         if (kLastS != std::string::npos)
                           kBase = kBase.substr(kLastS + 1);
 
-                        // If line is 0, we take the first match for the file
-                        if (kBase == base &&
-                            (k.line == (int)info.Line || info.Line == 0)) {
-                          this->form = v;
-                          std::stringstream locSs;
-                          locSs << info.FileName << ":" << k.line << ":"
-                                << k.column;
-                          this->sourceLocation = locSs.str();
-                          foundForm = true;
-                          break;
+                        if (kBase == base && k.line == (int)info.Line) {
+                          if (this->exactForm.empty() &&
+                              k.column == (int)info.Column &&
+                              k.discriminator == (int)info.Discriminator) {
+                            this->exactForm = v;
+                          }
                         }
                       }
-                    } else if (formIt != entry.locationToForm.end()) {
-                      this->form = formIt->second;
+                      
+                      for (auto const &[k, v] : entry.locationToContextForm) {
+                        std::string kBase = k.file;
+                        size_t kLastS = kBase.find_last_of('/');
+                        if (kLastS != std::string::npos)
+                          kBase = kBase.substr(kLastS + 1);
+
+                        if (kBase == base && k.line == (int)info.Line && k.column == (int)info.Column) {
+                           if (this->form.empty()) {
+                             this->form = v;
+                           }
+                        }
+                      }
+                    }
+
+                    if (!this->form.empty() || !this->exactForm.empty()) {
                       std::stringstream locSs;
                       locSs << info.FileName << ":" << info.Line << ":"
                             << info.Column;
+                      if (info.Discriminator > 0)
+                        locSs << " (disc " << info.Discriminator << ")";
                       this->sourceLocation = locSs.str();
                       foundForm = true;
                       break;
@@ -520,9 +540,10 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
 
 LanguageException::LanguageException(const std::string &name, RTValue message,
                                      RTValue payload, const std::string &form,
+                                     const std::string &exactForm,
                                      const std::string &sourceLocation)
     : name(name), message(message), payload(payload), form(form),
-      sourceLocation(sourceLocation) {
+      exactForm(exactForm), sourceLocation(sourceLocation) {
   capturedStack = captureCurrentStack();
 }
 
@@ -609,6 +630,13 @@ LanguageException::toString(llvm::symbolize::LLVMSymbolizer &symbolizer,
     ss << "    " << Colors::CODE(useColor) << form << c(Colors::RESET, useColor)
        << "\n";
     ss << "    " << Colors::MARK(useColor) << std::string(form.length(), '^')
+       << c(Colors::RESET, useColor) << "\n";
+  }
+
+  if (!exactForm.empty() && exactForm != form) {
+    ss << "\n " << c(Colors::BOLD, useColor)
+       << "Exact expression:" << c(Colors::RESET, useColor) << "\n";
+    ss << "    " << Colors::CODE(useColor) << exactForm
        << c(Colors::RESET, useColor) << "\n";
   }
 
@@ -759,7 +787,7 @@ void throwCodeGenerationException(const std::string &errorMessage,
   throw rt::LanguageException(
       "CodeGenerationException",
       RT_boxPtr(::String_createDynamicStr(retval.str().c_str())), RT_boxNil(),
-      form, locSs.str());
+      form, form, locSs.str());
 }
 
 void throwCodeGenerationException(

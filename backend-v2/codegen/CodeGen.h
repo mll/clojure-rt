@@ -38,6 +38,7 @@ struct CodeGenResult {
   std::vector<RTValue> constants;
   std::vector<std::string> icSlotNames;
   std::map<SourceLocation, std::string> formMap;
+  std::map<BaseSourceLocation, std::string> contextFormMap;
 };
 
 struct FunctionMetrics {
@@ -112,6 +113,10 @@ public:
 
   const std::map<SourceLocation, std::string> &getFormMap() const {
     return formMap;
+  }
+
+  const std::map<BaseSourceLocation, std::string> &getContextFormMap() const {
+    return contextFormMap;
   }
 
   std::string codegenTopLevel(const Node &node);
@@ -262,8 +267,20 @@ public:
     }
   };
 
+  class DebugLocGuard {
+    llvm::IRBuilder<> &Builder;
+    llvm::DebugLoc savedLoc;
+
+  public:
+    DebugLocGuard(llvm::IRBuilder<> &Builder)
+        : Builder(Builder), savedLoc(Builder.getCurrentDebugLocation()) {}
+    ~DebugLocGuard() { Builder.SetCurrentDebugLocation(savedLoc); }
+  };
+
 private:
   std::map<SourceLocation, std::string> formMap;
+  std::map<BaseSourceLocation, std::string> contextFormMap;
+  int nodeIDCounter = 0;
 
 public:
   std::string suggestedFunctionName;

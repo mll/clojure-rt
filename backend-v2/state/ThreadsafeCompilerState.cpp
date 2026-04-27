@@ -296,21 +296,32 @@ void ThreadsafeCompilerState::validateProtocolImplementations(
 
           // Validate each required method
           for (auto const &[methodName, protoFns] : requiredMethods) {
-            auto it = implMethods.find(methodName);
-            if (it == implMethods.end()) {
+            // Find all implementations of this method across all protocol blocks of the class
+            std::vector<const IntrinsicDescription *> allImpls;
+            for (auto const &[anyProtoName, anyImplMethods] : desc->implements) {
+              auto it = anyImplMethods.find(methodName);
+              if (it != anyImplMethods.end()) {
+                for (auto const &implFn : it->second) {
+                  allImpls.push_back(&implFn);
+                }
+              }
+            }
+
+            if (allImpls.empty()) {
               throwInternalInconsistencyException(
                   "Class " + desc->name +
                   " is missing implementation of method " + methodName +
                   " from protocol " + protoName);
             }
 
-            const auto &implFns = it->second;
             for (auto const &protoFn : protoFns) {
               // Check if there's an implementation for this arity
               bool found = false;
-              for (auto const &implFn : implFns) {
+              for (auto const &implFnPtr : allImpls) {
+                const auto &implFn = *implFnPtr;
                 if (implFn.argTypes.size() == protoFn.argTypes.size()) {
                   // Check signature matches
+                  bool signatureMatches = true;
                   for (size_t k = 0; k < protoFn.argTypes.size(); k++) {
                     // The first argument is :this, which will differ between
                     // protocol and implementing class.
@@ -319,16 +330,15 @@ void ThreadsafeCompilerState::validateProtocolImplementations(
 
                     if (protoFn.argTypes[k] != ObjectTypeSet::dynamicType() &&
                         protoFn.argTypes[k] != implFn.argTypes[k]) {
-                      throwInternalInconsistencyException(
-                          "Signature mismatch for method " + methodName +
-                          " in class " + desc->name + " for protocol " +
-                          protoName + ". Arg " + to_string(k) + " expected " +
-                          protoFn.argTypes[k].toString() + " got " +
-                          implFn.argTypes[k].toString());
+                      signatureMatches = false;
+                      break;
                     }
                   }
-                  found = true;
-                  break;
+
+                  if (signatureMatches) {
+                    found = true;
+                    break;
+                  }
                 }
               }
               if (!found) {

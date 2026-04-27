@@ -204,6 +204,7 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               auto module = std::move(result.module);
               auto constants = std::move(result.constants);
               auto formMap = std::move(result.formMap);
+              auto contextFormMap = std::move(result.contextFormMap);
 
               this->optimize(*module, fName);
 
@@ -276,7 +277,8 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                   registerJitFunction(
                       Sym->getValue(), captured.buffer->getBufferSize(),
                       fName.c_str(), captured.buffer->getBufferStart(),
-                      captured.buffer->getBufferSize(), std::move(formMap));
+                      captured.buffer->getBufferSize(), std::move(formMap),
+                      std::move(contextFormMap));
                   this->capturedObjectBuffers.erase(
                       this->capturedObjectBuffers.begin() + foundIdx);
                 } else {
@@ -287,7 +289,8 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
                   // the object (though for JIT it usually is).
                   registerJitFunction(Sym->getValue(), 1024 * 1024,
                                       fName.c_str(), nullptr, 0,
-                                      std::move(formMap));
+                                      std::move(formMap),
+                                      std::move(contextFormMap));
                 }
               }
 

@@ -29,7 +29,7 @@ CodeGenResult CodeGen::release() && {
   generatedConstants.clear(); // Ensure destructor doesn't re-release
   auto icSlotNames = std::move(invokeManager.getICSlotNames());
   return {std::move(TSContext), std::move(TheModule), std::move(constants),
-          std::move(icSlotNames), std::move(formMap)};
+          std::move(icSlotNames), std::move(formMap), std::move(contextFormMap)};
 }
 
 std::string CodeGen::codegenTopLevel(const Node &node) {
@@ -372,18 +372,27 @@ TypedValue CodeGen::codegen(const Node &node,
   MemoryManagement::UnwindGuidanceGuard guidanceGuard(memoryManagement,
                                                       &node.unwindmemory());
 
+  DebugLocGuard locGuard(Builder);
+
   auto env = node.env();
 
   // Record form for exception reporting
-  SourceLocation loc;
-  loc.file = env.file();
-  loc.line = env.line();
-  loc.column = env.column();
+  int currentID = nodeIDCounter++;
+  SourceLocation loc(env.file(), env.line(), env.column(), currentID);
+  BaseSourceLocation baseLoc(loc);
+
   formMap[loc] = node.form();
+  if (contextFormMap.find(baseLoc) == contextFormMap.end()) {
+    contextFormMap[baseLoc] = node.form();
+  }
 
   if (!LexicalBlocks.empty()) {
-    Builder.SetCurrentDebugLocation(llvm::DILocation::get(
-        TheContext, env.line(), env.column(), LexicalBlocks.back()));
+    const auto *debugLoc = llvm::DILocation::get(
+        TheContext, env.line(), env.column(), LexicalBlocks.back());
+    if (currentID > 0) {
+      debugLoc = debugLoc->cloneWithDiscriminator(currentID);
+    }
+    Builder.SetCurrentDebugLocation(debugLoc);
   }
 
   if (!functionMetricsStack.empty()) {

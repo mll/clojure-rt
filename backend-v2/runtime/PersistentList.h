@@ -15,7 +15,7 @@ struct PersistentList {
   Object super;
   RTValue first;
   PersistentList *rest;
-  uint64_t count;
+  int32_t count;
 };
 
 void PersistentList_initialise();
@@ -23,6 +23,7 @@ PersistentList *PersistentList_empty();
 void PersistentList_cleanup();
 
 bool PersistentList_equals(PersistentList *self, PersistentList *other);
+bool PersistentList_equals_managed(PersistentList *self, RTValue other);
 uint64_t PersistentList_hash(PersistentList *self);
 String *PersistentList_toString(PersistentList *self);
 void PersistentList_destroy(PersistentList *self, bool deallocateChildren);
@@ -33,6 +34,11 @@ PersistentList *PersistentList_conj(PersistentList *self, RTValue other);
 PersistentList *PersistentList_createMany(int32_t argCount, ...);
 PersistentList *PersistentList_fromArray(int32_t argCount, RTValue *args);
 RTValue RT_createListFromArray(int32_t argCount, RTValue *args);
+
+int32_t PersistentList_count(PersistentList *self);
+PersistentList *PersistentList_identity(PersistentList *self);
+RTValue PersistentList_next(PersistentList *self);
+RTValue PersistentList_first(PersistentList *self);
 
 #ifdef __cplusplus
 }

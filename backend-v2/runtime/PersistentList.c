@@ -84,6 +84,10 @@ PersistentList *PersistentList_create(RTValue first, PersistentList *rest) {
   return self;
 }
 
+bool PersistentList_equals_managed(PersistentList *self, RTValue other) {
+  return equals_managed(RT_boxPtr(self), other);
+}
+
 /* outside refcount system */
 bool PersistentList_equals(PersistentList *self, PersistentList *other) {
   if (self->count != other->count)
@@ -142,6 +146,38 @@ String *PersistentList_toString(PersistentList *self) {
   return retVal;
 }
 
+int32_t PersistentList_count(PersistentList *self) {
+  int32_t retVal = self->count;
+  Ptr_release(self);
+  return retVal;
+}
+
+PersistentList *PersistentList_identity(PersistentList *self) { return self; }
+
+RTValue PersistentList_next(PersistentList *self) {
+  if (self->rest == NULL) {
+    Ptr_release(self);
+    return RT_boxNil();
+  }
+
+  PersistentList *next = self->rest;
+  Ptr_retain(next);
+  Ptr_release(self);
+  return RT_boxPtr(next);
+}
+
+PersistentList *PersistentList_pop(PersistentList *self) {
+  if (self->rest == NULL) {
+    Ptr_release(self);
+    return PersistentList_empty();
+  }
+
+  PersistentList *next = self->rest;
+  Ptr_retain(next);
+  Ptr_release(self);
+  return next;
+}
+
 /* outside refcount system */
 void PersistentList_destroy(PersistentList *self, bool deallocateChildren) {
   if (deallocateChildren) {
@@ -175,6 +211,17 @@ void PersistentList_promoteToShared(PersistentList *self, uword_t current) {
 /* mem done */
 PersistentList *PersistentList_conj(PersistentList *self, RTValue other) {
   return PersistentList_create(other, self);
+}
+
+RTValue PersistentList_first(PersistentList *self) {
+  RTValue first = self->first;
+  if (!RT_isNull(first)) {
+    retain(first);
+    Ptr_release(self);
+    return first;
+  }
+  Ptr_release(self);
+  return RT_boxNull();
 }
 
 PersistentList *PersistentList_fromArray(int32_t argCount, RTValue *args) {

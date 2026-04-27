@@ -35,6 +35,7 @@ struct JitFunctionEntry {
   std::string name;
   std::vector<uint8_t> objectData;
   std::map<SourceLocation, std::string> locationToForm;
+  std::map<BaseSourceLocation, std::string> locationToContextForm;
 };
 
 struct CapturedStack {
@@ -52,6 +53,7 @@ class LanguageException : public std::exception {
   RTValue message;
   RTValue payload;
   std::string form;
+  std::string exactForm;
   std::string sourceLocation;
   std::shared_ptr<CapturedStack> capturedStack;
   mutable std::string cachedMessage;
@@ -60,7 +62,8 @@ class LanguageException : public std::exception {
 public:
   LanguageException(const std::string &name, RTValue message, RTValue payload);
   LanguageException(const std::string &name, RTValue message, RTValue payload,
-                    const std::string &form, const std::string &sourceLocation);
+                    const std::string &form, const std::string &exactForm,
+                    const std::string &sourceLocation);
   LanguageException(const LanguageException &other);
   LanguageException &operator=(const LanguageException &other);
   ~LanguageException() noexcept override;
@@ -77,6 +80,7 @@ public:
   RTValue getMessage() const { return message; }
   RTValue getPayload() const { return payload; }
   const std::string &getForm() const { return form; }
+  const std::string &getExactForm() const { return exactForm; }
   const std::string &getSourceLocation() const { return sourceLocation; }
   std::shared_ptr<CapturedStack> getCapturedStack() const {
     return capturedStack;
@@ -100,7 +104,8 @@ throwCodeGenerationException(const std::string &errorMessage,
 // New registration function with form mapping
 void registerJitFunction(
     uword_t addr, size_t size, const char *name, const void *objData,
-    size_t objSize, std::map<rt::SourceLocation, std::string> locationToForm);
+    size_t objSize, std::map<rt::SourceLocation, std::string> locationToForm,
+    std::map<rt::BaseSourceLocation, std::string> locationToContextForm);
 
 } // namespace rt
 

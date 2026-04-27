@@ -81,9 +81,13 @@ ObjectTypeSet CodeGen::getType(const Node &node, const IsInstanceNode &subnode,
                                      "' not found",
                                  node);
   }
-  return ObjectTypeSet(
-      booleanType, false,
-      new ConstantBoolean(Class_isInstance(cls.get(), target.get())));
+  bool val = Class_isInstance(cls.get(), target.get());
+  if (!val) {
+    /* It is possible to become a member during runtime, but one can never stop
+     * being a member */
+    return ObjectTypeSet(booleanType);
+  }
+  return ObjectTypeSet(booleanType, false, new ConstantBoolean(true));
 }
 
 } // namespace rt

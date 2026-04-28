@@ -4,6 +4,9 @@
 #include <stdio.h>
 
 #include "TestTools.h"
+#include "../Function.h"
+#include "../Integer.h"
+#include "../PersistentList.h"
 
 #define CONJ_TO_LOOP_FACTOR 100
 
@@ -129,12 +132,56 @@ static void testListPromotionStop(void **state) {
   });
 }
 
+static RTValue MockAddition(Frame *frame, RTValue a, RTValue b, RTValue a2,
+                            RTValue a3, RTValue a4) {
+  int32_t valA = RT_unboxInt32(a);
+  int32_t valB = RT_unboxInt32(b);
+  release(a);
+  release(b);
+  return RT_boxInt32(valA + valB);
+}
+
+static RTValue create_mock_add_fn() {
+  ClojureFunction *f = Function_create(1, 2, false);
+  Function_fillMethod(f, 0, 0, 2, false, MockAddition, "add", 0);
+  return RT_boxPtr(f);
+}
+
+static void testListReduce(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentList *l = PersistentList_empty();
+    for (int i = 0; i < 10; i++) {
+      l = PersistentList_conj(l, RT_boxInt32(i));
+    }
+    // List is (9 8 7 6 5 4 3 2 1 0)
+    // Sum should be 45
+
+    // 1. reduce with start value
+    Ptr_retain(l);
+    RTValue addFn = create_mock_add_fn();
+    RTValue res = PersistentList_reduce(l, addFn, RT_boxInt32(0));
+    assert_int_equal(45, RT_unboxInt32(res));
+    release(res);
+
+    // 2. reduce2 (without start value)
+    Ptr_retain(l);
+    RTValue addFn2 = create_mock_add_fn();
+    RTValue res2 = PersistentList_reduce2(l, addFn2);
+    assert_int_equal(45, RT_unboxInt32(res2));
+    release(res2);
+
+    Ptr_release(l);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test_prestate(testScalingBehavior,
                                 listConjunctionAndPerformance),
       cmocka_unit_test(testListPromotion),
       cmocka_unit_test(testListPromotionStop),
+      cmocka_unit_test(testListReduce),
   };
   initialise_memory();
   RuntimeInterface_initialise();

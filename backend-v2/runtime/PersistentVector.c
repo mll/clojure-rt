@@ -106,12 +106,14 @@ String *PersistentVector_toString(PersistentVector *restrict self) {
 
 /* outside refcount system */
 void PersistentVector_destroy(PersistentVector *restrict self,
-                              bool deallocateChildren) {
-  Ptr_release(self->tail);
-  if (self->root)
-    Ptr_release(self->root);
+                               bool deallocateChildren) {
+  if (deallocateChildren) {
+    if (self->root)
+      Ptr_release(self->root);
+    if (self->tail)
+      Ptr_release(self->tail);
+  }
 }
-
 void PersistentVector_promoteToShared(PersistentVector *self, uword_t current) {
   if (current & SHARED_BIT)
     return;
@@ -686,7 +688,48 @@ bool PersistentVector_equals_managed(PersistentVector *self, RTValue other) {
   return res;
 }
 
-RTValue PersistentVector_reduce(PersistentVector *self, RTValue f, RTValue start) {
+
+static RTValue PersistentVectorNode_reduce(PersistentVectorNode *node,
+                                           uword_t level, RTValue acc,
+                                           Frame *frame, RTValue f,
+                                           FunctionMethod *method,
+                                           bool reusable) {
+  RTValue args[2];
+  if (node->type == leafNode) {
+    uword_t cnt = node->count;
+    for (uword_t i = 0; i < cnt; i++) {
+      args[0] = acc;
+      args[1] = node->array[i];
+      if (!reusable) {
+        retain(args[1]);
+      }
+      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+    }
+    if (reusable) {
+      node->count = 0;
+      Ptr_release(node);
+    }
+  } else {
+    uword_t cnt = node->count;
+    for (uword_t i = 0; i < cnt; i++) {
+      PersistentVectorNode *child =
+          (PersistentVectorNode *)RT_unboxPtr(node->array[i]);
+      bool childReusable = reusable && Ptr_isReusable(child);
+      acc = PersistentVectorNode_reduce(child, level - RRB_BITS, acc, frame, f,
+                                        method, childReusable);
+      if (reusable && childReusable) {
+        node->array[i] = RT_boxNull();
+      }
+    }
+    if (reusable) {
+      Ptr_release(node);
+    }
+  }
+  return acc;
+}
+
+RTValue PersistentVector_reduce(PersistentVector *self, RTValue f,
+                                RTValue start) {
   RTValue acc = start;
   FunctionMethod *method = Function_extractMethod(f, 2);
 
@@ -695,31 +738,36 @@ RTValue PersistentVector_reduce(PersistentVector *self, RTValue f, RTValue start
   frame->leafFrame = NULL;
   frame->bailoutEntryIndex = -1;
 
-  RTValue args[2];
-  uword_t totalCount = self->count;
-  uword_t tailCount = self->tail ? self->tail->count : 0;
-  uword_t tailStart = totalCount - tailCount;
+  bool reusable = Ptr_isReusable(self);
+  PersistentVectorNode *root = self->root;
+  PersistentVectorNode *tail = self->tail;
+  uword_t shift = self->shift;
 
-  // 1. Process Trie-resident blocks (32 elements at a time)
-  for (uword_t i = 0; i < tailStart; i += 32) {
-    PersistentVectorNode *node = PersistentVector_nthBlock(self, i);
-    // nthBlock for i < tailStart is guaranteed to be a leaf in the trie
-    for (uword_t j = 0; j < 32; j++) {
-      args[0] = acc;
-      args[1] = node->array[j];
-      retain(args[1]);
-      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+  if (root) {
+    bool rootReusable = reusable && Ptr_isReusable(root);
+    acc = PersistentVectorNode_reduce(root, shift, acc, frame, f, method,
+                                      rootReusable);
+    if (reusable && rootReusable) {
+      self->root = NULL;
     }
   }
 
-  // 2. Process the Tail
-  if (self->tail) {
-    PersistentVectorNode *tail = self->tail;
-    for (uword_t j = 0; j < tail->count; j++) {
+  if (tail) {
+    bool tailReusable = reusable && Ptr_isReusable(tail);
+    uword_t cnt = tail->count;
+    RTValue args[2];
+    for (uword_t i = 0; i < cnt; i++) {
       args[0] = acc;
-      args[1] = tail->array[j];
-      retain(args[1]);
+      args[1] = tail->array[i];
+      if (!tailReusable) {
+        retain(args[1]);
+      }
       acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+    }
+    if (tailReusable) {
+      tail->count = 0;
+      self->tail = NULL;
+      Ptr_release(tail);
     }
   }
 
@@ -734,8 +782,10 @@ RTValue PersistentVector_reduce2(PersistentVector *self, RTValue f) {
     return RT_invokeDynamic(f, NULL, 0);
   }
 
+  RTValue first;
   Ptr_retain(self);
-  RTValue first = PersistentVector_nth(self, 0);
+  first = PersistentVector_nth(self, 0);
+
   if (self->count == 1) {
     Ptr_release(self);
     release(f);
@@ -744,7 +794,16 @@ RTValue PersistentVector_reduce2(PersistentVector *self, RTValue f) {
 
   PersistentVectorIterator it = PersistentVector_iterator(self);
   it.index = 1;
+  if (it.blockIndex < it.block->count - 1) {
+    it.blockIndex++;
+  } else {
+    it.block = PersistentVector_nthBlock(self, 1);
+    it.blockIndex = 0;
+  }
+
   PersistentVectorChunkedSeq *seq = PersistentVectorChunkedSeq_create(it);
+  Ptr_release(self);
+
   return PersistentVectorChunkedSeq_reduce(seq, f, first);
 }
 

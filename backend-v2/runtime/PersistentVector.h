@@ -70,6 +70,13 @@ PersistentVector *PersistentVector_pop_BANG_(PersistentVector *restrict self);
 RTValue PersistentVector_dynamic_nth(PersistentVector *restrict self,
                                      RTValue indexObject);
 RTValue PersistentVector_nth(PersistentVector *restrict self, uword_t index);
+RTValue PersistentVector_nth_default(PersistentVector *restrict self, uword_t index, RTValue notFound);
+RTValue PersistentVector_valAt(PersistentVector *self, RTValue key);
+RTValue PersistentVector_valAt_default(PersistentVector *self, RTValue key, RTValue notFound);
+bool PersistentVector_containsKey(PersistentVector *self, RTValue key);
+RTValue PersistentVector_entryAt(PersistentVector *self, RTValue key);
+PersistentVector *PersistentVector_assoc_dynamic(PersistentVector *self, RTValue key, RTValue val);
+RTValue PersistentVector_rseq(PersistentVector *self);
 PersistentVectorNode *PersistentVector_nthBlock(PersistentVector *restrict self,
                                                 uword_t index);
 
@@ -83,6 +90,13 @@ PersistentVector_persistent_BANG_(PersistentVector *restrict self);
 
 uword_t PersistentVector_count(PersistentVector *restrict self);
 bool PersistentVector_contains(PersistentVector *restrict self, RTValue other);
+RTValue PersistentVector_seq(PersistentVector *self);
+RTValue PersistentVector_peek(PersistentVector *self);
+bool PersistentVector_equals_managed(PersistentVector *self, RTValue other);
+RTValue PersistentVector_reduce(PersistentVector *self, RTValue f,
+                                RTValue start);
+RTValue PersistentVector_reduce2(PersistentVector *self, RTValue f);
+RTValue PersistentVector_empty(PersistentVector *self);
 
 #ifdef __cplusplus
 }

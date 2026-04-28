@@ -36,7 +36,7 @@
   clojure.lang.Indexed
   {:extends clojure.lang.Counted
    :is-interface true
-   :instance-fns {count [:this]}}
+   :instance-fns {nth [[:this :int] [:this :int :any]]}}
 
   clojure.lang.IChunk
   {:extends clojure.lang.Indexed

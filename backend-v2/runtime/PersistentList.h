@@ -39,6 +39,8 @@ int32_t PersistentList_count(PersistentList *self);
 PersistentList *PersistentList_identity(PersistentList *self);
 RTValue PersistentList_next(PersistentList *self);
 RTValue PersistentList_first(PersistentList *self);
+RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start);
+RTValue PersistentList_reduce2(PersistentList *self, RTValue f);
 
 #ifdef __cplusplus
 }

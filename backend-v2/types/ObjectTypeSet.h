@@ -257,6 +257,9 @@ public:
     retVal.insert(exceptionType);
     retVal.insert(bridgedObjectType);
     retVal.insert(stringBuilderType);
+    retVal.insert(persistentVectorChunkedSeqType);
+    retVal.insert(persistentVectorReverseSeqType);
+    retVal.insert(arrayChunkType);
     retVal.allTypes = true;
     retVal.isBoxed = true;
     return retVal;
@@ -319,6 +322,12 @@ public:
         return "LB";
       case stringBuilderType:
         return "LU";
+      case persistentVectorChunkedSeqType:
+        return "LX";
+      case persistentVectorReverseSeqType:
+        return "LY";
+      case arrayChunkType:
+        return "LH";
       default:
         return "LR";
       }
@@ -389,6 +398,12 @@ public:
       return ":bridged";
     case stringBuilderType:
       return ":string-builder";
+    case persistentVectorChunkedSeqType:
+      return ":chunked-seq";
+    case persistentVectorReverseSeqType:
+      return ":reverse-seq";
+    case arrayChunkType:
+      return ":array-chunk";
     default:
       return ":custom(" + std::to_string(type) + ")";
     }

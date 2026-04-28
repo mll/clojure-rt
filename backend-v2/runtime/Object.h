@@ -106,9 +106,13 @@ inline uword_t Ptr_hash(void *ptr);
 inline bool Ptr_equals(void *ptr, void *other);
 inline bool Ptr_isReusable(void *ptr);
 
+#include "ArrayChunk.h"
 #include "BigInteger.h"
 #include "Boolean.h"
 #include "BridgedObject.h"
+#include "PersistentVectorChunkedSeq.h"
+#include "PersistentVectorReverseSeq.h"
+#include "ArrayChunk.h"
 #include "Class.h"
 #include "ConcurrentHashMap.h"
 #include "Double.h"
@@ -307,6 +311,15 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   case stringBuilderType:
     StringBuilder_destroy((StringBuilder *)self);
     break;
+  case persistentVectorChunkedSeqType:
+    PersistentVectorChunkedSeq_destroy((PersistentVectorChunkedSeq *)self, deallocateChildren);
+    break;
+  case arrayChunkType:
+    ArrayChunk_destroy((ArrayChunk *)self, deallocateChildren);
+    break;
+  case persistentVectorReverseSeqType:
+    PersistentVectorReverseSeq_destroy((PersistentVectorReverseSeq *)self, deallocateChildren);
+    break;
 
   default:
     break;
@@ -452,6 +465,15 @@ inline void Object_promoteToShared(Object *restrict self) {
     Function_promoteToShared((ClojureFunction *)self, count);
     break;
 
+  case persistentVectorChunkedSeqType:
+    Object_promoteToShared((Object *)((PersistentVectorChunkedSeq *)self)->it.parent);
+    Object_promoteToSharedShallow(self, count);
+    break;
+  case arrayChunkType:
+    Object_promoteToShared((Object *)((ArrayChunk *)self)->node);
+    Object_promoteToSharedShallow(self, count);
+    break;
+
   default:
     Object_promoteToSharedShallow(self, count);
     break;
@@ -494,6 +516,8 @@ inline uword_t Object_hash(Object *restrict self) {
     return BridgedObject_hash((BridgedObject *)self);
   case stringBuilderType:
     return StringBuilder_hash((StringBuilder *)self);
+  case persistentVectorChunkedSeqType:
+    return PersistentVectorChunkedSeq_hash((PersistentVectorChunkedSeq *)self);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -579,6 +603,8 @@ inline bool Object_equals(Object *self, Object *other) {
     return BridgedObject_equals((BridgedObject *)self, (BridgedObject *)other);
   case stringBuilderType:
     return StringBuilder_equals((StringBuilder *)self, (StringBuilder *)other);
+  case persistentVectorChunkedSeqType:
+    return PersistentVectorChunkedSeq_equals((PersistentVectorChunkedSeq *)self, (PersistentVectorChunkedSeq *)other);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -642,6 +668,8 @@ inline String *Object_toString(Object *restrict self) {
     return BridgedObject_toString((BridgedObject *)self);
   case stringBuilderType:
     return StringBuilder_toString((StringBuilder *)self);
+  case persistentVectorChunkedSeqType:
+    return PersistentVectorChunkedSeq_toString((PersistentVectorChunkedSeq *)self);
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }

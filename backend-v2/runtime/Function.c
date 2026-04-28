@@ -122,12 +122,59 @@ void Function_destroy(ClojureFunction *self) {
       deallocate(method->closedOvers);
   }
 }
+
 RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount) {
-  (void)funObj;
-  (void)args;
-  (void)argCount;
-  fprintf(stderr, "RT_invokeDynamic: Not yet implemented\n");
-  abort();
+  FunctionMethod *method = Function_extractMethod(funObj, argCount);
+  return RT_invokeMethod(funObj, method, args, argCount);
+}
+
+RTValue RT_invokeMethod(RTValue funObj, FunctionMethod *method, RTValue *args,
+                        int32_t argCount) {
+  // Allocate a frame on the stack.
+  size_t frameSize = sizeof(Frame) + argCount * sizeof(RTValue);
+  Frame *frame = (Frame *)alloca(frameSize);
+  frame->leafFrame = NULL;
+  frame->bailoutEntryIndex = -1;
+
+  return RT_invokeMethodWithFrame(frame, funObj, method, args, argCount);
+}
+
+RTValue RT_invokeMethodWithFrame(Frame *frame, RTValue funObj,
+                                 FunctionMethod *method, RTValue *args,
+                                 int32_t argCount) {
+  frame->method = method;
+  frame->self = funObj;
+  frame->localsCount = argCount;
+
+  if (method->isVariadic) {
+    frame->variadicSeq = RT_packVariadic(argCount, args, method->fixedArity);
+  } else {
+    frame->variadicSeq = RT_boxNil();
+  }
+
+  // Copy arguments to locals
+  for (int32_t i = 0; i < argCount; i++) {
+    frame->locals[i] = args[i];
+  }
+
+  typedef RTValue (*BaselineFunc)(Frame *, RTValue, RTValue, RTValue, RTValue,
+                                  RTValue);
+  BaselineFunc impl = (BaselineFunc)method->baselineImplementation;
+
+  RTValue a0 = argCount > 0 ? args[0] : RT_boxNil();
+  RTValue a1 = argCount > 1 ? args[1] : RT_boxNil();
+  RTValue a2 = argCount > 2 ? args[2] : RT_boxNil();
+  RTValue a3 = argCount > 3 ? args[3] : RT_boxNil();
+  RTValue a4 = argCount > 4 ? args[4] : RT_boxNil();
+
+  RTValue result = impl(frame, a0, a1, a2, a3, a4);
+
+  // RT_invokeMethod convention: consumes args, NOT funObj.
+  for (int32_t i = 0; i < argCount; i++) {
+    release(args[i]);
+  }
+
+  return result;
 }
 
 FunctionMethod *Function_extractMethod(RTValue funObj, uword_t argCount) {

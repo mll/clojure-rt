@@ -250,14 +250,34 @@ RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start) {
   RTValue args[2];
 
   while (current && !RT_isNull(current->first)) {
-    args[0] = acc;
-    args[1] = current->first;
-    retain(args[1]);
-    acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
-    current = current->rest;
+    PersistentList *next = current->rest;
+    RTValue first = current->first;
+
+    if (Ptr_isReusable(current)) {
+      // Sole owner: steal children and destroy node immediately
+      current->first = RT_boxNull();
+      current->rest = NULL;
+      Ptr_release(current);
+
+      args[0] = acc;
+      args[1] = first;
+      // No retain(first) because we stole the reference from the destroyed node
+      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+    } else {
+      // Shared: standard retain/release
+      retain(first);
+      if (next) Ptr_retain(next);
+
+      args[0] = acc;
+      args[1] = first;
+      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+
+      Ptr_release(current);
+    }
+    current = next;
   }
 
-  Ptr_release(self);
+  if (current) Ptr_release(current);
   release(f);
   return acc;
 }
@@ -267,11 +287,23 @@ RTValue PersistentList_reduce2(PersistentList *self, RTValue f) {
     Ptr_release(self);
     return RT_invokeDynamic(f, NULL, 0);
   }
-  RTValue first = self->first;
-  retain(first);
-  PersistentList *rest = self->rest;
-  if (rest) Ptr_retain(rest);
-  Ptr_release(self);
+
+  RTValue first;
+  PersistentList *rest;
+
+  if (Ptr_isReusable(self)) {
+    first = self->first;
+    rest = self->rest;
+    self->first = RT_boxNull();
+    self->rest = NULL;
+    Ptr_release(self);
+  } else {
+    first = self->first;
+    retain(first);
+    rest = self->rest;
+    if (rest) Ptr_retain(rest);
+    Ptr_release(self);
+  }
 
   if (!rest) {
     release(f);

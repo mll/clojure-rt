@@ -311,13 +311,71 @@
   clojure.lang.PersistentVector
   {:object-type 4
    :extends java.lang.Object
-   :implements {clojure.lang.Counted {count [{:args [:this] :type :call :symbol "PersistentVector_count" :returns :int}]}}
+   :implements {clojure.lang.Counted {count [{:args [:this] :type :call :symbol "PersistentVector_count" :returns :int}]}
+                clojure.lang.IPersistentCollection {cons [{:args [:this :any] :type :call :symbol "PersistentVector_conj" :returns clojure.lang.PersistentVector}]
+                                                     count [{:args [:this] :type :call :symbol "PersistentVector_count" :returns :int}]
+                                                     empty [{:args [:this] :type :call :symbol "PersistentVector_empty" :returns clojure.lang.PersistentVector}]
+                                                     equiv [{:args [:this :any] :type :call :symbol "PersistentVector_equals_managed" :returns :bool}]}
+                clojure.lang.IPersistentStack {peek [{:args [:this] :type :call :symbol "PersistentVector_peek" :returns :any}]
+                                                pop [{:args [:this] :type :call :symbol "PersistentVector_pop" :returns clojure.lang.PersistentVector}]}
+                clojure.lang.IPersistentVector {assocN [{:args [:this :int :any] :type :call :symbol "PersistentVector_assoc" :returns clojure.lang.PersistentVector}]}
+                clojure.lang.Indexed {nth [{:args [:this :int] :type :call :symbol "PersistentVector_nth" :returns :any}
+                                           {:args [:this :int :any] :type :call :symbol "PersistentVector_nth_default" :returns :any}]}
+                clojure.lang.ILookup {valAt [{:args [:this :any] :type :call :symbol "PersistentVector_valAt" :returns :any}
+                                              {:args [:this :any :any] :type :call :symbol "PersistentVector_valAt_default" :returns :any}]}
+                clojure.lang.Associative {containsKey [{:args [:this :any] :type :call :symbol "PersistentVector_containsKey" :returns :bool}]
+                                          entryAt [{:args [:this :any] :type :call :symbol "PersistentVector_entryAt" :returns :any}]
+                                          assoc [{:args [:this :any :any] :type :call :symbol "PersistentVector_assoc_dynamic" :returns clojure.lang.PersistentVector}]}
+                clojure.lang.Sequable {seq [{:args [:this] :type :call :symbol "PersistentVector_seq" :returns :any}]}
+                clojure.lang.IReduce {reduce [{:args [:this :any] :type :call :symbol "PersistentVector_reduce2" :returns :any}
+                                              {:args [:this :any :any] :type :call :symbol "PersistentVector_reduce" :returns :any}]}
+                clojure.lang.Reversible {rseq [{:args [:this] :type :call :symbol "PersistentVector_rseq" :returns :any}]}
+                clojure.lang.Sequential {}}
    :instance-fns
    {asTransient [{:args [:this] :type :call :symbol "PersistentVector_transient" :returns clojure.lang.PersistentVector}]
-    persistent [{:args [:this] :type :call :symbol "PersistentVector_persistent_BANG_" :returns clojure.lang.PersistentVector}]
-    conj [{:args [:this :any] :type :call :symbol "PersistentVector_conj_BANG_" :returns clojure.lang.PersistentVector}]
-    assoc [{:args [:this :int :any] :type :call :symbol "PersistentVector_assoc_BANG_" :returns clojure.lang.PersistentVector}]
-    pop [{:args [:this] :type :call :symbol "PersistentVector_pop_BANG_" :returns clojure.lang.PersistentVector}]}}
+    persistent! [{:args [:this] :type :call :symbol "PersistentVector_persistent_BANG_" :returns clojure.lang.PersistentVector}]
+    conj! [{:args [:this :any] :type :call :symbol "PersistentVector_conj_BANG_" :returns clojure.lang.PersistentVector}]
+    assoc! [{:args [:this :int :any] :type :call :symbol "PersistentVector_assoc_BANG_" :returns clojure.lang.PersistentVector}]
+    pop! [{:args [:this] :type :call :symbol "PersistentVector_pop_BANG_" :returns clojure.lang.PersistentVector}]}}
+
+  clojure.lang.PersistentVector$PersistentVectorChunkedSeq
+  {:object-type 24
+   :extends java.lang.Object
+   :implements {clojure.lang.ISeq {first [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_first" :returns :any}]
+                                   next [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_next" :returns :any}]
+                                   more [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_more" :returns :any}]
+                                   cons [{:args [:this :any] :type :call :symbol "PersistentVectorChunkedSeq_cons" :returns :any}]}
+                clojure.lang.IPersistentCollection {count [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_count" :returns :int}]
+                                                    empty [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_empty" :returns :any}]
+                                                    equiv [{:args [:this :any] :type :call :symbol "PersistentVectorChunkedSeq_equals_managed" :returns :bool}]}
+                clojure.lang.Counted {count [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_count" :returns :int}]}
+                clojure.lang.IPersistentVectorChunkedSeq {chunkedFirst [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_chunkedFirst" :returns :any}]
+                                          chunkedNext [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_chunkedNext" :returns :any}]
+                                          chunkedMore [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_chunkedMore" :returns :any}]}
+                clojure.lang.IReduce {reduce [{:args [:this :any] :type :call :symbol "PersistentVectorChunkedSeq_reduce2" :returns :any}
+                                              {:args [:this :any :any] :type :call :symbol "PersistentVectorChunkedSeq_reduce" :returns :any}]}
+                clojure.lang.IDrop {drop [{:args [:this :int] :type :call :symbol "PersistentVectorChunkedSeq_drop" :returns :any}]}
+                clojure.lang.Sequable {seq [{:args [:this] :type :call :symbol "PersistentVectorChunkedSeq_identity" :returns :any}]}}}
+
+  clojure.lang.APersistentVector$RSeq
+  {:object-type 26
+   :extends java.lang.Object
+   :implements {clojure.lang.ISeq {first [{:args [:this] :type :call :symbol "PersistentVectorReverseSeq_first" :returns :any}]
+                                   next [{:args [:this] :type :call :symbol "PersistentVectorReverseSeq_next" :returns :any}]
+                                   more [{:args [:this] :type :call :symbol "PersistentVectorReverseSeq_more" :returns :any}]
+                                   cons [{:args [:this :any] :type :call :symbol "PersistentVectorReverseSeq_cons" :returns :any}]}
+                clojure.lang.IPersistentCollection {count [{:args [:this] :type :call :symbol "PersistentVectorReverseSeq_count" :returns :int}]
+                                                    empty [{:args [:this] :type :call :symbol "PersistentVectorReverseSeq_empty" :returns :any}]
+                                                    equiv [{:args [:this :any] :type :call :symbol "PersistentVectorReverseSeq_equals_managed" :returns :bool}]}
+                clojure.lang.Counted {count [{:args [:this] :type :call :symbol "PersistentVectorReverseSeq_count" :returns :int}]}
+                clojure.lang.Sequable {seq [{:args [:this] :type :call :symbol "RT_identity" :returns :any}]}}}
+
+  clojure.lang.ArrayChunk
+  {:object-type 25
+   :extends java.lang.Object
+   :implements {clojure.lang.Indexed {nth [{:args [:this :int] :type :call :symbol "ArrayChunk_nth" :returns :any}
+                                          {:args [:this :int :any] :type :call :symbol "ArrayChunk_nth_default" :returns :any}]}
+                clojure.lang.Counted {count [{:args [:this] :type :call :symbol "ArrayChunk_count" :returns :int}]}}}
 
 
 clojure.lang.PersistentList
@@ -336,7 +394,9 @@ clojure.lang.PersistentList
                                    next [{:args [:this] :type :call :symbol "PersistentList_next" :returns :any}]
                                    more [{:args [:this] :type :call :symbol "PersistentList_identity" :returns clojure.lang.PersistentList}]
                                    cons [{:args [:this :any] :type :call :symbol "PersistentList_conj" :returns clojure.lang.PersistentList}]}
-                clojure.lang.Sequable {seq [{:args [:this] :type :call :symbol "PersistentList_identity" :returns clojure.lang.PersistentList}]}}}
+                clojure.lang.Sequable {seq [{:args [:this] :type :call :symbol "PersistentList_identity" :returns clojure.lang.PersistentList}]}
+                clojure.lang.IReduce {reduce [{:args [:this :any] :type :call :symbol "PersistentList_reduce2" :returns :any}
+                                              {:args [:this :any :any] :type :call :symbol "PersistentList_reduce" :returns :any}]}}}
 
   clojure.lang.RT
   {:static-fns

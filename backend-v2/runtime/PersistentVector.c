@@ -4,6 +4,8 @@
 #include "PersistentVectorNode.h"
 #include "RTValue.h"
 #include "Transient.h"
+#include "PersistentVectorChunkedSeq.h"
+#include "PersistentVectorReverseSeq.h"
 #include <stdarg.h>
 
 PersistentVector *EMPTY_VECTOR = NULL;
@@ -376,6 +378,105 @@ RTValue PersistentVector_nth(PersistentVector *restrict self, uword_t index) {
   return retVal;
 }
 
+RTValue PersistentVector_nth_default(PersistentVector *restrict self,
+                                     uword_t index, RTValue notFound) {
+  if (index >= self->count) {
+    Ptr_release(self);
+    return notFound;
+  }
+
+  uword_t tailOffset = self->count - self->tail->count;
+  RTValue retVal;
+  if (index >= tailOffset) {
+    retVal = self->tail->array[index - tailOffset];
+  } else {
+    PersistentVectorNode *node = self->root;
+    for (uword_t level = self->shift; level > 0; level -= RRB_BITS) {
+      node = (PersistentVectorNode *)RT_unboxPtr(
+          node->array[(index >> level) & RRB_MASK]);
+    }
+    retVal = node->array[index & RRB_MASK];
+  }
+  retain(retVal);
+  release(notFound);
+  Ptr_release(self);
+  return retVal;
+}
+
+RTValue PersistentVector_valAt(PersistentVector *self, RTValue key) {
+  if (RT_isInt32(key)) {
+    int32_t idx = RT_unboxInt32(key);
+    if (idx >= 0 && (uword_t)idx < self->count) {
+      return PersistentVector_nth(self, (uword_t)idx);
+    }
+  }
+  Ptr_release(self);
+  release(key);
+  return RT_boxNil();
+}
+
+RTValue PersistentVector_valAt_default(PersistentVector *self, RTValue key,
+                                       RTValue notFound) {
+  if (RT_isInt32(key)) {
+    int32_t idx = RT_unboxInt32(key);
+    if (idx >= 0 && (uword_t)idx < self->count) {
+      release(notFound);
+      return PersistentVector_nth(self, (uword_t)idx);
+    }
+  }
+  Ptr_release(self);
+  release(key);
+  return notFound;
+}
+
+bool PersistentVector_containsKey(PersistentVector *self, RTValue key) {
+  bool res = false;
+  if (RT_isInt32(key)) {
+    int32_t idx = RT_unboxInt32(key);
+    res = (idx >= 0 && (uword_t)idx < self->count);
+  }
+  Ptr_release(self);
+  release(key);
+  return res;
+}
+
+RTValue PersistentVector_entryAt(PersistentVector *self, RTValue key) {
+  if (RT_isInt32(key)) {
+    int32_t idx = RT_unboxInt32(key);
+    if (idx >= 0 && (uword_t)idx < self->count) {
+      RTValue val = PersistentVector_nth(self, (uword_t)idx);
+      // TODO: We need a MapEntry implementation. For now, returning a list or
+      // similar? Actually, let's just return nil if we don't have MapEntry yet.
+      // In Clojure, vector[idx] entry is [idx val].
+      RTValue pair[2] = {key, val};
+      RTValue res = RT_createListFromArray(2, pair);
+      return res;
+    }
+  }
+  Ptr_release(self);
+  release(key);
+  return RT_boxNil();
+}
+
+PersistentVector *PersistentVector_assoc_dynamic(PersistentVector *self,
+                                                 RTValue key, RTValue val) {
+  if (RT_isInt32(key)) {
+    return PersistentVector_assoc(self, (uword_t)RT_unboxInt32(key), val);
+  }
+  Ptr_release(self);
+  release(key);
+  release(val);
+  throwIllegalArgumentException_C("Vector key must be an integer");
+}
+
+RTValue PersistentVector_rseq(PersistentVector *self) {
+  if (self->count == 0) {
+    Ptr_release(self);
+    return RT_boxNil();
+  }
+  return PersistentVectorReverseSeq_create(self, (int32_t)(self->count - 1));
+}
+
 /* mem done */
 RTValue PersistentVector_dynamic_nth(PersistentVector *restrict self,
                                      RTValue indexObject) {
@@ -384,6 +485,7 @@ RTValue PersistentVector_dynamic_nth(PersistentVector *restrict self,
     release(indexObject);
     throwIllegalArgumentException_C("Index must be an integer");
   }
+
   uword_t index = RT_unboxInt32(indexObject);
   return PersistentVector_nth(self, index);
 }
@@ -548,4 +650,103 @@ bool PersistentVector_contains(PersistentVector *restrict self, RTValue other) {
   bool retVal = PersistentVectorNode_contains(self->tail, other);
   Ptr_release(self);
   return retVal;
+}
+
+RTValue PersistentVector_seq(PersistentVector *self) {
+  if (self->count == 0) {
+    Ptr_release(self);
+    return RT_boxNil();
+  }
+  PersistentVectorIterator it = PersistentVector_iterator(self);
+  PersistentVectorChunkedSeq *res = PersistentVectorChunkedSeq_create(it);
+  Ptr_release(self);
+  return RT_boxPtr(res);
+}
+
+RTValue PersistentVector_peek(PersistentVector *self) {
+  if (self->count == 0) {
+    Ptr_release(self);
+    return RT_boxNil();
+  }
+  return PersistentVector_nth(self, self->count - 1);
+}
+
+bool PersistentVector_equals_managed(PersistentVector *self, RTValue other) {
+  bool res = false;
+  if (RT_isPtr(other)) {
+    Object *obj = (Object *)RT_unboxPtr(other);
+    if (obj->type == persistentVectorType) {
+      res = PersistentVector_equals(self, (PersistentVector *)obj);
+    }
+  }
+  Ptr_release(self);
+  release(other);
+  return res;
+}
+
+RTValue PersistentVector_reduce(PersistentVector *self, RTValue f, RTValue start) {
+  RTValue acc = start;
+  FunctionMethod *method = Function_extractMethod(f, 2);
+
+  size_t frameSize = sizeof(Frame) + 2 * sizeof(RTValue);
+  Frame *frame = (Frame *)alloca(frameSize);
+  frame->leafFrame = NULL;
+  frame->bailoutEntryIndex = -1;
+
+  RTValue args[2];
+  uword_t totalCount = self->count;
+  uword_t tailCount = self->tail ? self->tail->count : 0;
+  uword_t tailStart = totalCount - tailCount;
+
+  // 1. Process Trie-resident blocks (32 elements at a time)
+  for (uword_t i = 0; i < tailStart; i += 32) {
+    PersistentVectorNode *node = PersistentVector_nthBlock(self, i);
+    // nthBlock for i < tailStart is guaranteed to be a leaf in the trie
+    for (uword_t j = 0; j < 32; j++) {
+      args[0] = acc;
+      args[1] = node->array[j];
+      retain(args[1]);
+      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+    }
+  }
+
+  // 2. Process the Tail
+  if (self->tail) {
+    PersistentVectorNode *tail = self->tail;
+    for (uword_t j = 0; j < tail->count; j++) {
+      args[0] = acc;
+      args[1] = tail->array[j];
+      retain(args[1]);
+      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+    }
+  }
+
+  Ptr_release(self);
+  release(f);
+  return acc;
+}
+
+RTValue PersistentVector_reduce2(PersistentVector *self, RTValue f) {
+  if (self->count == 0) {
+    Ptr_release(self);
+    return RT_invokeDynamic(f, NULL, 0);
+  }
+
+  Ptr_retain(self);
+  RTValue first = PersistentVector_nth(self, 0);
+  if (self->count == 1) {
+    Ptr_release(self);
+    release(f);
+    return first;
+  }
+
+  PersistentVectorIterator it = PersistentVector_iterator(self);
+  it.index = 1;
+  PersistentVectorChunkedSeq *seq = PersistentVectorChunkedSeq_create(it);
+  return PersistentVectorChunkedSeq_reduce(seq, f, first);
+}
+
+RTValue PersistentVector_empty(PersistentVector *self) {
+  Ptr_release(self);
+  return RT_boxPtr(PersistentVector_create());
 }

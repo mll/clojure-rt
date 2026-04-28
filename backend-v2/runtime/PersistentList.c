@@ -235,3 +235,48 @@ PersistentList *PersistentList_fromArray(int32_t argCount, RTValue *args) {
 RTValue RT_createListFromArray(int32_t argCount, RTValue *args) {
   return RT_boxPtr(PersistentList_fromArray(argCount, args));
 }
+
+RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start) {
+  RTValue acc = start;
+  PersistentList *current = self;
+
+  FunctionMethod *method = Function_extractMethod(f, 2);
+
+  size_t frameSize = sizeof(Frame) + 2 * sizeof(RTValue);
+  Frame *frame = (Frame *)alloca(frameSize);
+  frame->leafFrame = NULL;
+  frame->bailoutEntryIndex = -1;
+
+  RTValue args[2];
+
+  while (current && !RT_isNull(current->first)) {
+    args[0] = acc;
+    args[1] = current->first;
+    retain(args[1]);
+    acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+    current = current->rest;
+  }
+
+  Ptr_release(self);
+  release(f);
+  return acc;
+}
+
+RTValue PersistentList_reduce2(PersistentList *self, RTValue f) {
+  if (RT_isNull(self->first)) {
+    Ptr_release(self);
+    return RT_invokeDynamic(f, NULL, 0);
+  }
+  RTValue first = self->first;
+  retain(first);
+  PersistentList *rest = self->rest;
+  if (rest) Ptr_retain(rest);
+  Ptr_release(self);
+
+  if (!rest) {
+    release(f);
+    return first;
+  }
+
+  return PersistentList_reduce(rest, f, first);
+}

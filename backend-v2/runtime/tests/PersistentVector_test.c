@@ -561,6 +561,33 @@ static void test_object_shared_not_reusable(void **state) {
   });
 }
 
+static void test_vector_rseq(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v = PersistentVector_create();
+    for (int i = 0; i < 5; i++) {
+      v = PersistentVector_conj(v, RT_boxInt32(i));
+    }
+
+    RTValue rseqVal = PersistentVector_rseq(v);
+    PersistentVectorReverseSeq *rseq = (PersistentVectorReverseSeq *)RT_unboxPtr(rseqVal);
+
+    for (int i = 4; i >= 0; i--) {
+      Ptr_retain(rseq);
+      RTValue first = PersistentVectorReverseSeq_first(rseq);
+      assert_int_equal(RT_unboxInt32(first), i);
+      release(first);
+
+      RTValue nextVal = PersistentVectorReverseSeq_next(rseq); // consumes rseq
+      if (i > 0) {
+        assert_true(RT_isPtr(nextVal));
+        rseq = (PersistentVectorReverseSeq *)RT_unboxPtr(nextVal);
+      } else {
+        assert_true(RT_isNil(nextVal));
+      }
+    }
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(vectorCreateTest),
@@ -587,7 +614,7 @@ int main(void) {
                                 vectorTraversalPerformance),
       cmocka_unit_test_prestate(testScalingBehavior, vectorAssocUpdate),
       cmocka_unit_test_prestate(testScalingBehavior, vectorUpdateC),
-
+      cmocka_unit_test(test_vector_rseq),
   };
 
   initialise_memory();

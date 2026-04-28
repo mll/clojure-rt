@@ -40,7 +40,10 @@ set(SOURCES
     Exception.c
     BridgedObject.c
     Ebr.c
-    StringBuilder.c)
+    StringBuilder.c
+    PersistentVectorChunkedSeq.c
+    PersistentVectorReverseSeq.c
+    ArrayChunk.c)
 
 add_library(runtime STATIC ${SOURCES})
 target_compile_options(runtime PRIVATE $<$<PLATFORM_ID:Linux>:-femulated-tls>)
@@ -190,6 +193,7 @@ set(TEST_MODULES
     Numbers_test
     Exception_test
     StringBuilder_test
+    PersistentVectorChunkedSeq_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

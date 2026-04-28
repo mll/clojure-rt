@@ -50,6 +50,9 @@ enum objectType {
   exceptionType = 21,
   bridgedObjectType = 22,
   stringBuilderType = 23,
+  persistentVectorChunkedSeqType = 24,
+  arrayChunkType = 25,
+  persistentVectorReverseSeqType = 26,
 };
 
 typedef enum objectType objectType;

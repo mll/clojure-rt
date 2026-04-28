@@ -65,6 +65,9 @@ void Function_cleanupOnce(ClojureFunction *self);
 void Function_promoteToShared(ClojureFunction *self, uword_t count);
 
 RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount);
+RTValue RT_invokeMethod(RTValue funObj, FunctionMethod *method, RTValue *args,
+                        int32_t argCount);
+RTValue RT_invokeMethodWithFrame(Frame *frame, RTValue funObj, FunctionMethod *method, RTValue *args, int32_t argCount);
 FunctionMethod *Function_extractMethod(RTValue funObj, uword_t argCount);
 struct FunctionMethod *RT_updateICSlot(void *slot, RTValue currentVal,
                                        uint64_t argCount);

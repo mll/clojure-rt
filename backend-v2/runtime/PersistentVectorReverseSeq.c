@@ -67,8 +67,8 @@ String *PersistentVectorReverseSeq_toString(PersistentVectorReverseSeq *self) {
     if (!first) {
       res = String_concat(res, String_createStatic(" "));
     }
+    Ptr_retain(self->v);
     RTValue val = PersistentVector_nth(self->v, i);
-    retain(val);
     res = String_concat(res, toString(val));
     first = false;
   }

@@ -474,7 +474,9 @@ RTValue PersistentVector_rseq(PersistentVector *self) {
     Ptr_release(self);
     return RT_boxNil();
   }
-  return PersistentVectorReverseSeq_create(self, (int32_t)(self->count - 1));
+  RTValue res = PersistentVectorReverseSeq_create(self, (int32_t)(self->count - 1));
+  Ptr_release(self);
+  return res;
 }
 
 /* mem done */

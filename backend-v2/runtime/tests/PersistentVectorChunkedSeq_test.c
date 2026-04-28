@@ -5,9 +5,28 @@
 #include <stdio.h>
 #include <string.h>
 #include "TestTools.h"
+#include "../BigInteger.h"
 #include "../Function.h"
 #include "../Integer.h"
 #include "../PersistentList.h"
+
+static RTValue MockBigIntAddition(Frame *frame, RTValue a, RTValue b, RTValue a2,
+                                   RTValue a3, RTValue a4) {
+  BigInteger *valA = (BigInteger *)RT_unboxPtr(a);
+  BigInteger *valB = (BigInteger *)RT_unboxPtr(b);
+  // retain because BigInteger_add will consume them, 
+  // but RT_invokeMethodWithFrame will ALSO release them later.
+  Ptr_retain(valA);
+  Ptr_retain(valB);
+  BigInteger *res = BigInteger_add(valA, valB);
+  return RT_boxPtr(res);
+}
+
+static RTValue create_bigint_add_fn() {
+  ClojureFunction *f = Function_create(1, 2, false);
+  Function_fillMethod(f, 0, 0, 2, false, MockBigIntAddition, "add", 0);
+  return RT_boxPtr(f);
+}
 
 static RTValue MockAddition(Frame *frame, RTValue a, RTValue b, RTValue a2,
                             RTValue a3, RTValue a4) {
@@ -144,7 +163,8 @@ static void test_chunked_seq_chunked_first(void **state) {
 static void test_chunked_seq_reduce(void **state) {
   ASSERT_MEMORY_ALL_BALANCED({
     PersistentVector *v = PersistentVector_create();
-    for (int i = 0; i < 10; i++) {
+    int count = 1000;
+    for (int i = 0; i < count; i++) {
       v = PersistentVector_conj(v, RT_boxInt32(i));
     }
 
@@ -154,7 +174,7 @@ static void test_chunked_seq_reduce(void **state) {
     RTValue addFn = create_mock_add_fn();
     RTValue result = PersistentVectorChunkedSeq_reduce(seq, addFn, RT_boxInt32(0));
 
-    assert_int_equal(RT_unboxInt32(result), 45); // Sum of 0..9
+    assert_int_equal(RT_unboxInt32(result), (count * (count - 1)) / 2); 
     release(result);
   });
 }
@@ -162,22 +182,72 @@ static void test_chunked_seq_reduce(void **state) {
 static void test_vector_reduce(void **state) {
   ASSERT_MEMORY_ALL_BALANCED({
     PersistentVector *v = PersistentVector_create();
-    for (int i = 0; i < 10; i++) {
-      v = PersistentVector_conj(v, RT_boxInt32(i));
+    int count = 1000;
+    for (int i = 0; i < count; i++) {
+      v = PersistentVector_conj(v, RT_boxPtr(BigInteger_createFromInt(i)));
     }
 
-    RTValue addFn = create_mock_add_fn();
-    RTValue result = PersistentVector_reduce(v, addFn, RT_boxInt32(0));
+    RTValue addFn = create_bigint_add_fn();
+    RTValue result = PersistentVector_reduce(v, addFn, RT_boxPtr(BigInteger_createFromInt(0)));
 
-    assert_int_equal(RT_unboxInt32(result), 45);
+    BigInteger *expected = BigInteger_createFromInt((count * (count - 1)) / 2);
+    assert_true(BigInteger_equals((BigInteger *)RT_unboxPtr(result), expected));
+    
     release(result);
+    Ptr_release(expected);
+  });
+}
+
+static void test_vector_reduce_large(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    PersistentVector *v = PersistentVector_create();
+    int count = 10000;
+    for (int i = 0; i < count; i++) {
+      v = PersistentVector_conj(v, RT_boxPtr(BigInteger_createFromInt(i)));
+    }
+
+    RTValue addFn = create_bigint_add_fn();
+    RTValue result = PersistentVector_reduce(v, addFn, RT_boxPtr(BigInteger_createFromInt(0)));
+
+    BigInteger *expected = BigInteger_createFromInt(((int64_t)count * (count - 1)) / 2);
+    assert_true(BigInteger_equals((BigInteger *)RT_unboxPtr(result), expected));
+    
+    release(result);
+    Ptr_release(expected);
+  });
+}
+
+static void test_vector_reduce_edge_cases(void **state) {
+  ASSERT_MEMORY_ALL_BALANCED({
+    // 0 elements
+    PersistentVector *v0 = PersistentVector_create();
+    RTValue res0 = PersistentVector_reduce(v0, create_mock_add_fn(), RT_boxInt32(100));
+    assert_int_equal(RT_unboxInt32(res0), 100);
+    release(res0);
+
+    // 1 element
+    PersistentVector *v1 = PersistentVector_create();
+    v1 = PersistentVector_conj(v1, RT_boxInt32(42));
+    RTValue res1 = PersistentVector_reduce(v1, create_mock_add_fn(), RT_boxInt32(0));
+    assert_int_equal(RT_unboxInt32(res1), 42);
+    release(res1);
+
+    // 32 elements (full tail, no root)
+    PersistentVector *v32 = PersistentVector_create();
+    for (int i = 0; i < 32; i++) {
+      v32 = PersistentVector_conj(v32, RT_boxInt32(i));
+    }
+    RTValue res32 = PersistentVector_reduce(v32, create_mock_add_fn(), RT_boxInt32(0));
+    assert_int_equal(RT_unboxInt32(res32), (32 * 31) / 2);
+    release(res32);
   });
 }
 
 static void test_chunked_seq_reentrancy(void **state) {
   ASSERT_MEMORY_ALL_BALANCED({
     PersistentVector *v = PersistentVector_create();
-    for (int i = 0; i < 10; i++) {
+    int count = 1000;
+    for (int i = 0; i < count; i++) {
       v = PersistentVector_conj(v, RT_boxInt32(i));
     }
 
@@ -269,18 +339,6 @@ static void test_chunked_seq_toString(void **state) {
   });
 }
 
-static void test_list_reduce(void **state) {
-  ASSERT_MEMORY_ALL_BALANCED({
-    RTValue args[3] = {RT_boxInt32(1), RT_boxInt32(2), RT_boxInt32(3)};
-    PersistentList *l = PersistentList_fromArray(3, args);
-
-    RTValue addFn = create_mock_add_fn();
-    RTValue result = PersistentList_reduce(l, addFn, RT_boxInt32(0));
-
-    assert_int_equal(RT_unboxInt32(result), 6);
-    release(result);
-  });
-}
 
 int main(void) {
   const struct CMUnitTest tests[] = {
@@ -290,11 +348,12 @@ int main(void) {
       cmocka_unit_test(test_chunked_seq_chunked_first),
       cmocka_unit_test(test_chunked_seq_reduce),
       cmocka_unit_test(test_vector_reduce),
+      cmocka_unit_test(test_vector_reduce_large),
+      cmocka_unit_test(test_vector_reduce_edge_cases),
       cmocka_unit_test(test_chunked_seq_reentrancy),
       cmocka_unit_test(test_chunked_seq_chunked_more),
       cmocka_unit_test(test_empty_vector_seq),
       cmocka_unit_test(test_chunked_seq_toString),
-      cmocka_unit_test(test_list_reduce),
   };
 
   initialise_memory();

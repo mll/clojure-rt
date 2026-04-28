@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "TestTools.h"
+#include "../BigInteger.h"
 #include "../Function.h"
 #include "../Integer.h"
 #include "../PersistentList.h"
@@ -132,6 +133,24 @@ static void testListPromotionStop(void **state) {
   });
 }
 
+static RTValue MockBigIntAddition(Frame *frame, RTValue a, RTValue b, RTValue a2,
+                                   RTValue a3, RTValue a4) {
+  BigInteger *valA = (BigInteger *)RT_unboxPtr(a);
+  BigInteger *valB = (BigInteger *)RT_unboxPtr(b);
+  // retain because BigInteger_add will consume them, 
+  // but RT_invokeMethodWithFrame will ALSO release them later.
+  Ptr_retain(valA);
+  Ptr_retain(valB);
+  BigInteger *res = BigInteger_add(valA, valB);
+  return RT_boxPtr(res);
+}
+
+static RTValue create_bigint_add_fn() {
+  ClojureFunction *f = Function_create(1, 2, false);
+  Function_fillMethod(f, 0, 0, 2, false, MockBigIntAddition, "add", 0);
+  return RT_boxPtr(f);
+}
+
 static RTValue MockAddition(Frame *frame, RTValue a, RTValue b, RTValue a2,
                             RTValue a3, RTValue a4) {
   int32_t valA = RT_unboxInt32(a);
@@ -151,25 +170,30 @@ static void testListReduce(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
     PersistentList *l = PersistentList_empty();
-    for (int i = 0; i < 10; i++) {
-      l = PersistentList_conj(l, RT_boxInt32(i));
+    int count = 1000;
+    for (int i = 0; i < count; i++) {
+      l = PersistentList_conj(l, RT_boxPtr(BigInteger_createFromInt(i)));
     }
-    // List is (9 8 7 6 5 4 3 2 1 0)
-    // Sum should be 45
 
     // 1. reduce with start value
     Ptr_retain(l);
-    RTValue addFn = create_mock_add_fn();
-    RTValue res = PersistentList_reduce(l, addFn, RT_boxInt32(0));
-    assert_int_equal(45, RT_unboxInt32(res));
+    RTValue addFn = create_bigint_add_fn();
+    RTValue res = PersistentList_reduce(l, addFn, RT_boxPtr(BigInteger_createFromInt(0)));
+    
+    BigInteger *expected = BigInteger_createFromInt((count * (count - 1)) / 2);
+    assert_true(BigInteger_equals((BigInteger *)RT_unboxPtr(res), expected));
     release(res);
+    Ptr_release(expected);
 
     // 2. reduce2 (without start value)
     Ptr_retain(l);
-    RTValue addFn2 = create_mock_add_fn();
+    RTValue addFn2 = create_bigint_add_fn();
     RTValue res2 = PersistentList_reduce2(l, addFn2);
-    assert_int_equal(45, RT_unboxInt32(res2));
+    
+    BigInteger *expected2 = BigInteger_createFromInt((count * (count - 1)) / 2);
+    assert_true(BigInteger_equals((BigInteger *)RT_unboxPtr(res2), expected2));
     release(res2);
+    Ptr_release(expected2);
 
     Ptr_release(l);
   });

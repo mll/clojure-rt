@@ -6,7 +6,6 @@
 #include <pthread.h>
 
 extern ConcurrentHashMap *symbols;
-extern ConcurrentHashMap *symbolsInverted;
 
 static pthread_mutex_t intern_mutex = PTHREAD_MUTEX_INITIALIZER;
 static _Atomic(uint32_t) minUnusedSymbol = 1;
@@ -29,29 +28,71 @@ RTValue Symbol_create(String *string) {
       return retVal2;
     }
 
-    RTValue new = RT_boxSymbol(
-        atomic_fetch_add_explicit(&minUnusedSymbol, 1, memory_order_relaxed));
+    Symbol *sym = (Symbol *)allocate(sizeof(Symbol));
+    Object_create(&sym->header, symbolType);
+    sym->name = string;
+    sym->ns = NULL;
+    sym->metadata = RT_boxNil();
+    Ptr_retain(string); // Symbol holds a ref to the name
 
-    /* Need 2 refs for 2 assoc calls (each consumes stringVal as key/value).
-       We currently hold 1 (caller's), so retain once more. */
-    Ptr_retain(string);
-    ConcurrentHashMap_assoc_preservesSelf(symbolsInverted, new, stringVal,
+    RTValue newSymVal = RT_boxSymbol(sym);
+
+    /* Need 2 refs for assoc call (consumes stringVal as key and newSymVal as value).
+       We currently hold 1 (caller's) for string, and 1 for sym. 
+       So retain sym once more. */
+    retain(newSymVal);
+    Ptr_retain(string); 
+    ConcurrentHashMap_assoc_preservesSelf(symbols, stringVal, newSymVal,
                                           false); /* consumes 1 */
-    ConcurrentHashMap_assoc_preservesSelf(symbols, stringVal, new,
-                                          false); /* consumes 1 */
+    
+    atomic_fetch_add_explicit(&minUnusedSymbol, 1, memory_order_relaxed);
     pthread_mutex_unlock(&intern_mutex);
-    return new;
+    
+    Ptr_release(string); /* consume caller's ref */
+    return newSymVal;
   }
   Ptr_release(string); /* consume caller's ref */
   return retVal;
 }
 
+/* mem done - consumes string, consumes meta */
+RTValue Symbol_createWithMeta(String *string, RTValue meta) {
+  Symbol *sym = (Symbol *)allocate(sizeof(Symbol));
+  Object_create(&sym->header, symbolType);
+  sym->name = string;
+  sym->ns = NULL;
+  sym->metadata = meta;
+  Ptr_retain(string); // Symbol holds a ref to the name (consumes caller's ref later)
+  
+  Ptr_release(string); // consume caller's ref
+  return RT_boxSymbol(sym);
+}
+
+String *Symbol_getName(Symbol *self) {
+  return self->name;
+}
+
+void Symbol_destroy(Symbol *self) {
+  Ptr_release(self->name);
+  if (self->ns) Ptr_release(self->ns);
+  release(self->metadata);
+}
+
+bool Symbol_equals(Symbol *self, Symbol *other) {
+  if (self == other) return true;
+  return String_equals(self->name, other->name);
+}
+
+uword_t Symbol_hash(Symbol *self) {
+  return String_hash(self->name);
+}
+
 /* mem done */
 String *Symbol_toString(RTValue self) {
-  RTValue retVal = ConcurrentHashMap_get_preservesSelf(symbolsInverted, self);
-  assert(!RT_isNil(retVal) &&
-         "Internal error: Symbol was not interned before printing.");
-  return toString(retVal);
+  Symbol *sym = (Symbol *)RT_unboxSymbol(self);
+  String *res = sym->name;
+  Ptr_retain(res);
+  return res;
 }
 
 uint32_t Symbol_getInternCount() {

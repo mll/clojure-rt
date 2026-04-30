@@ -94,9 +94,10 @@ TypedValue DynamicConstructor::createSymbol(const char *s) {
   String *str = String_createDynamicStr(s);
   RTValue symVal = Symbol_create(str);
   generatedConstants.push_back(symVal);
-  uint32_t retVal = RT_unboxSymbol(symVal);
+  uintptr_t address = reinterpret_cast<uintptr_t>(RT_unboxSymbol(symVal));
   return TypedValue(ObjectTypeSet(symbolType, false, new ConstantSymbol(s)),
-                    ConstantInt::get(types.i32Ty, retVal));
+                    ConstantExpr::getIntToPtr(
+                        ConstantInt::get(types.i64Ty, address), types.ptrTy));
 }
 
 TypedValue DynamicConstructor::createBigInteger(const char *s) {

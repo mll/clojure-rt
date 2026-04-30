@@ -45,9 +45,6 @@ TypedValue ValueEncoder::box(TypedValue val) {
     return boxKeyword(val);
   }
 
-  if (val.type.isUnboxedType(symbolType)) {
-    return boxSymbol(val);
-  }
 
   /* This should not happen, but we keep the check nevertheless */
   if (val.type.isUnboxedType(nilType)) {
@@ -118,15 +115,6 @@ TypedValue ValueEncoder::boxKeyword(TypedValue keywordId) {
   llvm::Value *val64 = builder.CreateZExt(keywordId.value, types.i64Ty);
   return TypedValue(keywordId.type.boxed(),
                     builder.CreateOr(val64, u64(RT_TAG_KEYWORD), "box_kw"));
-}
-
-TypedValue ValueEncoder::boxSymbol(TypedValue symbolId) {
-  if (!symbolId.type.isUnboxedType(symbolType))
-    return symbolId;
-  // symbolId should be an i32 ID
-  llvm::Value *val64 = builder.CreateZExt(symbolId.value, types.i64Ty);
-  return TypedValue(symbolId.type.boxed(),
-                    builder.CreateOr(val64, u64(RT_TAG_SYMBOL), "box_kw"));
 }
 
 // --- TYPE CHECKING ---
@@ -288,18 +276,6 @@ TypedValue ValueEncoder::isRatio(TypedValue boxedVal) {
   return TypedValue(ObjectTypeSet(booleanType, false), phi);
 }
 
-TypedValue ValueEncoder::isSymbol(TypedValue boxedVal) {
-  CLJ_ASSERT(boxedVal.type.isBoxedType(),
-             "Unboxed value passed to ValueEncoder");
-  if (boxedVal.type.isBoxedType(symbolType))
-    return TypedValue(
-        ObjectTypeSet(booleanType, false, new ConstantBoolean(true)),
-        builder.getInt1(true));
-  llvm::Value *masked = builder.CreateAnd(boxedVal.value, u64(RT_TAG_MASK));
-  return TypedValue(ObjectTypeSet(booleanType, false),
-                    builder.CreateICmpEQ(masked, u64(RT_TAG_SYMBOL), "is_sym"));
-}
-
 // --- UNBOXING ---
 
 TypedValue ValueEncoder::unbox(TypedValue val) {
@@ -324,10 +300,6 @@ TypedValue ValueEncoder::unbox(TypedValue val) {
 
   if (val.type.isBoxedType(keywordType)) {
     return unboxKeyword(val);
-  }
-
-  if (val.type.isBoxedType(symbolType)) {
-    return unboxSymbol(val);
   }
 
   if (val.type.isBoxedType(nilType)) {
@@ -387,15 +359,6 @@ TypedValue ValueEncoder::unboxKeyword(TypedValue boxedVal) {
   return TypedValue(
       ObjectTypeSet(keywordType, false),
       builder.CreateTrunc(boxedVal.value, types.i32Ty, "unbox_kw"));
-}
-
-TypedValue ValueEncoder::unboxSymbol(TypedValue boxedVal) {
-  if (boxedVal.type.isUnboxedType(symbolType))
-    return boxedVal;
-  // Strip the tag and return the ID (usually i32 is enough for enum IDs)
-  return TypedValue(
-      ObjectTypeSet(symbolType, false),
-      builder.CreateTrunc(boxedVal.value, types.i32Ty, "unbox_sym"));
 }
 
 } // namespace rt

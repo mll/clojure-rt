@@ -320,6 +320,9 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   case persistentVectorReverseSeqType:
     PersistentVectorReverseSeq_destroy((PersistentVectorReverseSeq *)self, deallocateChildren);
     break;
+  case symbolType:
+    Symbol_destroy((Symbol *)self);
+    break;
 
   default:
     break;
@@ -518,6 +521,8 @@ inline uword_t Object_hash(Object *restrict self) {
     return StringBuilder_hash((StringBuilder *)self);
   case persistentVectorChunkedSeqType:
     return PersistentVectorChunkedSeq_hash((PersistentVectorChunkedSeq *)self);
+  case symbolType:
+    return Symbol_hash((Symbol *)self);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -539,7 +544,7 @@ inline uword_t hash(RTValue v) {
   case keywordType:
     return (uword_t)avalanche(RT_unboxKeyword(v));
   case symbolType:
-    return (uword_t)avalanche(RT_unboxSymbol(v));
+    return Symbol_hash((Symbol *)RT_unboxSymbol(v));
   case doubleType: {
     double d = RT_unboxDouble(v);
     uint64_t u;
@@ -605,6 +610,8 @@ inline bool Object_equals(Object *self, Object *other) {
     return StringBuilder_equals((StringBuilder *)self, (StringBuilder *)other);
   case persistentVectorChunkedSeqType:
     return PersistentVectorChunkedSeq_equals((PersistentVectorChunkedSeq *)self, (PersistentVectorChunkedSeq *)other);
+  case symbolType:
+    return Symbol_equals((Symbol *)self, (Symbol *)other);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -670,6 +677,8 @@ inline String *Object_toString(Object *restrict self) {
     return StringBuilder_toString((StringBuilder *)self);
   case persistentVectorChunkedSeqType:
     return PersistentVectorChunkedSeq_toString((PersistentVectorChunkedSeq *)self);
+  case symbolType:
+    return Symbol_toString(RT_boxSymbol(self));
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }
@@ -692,6 +701,12 @@ inline bool release(RTValue self) {
     return Object_release((Object *)RT_unboxPtr(self));
   }
   return false;
+}
+
+static inline bool RT_isSymbol(RTValue v) {
+  if (!RT_isPtr(v))
+    return false;
+  return getType(v) == symbolType;
 }
 
 inline void promoteToShared(RTValue self) {

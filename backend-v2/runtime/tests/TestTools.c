@@ -103,10 +103,14 @@ void assertMemoryBalance(MemoryState *before, MemoryState *after) {
   uint32_t stringLeaks =
       (after->internedKeywords - before->internedKeywords) * 2 +
       (after->internedSymbols - before->internedSymbols) * 2;
+  uint32_t symbolLeaks = (after->internedSymbols - before->internedSymbols);
   for (int i = 0; i < 256; i++) {
     uword_t expected = before->counts[i];
     if (i == stringType - 1) {
       expected += stringLeaks;
+    }
+    if (i == symbolType - 1) {
+      expected += symbolLeaks;
     }
     if (expected != after->counts[i]) {
       printf("assertMemoryBalance mismatch: type %d, expected %lu, got %lu\n",

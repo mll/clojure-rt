@@ -13,9 +13,23 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 
+#include "ObjectProto.h"
 typedef struct String String;
 
+struct Symbol {
+  Object header;
+  String *name;
+  String *ns;
+  RTValue metadata;
+};
+typedef struct Symbol Symbol;
+
 RTValue Symbol_create(String *string);
+RTValue Symbol_createWithMeta(String *string, RTValue meta);
+String *Symbol_getName(Symbol *self);
+void Symbol_destroy(Symbol *self);
+bool Symbol_equals(Symbol *self, Symbol *other);
+uword_t Symbol_hash(Symbol *self);
 String *Symbol_toString(RTValue self);
 uint32_t Symbol_getInternCount();
 void Symbol_resetInterns();

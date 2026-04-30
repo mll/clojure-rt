@@ -36,7 +36,6 @@ public:
   TypedValue boxNil();
   TypedValue boxPointer(TypedValue rawPtr);
   TypedValue boxKeyword(TypedValue keywordId);
-  TypedValue boxSymbol(TypedValue symbolId);
 
   // Type Checking (Returns i1 boolean)
   TypedValue isDouble(TypedValue boxedVal);
@@ -47,7 +46,6 @@ public:
   TypedValue isKeyword(TypedValue boxedVal);
   TypedValue isBigInt(TypedValue boxedVal);
   TypedValue isRatio(TypedValue boxedVal);
-  TypedValue isSymbol(TypedValue boxedVal);
 
   // Unboxing (Returns raw type)
   TypedValue unbox(TypedValue val);
@@ -57,7 +55,6 @@ public:
   TypedValue unboxBool(TypedValue boxedVal);
   TypedValue unboxPointer(TypedValue boxedVal);
   TypedValue unboxKeyword(TypedValue boxedVal);
-  TypedValue unboxSymbol(TypedValue boxedVal);
 };
 
 } // namespace rt

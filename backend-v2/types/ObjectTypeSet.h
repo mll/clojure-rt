@@ -127,7 +127,6 @@ public:
     case doubleType:
     case nilType:
     case keywordType:
-    case symbolType:
       return true;
     default:
       return false;
@@ -145,7 +144,6 @@ public:
     case doubleType:
     case nilType:
     case keywordType:
-    case symbolType:
       return true;
     default:
       return false;

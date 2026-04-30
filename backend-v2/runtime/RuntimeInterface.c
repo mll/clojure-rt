@@ -13,7 +13,6 @@
 ConcurrentHashMap *keywords = NULL;
 ConcurrentHashMap *keywordsInverted = NULL;
 ConcurrentHashMap *symbols = NULL;
-ConcurrentHashMap *symbolsInverted = NULL;
 
 ConcurrentHashMap *vars = NULL;
 
@@ -41,7 +40,6 @@ void RuntimeInterface_initialise() {
   keywordsInverted = ConcurrentHashMap_create(10); // 2^10
   vars = ConcurrentHashMap_create(10);             // 2^10
   symbols = ConcurrentHashMap_create(10);
-  symbolsInverted = ConcurrentHashMap_create(10);
 }
 
 void RuntimeInterface_cleanup() {
@@ -56,10 +54,6 @@ void RuntimeInterface_cleanup() {
   if (symbols) {
     Ptr_release(symbols);
     symbols = NULL;
-  }
-  if (symbolsInverted) {
-    Ptr_release(symbolsInverted);
-    symbolsInverted = NULL;
   }
   if (vars) {
     Ptr_release(vars);

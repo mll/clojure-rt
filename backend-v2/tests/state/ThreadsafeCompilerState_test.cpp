@@ -53,7 +53,9 @@ static void test_extend_internal_classes_merge(void **state) {
     ClassDescription *desc = static_cast<ClassDescription *>(clsA->compilerExtension);
     
     assert_int_equal(desc->staticFields.size(), 2);
+    retain(desc->staticFields["f1"]);
     assert_true(BigInteger_equalsInt(static_cast<BigInteger *>(RT_unboxPtr(desc->staticFields["f1"])), 10));
+    retain(desc->staticFields["f2"]);
     assert_true(BigInteger_equalsInt(static_cast<BigInteger *>(RT_unboxPtr(desc->staticFields["f2"])), 20));
 
     Ptr_release(clsA);

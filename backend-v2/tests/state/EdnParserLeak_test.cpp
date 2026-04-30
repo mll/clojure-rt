@@ -1,5 +1,7 @@
 #include "../../RuntimeHeaders.h"
 #include "../../tools/EdnParser.h"
+#include <setjmp.h>
+#include <stdarg.h>
 #include <cmocka.h>
 #include <iostream>
 #include <string>

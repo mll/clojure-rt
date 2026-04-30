@@ -2,6 +2,8 @@
 #include "../../jit/JITEngine.h"
 #include "../../state/ThreadsafeCompilerState.h"
 #include "../../tools/EdnParser.h"
+#include <setjmp.h>
+#include <stdarg.h>
 #include <cmocka.h>
 
 extern "C" {

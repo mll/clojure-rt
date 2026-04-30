@@ -1,20 +1,22 @@
 #include "../../RuntimeHeaders.h"
+#include "../../jit/JITEngine.h"
 #include "../../tools/EdnParser.h"
+#include "jit/JITEngine.h"
 #include <iostream>
 #include <string>
 #include <vector>
 
 extern "C" {
-#include <setjmp.h>
-#include <stdarg.h>
-#include <cmocka.h>
+#include "../../runtime/Function.h"
 #include "../../runtime/Keyword.h"
 #include "../../runtime/PersistentArrayMap.h"
 #include "../../runtime/PersistentVector.h"
 #include "../../runtime/String.h"
 #include "../../runtime/Symbol.h"
-#include "../../runtime/Function.h"
 #include "../../runtime/tests/TestTools.h"
+#include <cmocka.h>
+#include <setjmp.h>
+#include <stdarg.h>
 }
 
 using namespace rt;
@@ -23,6 +25,8 @@ static void test_intrinsic_description_clojure_fn_leak(void **state) {
   (void)state;
 
   ASSERT_MEMORY_ALL_BALANCED({
+    JITEngine engine;
+
     TemporaryClassData classData(RT_boxPtr(PersistentArrayMap_empty()));
 
     // Create a mock function
@@ -52,7 +56,6 @@ static void test_intrinsic_description_clojure_fn_leak(void **state) {
 
 int main(void) {
   initialise_memory();
-  RuntimeInterface_initialise();
 
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_intrinsic_description_clojure_fn_leak),

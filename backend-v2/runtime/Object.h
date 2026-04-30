@@ -241,7 +241,7 @@ inline void Object_retain(Object *restrict self) {
   uword_t current =
       atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
 
-  if (!(current & SHARED_BIT)) {
+  if (__builtin_expect(!(current & SHARED_BIT), 1)) {
     // FAST PATH: It's local. Use a plain non-atomic write.
     // We can do this because only THIS thread owns it.
     uword_t new_val = current + COUNT_INC;
@@ -333,7 +333,7 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
 inline bool Object_isReusable(Object *restrict self) {
   uword_t current =
       atomic_load_explicit(&(self->atomicRefCount), memory_order_acquire);
-  if (current >> 1 == 1) {
+  if (__builtin_expect(current >> 1 == 1, 1)) {
     if (current & SHARED_BIT) {
       // It was shared, but now we are the exclusive owner.
       // De-promote to local for performance and correct propagation of shared
@@ -374,13 +374,13 @@ inline bool Object_release_internal(Object *restrict self,
 #else
   uintptr_t current =
       atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
-  if (!(current & SHARED_BIT)) {
+  if (__builtin_expect(!(current & SHARED_BIT), 1)) {
     // --- FAST PATH: Local ---
     // Since it's local, only THIS thread can be releasing it.
     // No other thread can be concurrent here.
     uword_t newVal = current - COUNT_INC;
 
-    if ((newVal >> 1) == 0) {
+    if (__builtin_expect((newVal >> 1) == 0, 0)) {
 #ifdef REFCOUNT_TRACING
       if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
         uword_t countVal = atomic_fetch_sub_explicit(

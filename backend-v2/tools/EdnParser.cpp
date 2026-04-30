@@ -12,6 +12,124 @@ extern "C" void delete_class_description(void *ptr) {
   delete static_cast<ClassDescription *>(ptr);
 }
 
+IntrinsicDescription::IntrinsicDescription() : functionObject(0), method(nullptr) {}
+
+IntrinsicDescription::IntrinsicDescription(const IntrinsicDescription &other)
+    : argTypes(other.argTypes), type(other.type), symbol(other.symbol),
+      returnType(other.returnType), thisType(other.thisType),
+      isInstance(other.isInstance), returnsProvided(other.returnsProvided),
+      isVariadic(other.isVariadic), functionObject(other.functionObject),
+      method(other.method) {
+  if (functionObject)
+    retain(functionObject);
+  // Note: method is a raw pointer to a FunctionMethod. 
+  // In the current architecture, these are often shared and not refcounted.
+}
+
+IntrinsicDescription::IntrinsicDescription(IntrinsicDescription &&other) noexcept
+    : argTypes(std::move(other.argTypes)), type(other.type),
+      symbol(std::move(other.symbol)), returnType(std::move(other.returnType)),
+      thisType(std::move(other.thisType)), isInstance(other.isInstance),
+      returnsProvided(other.returnsProvided), isVariadic(other.isVariadic),
+      functionObject(other.functionObject), method(other.method) {
+  other.functionObject = 0;
+  other.method = nullptr;
+}
+
+IntrinsicDescription &
+IntrinsicDescription::operator=(const IntrinsicDescription &other) {
+  if (this != &other) {
+    if (functionObject)
+      release(functionObject);
+    argTypes = other.argTypes;
+    type = other.type;
+    symbol = other.symbol;
+    returnType = other.returnType;
+    thisType = other.thisType;
+    isInstance = other.isInstance;
+    returnsProvided = other.returnsProvided;
+    isVariadic = other.isVariadic;
+    functionObject = other.functionObject;
+    method = other.method;
+    if (functionObject)
+      retain(functionObject);
+  }
+  return *this;
+}
+
+IntrinsicDescription &
+IntrinsicDescription::operator=(IntrinsicDescription &&other) noexcept {
+  if (this != &other) {
+    if (functionObject)
+      release(functionObject);
+    argTypes = std::move(other.argTypes);
+    type = other.type;
+    symbol = std::move(other.symbol);
+    returnType = std::move(other.returnType);
+    thisType = std::move(other.thisType);
+    isInstance = other.isInstance;
+    returnsProvided = other.returnsProvided;
+    isVariadic = other.isVariadic;
+    functionObject = other.functionObject;
+    method = other.method;
+    other.functionObject = 0;
+    other.method = nullptr;
+  }
+  return *this;
+}
+
+IntrinsicDescription::~IntrinsicDescription() {
+  if (functionObject)
+    release(functionObject);
+}
+
+void ClassDescription::merge(const ClassDescription &other) {
+  // Merge static fields
+  for (auto const &[name, value] : other.staticFields) {
+    auto it = staticFieldIndices.find(name);
+    if (it != staticFieldIndices.end()) {
+      int32_t idx = it->second;
+      RTValue oldVal = staticFieldValues[idx];
+      retain(value);
+      staticFieldValues[idx] = value;
+      staticFields[name] = value;
+      release(oldVal);
+    } else {
+      staticFieldIndices[name] = (int32_t)staticFieldValues.size();
+      retain(value);
+      staticFieldValues.push_back(value);
+      staticFields[name] = value;
+    }
+  }
+
+  // Merge static functions
+  for (auto const &[name, versions] : other.staticFns) {
+    auto &oldVersions = staticFns[name];
+    for (auto const &v : versions) {
+      oldVersions.push_back(v); // Copy constructor retains functionObject
+    }
+  }
+
+  // Merge instance functions
+  for (auto const &[name, versions] : other.instanceFns) {
+    auto &oldVersions = instanceFns[name];
+    for (auto const &v : versions) {
+      oldVersions.push_back(v);
+    }
+  }
+
+  // Merge implements
+  for (auto const &[protoName, fns] : other.implements) {
+    auto &oldFns = implements[protoName];
+    for (auto const &[fnName, versions] : fns) {
+      auto &oldVersions = oldFns[fnName];
+      for (auto const &v : versions) {
+        oldVersions.push_back(v);
+      }
+    }
+  }
+}
+
 ClassDescription::~ClassDescription() {
   if (extends)
     Ptr_release(extends);
@@ -430,6 +548,28 @@ ClassDescription::parseStaticFields(RTValue from) {
   return retVal;
 }
 
+static void expandAndAdd(vector<IntrinsicDescription> &dest, RTValue item,
+                         TemporaryClassData &classData,
+                         const ObjectTypeSet &thisType, bool isInstance) {
+  IntrinsicDescription id(item, classData, thisType, isInstance);
+  if (id.type == CallType::ClojureFn && id.functionObject != 0 &&
+      id.method == nullptr) {
+    ClojureFunction *fn = (ClojureFunction *)RT_unboxPtr(id.functionObject);
+    for (uword_t i = 0; i < fn->methodCount; i++) {
+      IntrinsicDescription arityId = id; // Copy (retains functionObject)
+      arityId.method = &fn->methods[i];
+      arityId.argTypes.clear();
+      for (uword_t j = 0; j < arityId.method->fixedArity; j++) {
+        arityId.argTypes.push_back(ObjectTypeSet::dynamicType());
+      }
+      arityId.isVariadic = arityId.method->isVariadic;
+      dest.push_back(std::move(arityId));
+    }
+  } else {
+    dest.push_back(std::move(id));
+  }
+}
+
 unordered_map<string, vector<IntrinsicDescription>>
 ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
                                   const ObjectTypeSet &thisType,
@@ -471,16 +611,14 @@ ClassDescription::parseIntrinsics(RTValue from, TemporaryClassData &classData,
 
     if (isSingleSignature) {
       retain(value);
-      descriptions.push_back(
-          IntrinsicDescription(value, classData, thisType, isInstance));
+      expandAndAdd(descriptions, value, classData, thisType, isInstance);
     } else {
       // It's a vector of descriptions (maps or signature vectors)
       PersistentVectorIterator it = PersistentVector_iterator(vec);
       for (uword_t j = 0; j < count; j++) {
         RTValue item = PersistentVector_iteratorGet(&it);
         retain(item);
-        descriptions.push_back(
-            IntrinsicDescription(item, classData, thisType, isInstance));
+        expandAndAdd(descriptions, item, classData, thisType, isInstance);
         PersistentVector_iteratorNext(&it);
       }
     }
@@ -536,7 +674,8 @@ ClassDescription::parseConstructorDescriptions(RTValue from,
 
 IntrinsicDescription::IntrinsicDescription(
     RTValue from, TemporaryClassData &classData, const ObjectTypeSet &thisType,
-    bool isInstance, const ObjectTypeSet &defaultReturnType) {
+    bool isInstance, const ObjectTypeSet &defaultReturnType)
+    : functionObject(0), method(nullptr) {
   this->thisType = thisType;
   this->isInstance = isInstance;
   this->returnsProvided = false;
@@ -649,9 +788,11 @@ IntrinsicDescription::IntrinsicDescription(
     this->type = CallType::Call;
   } else if (sType == ":intrinsic") {
     this->type = CallType::Intrinsic;
+  } else if (sType == ":clojure-function") {
+    this->type = CallType::ClojureFn;
   } else {
     throwInternalInconsistencyException(
-        "Intrinsic :type must be :call or :intrinsic");
+        "Intrinsic :type must be :call, :intrinsic or :clojure-function");
   }
 
   retain(root.get());
@@ -660,15 +801,22 @@ IntrinsicDescription::IntrinsicDescription(
 
   ConsumedValue symbolWrapper(symbolRaw);
 
-  if (getType(symbolWrapper.get()) != stringType) {
-    throwInternalInconsistencyException("Intrinsic :symbol is not a string.");
+  if (getType(symbolWrapper.get()) == functionType) {
+    if (this->type != CallType::ClojureFn) {
+      throwInternalInconsistencyException(
+          "Symbol is a function, but type is not :clojure-function");
+    }
+    this->functionObject = symbolWrapper.take(); // Ownership transferred
+    this->symbol = "";                           // Symbol not used for Clojure functions
+  } else if (getType(symbolWrapper.get()) == stringType) {
+    // symbolWrapper is consumed by String_compactify.
+    String *symbolStr =
+        String_compactify((String *)RT_unboxPtr(symbolWrapper.take()));
+    this->symbol = String_c_str(symbolStr);
+    Ptr_release(symbolStr);
+  } else {
+    throwInternalInconsistencyException("Intrinsic :symbol is not a string or function.");
   }
-
-  // symbolWrapper is consumed by String_compactify.
-  String *symbolStr =
-      String_compactify((String *)RT_unboxPtr(symbolWrapper.take()));
-  this->symbol = String_c_str(symbolStr);
-  Ptr_release(symbolStr);
 
   retain(root.get());
   RTValue argsRaw =

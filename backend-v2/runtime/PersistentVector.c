@@ -132,10 +132,10 @@ void PersistentVector_promoteToShared(PersistentVector *self, uword_t current) {
 }
 
 /* mem done */
-PersistentVector *
+__attribute__((hot)) PersistentVector *
 PersistentVector_assoc_internal(PersistentVector *restrict self, uword_t index,
                                 RTValue other) {
-  if (index > self->count) {
+  if (__builtin_expect(index > self->count, 0)) {
     uword_t cnt = self->count;
     Ptr_release(self);
     release(other);
@@ -335,67 +335,109 @@ PersistentVector *PersistentVector_conj_BANG_(PersistentVector *restrict self,
 }
 
 /* outside memory system */
-PersistentVectorNode *PersistentVector_nthBlock(PersistentVector *self,
+__attribute__((hot)) PersistentVectorNode *PersistentVector_nthBlock(PersistentVector *self,
                                                 uword_t index) {
-  if (index >= self->count) {
+  if (__builtin_expect(index >= self->count, 0)) {
     return NULL;
   }
 
-  uword_t tailOffset = self->count - self->tail->count;
+  PersistentVectorNode *tail = self->tail;
+  uword_t tailOffset = self->count - tail->count;
   if (index >= tailOffset) {
-    return self->tail;
+    return tail;
   }
 
   PersistentVectorNode *node = self->root;
-  for (uword_t level = self->shift; level > 0; level -= RRB_BITS) {
-    node = (PersistentVectorNode *)RT_unboxPtr(
-        node->array[(index >> level) & RRB_MASK]);
+  uword_t level = self->shift;
+
+  switch (level) {
+    case 30: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 30) & RRB_MASK]);
+    case 25: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 25) & RRB_MASK]);
+    case 20: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 20) & RRB_MASK]);
+    case 15: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 15) & RRB_MASK]);
+    case 10: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 10) & RRB_MASK]);
+    case 5:  node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 5) & RRB_MASK]);
+    case 0:  break;
+    default:
+      while (level > 0) {
+        node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> level) & RRB_MASK]);
+        level -= RRB_BITS;
+      }
   }
+
   return node;
 }
 
 /* mem done */
-RTValue PersistentVector_nth(PersistentVector *restrict self, uword_t index) {
-  if (index >= self->count) {
+__attribute__((hot)) RTValue PersistentVector_nth(PersistentVector *restrict self, uword_t index) {
+  if (__builtin_expect(index >= self->count, 0)) {
     uword_t cnt = self->count;
     Ptr_release(self);
     throwIndexOutOfBoundsException_C(index, cnt);
   }
-  uword_t tailOffset = self->count - self->tail->count;
+
+  PersistentVectorNode *tail = self->tail;
+  uword_t tailOffset = self->count - tail->count;
   if (index >= tailOffset) {
-    RTValue retVal = self->tail->array[index - tailOffset];
+    RTValue retVal = tail->array[index - tailOffset];
     retain(retVal);
     Ptr_release(self);
     return retVal;
   }
 
   PersistentVectorNode *node = self->root;
-  for (uword_t level = self->shift; level > 0; level -= RRB_BITS) {
-    node = (PersistentVectorNode *)RT_unboxPtr(
-        node->array[(index >> level) & RRB_MASK]);
+  uword_t level = self->shift;
+
+  switch (level) {
+    case 30: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 30) & RRB_MASK]);
+    case 25: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 25) & RRB_MASK]);
+    case 20: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 20) & RRB_MASK]);
+    case 15: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 15) & RRB_MASK]);
+    case 10: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 10) & RRB_MASK]);
+    case 5:  node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 5) & RRB_MASK]);
+    case 0:  break;
+    default:
+      while (level > 0) {
+        node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> level) & RRB_MASK]);
+        level -= RRB_BITS;
+      }
   }
+
   RTValue retVal = node->array[index & RRB_MASK];
   retain(retVal);
   Ptr_release(self);
   return retVal;
 }
 
-RTValue PersistentVector_nth_default(PersistentVector *restrict self,
+__attribute__((hot)) RTValue PersistentVector_nth_default(PersistentVector *restrict self,
                                      uword_t index, RTValue notFound) {
-  if (index >= self->count) {
+  if (__builtin_expect(index >= self->count, 0)) {
     Ptr_release(self);
     return notFound;
   }
 
-  uword_t tailOffset = self->count - self->tail->count;
+  PersistentVectorNode *tail = self->tail;
+  uword_t tailOffset = self->count - tail->count;
   RTValue retVal;
   if (index >= tailOffset) {
-    retVal = self->tail->array[index - tailOffset];
+    retVal = tail->array[index - tailOffset];
   } else {
     PersistentVectorNode *node = self->root;
-    for (uword_t level = self->shift; level > 0; level -= RRB_BITS) {
-      node = (PersistentVectorNode *)RT_unboxPtr(
-          node->array[(index >> level) & RRB_MASK]);
+    uword_t level = self->shift;
+
+    switch (level) {
+      case 30: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 30) & RRB_MASK]);
+      case 25: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 25) & RRB_MASK]);
+      case 20: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 20) & RRB_MASK]);
+      case 15: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 15) & RRB_MASK]);
+      case 10: node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 10) & RRB_MASK]);
+      case 5:  node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> 5) & RRB_MASK]);
+      case 0:  break;
+      default:
+        while (level > 0) {
+          node = (PersistentVectorNode *)RT_unboxPtr(node->array[(index >> level) & RRB_MASK]);
+          level -= RRB_BITS;
+        }
     }
     retVal = node->array[index & RRB_MASK];
   }
@@ -408,7 +450,7 @@ RTValue PersistentVector_nth_default(PersistentVector *restrict self,
 RTValue PersistentVector_valAt(PersistentVector *self, RTValue key) {
   if (RT_isInt32(key)) {
     int32_t idx = RT_unboxInt32(key);
-    if (idx >= 0 && (uword_t)idx < self->count) {
+    if (__builtin_expect(idx >= 0 && (uword_t)idx < self->count, 1)) {
       return PersistentVector_nth(self, (uword_t)idx);
     }
   }
@@ -435,7 +477,7 @@ bool PersistentVector_containsKey(PersistentVector *self, RTValue key) {
   bool res = false;
   if (RT_isInt32(key)) {
     int32_t idx = RT_unboxInt32(key);
-    res = (idx >= 0 && (uword_t)idx < self->count);
+    res = __builtin_expect(idx >= 0 && (uword_t)idx < self->count, 1);
   }
   Ptr_release(self);
   release(key);

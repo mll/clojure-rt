@@ -398,4 +398,35 @@ void ThreadsafeCompilerState::validateProtocolImplementations(
   }
 }
 
+void ThreadsafeCompilerState::extendInternalClasses(RTValue from) {
+  auto descriptions = buildClasses(from);
+
+  for (auto &desc : descriptions) {
+    if (!desc) continue;
+    string className = desc->name;
+    ::Class *existing = classRegistry.getCurrent(className.c_str());
+    if (existing) {
+      PtrWrapper<::Class> existingWrapper(existing);
+      ClassDescription *oldDesc =
+          static_cast<ClassDescription *>(existing->compilerExtension);
+      if (!oldDesc) {
+        throwInternalInconsistencyException("Class " + className +
+                                             " has no compiler metadata");
+      }
+
+      // Use the new merge method for basic metadata merging
+      oldDesc->merge(*desc);
+
+      // Re-link protocols if any new implements were added
+      for (auto const &[protoName, protoMethods] : oldDesc->implements) {
+        ::Class *proto = protocolRegistry.getCurrent(protoName.c_str());
+        if (proto) {
+          Class_addProtocol(existing, proto);
+          Ptr_release(proto); 
+        }
+      }
+    }
+  }
+}
+
 } // namespace rt

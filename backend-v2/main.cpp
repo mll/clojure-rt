@@ -92,6 +92,20 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
+
+  clojure::rt::protobuf::bytecode::Programme astClassExtensions;
+  {
+    fstream extensionsInput("rt-classes-extension.cljb", ios::in | ios::binary);
+    if (!extensionsInput.good()) {
+      cerr << "Failed to open rt-classes-extension.cljb" << endl;
+      return -1;
+    }
+    if (!astClassExtensions.ParseFromIstream(&extensionsInput)) {
+      cerr << "Failed to parse extensions bytecode." << endl;
+      return -1;
+    }
+  }
+
   cout << "Loading root..." << endl;
   clojure::rt::protobuf::bytecode::Programme astRoot;
   {
@@ -125,6 +139,17 @@ int main(int argc, char *argv[]) {
                             .address.toPtr<RTValue (*)()>()();
       cout << "Storing classes..." << endl;
       engine.threadsafeState.storeInternalClasses(classes);
+    }
+
+    {
+      ExecutionTimer t("Compiling and extending classes");
+      cout << "Compiling class extensions..." << endl;
+      RTValue extensions =
+          engine.compileAST(astClassExtensions.nodes(0), "__class_extensions")
+              .get()
+              .address.toPtr<RTValue (*)()>()();
+      cout << "Extending classes..." << endl;
+      engine.threadsafeState.extendInternalClasses(extensions);
     }
 
     cout << "Compiling root..." << endl;

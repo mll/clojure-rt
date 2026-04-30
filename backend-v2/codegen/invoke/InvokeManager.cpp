@@ -137,12 +137,20 @@ TypedValue InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
   } else if (id.type == CallType::Call) {
     return invokeRuntime(id.symbol, &id.returnType, id.argTypes, args, false,
                          guard);
+  } else if (id.type == CallType::ClojureFn) {
+    if (id.method) {
+      Value *methodAddr = ConstantInt::get(types.wordTy, (uintptr_t)id.method);
+      Value *methodPtr = builder.CreateIntToPtr(methodAddr, types.ptrTy);
+      TypedValue self(ObjectTypeSet::dynamicType(),
+                      ConstantInt::get(types.RT_valueTy, id.functionObject));
+      return generateRawMethodCall(methodPtr, self, args, guard, nullptr);
+    } else {
+      throwInternalInconsistencyException(
+          "ClojureFn intrinsic missing method information");
+    }
   } else {
-    return invokeRuntime(id.symbol, &id.returnType, id.argTypes, args, false,
-                         nullptr);
+    throwInternalInconsistencyException("Unsupported call type");
   }
-
-  throwInternalInconsistencyException("Unsupported call type");
 }
 
 ObjectTypeSet InvokeManager::foldIntrinsic(const IntrinsicDescription &id,

@@ -161,6 +161,7 @@
   ([infile] (let [parts (split infile #"\.")]
               (compile (slurp "resources/rt-protocols.edn") "../backend-v2/rt-protocols.cljb" "rt-protocols.edn")
               (compile (slurp "resources/rt-classes.edn") "../backend-v2/rt-classes.cljb" "rt-classes.edn")
+              (compile (slurp "resources/rt-classes-extension.clj") "../backend-v2/rt-classes-extension.cljb" "rt-classes-extension.clj")
               (compile (slurp infile) (str (join "." (butlast parts)) ".cljb") infile
                        false false)
               ))

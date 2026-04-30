@@ -2,11 +2,14 @@
 #include "../../jit/JITEngine.h"
 #include "../../state/ThreadsafeCompilerState.h"
 #include "../../tools/EdnParser.h"
+#include <iostream>
+#include <string>
+#include <vector>
+
+extern "C" {
 #include <setjmp.h>
 #include <stdarg.h>
 #include <cmocka.h>
-
-extern "C" {
 #include "../../runtime/Keyword.h"
 #include "../../runtime/PersistentArrayMap.h"
 #include "../../runtime/String.h"

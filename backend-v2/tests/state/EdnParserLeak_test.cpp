@@ -1,13 +1,13 @@
 #include "../../RuntimeHeaders.h"
 #include "../../tools/EdnParser.h"
-#include <setjmp.h>
-#include <stdarg.h>
-#include <cmocka.h>
 #include <iostream>
 #include <string>
 #include <vector>
 
 extern "C" {
+#include <setjmp.h>
+#include <stdarg.h>
+#include <cmocka.h>
 #include "../../runtime/Keyword.h"
 #include "../../runtime/PersistentArrayMap.h"
 #include "../../runtime/PersistentVector.h"

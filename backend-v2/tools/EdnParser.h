@@ -9,6 +9,7 @@
 using namespace std;
 
 struct Class;
+struct FunctionMethod;
 
 namespace rt {
 
@@ -35,12 +36,24 @@ public:
   ObjectTypeSet thisType;
   bool isInstance;
   bool returnsProvided;
-  IntrinsicDescription() = default;
+  bool isVariadic = false;
+
+  RTValue functionObject = 0;
+  struct FunctionMethod *method = nullptr;
+
+  IntrinsicDescription();
   IntrinsicDescription(
       RTValue from, TemporaryClassData &classData,
       const ObjectTypeSet &thisType = ObjectTypeSet::all(),
       bool isInstance = false,
       const ObjectTypeSet &defaultReturnType = ObjectTypeSet::dynamicType());
+
+  IntrinsicDescription(const IntrinsicDescription &other);
+  IntrinsicDescription(IntrinsicDescription &&other) noexcept;
+  IntrinsicDescription &operator=(const IntrinsicDescription &other);
+  IntrinsicDescription &operator=(IntrinsicDescription &&other) noexcept;
+
+  ~IntrinsicDescription();
   std::string toString() const;
 };
 
@@ -82,6 +95,7 @@ public:
   ClassDescription(ClassDescription &&other) noexcept = default;
   ClassDescription &operator=(ClassDescription &&other) noexcept = default;
   ~ClassDescription();
+  void merge(const ClassDescription &other);
   std::string toString() const;
 };
 

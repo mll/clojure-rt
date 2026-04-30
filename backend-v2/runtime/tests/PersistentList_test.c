@@ -151,21 +151,6 @@ static RTValue create_bigint_add_fn() {
   return RT_boxPtr(f);
 }
 
-static RTValue MockAddition(Frame *frame, RTValue a, RTValue b, RTValue a2,
-                            RTValue a3, RTValue a4) {
-  int32_t valA = RT_unboxInt32(a);
-  int32_t valB = RT_unboxInt32(b);
-  release(a);
-  release(b);
-  return RT_boxInt32(valA + valB);
-}
-
-static RTValue create_mock_add_fn() {
-  ClojureFunction *f = Function_create(1, 2, false);
-  Function_fillMethod(f, 0, 0, 2, false, MockAddition, "add", 0);
-  return RT_boxPtr(f);
-}
-
 static void testListReduce(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({

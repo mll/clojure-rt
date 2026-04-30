@@ -16,11 +16,11 @@ extern "C" {
 #include "../../runtime/String.h"
 #include "../../runtime/Symbol.h"
 #include "../../runtime/tests/TestTools.h"
-#include <cmocka.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <setjmp.h>
 #include <stdarg.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <cmocka.h>
 }
 
 #include "../../bridge/Exceptions.h"

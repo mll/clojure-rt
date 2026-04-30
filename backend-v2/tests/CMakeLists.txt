@@ -45,6 +45,8 @@ set(TEST_MODULES
     codegen/EBRFlush_test
     state/ClassRegistration_test
     state/ProtocolValidation_test
+    state/EdnParserLeak_test
+    state/ThreadsafeCompilerState_test
     VarUAF_repro_test
     JITSafety_test
 )

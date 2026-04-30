@@ -400,6 +400,4 @@ clojure.lang.PersistentList
 
   clojure.lang.RT
   {:static-fns
-   {conj [{:args [clojure.lang.PersistentVector :any] :type :call :symbol "PersistentVector_conj" :returns clojure.lang.PersistentVector}]
-    assoc [{:args [clojure.lang.PersistentVector :int :any] :type :call :symbol "PersistentVector_assoc" :returns clojure.lang.PersistentVector}]
-    pop [{:args [clojure.lang.PersistentVector] :type :call :symbol "PersistentVector_pop" :returns clojure.lang.PersistentVector}]}}}
+   {}}}

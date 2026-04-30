@@ -31,6 +31,7 @@ public:
   ~ThreadsafeCompilerState();
 
   void storeInternalClasses(RTValue from);
+  void extendInternalClasses(RTValue from);
   void storeInternalProtocols(RTValue from);
 
   void validateProtocolImplementations(const std::vector<::Class *> &classes);

@@ -28,6 +28,7 @@ TypedValue CodeGen::codegen(const Node &node, const DefNode &subnode,
       this->suggestedFunctionName = varName;
       this->isSuggestedNameFromDef = true;
     }
+
     TypedValue initValue = codegen(subnode.init(), ObjectTypeSet::all());
     this->suggestedFunctionName = "";
     this->isSuggestedNameFromDef = false;
@@ -36,6 +37,18 @@ TypedValue CodeGen::codegen(const Node &node, const DefNode &subnode,
         "Var_bindRoot", nullptr,
         {ObjectTypeSet(varType), ObjectTypeSet::dynamicType()},
         {varPtr, initValue});
+  }
+
+  if (subnode.has_meta()) {
+    CleanupChainGuard guard(*this);
+    guard.push(varPtr);
+    TypedValue meta = codegen(subnode.meta(), ObjectTypeSet::all());
+    guard.push(meta);
+
+    varPtr =
+        invokeManager.invokeRuntime("Var_resetMeta", &varPtr.type,
+                                    {varPtr.type, ObjectTypeSet::dynamicType()},
+                                    {varPtr, meta}, false, &guard);
   }
 
   return varPtr;

@@ -20,9 +20,11 @@ struct PersistentArrayMap {
   uword_t count;
   RTValue keys[HASHTABLE_THRESHOLD];
   RTValue values[HASHTABLE_THRESHOLD];
+  RTValue metadata;
 };
 
 PersistentArrayMap *PersistentArrayMap_empty();
+PersistentArrayMap *PersistentArrayMap_withMeta(PersistentArrayMap *self, RTValue meta);
 void PersistentArrayMap_initialise();
 void PersistentArrayMap_cleanup();
 
@@ -45,6 +47,8 @@ word_t PersistentArrayMap_indexOf(PersistentArrayMap *self, RTValue key);
 
 PersistentArrayMap *PersistentArrayMap_create();
 PersistentArrayMap *PersistentArrayMap_createMany(int32_t pairCount, ...);
+PersistentArrayMap *PersistentArrayMap_copy(PersistentArrayMap *self);
+void PersistentArrayMap_retainChildren(PersistentArrayMap *self, int except);
 
 #ifdef __cplusplus
 }

@@ -26,10 +26,25 @@ void PersistentArrayMap_cleanup() {
   }
 }
 
+PersistentArrayMap *PersistentArrayMap_withMeta(PersistentArrayMap *self,
+                                                RTValue meta) {
+  if (Ptr_isReusable(self)) {
+    release(self->metadata);
+    self->metadata = meta;
+    return self;
+  }
+  PersistentArrayMap *new = PersistentArrayMap_copy(self);
+  PersistentArrayMap_retainChildren(new, -1);
+  release(new->metadata);
+  new->metadata = meta;
+  return new;
+}
+
 /* mem done */
 PersistentArrayMap *PersistentArrayMap_create() {
   PersistentArrayMap *self = allocate(sizeof(PersistentArrayMap));
   self->count = 0;
+  self->metadata = RT_boxNil();
   Object_create((Object *)self, persistentArrayMapType);
   return self;
 }
@@ -42,6 +57,8 @@ PersistentArrayMap *PersistentArrayMap_copy(PersistentArrayMap *other) {
   self->count = other->count;
   memcpy(self->keys, other->keys, sizeof(RTValue) * self->count);
   memcpy(self->values, other->values, sizeof(RTValue) * self->count);
+  self->metadata = other->metadata;
+  retain(self->metadata);
 
   return self;
 }
@@ -137,12 +154,11 @@ void PersistentArrayMap_destroy(PersistentArrayMap *self,
                                 bool deallocateChildren) {
   if (deallocateChildren) {
     for (uword_t i = 0; i < self->count; i++) {
-      RTValue key = self->keys[i];
-      RTValue value = self->values[i];
-      release(key);
-      release(value);
+      release(self->keys[i]);
+      release(self->values[i]);
     }
   }
+  release(self->metadata);
 }
 
 void PersistentArrayMap_promoteToShared(PersistentArrayMap *self,
@@ -154,6 +170,7 @@ void PersistentArrayMap_promoteToShared(PersistentArrayMap *self,
     promoteToShared(self->keys[i]);
     promoteToShared(self->values[i]);
   }
+  promoteToShared(self->metadata);
   Object_promoteToSharedShallow((Object *)self, current);
 }
 

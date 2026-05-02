@@ -43,6 +43,7 @@ set(TEST_MODULES
     codegen/Concurrency_test
     codegen/RecurNode_test
     codegen/EBRFlush_test
+    codegen/MetadataNode_test
     state/ClassRegistration_test
     state/ProtocolValidation_test
     state/EdnParserLeak_test

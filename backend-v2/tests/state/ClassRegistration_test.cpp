@@ -35,15 +35,15 @@ static void test_auto_registration_ids(void **state) {
 
     PersistentArrayMap *classAMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/A")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/A"))),
         RT_boxPtr(classAMap));
 
     PersistentArrayMap *classBMap = PersistentArrayMap_empty();
     classBMap = PersistentArrayMap_assoc(
         classBMap, Keyword_create(String_create("extends")),
-        Symbol_create(String_create("com.foo/A")));
+        RT_boxPtr(Symbol_create(String_create("com.foo/A"))));
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/B")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/B"))),
         RT_boxPtr(classBMap));
 
     compState.storeInternalClasses(RT_boxPtr(rootMap));

@@ -12,8 +12,6 @@
 
 ConcurrentHashMap *keywords = NULL;
 ConcurrentHashMap *keywordsInverted = NULL;
-ConcurrentHashMap *symbols = NULL;
-
 ConcurrentHashMap *vars = NULL;
 
 extern bool logicalValue(RTValue self);
@@ -39,7 +37,6 @@ void RuntimeInterface_initialise() {
   keywords = ConcurrentHashMap_create(10);         // 2^10
   keywordsInverted = ConcurrentHashMap_create(10); // 2^10
   vars = ConcurrentHashMap_create(10);             // 2^10
-  symbols = ConcurrentHashMap_create(10);
 }
 
 void RuntimeInterface_cleanup() {
@@ -50,10 +47,6 @@ void RuntimeInterface_cleanup() {
   if (keywordsInverted) {
     Ptr_release(keywordsInverted);
     keywordsInverted = NULL;
-  }
-  if (symbols) {
-    Ptr_release(symbols);
-    symbols = NULL;
   }
   if (vars) {
     Ptr_release(vars);
@@ -66,7 +59,6 @@ void RuntimeInterface_cleanup() {
   Ebr_unregister_thread();
   Ebr_shutdown();
   Keyword_resetInterns();
-  Symbol_resetInterns();
 }
 
 void printReferenceCounts() {
@@ -84,7 +76,6 @@ void captureMemoryState(MemoryState *state) {
     state->counts[i] = allocationCount[i];
   }
   state->internedKeywords = Keyword_getInternCount();
-  state->internedSymbols = Symbol_getInternCount();
 }
 
 void logBacktrace() {

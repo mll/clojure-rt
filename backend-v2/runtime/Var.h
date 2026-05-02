@@ -19,6 +19,7 @@ struct Var {
   _Atomic(uword_t) rev;
   _Atomic(RTValue) root;
   RTValue keyword; // TODO: split name and namespace - Marek - why?
+  _Atomic(RTValue) metadata;
 
   // TODO: threadBound
 };
@@ -28,6 +29,8 @@ typedef struct Var Var;
 // Class *UNIQUE_UnboundClass;
 
 Var *Var_create(RTValue keyword);
+Var *Var_resetMeta(Var *self, RTValue meta);
+RTValue Var_getMeta(Var *self);
 bool Var_equals(Var *self, Var *other);
 uword_t Var_hash(Var *self);
 String *Var_toString(Var *self);

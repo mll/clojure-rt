@@ -31,9 +31,9 @@ static void test_extend_internal_classes_merge(void **state) {
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     PersistentArrayMap *classAMap = PersistentArrayMap_empty();
     PersistentArrayMap *fieldsMap = PersistentArrayMap_empty();
-    fieldsMap = PersistentArrayMap_assoc(fieldsMap, Symbol_create(String_create("f1")), RT_boxPtr(BigInteger_createFromInt(10)));
+    fieldsMap = PersistentArrayMap_assoc(fieldsMap, RT_boxPtr(Symbol_create(String_create("f1"))), RT_boxPtr(BigInteger_createFromInt(10)));
     classAMap = PersistentArrayMap_assoc(classAMap, Keyword_create(String_create("static-fields")), RT_boxPtr(fieldsMap));
-    rootMap = PersistentArrayMap_assoc(rootMap, Symbol_create(String_create("com.foo/A")), RT_boxPtr(classAMap));
+    rootMap = PersistentArrayMap_assoc(rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/A"))), RT_boxPtr(classAMap));
 
     compState.storeInternalClasses(RT_boxPtr(rootMap));
 
@@ -41,9 +41,9 @@ static void test_extend_internal_classes_merge(void **state) {
     PersistentArrayMap *extMap = PersistentArrayMap_empty();
     PersistentArrayMap *classAExt = PersistentArrayMap_empty();
     PersistentArrayMap *fieldsExt = PersistentArrayMap_empty();
-    fieldsExt = PersistentArrayMap_assoc(fieldsExt, Symbol_create(String_create("f2")), RT_boxPtr(BigInteger_createFromInt(20)));
+    fieldsExt = PersistentArrayMap_assoc(fieldsExt, RT_boxPtr(Symbol_create(String_create("f2"))), RT_boxPtr(BigInteger_createFromInt(20)));
     classAExt = PersistentArrayMap_assoc(classAExt, Keyword_create(String_create("static-fields")), RT_boxPtr(fieldsExt));
-    extMap = PersistentArrayMap_assoc(extMap, Symbol_create(String_create("com.foo/A")), RT_boxPtr(classAExt));
+    extMap = PersistentArrayMap_assoc(extMap, RT_boxPtr(Symbol_create(String_create("com.foo/A"))), RT_boxPtr(classAExt));
 
     compState.extendInternalClasses(RT_boxPtr(extMap));
 
@@ -81,9 +81,9 @@ static void test_extend_internal_classes_function_merge(void **state) {
     
     PersistentVector *fn1Vec = PersistentVector_createMany(1, RT_boxPtr(fn1Desc));
     
-    fnsMap = PersistentArrayMap_assoc(fnsMap, Symbol_create(String_create("fn1")), RT_boxPtr(fn1Vec));
+    fnsMap = PersistentArrayMap_assoc(fnsMap, RT_boxPtr(Symbol_create(String_create("fn1"))), RT_boxPtr(fn1Vec));
     classBMap = PersistentArrayMap_assoc(classBMap, Keyword_create(String_create("static-fns")), RT_boxPtr(fnsMap));
-    rootMap = PersistentArrayMap_assoc(rootMap, Symbol_create(String_create("com.foo/B")), RT_boxPtr(classBMap));
+    rootMap = PersistentArrayMap_assoc(rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/B"))), RT_boxPtr(classBMap));
 
     compState.storeInternalClasses(RT_boxPtr(rootMap));
 
@@ -99,9 +99,9 @@ static void test_extend_internal_classes_function_merge(void **state) {
     
     PersistentVector *fn2Vec = PersistentVector_createMany(1, RT_boxPtr(fn2Desc));
     
-    fnsExt = PersistentArrayMap_assoc(fnsExt, Symbol_create(String_create("fn2")), RT_boxPtr(fn2Vec));
+    fnsExt = PersistentArrayMap_assoc(fnsExt, RT_boxPtr(Symbol_create(String_create("fn2"))), RT_boxPtr(fn2Vec));
     classBExt = PersistentArrayMap_assoc(classBExt, Keyword_create(String_create("static-fns")), RT_boxPtr(fnsExt));
-    extMap = PersistentArrayMap_assoc(extMap, Symbol_create(String_create("com.foo/B")), RT_boxPtr(classBExt));
+    extMap = PersistentArrayMap_assoc(extMap, RT_boxPtr(Symbol_create(String_create("com.foo/B"))), RT_boxPtr(classBExt));
 
     compState.extendInternalClasses(RT_boxPtr(extMap));
 

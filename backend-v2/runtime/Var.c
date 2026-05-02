@@ -33,6 +33,7 @@ Var *Var_create(RTValue keyword) {
   atomic_store_explicit(&(self->root), RT_boxNull(), memory_order_relaxed);
   self->dynamic = false;
   self->keyword = keyword;
+  atomic_store_explicit(&self->metadata, RT_boxNil(), memory_order_relaxed);
   atomic_store_explicit(&self->rev, 0, memory_order_relaxed);
   Object_create((Object *)self, varType);
   // Var is always shared
@@ -62,7 +63,26 @@ void Var_destroy(Var *self) {
     autorelease(oldRoot);
   }
   release(self->keyword);
+  RTValue oldMeta = atomic_load_explicit(&self->metadata, memory_order_relaxed);
+  if (!RT_isNil(oldMeta)) {
+    autorelease(oldMeta);
+  }
 };
+
+Var *Var_resetMeta(Var *self, RTValue meta) {
+  promoteToShared(meta);
+  RTValue oldMeta =
+      atomic_exchange_explicit(&self->metadata, meta, memory_order_seq_cst);
+  autorelease(oldMeta);
+  return self;
+}
+
+RTValue Var_getMeta(Var *self) {
+  RTValue val = atomic_load_explicit(&self->metadata, memory_order_relaxed);
+  retain(val);
+  Ptr_release(self);
+  return val;
+}
 
 Var *Var_setDynamic(Var *self, bool dynamic) { // modifies and returns self
   self->dynamic = dynamic;

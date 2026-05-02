@@ -262,7 +262,7 @@ static void test_class_aliasing(void **state) {
 
     PersistentArrayMap *instanceFnsMap = PersistentArrayMap_empty();
     instanceFnsMap = PersistentArrayMap_assoc(
-        instanceFnsMap, Symbol_create(String_create("msg")),
+        instanceFnsMap, RT_boxPtr(Symbol_create(String_create("msg"))),
         RT_boxPtr(msgOverloads));
 
     PersistentArrayMap *classBMap = PersistentArrayMap_empty();
@@ -273,10 +273,10 @@ static void test_class_aliasing(void **state) {
     // Root map: {com.foo/A classAMap, com.foo/B classBMap}
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/A")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/A"))),
         RT_boxPtr(classAMap));
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/B")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/B"))),
         RT_boxPtr(classBMap));
 
     // After assoc, rootMap owns a reference, but we must release our local
@@ -321,10 +321,10 @@ static void test_static_fields(void **state) {
     // {com.foo/MyClass {:static-fields {VERSION "1.0", COUNT 42}}}
     PersistentArrayMap *fieldsMap = PersistentArrayMap_empty();
     fieldsMap = PersistentArrayMap_assoc(
-        fieldsMap, Symbol_create(String_create("VERSION")),
+        fieldsMap, RT_boxPtr(Symbol_create(String_create("VERSION"))),
         RT_boxPtr(String_create("1.0")));
     fieldsMap = PersistentArrayMap_assoc(
-        fieldsMap, Symbol_create(String_create("COUNT")), RT_boxInt32(42));
+        fieldsMap, RT_boxPtr(Symbol_create(String_create("COUNT"))), RT_boxInt32(42));
 
     PersistentArrayMap *classMap = PersistentArrayMap_empty();
     classMap = PersistentArrayMap_assoc(
@@ -333,7 +333,7 @@ static void test_static_fields(void **state) {
 
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/MyClass")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/MyClass"))),
         RT_boxPtr(classMap));
 
     auto classes = buildClasses(RT_boxPtr(rootMap));
@@ -385,7 +385,7 @@ static void test_special_types(void **state) {
 
     PersistentArrayMap *instanceFnsMap = PersistentArrayMap_empty();
     instanceFnsMap = PersistentArrayMap_assoc(instanceFnsMap,
-                                              Symbol_create(String_create("f")),
+                                              RT_boxPtr(Symbol_create(String_create("f"))),
                                               RT_boxPtr(fOverloads));
 
     PersistentArrayMap *classAMap = PersistentArrayMap_empty();
@@ -395,7 +395,7 @@ static void test_special_types(void **state) {
 
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/A")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/A"))),
         RT_boxPtr(classAMap));
 
     auto classes = buildClasses(RT_boxPtr(rootMap));
@@ -427,9 +427,9 @@ static void test_bridge_functions(void **state) {
 
     PersistentArrayMap *sfields = PersistentArrayMap_empty();
     sfields = PersistentArrayMap_assoc(
-        sfields, Symbol_create(String_create("S1")), RT_boxInt32(10));
+        sfields, RT_boxPtr(Symbol_create(String_create("S1"))), RT_boxInt32(10));
     sfields = PersistentArrayMap_assoc(
-        sfields, Symbol_create(String_create("S2")), RT_boxInt32(20));
+        sfields, RT_boxPtr(Symbol_create(String_create("S2"))), RT_boxInt32(20));
 
     PersistentArrayMap *classMap = PersistentArrayMap_empty();
     classMap = PersistentArrayMap_assoc(
@@ -441,7 +441,7 @@ static void test_bridge_functions(void **state) {
 
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/Test")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/Test"))),
         RT_boxPtr(classMap));
 
     auto classes = buildClasses(RT_boxPtr(rootMap));
@@ -451,21 +451,17 @@ static void test_bridge_functions(void **state) {
     void *ext = &desc;
 
     // Test instance field indices
-    RTValue fieldA = Symbol_create(String_create("a"));
-    RTValue fieldB = Symbol_create(String_create("b"));
-    RTValue fieldC = Symbol_create(String_create("c"));
+    RTValue fieldA = RT_boxPtr(Symbol_create(String_create("a")));
+    RTValue fieldB = RT_boxPtr(Symbol_create(String_create("b")));
+    RTValue fieldC = RT_boxPtr(Symbol_create(String_create("c")));
 
     assert_int_equal(0, ClassExtension_fieldIndex(ext, fieldA));
     assert_int_equal(1, ClassExtension_fieldIndex(ext, fieldB));
     assert_int_equal(-1, ClassExtension_fieldIndex(ext, fieldC));
 
-    release(fieldA);
-    release(fieldB);
-    release(fieldC);
-
     // Test static field indices
-    RTValue sfield1 = Symbol_create(String_create("S1"));
-    RTValue sfield2 = Symbol_create(String_create("S2"));
+    RTValue sfield1 = RT_boxPtr(Symbol_create(String_create("S1")));
+    RTValue sfield2 = RT_boxPtr(Symbol_create(String_create("S2")));
 
     int32_t idx1 = ClassExtension_staticFieldIndex(ext, sfield1);
     int32_t idx2 = ClassExtension_staticFieldIndex(ext, sfield2);
@@ -491,9 +487,6 @@ static void test_bridge_functions(void **state) {
     RTValue checkVal = ClassExtension_getIndexedStaticField(ext, idx1);
     assert_int_equal(100, RT_unboxInt32(checkVal));
     release(checkVal);
-
-    release(sfield1);
-    release(sfield2);
   });
 }
 
@@ -545,7 +538,7 @@ static void test_class_value_not_map(void **state) {
 
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxInt32(1));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxInt32(1));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_class_value_not_map but none "
@@ -570,7 +563,7 @@ static void test_object_type_not_int(void **state) {
           RT_boxPtr(String_create("100")));
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_object_type_not_int but none "
@@ -593,10 +586,10 @@ static void test_alias_not_keyword(void **state) {
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
           classMap, Keyword_create(String_create("alias")),
-          Symbol_create(String_create("a-symbol")));
+          RT_boxPtr(Symbol_create(String_create("a-symbol"))));
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
 
       fail_msg("Expected LanguageException for test_alias_not_keyword but none "
@@ -623,7 +616,7 @@ static void test_static_fields_not_map(void **state) {
           RT_boxInt32(1));
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_static_fields_not_map but "
@@ -648,7 +641,7 @@ static void test_instance_fns_not_map(void **state) {
           RT_boxInt32(1));
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_instance_fns_not_map but "
@@ -678,7 +671,7 @@ static void test_static_field_key_not_symbol(void **state) {
           RT_boxPtr(fieldsMap));
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_static_field_key_not_symbol "
@@ -706,7 +699,7 @@ static void test_intrinsic_key_not_symbol(void **state) {
           RT_boxPtr(fnsMap));
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_intrinsic_key_not_symbol but "
@@ -727,14 +720,14 @@ static void test_intrinsic_value_not_vector(void **state) {
 
       PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
       fnsMap = PersistentArrayMap_assoc(
-          fnsMap, Symbol_create(String_create("f")), RT_boxInt32(42));
+          fnsMap, RT_boxPtr(Symbol_create(String_create("f"))), RT_boxInt32(42));
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
           classMap, Keyword_create(String_create("instance-fns")),
           RT_boxPtr(fnsMap));
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_intrinsic_value_not_vector "
@@ -765,7 +758,7 @@ static void test_intrinsic_type_not_keyword(void **state) {
 
       PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
       fnsMap = PersistentArrayMap_assoc(
-          fnsMap, Symbol_create(String_create("f")), RT_boxPtr(overloads));
+          fnsMap, RT_boxPtr(Symbol_create(String_create("f"))), RT_boxPtr(overloads));
 
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
@@ -774,7 +767,7 @@ static void test_intrinsic_type_not_keyword(void **state) {
 
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_intrinsic_type_not_keyword "
@@ -803,7 +796,7 @@ static void test_intrinsic_type_invalid(void **state) {
 
       PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
       fnsMap = PersistentArrayMap_assoc(
-          fnsMap, Symbol_create(String_create("f")), RT_boxPtr(overloads));
+          fnsMap, RT_boxPtr(Symbol_create(String_create("f"))), RT_boxPtr(overloads));
 
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
@@ -812,7 +805,7 @@ static void test_intrinsic_type_invalid(void **state) {
 
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_intrinsic_type_invalid but "
@@ -850,15 +843,15 @@ static void test_protocol_signatures(void **state) {
     countSig = PersistentVector_conj(countSig, Keyword_create(String_create("this")));
 
     PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
-    fnsMap = PersistentArrayMap_assoc(fnsMap, Symbol_create(String_create("swap")), RT_boxPtr(swapOverloads));
-    fnsMap = PersistentArrayMap_assoc(fnsMap, Symbol_create(String_create("count")), RT_boxPtr(countSig));
+    fnsMap = PersistentArrayMap_assoc(fnsMap, RT_boxPtr(Symbol_create(String_create("swap"))), RT_boxPtr(swapOverloads));
+    fnsMap = PersistentArrayMap_assoc(fnsMap, RT_boxPtr(Symbol_create(String_create("count"))), RT_boxPtr(countSig));
 
     PersistentArrayMap *classMap = PersistentArrayMap_empty();
     classMap = PersistentArrayMap_assoc(classMap, Keyword_create(String_create("is-interface")), RT_boxBool(true));
     classMap = PersistentArrayMap_assoc(classMap, Keyword_create(String_create("instance-fns")), RT_boxPtr(fnsMap));
 
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
-    rootMap = PersistentArrayMap_assoc(rootMap, Symbol_create(String_create("P1")), RT_boxPtr(classMap));
+    rootMap = PersistentArrayMap_assoc(rootMap, RT_boxPtr(Symbol_create(String_create("P1"))), RT_boxPtr(classMap));
 
     auto classes = buildClasses(RT_boxPtr(rootMap));
     assert_int_equal(1, classes.size());
@@ -897,7 +890,7 @@ static void test_intrinsic_symbol_not_string(void **state) {
 
       PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
       fnsMap = PersistentArrayMap_assoc(
-          fnsMap, Symbol_create(String_create("f")), RT_boxPtr(overloads));
+          fnsMap, RT_boxPtr(Symbol_create(String_create("f"))), RT_boxPtr(overloads));
 
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
@@ -906,7 +899,7 @@ static void test_intrinsic_symbol_not_string(void **state) {
 
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_intrinsic_symbol_not_string "
@@ -940,7 +933,7 @@ static void test_intrinsic_args_not_vector(void **state) {
 
       PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
       fnsMap = PersistentArrayMap_assoc(
-          fnsMap, Symbol_create(String_create("f")), RT_boxPtr(overloads));
+          fnsMap, RT_boxPtr(Symbol_create(String_create("f"))), RT_boxPtr(overloads));
 
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
@@ -949,7 +942,7 @@ static void test_intrinsic_args_not_vector(void **state) {
 
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_intrinsic_args_not_vector "
@@ -988,7 +981,7 @@ static void test_unknown_arg_type(void **state) {
 
       PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
       fnsMap = PersistentArrayMap_assoc(
-          fnsMap, Symbol_create(String_create("f")), RT_boxPtr(overloads));
+          fnsMap, RT_boxPtr(Symbol_create(String_create("f"))), RT_boxPtr(overloads));
 
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
@@ -997,7 +990,7 @@ static void test_unknown_arg_type(void **state) {
 
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_unknown_arg_type but none "
@@ -1032,7 +1025,7 @@ static void test_unknown_return_type(void **state) {
 
       PersistentArrayMap *fnsMap = PersistentArrayMap_empty();
       fnsMap = PersistentArrayMap_assoc(
-          fnsMap, Symbol_create(String_create("f")), RT_boxPtr(overloads));
+          fnsMap, RT_boxPtr(Symbol_create(String_create("f"))), RT_boxPtr(overloads));
 
       PersistentArrayMap *classMap = PersistentArrayMap_empty();
       classMap = PersistentArrayMap_assoc(
@@ -1041,7 +1034,7 @@ static void test_unknown_return_type(void **state) {
 
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("A")), RT_boxPtr(classMap));
+          rootMap, RT_boxPtr(Symbol_create(String_create("A"))), RT_boxPtr(classMap));
       auto classes = buildClasses(RT_boxPtr(rootMap));
     });
     fail_msg("Expected LanguageException for test_unknown_return_type but none "
@@ -1069,16 +1062,16 @@ static void test_class_inheritance_linkage(void **state) {
     PersistentArrayMap *childMap = PersistentArrayMap_empty();
     childMap = PersistentArrayMap_assoc(
         childMap, Keyword_create(String_create("extends")),
-        Symbol_create(String_create("Parent")));
+        RT_boxPtr(Symbol_create(String_create("Parent"))));
     childMap = PersistentArrayMap_assoc(
         childMap, Keyword_create(String_create("object-type")),
         RT_boxInt32(101));
 
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("Parent")), RT_boxPtr(parentMap));
+        rootMap, RT_boxPtr(Symbol_create(String_create("Parent"))), RT_boxPtr(parentMap));
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("Child")), RT_boxPtr(childMap));
+        rootMap, RT_boxPtr(Symbol_create(String_create("Child"))), RT_boxPtr(childMap));
 
     compState.storeInternalClasses(RT_boxPtr(rootMap));
 
@@ -1138,9 +1131,9 @@ static void test_toString(void **state) {
 
     PersistentArrayMap *sfields = PersistentArrayMap_empty();
     sfields = PersistentArrayMap_assoc(
-        sfields, Symbol_create(String_create("S1")), RT_boxInt32(10));
+        sfields, RT_boxPtr(Symbol_create(String_create("S1"))), RT_boxInt32(10));
     sfields = PersistentArrayMap_assoc(
-        sfields, Symbol_create(String_create("S2")), RT_boxInt32(20));
+        sfields, RT_boxPtr(Symbol_create(String_create("S2"))), RT_boxInt32(20));
     classMap = PersistentArrayMap_assoc(
         classMap, Keyword_create(String_create("static-fields")),
         RT_boxPtr(sfields));
@@ -1179,10 +1172,10 @@ static void test_toString(void **state) {
 
     PersistentArrayMap *instanceFnsMap = PersistentArrayMap_empty();
     instanceFnsMap = PersistentArrayMap_assoc(instanceFnsMap,
-                                              Symbol_create(String_create("f")),
+                                              RT_boxPtr(Symbol_create(String_create("f"))),
                                               RT_boxPtr(fOverloads));
     instanceFnsMap = PersistentArrayMap_assoc(instanceFnsMap,
-                                              Symbol_create(String_create("g")),
+                                              RT_boxPtr(Symbol_create(String_create("g"))),
                                               RT_boxPtr(gOverloads));
     classMap = PersistentArrayMap_assoc(
         classMap, Keyword_create(String_create("instance-fns")),
@@ -1239,10 +1232,10 @@ static void test_toString(void **state) {
 
     PersistentArrayMap *staticFnsMap = PersistentArrayMap_empty();
     staticFnsMap = PersistentArrayMap_assoc(
-        staticFnsMap, Symbol_create(String_create("s_func")),
+        staticFnsMap, RT_boxPtr(Symbol_create(String_create("s_func"))),
         RT_boxPtr(sOverloads));
     staticFnsMap = PersistentArrayMap_assoc(
-        staticFnsMap, Symbol_create(String_create("s_func2")),
+        staticFnsMap, RT_boxPtr(Symbol_create(String_create("s_func2"))),
         RT_boxPtr(s3Overloads));
     classMap = PersistentArrayMap_assoc(
         classMap, Keyword_create(String_create("static-fns")),
@@ -1250,7 +1243,7 @@ static void test_toString(void **state) {
 
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/MyClass")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/MyClass"))),
         RT_boxPtr(classMap));
 
     PersistentArrayMap *intMap = PersistentArrayMap_empty();
@@ -1260,7 +1253,7 @@ static void test_toString(void **state) {
     intMap = PersistentArrayMap_assoc(
         intMap, Keyword_create(String_create("object-type")), RT_boxInt32(1));
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("int")), RT_boxPtr(intMap));
+        rootMap, RT_boxPtr(Symbol_create(String_create("int"))), RT_boxPtr(intMap));
 
     auto classes = buildClasses(RT_boxPtr(rootMap));
     assert_int_equal(2, classes.size());
@@ -1423,25 +1416,25 @@ static void test_overload_symbols(void **state) {
 
     PersistentArrayMap *staticFns = PersistentArrayMap_empty();
     staticFns =
-        PersistentArrayMap_assoc(staticFns, Symbol_create(String_create("sin")),
+        PersistentArrayMap_assoc(staticFns, RT_boxPtr(Symbol_create(String_create("sin"))),
                                  RT_boxPtr(sinOverloads));
     staticFns =
-        PersistentArrayMap_assoc(staticFns, Symbol_create(String_create("cos")),
+        PersistentArrayMap_assoc(staticFns, RT_boxPtr(Symbol_create(String_create("cos"))),
                                  RT_boxPtr(cosOverloads));
     staticFns =
-        PersistentArrayMap_assoc(staticFns, Symbol_create(String_create("tan")),
+        PersistentArrayMap_assoc(staticFns, RT_boxPtr(Symbol_create(String_create("tan"))),
                                  RT_boxPtr(tanOverloads));
     staticFns = PersistentArrayMap_assoc(staticFns,
-                                         Symbol_create(String_create("atan2")),
+                                         RT_boxPtr(Symbol_create(String_create("atan2"))),
                                          RT_boxPtr(atan2Overloads));
     staticFns =
-        PersistentArrayMap_assoc(staticFns, Symbol_create(String_create("pow")),
+        PersistentArrayMap_assoc(staticFns, RT_boxPtr(Symbol_create(String_create("pow"))),
                                  RT_boxPtr(powOverloads));
     staticFns =
-        PersistentArrayMap_assoc(staticFns, Symbol_create(String_create("abs")),
+        PersistentArrayMap_assoc(staticFns, RT_boxPtr(Symbol_create(String_create("abs"))),
                                  RT_boxPtr(absOverloads));
     staticFns =
-        PersistentArrayMap_assoc(staticFns, Symbol_create(String_create("log")),
+        PersistentArrayMap_assoc(staticFns, RT_boxPtr(Symbol_create(String_create("log"))),
                                  RT_boxPtr(logOverloads));
 
     PersistentArrayMap *classMap = PersistentArrayMap_empty();
@@ -1474,13 +1467,13 @@ static void test_overload_symbols(void **state) {
 
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("Math")), RT_boxPtr(classMap));
+        rootMap, RT_boxPtr(Symbol_create(String_create("Math"))), RT_boxPtr(classMap));
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("int")), RT_boxPtr(intMap));
+        rootMap, RT_boxPtr(Symbol_create(String_create("int"))), RT_boxPtr(intMap));
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("double")), RT_boxPtr(doubleMap));
+        rootMap, RT_boxPtr(Symbol_create(String_create("double"))), RT_boxPtr(doubleMap));
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("bigint")), RT_boxPtr(bigintMap));
+        rootMap, RT_boxPtr(Symbol_create(String_create("bigint"))), RT_boxPtr(bigintMap));
 
     // buildClasses will consume the root map.
     auto classes = buildClasses(RT_boxPtr(rootMap));
@@ -1592,7 +1585,7 @@ static void test_cross_class_references(void **state) {
 
       PersistentArrayMap *staticFns = PersistentArrayMap_empty();
       staticFns = PersistentArrayMap_assoc(staticFns,
-                                           Symbol_create(String_create("func")),
+                                           RT_boxPtr(Symbol_create(String_create("func"))),
                                            RT_boxPtr(overloads));
 
       PersistentArrayMap *m = PersistentArrayMap_empty();
@@ -1607,10 +1600,10 @@ static void test_cross_class_references(void **state) {
 
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/A")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/A"))),
         createClass("a", "b", "A_func", 100));
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/B")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/B"))),
         createClass("b", "a", "B_func", 101));
 
     auto classes = buildClasses(RT_boxPtr(rootMap));
@@ -1662,7 +1655,7 @@ static void test_constructors(void **state) {
                                        RT_boxPtr(String_create("A_create")));
     ctorMap = PersistentArrayMap_assoc(
         ctorMap, Keyword_create(String_create("returns")),
-        Symbol_create(String_create("com.foo/A")));
+        RT_boxPtr(Symbol_create(String_create("com.foo/A"))));
 
     // Test 2: Constructor without explicit returns (should default to
     // com.foo/A)
@@ -1691,7 +1684,7 @@ static void test_constructors(void **state) {
 
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/A")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/A"))),
         RT_boxPtr(classMap));
 
     auto classes = buildClasses(RT_boxPtr(rootMap));
@@ -1749,7 +1742,7 @@ static void test_constructor_return_type(void **state) {
 
       PersistentArrayMap *rootMap = PersistentArrayMap_empty();
       rootMap = PersistentArrayMap_assoc(
-          rootMap, Symbol_create(String_create("com.foo/A")),
+          rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/A"))),
           RT_boxPtr(classMap));
 
       auto classes = buildClasses(RT_boxPtr(rootMap));
@@ -1782,15 +1775,15 @@ static void test_class_inheritance_runtime(void **state) {
         RT_boxInt32(101));
     classBMap = PersistentArrayMap_assoc(
         classBMap, Keyword_create(String_create("extends")),
-        Symbol_create(String_create("com.foo/A")));
+        RT_boxPtr(Symbol_create(String_create("com.foo/A"))));
 
     // Root map: {com.foo/A classAMap, com.foo/B classBMap}
     PersistentArrayMap *rootMap = PersistentArrayMap_empty();
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/A")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/A"))),
         RT_boxPtr(classAMap));
     rootMap = PersistentArrayMap_assoc(
-        rootMap, Symbol_create(String_create("com.foo/B")),
+        rootMap, RT_boxPtr(Symbol_create(String_create("com.foo/B"))),
         RT_boxPtr(classBMap));
 
     rt::ThreadsafeCompilerState compState;

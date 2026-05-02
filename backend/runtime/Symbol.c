@@ -41,6 +41,8 @@ String *Symbol_toString(Symbol *self) {
 /* outside refcount system */
 void Symbol_destroy(Symbol *self) {
   release(self->string);
+  release(self->namespace);
+  release(self->meta);
 }
 
 

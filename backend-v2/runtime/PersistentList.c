@@ -23,6 +23,25 @@ void PersistentList_cleanup() {
   }
 }
 
+PersistentList *PersistentList_withMeta(PersistentList *self, RTValue meta) {
+  if (Ptr_isReusable(self)) {
+    release(self->metadata);
+    self->metadata = meta;
+    return self;
+  }
+  PersistentList *new = allocate(sizeof(PersistentList));
+  new->first = self->first;
+  retain(new->first);
+  new->rest = self->rest;
+  if (new->rest)
+    Ptr_retain(new->rest);
+  new->count = self->count;
+  new->metadata = meta;
+  Object_create((Object *)new, persistentListType);
+  Ptr_release(self);
+  return new;
+}
+
 struct ListPair {
   PersistentList *first;
   PersistentList *last;
@@ -79,6 +98,7 @@ PersistentList *PersistentList_create(RTValue first, PersistentList *rest) {
   self->first = first;
   self->rest = rest;
   self->count = (rest ? rest->count : 0) + (RT_isNull(first) ? 0 : 1);
+  self->metadata = RT_boxNil();
 
   Object_create((Object *)self, persistentListType);
   return self;
@@ -193,6 +213,7 @@ void PersistentList_destroy(PersistentList *self, bool deallocateChildren) {
   }
   if (!RT_isNull(self->first))
     release(self->first);
+  release(self->metadata);
 }
 
 void PersistentList_promoteToShared(PersistentList *self, uword_t current) {
@@ -266,7 +287,8 @@ RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start) {
     } else {
       // Shared: standard retain/release
       retain(first);
-      if (next) Ptr_retain(next);
+      if (next)
+        Ptr_retain(next);
 
       args[0] = acc;
       args[1] = first;
@@ -277,7 +299,8 @@ RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start) {
     current = next;
   }
 
-  if (current) Ptr_release(current);
+  if (current)
+    Ptr_release(current);
   release(f);
   return acc;
 }
@@ -301,7 +324,8 @@ RTValue PersistentList_reduce2(PersistentList *self, RTValue f) {
     first = self->first;
     retain(first);
     rest = self->rest;
-    if (rest) Ptr_retain(rest);
+    if (rest)
+      Ptr_retain(rest);
     Ptr_release(self);
   }
 

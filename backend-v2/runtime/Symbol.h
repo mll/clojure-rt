@@ -24,15 +24,14 @@ struct Symbol {
 };
 typedef struct Symbol Symbol;
 
-RTValue Symbol_create(String *string);
-RTValue Symbol_createWithMeta(String *string, RTValue meta);
+Symbol *Symbol_create(String *string);
+Symbol *Symbol_withMeta(Symbol *self, RTValue meta);
+Symbol *Symbol_createWithMeta(String *string, RTValue meta);
 String *Symbol_getName(Symbol *self);
 void Symbol_destroy(Symbol *self);
 bool Symbol_equals(Symbol *self, Symbol *other);
 uword_t Symbol_hash(Symbol *self);
 String *Symbol_toString(RTValue self);
-uint32_t Symbol_getInternCount();
-void Symbol_resetInterns();
 
 #ifdef __cplusplus
 }

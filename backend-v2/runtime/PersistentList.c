@@ -41,6 +41,12 @@ PersistentList *PersistentList_withMeta(PersistentList *self, RTValue meta) {
   Ptr_release(self);
   return new;
 }
+RTValue PersistentList_getMeta(PersistentList *self) {
+  RTValue meta = self->metadata;
+  retain(meta);
+  Ptr_release(self);
+  return meta;
+}
 
 struct ListPair {
   PersistentList *first;

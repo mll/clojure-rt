@@ -22,6 +22,7 @@ struct PersistentList {
 void PersistentList_initialise();
 PersistentList *PersistentList_empty();
 PersistentList *PersistentList_withMeta(PersistentList *self, RTValue meta);
+RTValue PersistentList_getMeta(PersistentList *self);
 void PersistentList_cleanup();
 
 bool PersistentList_equals(PersistentList *self, PersistentList *other);

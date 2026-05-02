@@ -743,6 +743,12 @@ uword_t PersistentVector_count(PersistentVector *restrict self) {
   Ptr_release(self);
   return retVal;
 }
+RTValue PersistentVector_getMeta(PersistentVector *self) {
+  RTValue meta = self->metadata;
+  retain(meta);
+  Ptr_release(self);
+  return meta;
+}
 
 bool PersistentVector_contains(PersistentVector *restrict self, RTValue other) {
   if (self->root) {

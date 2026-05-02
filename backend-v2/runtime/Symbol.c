@@ -38,7 +38,19 @@ Symbol *Symbol_createWithMeta(String *string, RTValue meta) {
   return sym;
 }
 
-String *Symbol_getName(Symbol *self) { return self->name; }
+String *Symbol_getName(Symbol *self) {
+  String *name = self->name;
+  Ptr_retain(name);
+  Ptr_release(self);
+  return name;
+}
+
+RTValue Symbol_getMeta(Symbol *self) {
+  RTValue meta = self->metadata;
+  retain(meta);
+  Ptr_release(self);
+  return meta;
+}
 
 void Symbol_destroy(Symbol *self) {
   Ptr_release(self->name);

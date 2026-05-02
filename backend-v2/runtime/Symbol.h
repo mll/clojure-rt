@@ -27,6 +27,7 @@ typedef struct Symbol Symbol;
 Symbol *Symbol_create(String *string);
 Symbol *Symbol_withMeta(Symbol *self, RTValue meta);
 Symbol *Symbol_createWithMeta(String *string, RTValue meta);
+RTValue Symbol_getMeta(Symbol *self);
 String *Symbol_getName(Symbol *self);
 void Symbol_destroy(Symbol *self);
 bool Symbol_equals(Symbol *self, Symbol *other);

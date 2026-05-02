@@ -39,6 +39,12 @@ PersistentArrayMap *PersistentArrayMap_withMeta(PersistentArrayMap *self,
   new->metadata = meta;
   return new;
 }
+RTValue PersistentArrayMap_getMeta(PersistentArrayMap *self) {
+  RTValue meta = self->metadata;
+  retain(meta);
+  Ptr_release(self);
+  return meta;
+}
 
 /* mem done */
 PersistentArrayMap *PersistentArrayMap_create() {

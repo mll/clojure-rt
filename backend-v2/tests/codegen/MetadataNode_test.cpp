@@ -53,15 +53,18 @@ static void test_const_metadata(void **state) {
     RTValue result = func();
 
     assert_true(getType(result) == symbolType);
-    assert_string_equal("test-symbol",
-                        String_c_str(Symbol_getName((Symbol *)RT_unboxPtr(result))));
+    retain(result);
+    String *rts = Symbol_getName((Symbol *)RT_unboxPtr(result));
+    assert_string_equal("test-symbol", String_c_str(rts));
+    Ptr_release(rts);
 
     RTValue metadata = RT_meta(result); // Consumes result
     assert_true(getType(metadata) == persistentArrayMapType);
 
     RTValue fooKey = Keyword_create(String_create("foo"));
-    RTValue fooVal = PersistentArrayMap_get(
-        (PersistentArrayMap *)RT_unboxPtr(metadata), fooKey); // Consumes metadata and fooKey
+    RTValue fooVal =
+        PersistentArrayMap_get((PersistentArrayMap *)RT_unboxPtr(metadata),
+                               fooKey); // Consumes metadata and fooKey
     assert_true(getType(fooVal) == booleanType);
     assert_true(RT_unboxBool(fooVal));
 
@@ -113,8 +116,9 @@ static void test_def_metadata(void **state) {
     assert_true(getType(metadata) == persistentArrayMapType);
 
     RTValue barKey = Keyword_create(String_create("bar"));
-    RTValue barVal = PersistentArrayMap_get(
-        (PersistentArrayMap *)RT_unboxPtr(metadata), barKey); // Consumes metadata and barKey
+    RTValue barVal =
+        PersistentArrayMap_get((PersistentArrayMap *)RT_unboxPtr(metadata),
+                               barKey); // Consumes metadata and barKey
     assert_int_equal(123, RT_unboxInt32(barVal));
 
     release(barVal);

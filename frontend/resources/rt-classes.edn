@@ -35,7 +35,9 @@
 
   java.lang.PersistentArrayMap
   {:object-type 18
-   :extends java.lang.Object}
+   :extends java.lang.Object
+   :implements {clojure.lang.IMeta {meta [{:args [:this] :type :call :symbol "PersistentArrayMap_getMeta" :returns :any}]}
+                clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "PersistentArrayMap_withMeta" :returns java.lang.PersistentArrayMap}]}}}
 
   clojure.lang.BigInt
   {:extends java.lang.Object
@@ -60,13 +62,17 @@
   clojure.lang.Symbol
   {:alias :symbol
    :object-type 10
-   :extends java.lang.Object}
+   :extends java.lang.Object
+   :implements {clojure.lang.IMeta {meta [{:args [:this] :type :call :symbol "Symbol_getMeta" :returns :any}]}
+                clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "Symbol_withMeta" :returns clojure.lang.Symbol}]}}}
 
-  ;; character: clojure.lang.Character
+  ;; TODO: character: clojure.lang.Character
 
   clojure.lang.Var
   {:extends java.lang.Object
-   :object-type 19}
+   :object-type 19
+   :implements {clojure.lang.IMeta {meta [{:args [:this] :type :call :symbol "Var_getMeta" :returns :any}]}
+                clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "Var_resetMeta" :returns clojure.lang.Var}]}}}
 
   clojure.lang.Numbers
   {:static-fns
@@ -311,7 +317,9 @@
   clojure.lang.PersistentVector
   {:object-type 4
    :extends java.lang.Object
-   :implements {clojure.lang.Counted {count [{:args [:this] :type :call :symbol "PersistentVector_count" :returns :int}]}
+   :implements {clojure.lang.IMeta {meta [{:args [:this] :type :call :symbol "PersistentVector_getMeta" :returns :any}]}
+                clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "PersistentVector_withMeta" :returns clojure.lang.PersistentVector}]}
+                clojure.lang.Counted {count [{:args [:this] :type :call :symbol "PersistentVector_count" :returns :int}]}
                 clojure.lang.IPersistentCollection {cons [{:args [:this :any] :type :call :symbol "PersistentVector_conj" :returns clojure.lang.PersistentVector}]
                                                      count [{:args [:this] :type :call :symbol "PersistentVector_count" :returns :int}]
                                                      empty [{:args [:this] :type :call :symbol "PersistentVector_empty" :returns clojure.lang.PersistentVector}]
@@ -381,7 +389,9 @@
 clojure.lang.PersistentList
   {:object-type 3
    :extends java.lang.Object
-   :implements {clojure.lang.IPersistentList {}
+   :implements {clojure.lang.IMeta {meta [{:args [:this] :type :call :symbol "PersistentList_getMeta" :returns :any}]}
+                clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "PersistentList_withMeta" :returns clojure.lang.PersistentList}]}
+                clojure.lang.IPersistentList {}
                 clojure.lang.Sequential {}
                 clojure.lang.Counted {count [{:args [:this] :type :call :symbol "PersistentList_count" :returns :int}]}
                 clojure.lang.IPersistentStack {peek [{:args [:this] :type :call :symbol "PersistentList_first" :returns :any}]

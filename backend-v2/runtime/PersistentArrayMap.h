@@ -25,6 +25,7 @@ struct PersistentArrayMap {
 
 PersistentArrayMap *PersistentArrayMap_empty();
 PersistentArrayMap *PersistentArrayMap_withMeta(PersistentArrayMap *self, RTValue meta);
+RTValue PersistentArrayMap_getMeta(PersistentArrayMap *self);
 void PersistentArrayMap_initialise();
 void PersistentArrayMap_cleanup();
 

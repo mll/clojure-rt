@@ -67,6 +67,7 @@
     #'collect-closed-overs
     #'passes/simplify-closed-overs
     #'passes/remove-env
+    #'passes/expand-const-collections
     #'passes/fresh-vars
     #'passes/memory-management-pass
     #'passes/rewrite-loops

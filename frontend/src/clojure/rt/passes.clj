@@ -19,6 +19,63 @@
         (update-in [:env] #(dissoc % :context :locals)))
     ast))
 
+(defn- get-const-type [v]
+  (cond
+    (nil? v) :nil
+    (boolean? v) :bool
+    (keyword? v) :keyword
+    (symbol? v) :symbol
+    (string? v) :string
+    (number? v) :number
+    (char? v) :char
+    (map? v) :map
+    (vector? v) :vector
+    (set? v) :set
+    (seq? v) :seq
+    :else :unknown))
+
+(defn expand-const-collections
+  {:pass-info {:walk :pre :depends #{}}}
+  [ast]
+  (if (and (= :const (:op ast))
+           (#{:map :vector :set :seq} (:type ast)))
+    (let [val (:val ast)
+          env (:env ast)
+          wrap (fn [v]
+                 (let [type (get-const-type v)]
+                   (expand-const-collections
+                    {:op :const :val v :type type :env env})))
+          base (dissoc ast :val :type)]
+      (case (:type ast)
+        :map (assoc base :op :map
+                    :keys (mapv wrap (keys val))
+                    :vals (mapv wrap (vals val))
+                    :children [:keys :vals])
+        :vector (assoc base :op :vector
+                       :items (mapv wrap val)
+                       :children [:items])
+        :set (assoc base :op :set
+                    :items (mapv wrap val)
+                    :children [:items])
+        :seq (let [items (mapv wrap val)]
+               {:op   :invoke
+                :form (list 'sequence (list 'quote val))
+                :env  env
+                :fn   {:op   :var
+                       :var  #'clojure.core/sequence
+                       :form 'clojure.core/sequence}
+                :args [{:op       :invoke
+                        :form     (list 'list (list 'quote val))
+                        :env      env
+                        :fn       {:op   :var
+                                   :var  #'clojure.core/list
+                                   :form 'clojure.core/list}
+                        :args     items
+                        :children [:fn :args]}]
+                :children [:fn :args]})
+        ast))
+    ast))
+
 (defn simplify-closed-overs
   {:pass-info {:walk :pre :depends #{#'collect-closed-overs}}}
   [ast]  

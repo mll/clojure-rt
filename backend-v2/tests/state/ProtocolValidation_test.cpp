@@ -56,7 +56,7 @@ static void test_protocol_inheritance_and_isinstance(void **state) {
     PersistentVector *f1Overloads = PersistentVector_create();
     f1Overloads = PersistentVector_conj(f1Overloads, RT_boxPtr(f1Desc));
     p1Fns = PersistentArrayMap_assoc(
-        p1Fns, Symbol_create(String_create("f1")), RT_boxPtr(f1Overloads));
+        p1Fns, RT_boxPtr(Symbol_create(String_create("f1"))), RT_boxPtr(f1Overloads));
     Ptr_retain(f1Overloads); // For p2Impl later
 
     p1Map = PersistentArrayMap_assoc(
@@ -72,7 +72,7 @@ static void test_protocol_inheritance_and_isinstance(void **state) {
         p2Map, Keyword_create(String_create("object-type")), RT_boxInt32(2002));
     p2Map = PersistentArrayMap_assoc(
         p2Map, Keyword_create(String_create("extends")),
-        Symbol_create(String_create("P1")));
+        RT_boxPtr(Symbol_create(String_create("P1"))));
     PersistentArrayMap *p2Fns = PersistentArrayMap_empty();
     PersistentVector *p2Sig = PersistentVector_create();
     p2Sig = PersistentVector_conj(p2Sig, Keyword_create(String_create("this")));
@@ -90,7 +90,7 @@ static void test_protocol_inheritance_and_isinstance(void **state) {
     PersistentVector *f2Overloads = PersistentVector_create();
     f2Overloads = PersistentVector_conj(f2Overloads, RT_boxPtr(f2Desc));
     p2Fns = PersistentArrayMap_assoc(
-        p2Fns, Symbol_create(String_create("f2")), RT_boxPtr(f2Overloads));
+        p2Fns, RT_boxPtr(Symbol_create(String_create("f2"))), RT_boxPtr(f2Overloads));
     Ptr_retain(f2Overloads); // For p2Impl later
 
     p2Map = PersistentArrayMap_assoc(
@@ -98,9 +98,9 @@ static void test_protocol_inheritance_and_isinstance(void **state) {
 
     PersistentArrayMap *protoRoot = PersistentArrayMap_empty();
     protoRoot = PersistentArrayMap_assoc(
-        protoRoot, Symbol_create(String_create("P1")), RT_boxPtr(p1Map));
+        protoRoot, RT_boxPtr(Symbol_create(String_create("P1"))), RT_boxPtr(p1Map));
     protoRoot = PersistentArrayMap_assoc(
-        protoRoot, Symbol_create(String_create("P2")), RT_boxPtr(p2Map));
+        protoRoot, RT_boxPtr(Symbol_create(String_create("P2"))), RT_boxPtr(p2Map));
 
     compState.storeInternalProtocols(RT_boxPtr(protoRoot));
 
@@ -113,22 +113,22 @@ static void test_protocol_inheritance_and_isinstance(void **state) {
 
     PersistentArrayMap *p2Impl = PersistentArrayMap_empty();
     // P2 requires f1 (from P1) and f2
-    p2Impl = PersistentArrayMap_assoc(p2Impl, Symbol_create(String_create("f1")),
+    p2Impl = PersistentArrayMap_assoc(p2Impl, RT_boxPtr(Symbol_create(String_create("f1"))),
                                     RT_boxPtr(f1Overloads));
     // f1Overloads was retained above
-    p2Impl = PersistentArrayMap_assoc(p2Impl, Symbol_create(String_create("f2")),
+    p2Impl = PersistentArrayMap_assoc(p2Impl, RT_boxPtr(Symbol_create(String_create("f2"))),
                                     RT_boxPtr(f2Overloads));
     // f2Overloads was retained above
 
     PersistentArrayMap *impls = PersistentArrayMap_empty();
     impls = PersistentArrayMap_assoc(
-        impls, Symbol_create(String_create("P2")), RT_boxPtr(p2Impl));
+        impls, RT_boxPtr(Symbol_create(String_create("P2"))), RT_boxPtr(p2Impl));
     c1Map = PersistentArrayMap_assoc(
         c1Map, Keyword_create(String_create("implements")), RT_boxPtr(impls));
 
     PersistentArrayMap *classRoot = PersistentArrayMap_empty();
     classRoot = PersistentArrayMap_assoc(
-        classRoot, Symbol_create(String_create("C1")), RT_boxPtr(c1Map));
+        classRoot, RT_boxPtr(Symbol_create(String_create("C1"))), RT_boxPtr(c1Map));
 
     compState.storeInternalClasses(RT_boxPtr(classRoot));
 
@@ -184,13 +184,13 @@ static void test_missing_method_fails(void **state) {
     PersistentVector *f1Overloads = PersistentVector_create();
     f1Overloads = PersistentVector_conj(f1Overloads, RT_boxPtr(f1Desc));
     p1Fns = PersistentArrayMap_assoc(
-        p1Fns, Symbol_create(String_create("f1")), RT_boxPtr(f1Overloads));
+        p1Fns, RT_boxPtr(Symbol_create(String_create("f1"))), RT_boxPtr(f1Overloads));
     p1Map = PersistentArrayMap_assoc(
         p1Map, Keyword_create(String_create("instance-fns")), RT_boxPtr(p1Fns));
 
     PersistentArrayMap *protoRoot = PersistentArrayMap_empty();
     protoRoot = PersistentArrayMap_assoc(
-        protoRoot, Symbol_create(String_create("P1")), RT_boxPtr(p1Map));
+        protoRoot, RT_boxPtr(Symbol_create(String_create("P1"))), RT_boxPtr(p1Map));
 
     compState.storeInternalProtocols(RT_boxPtr(protoRoot));
 
@@ -205,13 +205,13 @@ static void test_missing_method_fails(void **state) {
     // Missing f1 in the implementation map
     PersistentArrayMap *impls = PersistentArrayMap_empty();
     impls = PersistentArrayMap_assoc(
-        impls, Symbol_create(String_create("P1")), RT_boxPtr(p1Impl));
+        impls, RT_boxPtr(Symbol_create(String_create("P1"))), RT_boxPtr(p1Impl));
     c1Map = PersistentArrayMap_assoc(
         c1Map, Keyword_create(String_create("implements")), RT_boxPtr(impls));
 
     PersistentArrayMap *classRoot = PersistentArrayMap_empty();
     classRoot = PersistentArrayMap_assoc(
-        classRoot, Symbol_create(String_create("C1")), RT_boxPtr(c1Map));
+        classRoot, RT_boxPtr(Symbol_create(String_create("C1"))), RT_boxPtr(c1Map));
 
     // 3. Validation should throw during storeInternalClasses because C1 is missing f1
     bool thrown = false;

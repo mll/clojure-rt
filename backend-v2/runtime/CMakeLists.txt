@@ -194,6 +194,7 @@ set(TEST_MODULES
     Exception_test
     StringBuilder_test
     PersistentVectorChunkedSeq_test
+    Metadata_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

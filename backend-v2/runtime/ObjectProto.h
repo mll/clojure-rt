@@ -68,5 +68,6 @@ struct Object {
 #endif
 };
 typedef struct Object Object;
+typedef struct Symbol Symbol;
 
 #endif

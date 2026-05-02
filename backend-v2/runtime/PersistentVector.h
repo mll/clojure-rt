@@ -34,10 +34,13 @@ struct PersistentVector {
   uword_t transientID;
   PersistentVectorNode *tail;
   PersistentVectorNode *root;
+  RTValue metadata;
 };
 
 PersistentVector *PersistentVector_create();
+PersistentVector *PersistentVector_withMeta(PersistentVector *self, RTValue meta);
 PersistentVector *PersistentVector_createMany(int32_t objCount, ...);
+RTValue PersistentVector_getMeta(PersistentVector *self);
 
 bool PersistentVector_equals(PersistentVector *restrict self,
                              PersistentVector *restrict other);

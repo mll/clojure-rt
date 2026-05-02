@@ -80,7 +80,7 @@ llvm::Type *LLVMTypes::typeForType(const ObjectTypeSet &type) {
   if (type.isUnboxedType(keywordType))
     return i32Ty;
   if (type.isUnboxedType(symbolType))
-    return i32Ty;
+    return ptrTy;
   if (type.isUnboxedType(booleanType))
     return i1Ty;
 

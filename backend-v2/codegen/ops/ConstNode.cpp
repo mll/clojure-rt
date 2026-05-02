@@ -4,6 +4,7 @@
 #include "codegen/TypedValue.h"
 #include "state/ThreadsafeCompilerState.h"
 #include "types/ConstantClass.h"
+#include "types/ObjectTypeSet.h"
 #include <string>
 
 using namespace std;
@@ -55,6 +56,7 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     break;
   case symbolType:
     retVal = dynamicConstructor.createSymbol(name.c_str());
+    memoryManagement.dynamicRetain(retVal);
     break;
   case classType: {
     string className = name;
@@ -108,12 +110,20 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     if (subnode.val() == "[]") {
       std::vector<TypedValue> items;
       retVal = dynamicConstructor.createVector(items);
-      // No dynamicRetain here, createVector already returns a fresh vector with
-      // refcount 1 which will be consumed by the callee or released by the
-      // CleanupChainGuard.
     } else {
       throwCodeGenerationException(
           string("Compiler does not support non-empty vector constants yet: ") +
+              subnode.val(),
+          node);
+    }
+    break;
+  case persistentArrayMapType:
+    if (subnode.val() == "{}") {
+      std::vector<TypedValue> empty;
+      retVal = dynamicConstructor.createArrayMap(empty, empty);
+    } else {
+      throwCodeGenerationException(
+          string("Compiler does not support non-empty map constants yet: ") +
               subnode.val(),
           node);
     }
@@ -124,6 +134,42 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
             to_string(types.determinedType()),
         node);
   }
+  if (subnode.has_meta()) {
+    CleanupChainGuard guard(*this);
+    guard.push(retVal);
+    TypedValue meta = codegen(subnode.meta(), ObjectTypeSet::all());
+    guard.push(meta);
+
+    string fname;
+    ObjectTypeSet retValType = retVal.type;
+
+    switch (types.determinedType()) {
+    case symbolType:
+      fname = "Symbol_withMeta";
+      break;
+    case persistentVectorType:
+      fname = "PersistentVector_withMeta";
+      break;
+    case persistentListType:
+      fname = "PersistentList_withMeta";
+      break;
+    case persistentArrayMapType:
+      fname = "PersistentArrayMap_withMeta";
+      break;
+    case varType:
+      fname = "Var_resetMeta";
+      break;
+    default:
+      // Type does not support metadata. Release meta and return original value.
+      memoryManagement.dynamicRelease(meta);
+      return retVal;
+    }
+
+    retVal = invokeManager.invokeRuntime(
+        fname, &retValType, {retVal.type, ObjectTypeSet::dynamicType()},
+        {retVal, meta}, false, &guard);
+  }
+
   return retVal;
 }
 
@@ -163,7 +209,8 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
     }
 
     if (node.tag() == "long" || node.otag() == "long" ||
-        node.tag() == "class java.lang.Long" || node.tag() == "") {
+        node.tag() == "class java.lang.Long" || node.tag() == "" ||
+        node.tag() == "class java.lang.Integer") {
       try {
         size_t end;
         long long val = stoll(subnode.val(), &end);
@@ -219,6 +266,13 @@ ObjectTypeSet CodeGen::getType(const Node &node, const ConstNode &subnode,
 
   case ConstNode_ConstType_constTypeVector:
     return ObjectTypeSet(persistentVectorType).restriction(typeRestrictions);
+  case ConstNode_ConstType_constTypeMap:
+    return ObjectTypeSet(persistentArrayMapType).restriction(typeRestrictions);
+  // case ConstNode_ConstType_constTypeSet:
+  //   return
+  //   ObjectTypeSet(persistentHashSetType).restriction(typeRestrictions);
+  case ConstNode_ConstType_constTypeSeq:
+    return ObjectTypeSet(persistentListType).restriction(typeRestrictions);
   case ConstNode_ConstType_constTypeVar:
     return ObjectTypeSet(varType).restriction(typeRestrictions);
   default:

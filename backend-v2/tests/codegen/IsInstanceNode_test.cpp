@@ -5,11 +5,11 @@
 #include "bytecode.pb.h"
 #include "runtime/ObjectProto.h"
 extern "C" {
+#include "../../runtime/Keyword.h"
 #include "../../runtime/PersistentArrayMap.h"
 #include "../../runtime/PersistentVector.h"
-#include "../../runtime/Keyword.h"
-#include "../../runtime/Symbol.h"
 #include "../../runtime/String.h"
+#include "../../runtime/Symbol.h"
 #include "../../runtime/tests/TestTools.h"
 #include <cmocka.h>
 }
@@ -113,8 +113,7 @@ static void test_is_instance_compile_time_true(void **state) {
         ConstNode_ConstType_constTypeClass);
     clsNode->mutable_subnode()->mutable_const_()->set_val("MyClass");
 
-    auto res = engine
-                   .compileAST(node, "test_is_instance_compile_time_true")
+    auto res = engine.compileAST(node, "test_is_instance_compile_time_true")
                    .get()
                    .address;
 
@@ -144,8 +143,7 @@ static void test_is_instance_compile_time_false(void **state) {
     target->mutable_subnode()->mutable_const_()->set_val("42");
     target->set_tag("long");
 
-    auto res = engine
-                   .compileAST(node, "test_is_instance_compile_time_false")
+    auto res = engine.compileAST(node, "test_is_instance_compile_time_false")
                    .get()
                    .address;
 
@@ -185,10 +183,8 @@ static void test_is_instance_runtime(void **state) {
         ConstNode_ConstType_constTypeNil);
     ln->mutable_body()->CopyFrom(node);
 
-    auto res = engine
-                   .compileAST(letNode, "test_is_instance_runtime")
-                   .get()
-                   .address;
+    auto res =
+        engine.compileAST(letNode, "test_is_instance_runtime").get().address;
 
     RTValue result = resPtrToValue(res);
     assert_true(RT_isBool(result));
@@ -218,10 +214,8 @@ static void test_is_instance_class_prefix(void **state) {
         ConstNode_ConstType_constTypeClass);
     clsNode->mutable_subnode()->mutable_const_()->set_val("MyClass");
 
-    auto res = engine
-                   .compileAST(node, "test_is_instance_class_prefix")
-                   .get()
-                   .address;
+    auto res =
+        engine.compileAST(node, "test_is_instance_class_prefix").get().address;
 
     RTValue result = resPtrToValue(res);
     assert_true(RT_isBool(result));
@@ -251,8 +245,7 @@ static void test_is_instance_interface_prefix(void **state) {
         ConstNode_ConstType_constTypeClass);
     clsNode->mutable_subnode()->mutable_const_()->set_val("MyClass");
 
-    auto res = engine
-                   .compileAST(node, "test_is_instance_interface_prefix")
+    auto res = engine.compileAST(node, "test_is_instance_interface_prefix")
                    .get()
                    .address;
 
@@ -291,10 +284,10 @@ static void test_is_instance_any_type_regression(void **state) {
     target->set_op(opLocal);
     target->mutable_subnode()->mutable_local()->set_name("dynamic-val");
 
-    auto res = engine
-                   .compileAST(letNode, "test_is_instance_any_type_regression")
-                   .get()
-                   .address;
+    auto res =
+        engine.compileAST(letNode, "test_is_instance_any_type_regression")
+            .get()
+            .address;
 
     RTValue result = resPtrToValue(res);
     assert_true(RT_isBool(result));
@@ -346,8 +339,7 @@ static void test_is_instance_refcounted_local(void **state) {
     ret->mutable_subnode()->mutable_const_()->set_type(
         ConstNode_ConstType_constTypeNil);
 
-    auto res = engine
-                   .compileAST(letNode, "test_is_instance_refcounted_local")
+    auto res = engine.compileAST(letNode, "test_is_instance_refcounted_local")
                    .get()
                    .address;
     RTValue result = resPtrToValue(res);
@@ -365,42 +357,53 @@ static void test_is_instance_protocol(void **state) {
     PersistentArrayMap *p1Map = PersistentArrayMap_empty();
     p1Map = PersistentArrayMap_assoc(
         p1Map, Keyword_create(String_create("is-interface")), RT_boxBool(true));
-    p1Map = PersistentArrayMap_assoc(
-        p1Map, Keyword_create(String_create("name")),
-        RT_boxPtr(String_create("P1")));
+    p1Map =
+        PersistentArrayMap_assoc(p1Map, Keyword_create(String_create("name")),
+                                 RT_boxPtr(String_create("P1")));
     p1Map = PersistentArrayMap_assoc(
         p1Map, Keyword_create(String_create("object-type")), RT_boxInt32(2001));
-    
+
     PersistentArrayMap *protoRoot = PersistentArrayMap_empty();
     protoRoot = PersistentArrayMap_assoc(
-        protoRoot, Symbol_create(String_create("P1")), RT_boxPtr(p1Map));
+        protoRoot, RT_boxPtr(Symbol_create(String_create("P1"))),
+        RT_boxPtr(p1Map));
     compState.storeInternalProtocols(RT_boxPtr(protoRoot));
 
     // 2. Define Class C1 implementing P1
     PersistentArrayMap *c1Map = PersistentArrayMap_empty();
     c1Map = PersistentArrayMap_assoc(
         c1Map, Keyword_create(String_create("object-type")), RT_boxInt32(1001));
-    c1Map = PersistentArrayMap_assoc(c1Map, Keyword_create(String_create("name")),
-                                   RT_boxPtr(String_create("C1")));
-    
+    c1Map =
+        PersistentArrayMap_assoc(c1Map, Keyword_create(String_create("name")),
+                                 RT_boxPtr(String_create("C1")));
+
     PersistentArrayMap *p1Impl = PersistentArrayMap_empty();
     PersistentArrayMap *impls = PersistentArrayMap_empty();
     impls = PersistentArrayMap_assoc(
-        impls, Symbol_create(String_create("P1")), RT_boxPtr(p1Impl));
+        impls, RT_boxPtr(Symbol_create(String_create("P1"))),
+        RT_boxPtr(p1Impl));
     c1Map = PersistentArrayMap_assoc(
         c1Map, Keyword_create(String_create("implements")), RT_boxPtr(impls));
 
     PersistentVector *ctors = PersistentVector_create();
     PersistentArrayMap *ctorDesc = PersistentArrayMap_empty();
-    ctorDesc = PersistentArrayMap_assoc(ctorDesc, Keyword_create(String_create("type")), Keyword_create(String_create("call")));
-    ctorDesc = PersistentArrayMap_assoc(ctorDesc, Keyword_create(String_create("symbol")), RT_boxPtr(String_create("C1_create")));
-    ctorDesc = PersistentArrayMap_assoc(ctorDesc, Keyword_create(String_create("args")), RT_boxPtr(PersistentVector_create()));
+    ctorDesc = PersistentArrayMap_assoc(ctorDesc,
+                                        Keyword_create(String_create("type")),
+                                        Keyword_create(String_create("call")));
+    ctorDesc = PersistentArrayMap_assoc(ctorDesc,
+                                        Keyword_create(String_create("symbol")),
+                                        RT_boxPtr(String_create("C1_create")));
+    ctorDesc = PersistentArrayMap_assoc(ctorDesc,
+                                        Keyword_create(String_create("args")),
+                                        RT_boxPtr(PersistentVector_create()));
     ctors = PersistentVector_conj(ctors, RT_boxPtr(ctorDesc));
-    c1Map = PersistentArrayMap_assoc(c1Map, Keyword_create(String_create("constructor")), RT_boxPtr(ctors));
+    c1Map = PersistentArrayMap_assoc(
+        c1Map, Keyword_create(String_create("constructor")), RT_boxPtr(ctors));
 
     PersistentArrayMap *classRoot = PersistentArrayMap_empty();
     classRoot = PersistentArrayMap_assoc(
-        classRoot, Symbol_create(String_create("C1")), RT_boxPtr(c1Map));
+        classRoot, RT_boxPtr(Symbol_create(String_create("C1"))),
+        RT_boxPtr(c1Map));
     compState.storeInternalClasses(RT_boxPtr(classRoot));
 
     // 3. Test (instance? P1 (C1.))
@@ -417,10 +420,8 @@ static void test_is_instance_protocol(void **state) {
         ConstNode_ConstType_constTypeClass);
     nn->mutable_class_()->mutable_subnode()->mutable_const_()->set_val("C1");
 
-    auto res = engine
-                   .compileAST(node, "test_is_instance_protocol")
-                   .get()
-                   .address;
+    auto res =
+        engine.compileAST(node, "test_is_instance_protocol").get().address;
 
     RTValue result = resPtrToValue(res);
     assert_true(RT_isBool(result));

@@ -15,7 +15,6 @@ typedef uint64_t RTValue;
 #define RT_TAG_PTR          0xFFFE000000000000ULL
 #define RT_TAG_BOOL         0xFFFD000000000000ULL
 #define RT_TAG_KEYWORD      0xFFFB000000000000ULL
-#define RT_TAG_SYMBOL       0xFFFA000000000000ULL
 // Null is a marker of lack of value (e.g. in a list)
 // Nil is a valid value/type in the language that is falsly, but can be stored in lists.
 #define RT_TAG_NULL         0xFFF9000000000000ULL
@@ -29,7 +28,6 @@ static inline bool RT_isPtr(RTValue v)     { return (v & RT_TAG_MASK) == RT_TAG_
 static inline bool RT_isBool(RTValue v)    { return (v & RT_TAG_MASK) == RT_TAG_BOOL; }
 static inline bool RT_isNil(RTValue v)     { return v == RT_TAG_NIL; }
 static inline bool RT_isKeyword(RTValue v) { return (v & RT_TAG_MASK) == RT_TAG_KEYWORD; }
-static inline bool RT_isSymbol(RTValue v) { return (v & RT_TAG_MASK) == RT_TAG_SYMBOL; }
 static inline bool RT_isNull(RTValue v)     { return v == RT_TAG_NULL; }
 
 // --- Boxing (Creating RTValues) ---
@@ -76,8 +74,8 @@ static inline RTValue RT_boxKeyword(uint32_t id) {
     return ((RTValue)id) | RT_TAG_KEYWORD;
 }
 
-static inline RTValue RT_boxSymbol(uint32_t id) {
-    return ((RTValue)id) | RT_TAG_SYMBOL;
+static inline RTValue RT_boxSymbol(void* p) {
+    return RT_boxPtr(p);
 }
 
 // --- Unboxing (Extracting Data) ---
@@ -92,6 +90,6 @@ static inline int32_t RT_unboxInt32(RTValue v)   { return (int32_t)(v & 0xFFFFFF
 static inline void* RT_unboxPtr(RTValue v)     { return (void*)(uintptr_t)(v & ~RT_TAG_MASK); }
 static inline bool    RT_unboxBool(RTValue v)    { return (bool)(v & 0x1ULL); }
 static inline uint32_t RT_unboxKeyword(RTValue v) { return (uint32_t)(v & 0xFFFFFFFFULL); }
-static inline uint32_t RT_unboxSymbol(RTValue v) { return (uint32_t)(v & 0xFFFFFFFFULL); }
+static inline void* RT_unboxSymbol(RTValue v) { return RT_unboxPtr(v); }
 
 #endif // RT_VALUE_H

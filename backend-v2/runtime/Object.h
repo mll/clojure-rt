@@ -98,13 +98,37 @@ inline bool Object_isReusable(Object *self);
 inline bool isReusable(RTValue v);
 inline void Object_promoteToSharedShallow(Object *self, uword_t current);
 inline uword_t Object_getRawRefCount(Object *self);
-inline bool Object_release_internal(Object *self, bool deallocateChildren);
+
+inline void Object_create(Object *restrict self, objectType type) {
+  atomic_store_explicit(&(self->atomicRefCount), COUNT_INC,
+                        memory_order_relaxed);
+  self->type = type;
+  if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
+    atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
+                              memory_order_relaxed);
+    atomic_fetch_add_explicit(&(objectCount[self->type - 1]), 1,
+                              memory_order_relaxed);
+  }
+}
+
+inline void Object_retain(Object *restrict self) {
+  if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
+    atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
+                              memory_order_relaxed);
+  }
+  atomic_fetch_add_explicit(&(self->atomicRefCount), COUNT_INC,
+                              memory_order_relaxed);
+}
+
 inline void Ptr_retain(void *ptr);
 inline bool Ptr_release(void *ptr);
 inline void Ptr_autorelease(void *ptr);
 inline uword_t Ptr_hash(void *ptr);
 inline bool Ptr_equals(void *ptr, void *other);
 inline bool Ptr_isReusable(void *ptr);
+
+RTValue RT_meta(RTValue v);
+RTValue RT_withMeta(RTValue v, RTValue meta);
 
 #include "ArrayChunk.h"
 #include "BigInteger.h"
@@ -227,34 +251,6 @@ inline objectType getType(RTValue v) {
   return doubleType;
 }
 
-inline void Object_retain(Object *restrict self) {
-//  printf("RETAIN!!! %d\n", self->type);
-#ifdef REFCOUNT_TRACING
-  if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
-    atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
-                              memory_order_relaxed);
-  }
-#endif
-#ifdef REFCOUNT_NONATOMIC
-  self->refCount += COUNT_INC;
-#else
-  uword_t current =
-      atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
-
-  if (__builtin_expect(!(current & SHARED_BIT), 1)) {
-    // FAST PATH: It's local. Use a plain non-atomic write.
-    // We can do this because only THIS thread owns it.
-    uword_t new_val = current + COUNT_INC;
-    atomic_store_explicit(&(self->atomicRefCount), new_val,
-                          memory_order_relaxed);
-  } else {
-    // SLOW PATH: It's shared. Must use atomic fetch_add.
-    atomic_fetch_add_explicit(&(self->atomicRefCount), COUNT_INC,
-                              memory_order_relaxed);
-  }
-#endif
-}
-
 /* TODO: an improvement could be that for collections if we detect that it
   should be destroyed, we do retain; autorelease; and ignore destroy. This would
   free the current thread from the burden of deallocating them.
@@ -320,6 +316,9 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   case persistentVectorReverseSeqType:
     PersistentVectorReverseSeq_destroy((PersistentVectorReverseSeq *)self, deallocateChildren);
     break;
+  case symbolType:
+    Symbol_destroy((Symbol *)self);
+    break;
 
   default:
     break;
@@ -352,12 +351,10 @@ inline bool isReusable(RTValue self) {
 
 inline bool Object_release_internal(Object *restrict self,
                                     bool deallocateChildren) {
-#ifdef REFCOUNT_TRACING
   if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
     atomic_fetch_sub_explicit(&(allocationCount[self->type - 1]), 1,
                               memory_order_relaxed);
   }
-#endif
 #ifdef REFCOUNT_NONATOMIC
   self->refCount -= COUNT_INC;
   if ((self->refCount >> 1) == 0) {
@@ -518,6 +515,8 @@ inline uword_t Object_hash(Object *restrict self) {
     return StringBuilder_hash((StringBuilder *)self);
   case persistentVectorChunkedSeqType:
     return PersistentVectorChunkedSeq_hash((PersistentVectorChunkedSeq *)self);
+  case symbolType:
+    return Symbol_hash((Symbol *)self);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -539,7 +538,7 @@ inline uword_t hash(RTValue v) {
   case keywordType:
     return (uword_t)avalanche(RT_unboxKeyword(v));
   case symbolType:
-    return (uword_t)avalanche(RT_unboxSymbol(v));
+    return Symbol_hash((Symbol *)RT_unboxSymbol(v));
   case doubleType: {
     double d = RT_unboxDouble(v);
     uint64_t u;
@@ -605,6 +604,8 @@ inline bool Object_equals(Object *self, Object *other) {
     return StringBuilder_equals((StringBuilder *)self, (StringBuilder *)other);
   case persistentVectorChunkedSeqType:
     return PersistentVectorChunkedSeq_equals((PersistentVectorChunkedSeq *)self, (PersistentVectorChunkedSeq *)other);
+  case symbolType:
+    return Symbol_equals((Symbol *)self, (Symbol *)other);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -670,6 +671,8 @@ inline String *Object_toString(Object *restrict self) {
     return StringBuilder_toString((StringBuilder *)self);
   case persistentVectorChunkedSeqType:
     return PersistentVectorChunkedSeq_toString((PersistentVectorChunkedSeq *)self);
+  case symbolType:
+    return Symbol_toString(RT_boxSymbol(self));
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }
@@ -694,29 +697,16 @@ inline bool release(RTValue self) {
   return false;
 }
 
+static inline bool RT_isSymbol(RTValue v) {
+  if (!RT_isPtr(v))
+    return false;
+  return getType(v) == symbolType;
+}
+
 inline void promoteToShared(RTValue self) {
   if (RT_isPtr(self)) {
     Object_promoteToShared((Object *)RT_unboxPtr(self));
   }
-}
-
-inline void Object_create(Object *restrict self, objectType type) {
-#ifdef REFCOUNT_NONATOMIC
-  self->refCount = COUNT_INC;
-#else
-  atomic_store_explicit(&(self->atomicRefCount), COUNT_INC,
-                        memory_order_relaxed);
-#endif
-  self->type = type;
-#ifdef REFCOUNT_TRACING
-  if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
-    atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
-                              memory_order_relaxed);
-    atomic_fetch_add_explicit(&(objectCount[self->type - 1]), 1,
-                              memory_order_relaxed);
-  }
-#endif
-  //  printf("--> Allocating type %d addres %p\n", self->type, );
 }
 
 inline uword_t combineHash(uword_t lhs, uword_t rhs) {
@@ -735,6 +725,20 @@ inline bool Ptr_equals(void *self, void *other) {
   if (self == other)
     return true;
   return Object_equals((Object *)self, (Object *)other);
+}
+
+inline bool equals_managed(RTValue self, RTValue other) {
+  bool result = equals(self, other);
+  release(self);
+  release(other);
+  return result;
+}
+
+inline bool identical_managed(RTValue v1, RTValue v2) {
+  bool result = (v1 == v2);
+  release(v1);
+  release(v2);
+  return result;
 }
 
 inline String *toString(RTValue self) {
@@ -756,21 +760,6 @@ inline String *toString(RTValue self) {
   assert(RT_isPtr(self) && "Internal error: Not a pointer");
   return Object_toString((Object *)RT_unboxPtr(self));
 }
-
-inline bool equals_managed(RTValue self, RTValue other) {
-  bool result = equals(self, other);
-  release(self);
-  release(other);
-  return result;
-}
-
-inline bool identical_managed(RTValue v1, RTValue v2) {
-  bool result = (v1 == v2);
-  release(v1);
-  release(v2);
-  return result;
-}
-
 
 #ifdef __cplusplus
 }

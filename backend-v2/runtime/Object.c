@@ -86,3 +86,66 @@ extern void Object_promoteToSharedShallow(Object *restrict self,
                                           uword_t current);
 extern uword_t Object_getRawRefCount(Object *self);
 extern void promoteToShared(RTValue self);
+
+RTValue RT_meta(RTValue v) {
+  if (!RT_isPtr(v))
+    return RT_boxNil();
+  Object *obj = (Object *)RT_unboxPtr(v);
+  RTValue meta = RT_boxNil();
+  switch (obj->type) {
+  case symbolType:
+    meta = ((Symbol *)obj)->metadata;
+    break;
+  case persistentVectorType:
+    meta = ((PersistentVector *)obj)->metadata;
+    break;
+  case persistentListType:
+    meta = ((PersistentList *)obj)->metadata;
+    break;
+  case persistentArrayMapType:
+    meta = ((PersistentArrayMap *)obj)->metadata;
+    break;
+  case varType:
+    meta = atomic_load_explicit(&((Var *)obj)->metadata, memory_order_relaxed);
+    break;
+  default:
+    break;
+  }
+  retain(meta);
+  release(v);
+  return meta;
+}
+
+RTValue RT_withMeta(RTValue v, RTValue meta) {
+  if (!RT_isPtr(v)) {
+    release(meta);
+    return v;
+  }
+  Object *obj = (Object *)RT_unboxPtr(v);
+  RTValue result;
+  switch (obj->type) {
+  case symbolType:
+    result = RT_boxPtr(Symbol_withMeta((Symbol *)obj, meta));
+    break;
+  case persistentVectorType:
+    result =
+        RT_boxPtr(PersistentVector_withMeta((PersistentVector *)obj, meta));
+    break;
+  case persistentListType:
+    result = RT_boxPtr(PersistentList_withMeta((PersistentList *)obj, meta));
+    break;
+  case persistentArrayMapType:
+    result =
+        RT_boxPtr(PersistentArrayMap_withMeta((PersistentArrayMap *)obj, meta));
+    break;
+  case varType:
+    // For Vars, with-meta is destructive on the Var itself in our RT
+    // but returns the Var.
+    result = RT_boxPtr(Var_resetMeta((Var *)obj, meta));
+    break;
+  default:
+    release(meta);
+    return v;
+  }
+  return result;
+}

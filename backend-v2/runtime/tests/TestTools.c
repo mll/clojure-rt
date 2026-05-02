@@ -101,16 +101,16 @@ void testScalingBehavior(void **state) {
 
 void assertMemoryBalance(MemoryState *before, MemoryState *after) {
   uint32_t stringLeaks =
-      (after->internedKeywords - before->internedKeywords) * 2 +
-      (after->internedSymbols - before->internedSymbols) * 2;
+      (after->internedKeywords - before->internedKeywords) * 2;
   for (int i = 0; i < 256; i++) {
     uword_t expected = before->counts[i];
     if (i == stringType - 1) {
       expected += stringLeaks;
     }
     if (expected != after->counts[i]) {
-      printf("assertMemoryBalance mismatch: type %d, expected %lu, got %lu\n",
-             i + 1, expected, after->counts[i]);
+      fprintf(stderr,
+              "assertMemoryBalance mismatch: type %d, expected %lu, got %lu\n",
+              i + 1, (unsigned long)expected, (unsigned long)after->counts[i]);
     }
     assert_int_equal(expected, after->counts[i]);
   }
@@ -119,8 +119,7 @@ void assertMemoryBalance(MemoryState *before, MemoryState *after) {
 void assertMemoryBalanceExcept(MemoryState *before, MemoryState *after,
                                int except_types[], size_t num_exceptions) {
   uint32_t stringLeaks =
-      (after->internedKeywords - before->internedKeywords) * 2 +
-      (after->internedSymbols - before->internedSymbols) * 2;
+      (after->internedKeywords - before->internedKeywords) * 2;
   for (int i = 0; i < 256; i++) {
     bool skip = false;
     for (size_t j = 0; j < num_exceptions; j++) {

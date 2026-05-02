@@ -16,7 +16,6 @@ void RuntimeInterface_cleanup();
 typedef struct {
   uword_t counts[256];
   uint32_t internedKeywords;
-  uint32_t internedSymbols;
 } MemoryState;
 
 void captureMemoryState(MemoryState *state);

@@ -136,7 +136,7 @@ TypedValue InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
     return TypedValue(id.returnType, it->second(builder, argVals));
   } else if (id.type == CallType::Call) {
     return invokeRuntime(id.symbol, &id.returnType, id.argTypes, args, false,
-                         guard);
+                         guard, true, {}, id.passBindingContext);
   } else if (id.type == CallType::ClojureFn) {
     if (id.method) {
       Value *methodAddr = ConstantInt::get(types.wordTy, (uintptr_t)id.method);

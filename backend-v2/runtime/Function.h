@@ -1,3 +1,4 @@
+struct ExecutionContext;
 #ifndef RT_FUNCTION
 #define RT_FUNCTION
 
@@ -64,10 +65,9 @@ void Function_destroy(ClojureFunction *self);
 void Function_cleanupOnce(ClojureFunction *self);
 void Function_promoteToShared(ClojureFunction *self, uword_t count);
 
-RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount);
-RTValue RT_invokeMethod(RTValue funObj, FunctionMethod *method, RTValue *args,
-                        int32_t argCount);
-RTValue RT_invokeMethodWithFrame(Frame *frame, RTValue funObj, FunctionMethod *method, RTValue *args, int32_t argCount);
+RTValue RT_invokeDynamic(__attribute__((swift_context)) struct ExecutionContext *ctx, RTValue funObj, RTValue *args, int32_t argCount) __attribute__((swiftcall));
+RTValue RT_invokeMethod(__attribute__((swift_context)) struct ExecutionContext *ctx, RTValue funObj, FunctionMethod *method, RTValue *args, int32_t argCount) __attribute__((swiftcall));
+RTValue RT_invokeMethodWithFrame(__attribute__((swift_context)) struct ExecutionContext *ctx, Frame *frame, RTValue funObj, FunctionMethod *method, RTValue *args, int32_t argCount) __attribute__((swiftcall));
 FunctionMethod *Function_extractMethod(RTValue funObj, uword_t argCount);
 struct FunctionMethod *RT_updateICSlot(void *slot, RTValue currentVal,
                                        uint64_t argCount);

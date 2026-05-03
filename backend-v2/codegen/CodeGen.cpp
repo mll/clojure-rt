@@ -23,6 +23,14 @@ CodeGen::~CodeGen() {
   }
 }
 
+llvm::Value *CodeGen::getExecutionContext() {
+  if (!executionContextStack.empty())
+    return executionContextStack.back();
+  // For REPL or top-level, return NULL for now.
+  return llvm::ConstantPointerNull::get(
+      llvm::cast<llvm::PointerType>(types.ExecutionContextPtrTy));
+}
+
 CodeGenResult CodeGen::release() && {
   DIB->finalize();
   auto constants = std::move(generatedConstants);
@@ -196,6 +204,9 @@ llvm::Function *CodeGen::generateBaselineMethod(
       Function::Create(types.baselineFunctionTy, Function::ExternalLinkage,
                        funcName, *TheModule);
 
+  F->setCallingConv(llvm::CallingConv::Swift);
+  F->addParamAttr(0, llvm::Attribute::SwiftSelf);
+
   // Use the guard to save current IR state and memory management context
   FunctionScopeGuard scopeGuard(*this, F);
 
@@ -230,7 +241,8 @@ llvm::Function *CodeGen::generateBaselineMethod(
 
   // Unpack arguments from LLVM function
   auto arg_it = F->arg_begin();
-  Value *framePtr = &*arg_it++; // Arg 0: Frame*
+  pushExecutionContext(&*arg_it++); // Arg 0: ExecutionContext* (swiftself)
+  Value *framePtr = &*arg_it++;         // Arg 1: Frame*
   Value *regArgs[5];            // Arg 1-5: RTValue registers
   for (int i = 0; i < 5; ++i) {
     regArgs[i] = &*arg_it++;
@@ -359,6 +371,7 @@ llvm::Function *CodeGen::generateBaselineMethod(
   // Clean up bindings
   variableBindingStack.pop();
   variableTypesBindingsStack.pop();
+  popExecutionContext();
 
   verifyFunction(*F);
   suggestedFunctionName = savedSuggestedFunctionName;

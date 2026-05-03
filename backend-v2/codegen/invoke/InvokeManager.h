@@ -62,7 +62,7 @@ private:
   ObjectTypeSet createZ(mpz_ptr val);
   ObjectTypeSet createQ(mpq_ptr val);
   bool canThrow(const std::string &fname) const;
-
+  bool hasSwiftSelf(const std::vector<llvm::Value *> &args);
 public:
   explicit InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m, ValueEncoder &v,
                          LLVMTypes &t, ThreadsafeCompilerState &s, CodeGen &cg);
@@ -73,13 +73,15 @@ public:
                          const std::vector<llvm::Value *> &args,
                          CleanupChainGuard *guard = nullptr,
                          bool consumesArgs = true,
-                         const std::vector<TypedValue> &extraCleanup = {});
+                         const std::vector<TypedValue> &extraCleanup = {},
+                         bool isSwiftCall = false);
 
   llvm::Value *invokeRaw(llvm::Value *fpointer, llvm::FunctionType *type,
                          const std::vector<llvm::Value *> &args,
                          CleanupChainGuard *guard = nullptr,
                          bool consumesArgs = true,
-                         const std::vector<TypedValue> &extraCleanup = {});
+                         const std::vector<TypedValue> &extraCleanup = {},
+                         bool isSwiftCall = false);
 
   TypedValue invokeRuntime(const std::string &fname,
                            const ObjectTypeSet *retValType,
@@ -88,7 +90,8 @@ public:
                            const bool isVariadic = false,
                            CleanupChainGuard *guard = nullptr,
                            bool consumesArgs = true,
-                           const std::vector<TypedValue> &extraCleanup = {});
+                           const std::vector<TypedValue> &extraCleanup = {},
+                           bool passContext = false);
 
   TypedValue generateIntrinsic(const IntrinsicDescription &id,
                                const std::vector<TypedValue> &args,

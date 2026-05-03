@@ -1,4 +1,5 @@
 #include "PersistentVector.h"
+#include "ExecutionContext.h"
 #include "Exceptions.h"
 #include "Object.h"
 #include "PersistentVectorChunkedSeq.h"
@@ -799,11 +800,7 @@ bool PersistentVector_equals_managed(PersistentVector *self, RTValue other) {
   return res;
 }
 
-static RTValue PersistentVectorNode_reduce(PersistentVectorNode *node,
-                                           uword_t level, RTValue acc,
-                                           Frame *frame, RTValue f,
-                                           FunctionMethod *method,
-                                           bool reusable) {
+static RTValue PersistentVectorNode_reduce(PersistentVectorNode *node, uword_t level, RTValue acc, __attribute__((swift_context)) struct ExecutionContext *ctx, Frame *frame, RTValue f, FunctionMethod *method, bool reusable) __attribute__((swiftcall)) {
   RTValue args[2];
   if (node->type == leafNode) {
     uword_t cnt = node->count;
@@ -813,7 +810,7 @@ static RTValue PersistentVectorNode_reduce(PersistentVectorNode *node,
       if (!reusable) {
         retain(args[1]);
       }
-      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+      acc = RT_invokeMethodWithFrame(ctx, frame, f, method, args, 2);
     }
     if (reusable) {
       node->count = 0;
@@ -825,7 +822,7 @@ static RTValue PersistentVectorNode_reduce(PersistentVectorNode *node,
       PersistentVectorNode *child =
           (PersistentVectorNode *)RT_unboxPtr(node->array[i]);
       bool childReusable = reusable && Ptr_isReusable(child);
-      acc = PersistentVectorNode_reduce(child, level - RRB_BITS, acc, frame, f,
+      acc = PersistentVectorNode_reduce(child, level - RRB_BITS, acc, ctx, frame, f,
                                         method, childReusable);
       if (reusable && childReusable) {
         node->array[i] = RT_boxNull();
@@ -838,8 +835,7 @@ static RTValue PersistentVectorNode_reduce(PersistentVectorNode *node,
   return acc;
 }
 
-RTValue PersistentVector_reduce(PersistentVector *self, RTValue f,
-                                RTValue start) {
+RTValue PersistentVector_reduce(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentVector *self, RTValue f, RTValue start) __attribute__((swiftcall)) {
   RTValue acc = start;
   FunctionMethod *method = Function_extractMethod(f, 2);
 
@@ -855,7 +851,7 @@ RTValue PersistentVector_reduce(PersistentVector *self, RTValue f,
 
   if (root) {
     bool rootReusable = reusable && Ptr_isReusable(root);
-    acc = PersistentVectorNode_reduce(root, shift, acc, frame, f, method,
+    acc = PersistentVectorNode_reduce(root, shift, acc, ctx, frame, f, method,
                                       rootReusable);
     if (reusable && rootReusable) {
       self->root = NULL;
@@ -872,7 +868,7 @@ RTValue PersistentVector_reduce(PersistentVector *self, RTValue f,
       if (!tailReusable) {
         retain(args[1]);
       }
-      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+      acc = RT_invokeMethodWithFrame(ctx, frame, f, method, args, 2);
     }
     if (tailReusable) {
       tail->count = 0;
@@ -886,10 +882,10 @@ RTValue PersistentVector_reduce(PersistentVector *self, RTValue f,
   return acc;
 }
 
-RTValue PersistentVector_reduce2(PersistentVector *self, RTValue f) {
+RTValue PersistentVector_reduce2(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentVector *self, RTValue f) __attribute__((swiftcall)) {
   if (self->count == 0) {
     Ptr_release(self);
-    return RT_invokeDynamic(f, NULL, 0);
+    return RT_invokeDynamic(ctx, f, NULL, 0);
   }
 
   RTValue first;
@@ -914,7 +910,7 @@ RTValue PersistentVector_reduce2(PersistentVector *self, RTValue f) {
   PersistentVectorChunkedSeq *seq = PersistentVectorChunkedSeq_create(it);
   Ptr_release(self);
 
-  return PersistentVectorChunkedSeq_reduce(seq, f, first);
+  return PersistentVectorChunkedSeq_reduce(ctx, seq, f, first);
 }
 
 RTValue PersistentVector_empty(PersistentVector *self) {

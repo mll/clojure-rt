@@ -57,22 +57,29 @@
         :set (assoc base :op :set
                     :items (mapv wrap val)
                     :children [:items])
-        :seq (let [items (mapv wrap val)]
-               {:op   :invoke
-                :form (list 'sequence (list 'quote val))
-                :env  env
-                :fn   {:op   :var
-                       :var  #'clojure.core/sequence
-                       :form 'clojure.core/sequence}
-                :args [{:op       :invoke
-                        :form     (list 'list (list 'quote val))
-                        :env      env
-                        :fn       {:op   :var
-                                   :var  #'clojure.core/list
-                                   :form 'clojure.core/list}
-                        :args     items
-                        :children [:fn :args]}]
-                :children [:fn :args]})
+        :seq (let [items (mapv wrap val)
+                   invoke {:op   :invoke
+                           :form (list 'sequence (list 'quote val))
+                           :env  env
+                           :fn   {:op   :var
+                                  :var  #'clojure.core/sequence
+                                  :form 'clojure.core/sequence}
+                           :args [{:op       :invoke
+                                   :form     (list 'list (list 'quote val))
+                                   :env      env
+                                   :fn       {:op   :var
+                                              :var  #'clojure.core/list
+                                              :form 'clojure.core/list}
+                                   :args     items
+                                   :children [:fn :args]}]
+                           :children [:fn :args]}]
+               (if-let [meta (:meta ast)]
+                 {:op :with-meta
+                  :env env
+                  :meta meta
+                  :expr invoke
+                  :children [:meta :expr]}
+                 invoke))
         ast))
     ast))
 

@@ -172,7 +172,7 @@ static void test_chunked_seq_reduce(void **state) {
     PersistentVectorChunkedSeq *seq = (PersistentVectorChunkedSeq *)RT_unboxPtr(seqVal);
 
     RTValue addFn = create_mock_add_fn();
-    RTValue result = PersistentVectorChunkedSeq_reduce(seq, addFn, RT_boxInt32(0));
+    RTValue result = PersistentVectorChunkedSeq_reduce(NULL, seq, addFn, RT_boxInt32(0));
 
     assert_int_equal(RT_unboxInt32(result), (count * (count - 1)) / 2); 
     release(result);
@@ -188,7 +188,7 @@ static void test_vector_reduce(void **state) {
     }
 
     RTValue addFn = create_bigint_add_fn();
-    RTValue result = PersistentVector_reduce(v, addFn, RT_boxPtr(BigInteger_createFromInt(0)));
+    RTValue result = PersistentVector_reduce(NULL, v, addFn, RT_boxPtr(BigInteger_createFromInt(0)));
 
     BigInteger *expected = BigInteger_createFromInt((count * (count - 1)) / 2);
     assert_true(BigInteger_equals((BigInteger *)RT_unboxPtr(result), expected));
@@ -207,7 +207,7 @@ static void test_vector_reduce_large(void **state) {
     }
 
     RTValue addFn = create_bigint_add_fn();
-    RTValue result = PersistentVector_reduce(v, addFn, RT_boxPtr(BigInteger_createFromInt(0)));
+    RTValue result = PersistentVector_reduce(NULL, v, addFn, RT_boxPtr(BigInteger_createFromInt(0)));
 
     BigInteger *expected = BigInteger_createFromInt(((int64_t)count * (count - 1)) / 2);
     assert_true(BigInteger_equals((BigInteger *)RT_unboxPtr(result), expected));
@@ -221,14 +221,14 @@ static void test_vector_reduce_edge_cases(void **state) {
   ASSERT_MEMORY_ALL_BALANCED({
     // 0 elements
     PersistentVector *v0 = PersistentVector_create();
-    RTValue res0 = PersistentVector_reduce(v0, create_mock_add_fn(), RT_boxInt32(100));
+    RTValue res0 = PersistentVector_reduce(NULL, v0, create_mock_add_fn(), RT_boxInt32(100));
     assert_int_equal(RT_unboxInt32(res0), 100);
     release(res0);
 
     // 1 element
     PersistentVector *v1 = PersistentVector_create();
     v1 = PersistentVector_conj(v1, RT_boxInt32(42));
-    RTValue res1 = PersistentVector_reduce(v1, create_mock_add_fn(), RT_boxInt32(0));
+    RTValue res1 = PersistentVector_reduce(NULL, v1, create_mock_add_fn(), RT_boxInt32(0));
     assert_int_equal(RT_unboxInt32(res1), 42);
     release(res1);
 
@@ -237,7 +237,7 @@ static void test_vector_reduce_edge_cases(void **state) {
     for (int i = 0; i < 32; i++) {
       v32 = PersistentVector_conj(v32, RT_boxInt32(i));
     }
-    RTValue res32 = PersistentVector_reduce(v32, create_mock_add_fn(), RT_boxInt32(0));
+    RTValue res32 = PersistentVector_reduce(NULL, v32, create_mock_add_fn(), RT_boxInt32(0));
     assert_int_equal(RT_unboxInt32(res32), (32 * 31) / 2);
     release(res32);
   });

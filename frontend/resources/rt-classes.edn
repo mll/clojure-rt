@@ -39,6 +39,11 @@
    :implements {clojure.lang.IMeta {meta [{:args [:this] :type :call :symbol "PersistentArrayMap_getMeta" :returns :any}]}
                 clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "PersistentArrayMap_withMeta" :returns java.lang.PersistentArrayMap}]}}}
 
+  clojure.lang.ExecutionContext
+  {:alias :context
+   :object-type 27
+   :extends java.lang.Object}
+
   clojure.lang.BigInt
   {:extends java.lang.Object
    :alias :bigint
@@ -72,7 +77,8 @@
   {:extends java.lang.Object
    :object-type 19
    :implements {clojure.lang.IMeta {meta [{:args [:this] :type :call :symbol "Var_getMeta" :returns :any}]}
-                clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "Var_resetMeta" :returns clojure.lang.Var}]}}}
+                clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "Var_resetMeta" :returns clojure.lang.Var}]}
+                clojure.lang.IDeref {deref [{:args [:context :this] :type :call :symbol "Var_deref" :returns :any :pass-binding-context true}]}}}
 
   clojure.lang.Numbers
   {:static-fns
@@ -335,8 +341,8 @@
                                           entryAt [{:args [:this :any] :type :call :symbol "PersistentVector_entryAt" :returns :any}]
                                           assoc [{:args [:this :any :any] :type :call :symbol "PersistentVector_assoc_dynamic" :returns clojure.lang.PersistentVector}]}
                 clojure.lang.Sequable {seq [{:args [:this] :type :call :symbol "PersistentVector_seq" :returns :any}]}
-                clojure.lang.IReduce {reduce [{:args [:this :any] :type :call :symbol "PersistentVector_reduce2" :returns :any}
-                                              {:args [:this :any :any] :type :call :symbol "PersistentVector_reduce" :returns :any}]}
+                clojure.lang.IReduce {reduce [{:args [:context :this :any] :type :call :symbol "PersistentVector_reduce2" :returns :any :pass-binding-context true}
+                                              {:args [:context :this :any :any] :type :call :symbol "PersistentVector_reduce" :returns :any :pass-binding-context true}]}
                 clojure.lang.Reversible {rseq [{:args [:this] :type :call :symbol "PersistentVector_rseq" :returns :any}]}
                 clojure.lang.Sequential {}}
    :instance-fns
@@ -405,8 +411,8 @@ clojure.lang.PersistentList
                                    more [{:args [:this] :type :call :symbol "PersistentList_identity" :returns clojure.lang.PersistentList}]
                                    cons [{:args [:this :any] :type :call :symbol "PersistentList_conj" :returns clojure.lang.PersistentList}]}
                 clojure.lang.Sequable {seq [{:args [:this] :type :call :symbol "PersistentList_identity" :returns clojure.lang.PersistentList}]}
-                clojure.lang.IReduce {reduce [{:args [:this :any] :type :call :symbol "PersistentList_reduce2" :returns :any}
-                                              {:args [:this :any :any] :type :call :symbol "PersistentList_reduce" :returns :any}]}}}
+                clojure.lang.IReduce {reduce [{:args [:context :this :any] :type :call :symbol "PersistentList_reduce2" :returns :any :pass-binding-context true}
+                                              {:args [:context :this :any :any] :type :call :symbol "PersistentList_reduce" :returns :any :pass-binding-context true}]}}}
 
   clojure.lang.RT
   {:static-fns

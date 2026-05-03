@@ -98,7 +98,8 @@ TypedValue InvokeManager::generateStaticInvoke(
 
   // 4. variadicSeq & locals
   std::vector<llvm::Value *> callArgs;
-  callArgs.push_back(framePtr); // Arg 0: Frame*
+  callArgs.push_back(codeGen.getExecutionContext()); // Arg 0: ExecutionContext* (swiftself)
+  callArgs.push_back(framePtr);                     // Arg 1: Frame*
 
   if (match->isVariadic) {
     // Pack surplus into variadicSeq
@@ -157,7 +158,7 @@ TypedValue InvokeManager::generateStaticInvoke(
 
   // D. Perform Call
   llvm::Value *res = invokeRaw(match->implementation, types.baselineFunctionTy,
-                               callArgs, guard, true, extraCleanup);
+                               callArgs, guard, true, extraCleanup, true);
 
   return TypedValue(ObjectTypeSet::all(), res);
 }

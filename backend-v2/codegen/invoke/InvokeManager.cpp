@@ -153,6 +153,16 @@ TypedValue InvokeManager::generateIntrinsic(const IntrinsicDescription &id,
   }
 }
 
+bool InvokeManager::hasSwiftSelf(const std::vector<llvm::Value *> &args) {
+  for (llvm::Value *v : args) {
+    if (auto *arg = llvm::dyn_cast<llvm::Argument>(v)) {
+      if (arg->hasSwiftSelfAttr())
+        return true;
+    }
+  }
+  return false;
+}
+
 ObjectTypeSet InvokeManager::foldIntrinsic(const IntrinsicDescription &id,
                                            const vector<ObjectTypeSet> &args) {
   auto it = typeIntrinsics.find(id.symbol);
@@ -212,7 +222,8 @@ llvm::Value *
 InvokeManager::invokeRaw(llvm::Value *fpointer, llvm::FunctionType *type,
                          const std::vector<llvm::Value *> &args,
                          CleanupChainGuard *guard, bool consumesArgs,
-                         const std::vector<TypedValue> &extraCleanup) {
+                         const std::vector<TypedValue> &extraCleanup,
+                         bool isSwiftCall) {
   BasicBlock *lpadToUse =
       (codeGen.hasLandingPad() || !extraCleanup.empty())
           ? codeGen.getMemoryManagement().getLandingPad(
@@ -228,17 +239,28 @@ InvokeManager::invokeRaw(llvm::Value *fpointer, llvm::FunctionType *type,
         type, fpointer, normalBB, lpadToUse, args,
         isVoid ? std::string("") : std::string("inv_pointer"));
     callResult = inv;
+    if (isSwiftCall || hasSwiftSelf(args)) {
+      inv->setCallingConv(llvm::CallingConv::Swift);
+      if (isSwiftCall)
+        inv->addParamAttr(0, llvm::Attribute::SwiftSelf);
+    }
 
     // Attach branch weights to mark landing pad as cold.
     // normal path: 1000000, unwind path: 1
-    MDBuilder mdb(theModule.getContext());
+    llvm::MDBuilder mdb(theModule.getContext());
     inv->setMetadata(LLVMContext::MD_prof, mdb.createBranchWeights(1000000, 1));
 
     builder.SetInsertPoint(normalBB);
   } else {
-    callResult = builder.CreateCall(type, fpointer, args,
-                                    isVoid ? std::string("")
-                                           : std::string("call_pointer"));
+    CallInst *call = builder.CreateCall(type, fpointer, args,
+                                        isVoid ? std::string("")
+                                               : std::string("call_pointer"));
+    if (isSwiftCall || hasSwiftSelf(args)) {
+      call->setCallingConv(llvm::CallingConv::Swift);
+      if (isSwiftCall)
+        call->addParamAttr(0, llvm::Attribute::SwiftSelf);
+    }
+    callResult = call;
   }
   for (const TypedValue &tv : extraCleanup) {
     codeGen.getMemoryManagement().dynamicRelease(tv);
@@ -250,7 +272,8 @@ llvm::Value *
 InvokeManager::invokeRaw(const std::string &fname, llvm::FunctionType *type,
                          const std::vector<llvm::Value *> &args,
                          CleanupChainGuard *guard, bool consumesArgs,
-                         const std::vector<TypedValue> &extraCleanup) {
+                         const std::vector<TypedValue> &extraCleanup,
+                         bool isSwiftCall) {
   Function *toCall = theModule.getFunction(fname);
   if (!toCall) {
     toCall =
@@ -272,16 +295,26 @@ InvokeManager::invokeRaw(const std::string &fname, llvm::FunctionType *type,
         toCall, normalBB, lpadToUse, args,
         isVoid ? std::string("") : std::string("inv_") + fname);
     callResult = inv;
+    if (isSwiftCall || hasSwiftSelf(args)) {
+      inv->setCallingConv(llvm::CallingConv::Swift);
+      if (isSwiftCall)
+        inv->addParamAttr(0, llvm::Attribute::SwiftSelf);
+    }
 
     // Attach branch weights to mark landing pad as cold.
     // normal path: 1000000, unwind path: 1
-    MDBuilder mdb(theModule.getContext());
+    llvm::MDBuilder mdb(theModule.getContext());
     inv->setMetadata(LLVMContext::MD_prof, mdb.createBranchWeights(1000000, 1));
 
     builder.SetInsertPoint(normalBB);
   } else {
     CallInst *call = builder.CreateCall(
         toCall, args, isVoid ? std::string("") : std::string("call_") + fname);
+    if (isSwiftCall || hasSwiftSelf(args)) {
+      call->setCallingConv(llvm::CallingConv::Swift);
+      if (isSwiftCall)
+        call->addParamAttr(0, llvm::Attribute::SwiftSelf);
+    }
     // Tutaj trzeba zrobic kilka rzeczy:
     // 1. Ustawiac musttail tylko jak budujemy trampoline metody (flaga nowa w
     // codegen)
@@ -310,7 +343,7 @@ TypedValue InvokeManager::invokeRuntime(
     const std::vector<ObjectTypeSet> &argTypes,
     const std::vector<TypedValue> &args, const bool isVariadic,
     CleanupChainGuard *guard, bool consumesArgs,
-    const std::vector<TypedValue> &extraCleanup) {
+    const std::vector<TypedValue> &extraCleanup, bool passContext) {
   std::vector<llvm::Type *> llvmTypes;
   for (auto &at : argTypes) {
     if (at.isBoxedType())
@@ -320,6 +353,10 @@ TypedValue InvokeManager::invokeRuntime(
           types.typeForType(ObjectTypeSet(at.determinedType())));
   }
 
+  if (passContext) {
+    llvmTypes.insert(llvmTypes.begin(), types.ExecutionContextPtrTy);
+  }
+
   FunctionType *functionType = FunctionType::get(
       retValType && !retValType->isBoxedType()
           ? types.typeForType(ObjectTypeSet(retValType->determinedType()))
@@ -327,6 +364,10 @@ TypedValue InvokeManager::invokeRuntime(
       llvmTypes, isVariadic);
 
   std::vector<llvm::Value *> argVals;
+  if (passContext) {
+    argVals.push_back(codeGen.getExecutionContext());
+  }
+
   for (size_t i = 0; i < args.size(); i++) {
     auto &arg = args[i];
     if (i < argTypes.size()) {
@@ -353,7 +394,7 @@ TypedValue InvokeManager::invokeRuntime(
 
   return TypedValue(retValType ? *retValType : ObjectTypeSet::all(),
                     invokeRaw(fname, functionType, argVals, guard, consumesArgs,
-                              extraCleanup));
+                              extraCleanup, passContext));
 }
 
 TypedValue InvokeManager::generateRawMethodCall(
@@ -472,7 +513,8 @@ TypedValue InvokeManager::generateRawMethodCall(
 
   // 6. Call arguments (first 5 registers)
   std::vector<Value *> callArgs;
-  callArgs.push_back(framePtr);
+  callArgs.push_back(codeGen.getExecutionContext()); // Arg 0: ExecutionContext* (swiftself)
+  callArgs.push_back(framePtr);                     // Arg 1: Frame*
   for (int i = 0; i < 5; ++i) {
     if (i < (int)argCount) {
       callArgs.push_back(valueEncoder.box(args[i]).value);
@@ -483,7 +525,7 @@ TypedValue InvokeManager::generateRawMethodCall(
 
   // 7. Perform the actual call
   Value *res = invokeRaw(implPtr, types.baselineFunctionTy, callArgs, guard,
-                         true, extraCleanup);
+                         true, extraCleanup, true);
   return TypedValue(ObjectTypeSet::dynamicType(), res);
 }
 

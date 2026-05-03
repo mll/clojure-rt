@@ -1,4 +1,5 @@
 #include "PersistentVectorChunkedSeq.h"
+#include "ExecutionContext.h"
 #include "ArrayChunk.h"
 #include "Object.h"
 #include "PersistentVector.h"
@@ -162,7 +163,7 @@ RTValue PersistentVectorChunkedSeq_chunkedMore(PersistentVectorChunkedSeq *self)
   return next;
 }
 
-RTValue PersistentVectorChunkedSeq_reduce(PersistentVectorChunkedSeq *self, RTValue f, RTValue start) {
+RTValue PersistentVectorChunkedSeq_reduce(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentVectorChunkedSeq *self, RTValue f, RTValue start) __attribute__((swiftcall)) {
   RTValue acc = start;
   FunctionMethod *method = Function_extractMethod(f, 2);
 
@@ -188,7 +189,7 @@ RTValue PersistentVectorChunkedSeq_reduce(PersistentVectorChunkedSeq *self, RTVa
       args[0] = acc;
       args[1] = node->array[i & RRB_MASK];
       retain(args[1]);
-      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+      acc = RT_invokeMethodWithFrame(ctx, frame, f, method, args, 2);
     }
   }
 
@@ -200,7 +201,7 @@ RTValue PersistentVectorChunkedSeq_reduce(PersistentVectorChunkedSeq *self, RTVa
       args[0] = acc;
       args[1] = tail->array[j];
       retain(args[1]);
-      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+      acc = RT_invokeMethodWithFrame(ctx, frame, f, method, args, 2);
     }
   }
 
@@ -209,11 +210,11 @@ RTValue PersistentVectorChunkedSeq_reduce(PersistentVectorChunkedSeq *self, RTVa
   return acc;
 }
 
-RTValue PersistentVectorChunkedSeq_reduce2(PersistentVectorChunkedSeq *self, RTValue f) {
+RTValue PersistentVectorChunkedSeq_reduce2(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentVectorChunkedSeq *self, RTValue f) __attribute__((swiftcall)) {
   uword_t totalCount = self->it.parent->count;
   if (self->it.index >= totalCount) {
     Ptr_release(self);
-    return RT_invokeDynamic(f, NULL, 0);
+    return RT_invokeDynamic(ctx, f, NULL, 0);
   }
 
   RTValue first = PersistentVector_iteratorGet(&self->it);
@@ -226,7 +227,7 @@ RTValue PersistentVectorChunkedSeq_reduce2(PersistentVectorChunkedSeq *self, RTV
     return first;
   }
 
-  return PersistentVectorChunkedSeq_reduce(self, f, first);
+  return PersistentVectorChunkedSeq_reduce(ctx, self, f, first);
 }
 
 RTValue PersistentVectorChunkedSeq_cons(PersistentVectorChunkedSeq *self, RTValue item) {

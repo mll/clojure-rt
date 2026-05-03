@@ -69,6 +69,9 @@ class CodeGen {
   std::vector<RTValue> generatedConstants;
   DynamicConstructor dynamicConstructor;
   MemoryManagement memoryManagement;
+  std::vector<llvm::Value *> executionContextStack;
+  void pushExecutionContext(llvm::Value *ctx) { executionContextStack.push_back(ctx); }
+  void popExecutionContext() { executionContextStack.pop_back(); }
 
   ThreadsafeCompilerState &compilerState;
   std::unique_ptr<llvm::DIBuilder> DIB;
@@ -247,6 +250,7 @@ public:
   }
   MemoryManagement &getMemoryManagement() { return memoryManagement; }
   DynamicConstructor &getDynamicConstructor() { return dynamicConstructor; }
+  llvm::Value *getExecutionContext();
 
   class FunctionScopeGuard {
     CodeGen &cg;

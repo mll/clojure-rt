@@ -1,6 +1,7 @@
 #include "Var.h"
 #include "Ebr.h"
 #include "Exceptions.h"
+#include "ExecutionContext.h"
 #include "Object.h"
 #include "RTValue.h"
 #include "String.h"
@@ -71,6 +72,15 @@ void Var_destroy(Var *self) {
 
 Var *Var_resetMeta(Var *self, RTValue meta) {
   promoteToShared(meta);
+
+  if (getType(meta) == persistentArrayMapType) {
+    RTValue k = Keyword_create(String_create("dynamic"));
+    Ptr_retain(RT_unboxPtr(meta));
+    RTValue dynamicVal = PersistentArrayMap_get(RT_unboxPtr(meta), k);
+    self->dynamic = RT_isTruthy(dynamicVal);
+    release(dynamicVal);
+  }
+
   RTValue oldMeta =
       atomic_exchange_explicit(&self->metadata, meta, memory_order_seq_cst);
   autorelease(oldMeta);
@@ -89,24 +99,34 @@ Var *Var_setDynamic(Var *self, bool dynamic) { // modifies and returns self
   return self;
 };
 
-bool Var_isDynamic(Var *self) {
-  bool retVal = self->dynamic;
-  Ptr_release(self);
-  return retVal;
-};
+// outside refcount system
+bool Var_isDynamic(Var *self) { return self->dynamic; };
 
+// outside refcount system
 bool Var_hasRoot(Var *self) {
-  bool retVal =
-      atomic_load_explicit(&self->root, memory_order_acquire) != RT_boxNull();
-  Ptr_release(self);
-  return retVal;
+  return atomic_load_explicit(&self->root, memory_order_acquire) !=
+         RT_boxNull();
 };
 
-RTValue Var_deref(Var *self) {
-  RTValue val = atomic_load_explicit(&self->root, memory_order_acquire);
-  if (val != RT_boxNull()) {
-    retain(val);
+/* context is borrowed! */
+RTValue Var_deref(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                  Var *self) __attribute__((swiftcall)) {
+  if (self->dynamic && ctx != NULL && !RT_isNil(ctx->bindingsMap)) {
+    assert(getType(ctx->bindingsMap) == persistentArrayMapType && "Wrong type");
+    PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
+    RTValue key = self->keyword;
+    for (uword_t i = 0; i < m->count; i++) {
+      if (equals(key, m->keys[i])) {
+        RTValue val = m->values[i];
+        retain(val);
+        Ptr_release(self);
+        return val;
+      }
+    }
   }
+
+  RTValue val = atomic_load_explicit(&self->root, memory_order_acquire);
+  retain(val);
   Ptr_release(self);
   return val;
 };
@@ -140,6 +160,26 @@ RTValue Var_unbindRoot(Var *self) {
 
 /* the returned reference is not retained and is not guaranteed to even
    be valid after the call returns. Outside ref system. */
-RTValue Var_peek(Var *self) {
+
+/* outside refcount system */
+RTValue Var_peek(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                 Var *self) __attribute__((swiftcall)) {
   return atomic_load_explicit(&self->root, memory_order_relaxed);
+}
+
+RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                Var *self, RTValue value) __attribute__((swiftcall)) {
+  if (!self->dynamic) {
+    release(value);
+    Ptr_release(self);
+    throwIllegalStateException_C("Can't set! a non-dynamic Var");
+  }
+
+  // set! requires a thread-local binding to exist.
+  // Our current ExecutionContext uses an immutable map, so we don't support
+  // in-place mutation of the binding map yet.
+  release(value);
+  Ptr_release(self);
+  throwUnsupportedOperationException_C(
+      "set! on dynamic Vars is not yet supported (bindings are immutable)");
 }

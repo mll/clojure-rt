@@ -43,7 +43,8 @@ set(SOURCES
     StringBuilder.c
     PersistentVectorChunkedSeq.c
     PersistentVectorReverseSeq.c
-    ArrayChunk.c)
+    ArrayChunk.c
+    ExecutionContext.c)
 
 add_library(runtime STATIC ${SOURCES})
 target_compile_options(runtime PRIVATE $<$<PLATFORM_ID:Linux>:-femulated-tls>)
@@ -195,6 +196,7 @@ set(TEST_MODULES
     StringBuilder_test
     PersistentVectorChunkedSeq_test
     Metadata_test
+    Var_Dynamic_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

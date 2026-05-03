@@ -1,5 +1,11 @@
+struct ExecutionContext;
 #ifndef RT_OBJECT
+struct ExecutionContext;
+struct ExecutionContext;
+
 #define RT_OBJECT
+
+
 
 #include "Hash.h"
 #include "word.h"
@@ -155,6 +161,9 @@ RTValue RT_withMeta(RTValue v, RTValue meta);
 #include "StringBuilder.h"
 #include "Symbol.h"
 #include "Var.h"
+#include "ExecutionContext.h"
+
+extern void ExecutionContext_destroy(ExecutionContext* self);
 
 inline void *allocate(size_t size) {
 #ifndef USE_MEMORY_BANKS
@@ -318,6 +327,9 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
     break;
   case symbolType:
     Symbol_destroy((Symbol *)self);
+    break;
+  case executionContextType:
+    ExecutionContext_destroy((ExecutionContext *)self);
     break;
 
   default:

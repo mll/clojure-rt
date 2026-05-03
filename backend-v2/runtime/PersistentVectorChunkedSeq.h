@@ -1,6 +1,8 @@
 #ifndef RT_PERSISTENT_VECTOR_CHUNKED_SEQ_H
 #define RT_PERSISTENT_VECTOR_CHUNKED_SEQ_H
 
+struct ExecutionContext;
+
 #include "ObjectProto.h"
 #include "PersistentVectorIterator.h"
 #include "RTValue.h"
@@ -37,8 +39,8 @@ RTValue PersistentVectorChunkedSeq_chunkedNext(PersistentVectorChunkedSeq *self)
 RTValue PersistentVectorChunkedSeq_chunkedMore(PersistentVectorChunkedSeq *self);
 
 // IReduce
-RTValue PersistentVectorChunkedSeq_reduce(PersistentVectorChunkedSeq *self, RTValue f, RTValue start);
-RTValue PersistentVectorChunkedSeq_reduce2(PersistentVectorChunkedSeq *self, RTValue f);
+RTValue PersistentVectorChunkedSeq_reduce(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentVectorChunkedSeq *self, RTValue f, RTValue start) __attribute__((swiftcall));
+RTValue PersistentVectorChunkedSeq_reduce2(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentVectorChunkedSeq *self, RTValue f) __attribute__((swiftcall));
 RTValue PersistentVectorChunkedSeq_cons(PersistentVectorChunkedSeq *self, RTValue item);
 RTValue PersistentVectorChunkedSeq_empty(PersistentVectorChunkedSeq *self);
 RTValue PersistentVectorChunkedSeq_identity(PersistentVectorChunkedSeq *self);

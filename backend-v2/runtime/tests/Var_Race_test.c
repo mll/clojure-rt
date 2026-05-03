@@ -58,7 +58,7 @@ void *reader_thread(void *arg) {
   struct RaceArgs *args = (struct RaceArgs *)arg;
   while (!atomic_load(&stop_threads)) {
     Ptr_retain(args->v);
-    RTValue val = Var_deref(args->v);
+    RTValue val = Var_deref(NULL, args->v);
     if (val != RT_boxNull()) {
       // Accessing the object to trigger ASan if it's freed
       // toString is consuming in this runtime

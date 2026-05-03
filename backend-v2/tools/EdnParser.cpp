@@ -18,7 +18,8 @@ IntrinsicDescription::IntrinsicDescription(const IntrinsicDescription &other)
     : argTypes(other.argTypes), type(other.type), symbol(other.symbol),
       returnType(other.returnType), thisType(other.thisType),
       isInstance(other.isInstance), returnsProvided(other.returnsProvided),
-      isVariadic(other.isVariadic), functionObject(other.functionObject),
+      isVariadic(other.isVariadic), passBindingContext(other.passBindingContext),
+      functionObject(other.functionObject),
       method(other.method) {
   if (functionObject)
     retain(functionObject);
@@ -31,6 +32,7 @@ IntrinsicDescription::IntrinsicDescription(IntrinsicDescription &&other) noexcep
       symbol(std::move(other.symbol)), returnType(std::move(other.returnType)),
       thisType(std::move(other.thisType)), isInstance(other.isInstance),
       returnsProvided(other.returnsProvided), isVariadic(other.isVariadic),
+      passBindingContext(other.passBindingContext),
       functionObject(other.functionObject), method(other.method) {
   other.functionObject = 0;
   other.method = nullptr;
@@ -49,6 +51,7 @@ IntrinsicDescription::operator=(const IntrinsicDescription &other) {
     isInstance = other.isInstance;
     returnsProvided = other.returnsProvided;
     isVariadic = other.isVariadic;
+    passBindingContext = other.passBindingContext;
     functionObject = other.functionObject;
     method = other.method;
     if (functionObject)
@@ -70,6 +73,7 @@ IntrinsicDescription::operator=(IntrinsicDescription &&other) noexcept {
     isInstance = other.isInstance;
     returnsProvided = other.returnsProvided;
     isVariadic = other.isVariadic;
+    passBindingContext = other.passBindingContext;
     functionObject = other.functionObject;
     method = other.method;
     other.functionObject = 0;
@@ -730,6 +734,8 @@ IntrinsicDescription::IntrinsicDescription(
         this->argTypes.push_back(ObjectTypeSet(keywordType));
       } else if (sArgKey == ":double") {
         this->argTypes.push_back(ObjectTypeSet(doubleType));
+      } else if (sArgKey == ":context") {
+        this->argTypes.push_back(ObjectTypeSet(executionContextType));
       } else {
         if (classData.classesByName.find(sArgKey) ==
             classData.classesByName.end()) {
@@ -793,6 +799,13 @@ IntrinsicDescription::IntrinsicDescription(
   } else {
     throwInternalInconsistencyException(
         "Intrinsic :type must be :call, :intrinsic or :clojure-function");
+  }
+
+  retain(root.get());
+  RTValue passContextRaw = PersistentArrayMap_get(map, Keyword_create(String_create("pass-binding-context")));
+  ConsumedValue passContextWrapper(passContextRaw);
+  if (getType(passContextWrapper.get()) == booleanType) {
+    this->passBindingContext = RT_unboxBool(passContextWrapper.get());
   }
 
   retain(root.get());

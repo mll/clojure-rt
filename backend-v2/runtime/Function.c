@@ -1,4 +1,5 @@
 #include "Function.h"
+#include "ExecutionContext.h"
 #include "Exceptions.h"
 #include "Hash.h"
 #include "Integer.h"
@@ -123,25 +124,25 @@ void Function_destroy(ClojureFunction *self) {
   }
 }
 
-RTValue RT_invokeDynamic(RTValue funObj, RTValue *args, int32_t argCount) {
+RTValue RT_invokeDynamic(__attribute__((swift_context)) struct ExecutionContext *ctx, RTValue funObj, RTValue *args, int32_t argCount) __attribute__((swiftcall)) {
   FunctionMethod *method = Function_extractMethod(funObj, argCount);
-  return RT_invokeMethod(funObj, method, args, argCount);
+  return RT_invokeMethod(ctx, funObj, method, args, argCount);
 }
 
-RTValue RT_invokeMethod(RTValue funObj, FunctionMethod *method, RTValue *args,
-                        int32_t argCount) {
+RTValue RT_invokeMethod(__attribute__((swift_context)) struct ExecutionContext *ctx, RTValue funObj, FunctionMethod *method, RTValue *args,
+                        int32_t argCount) __attribute__((swiftcall)) {
   // Allocate a frame on the stack.
   size_t frameSize = sizeof(Frame) + argCount * sizeof(RTValue);
   Frame *frame = (Frame *)alloca(frameSize);
   frame->leafFrame = NULL;
   frame->bailoutEntryIndex = -1;
 
-  return RT_invokeMethodWithFrame(frame, funObj, method, args, argCount);
+  return RT_invokeMethodWithFrame(ctx, frame, funObj, method, args, argCount);
 }
 
-RTValue RT_invokeMethodWithFrame(Frame *frame, RTValue funObj,
+RTValue RT_invokeMethodWithFrame(__attribute__((swift_context)) struct ExecutionContext *ctx, Frame *frame, RTValue funObj,
                                  FunctionMethod *method, RTValue *args,
-                                 int32_t argCount) {
+                                 int32_t argCount) __attribute__((swiftcall)) {
   frame->method = method;
   frame->self = funObj;
   frame->localsCount = argCount;
@@ -157,8 +158,8 @@ RTValue RT_invokeMethodWithFrame(Frame *frame, RTValue funObj,
     frame->locals[i] = args[i];
   }
 
-  typedef RTValue (*BaselineFunc)(Frame *, RTValue, RTValue, RTValue, RTValue,
-                                  RTValue);
+  typedef RTValue (*BaselineFunc)(__attribute__((swift_context)) struct ExecutionContext *ctx, Frame *frame, RTValue, RTValue,
+                                  RTValue, RTValue, RTValue) __attribute__((swiftcall));
   BaselineFunc impl = (BaselineFunc)method->baselineImplementation;
 
   RTValue a0 = argCount > 0 ? args[0] : RT_boxNil();
@@ -167,7 +168,7 @@ RTValue RT_invokeMethodWithFrame(Frame *frame, RTValue funObj,
   RTValue a3 = argCount > 3 ? args[3] : RT_boxNil();
   RTValue a4 = argCount > 4 ? args[4] : RT_boxNil();
 
-  RTValue result = impl(frame, a0, a1, a2, a3, a4);
+  RTValue result = impl(ctx, frame, a0, a1, a2, a3, a4);
 
   // RT_invokeMethod convention: consumes args, NOT funObj.
   for (int32_t i = 0; i < argCount; i++) {
@@ -212,27 +213,27 @@ RTValue RT_packVariadic(uword_t argCount, RTValue *args, uword_t fixedArity) {
 
 /* --- Universal Callable Bridges --- */
 
-static RTValue Baseline_Keyword_Invoke_1(Frame *frame, RTValue arg0, RTValue a1,
-                                         RTValue a2, RTValue a3, RTValue a4) {
+static RTValue Baseline_Keyword_Invoke_1(__attribute__((swift_context)) struct ExecutionContext *ctx, Frame *frame, RTValue arg0, RTValue a1,
+                                         RTValue a2, RTValue a3, RTValue a4) __attribute__((swiftcall)) {
   retain(frame->self);
   return Keyword_invoke(frame->self, arg0, RT_boxNil());
 }
 
-static RTValue Baseline_Keyword_Invoke_2(Frame *frame, RTValue arg0,
+static RTValue Baseline_Keyword_Invoke_2(__attribute__((swift_context)) struct ExecutionContext *ctx, Frame *frame, RTValue arg0,
                                          RTValue arg1, RTValue a2, RTValue a3,
-                                         RTValue a4) {
+                                         RTValue a4) __attribute__((swiftcall)) {
   retain(frame->self);
   return Keyword_invoke(frame->self, arg0, arg1);
 }
 
-static RTValue Baseline_Map_Invoke_1(Frame *frame, RTValue arg0, RTValue a1,
-                                     RTValue a2, RTValue a3, RTValue a4) {
+static RTValue Baseline_Map_Invoke_1(__attribute__((swift_context)) struct ExecutionContext *ctx, Frame *frame, RTValue arg0, RTValue a1,
+                                     RTValue a2, RTValue a3, RTValue a4) __attribute__((swiftcall)) {
   retain(frame->self);
   return PersistentArrayMap_dynamic_get(frame->self, arg0);
 }
 
-static RTValue Baseline_Vector_Invoke_1(Frame *frame, RTValue arg0, RTValue a1,
-                                        RTValue a2, RTValue a3, RTValue a4) {
+static RTValue Baseline_Vector_Invoke_1(__attribute__((swift_context)) struct ExecutionContext *ctx, Frame *frame, RTValue arg0, RTValue a1,
+                                        RTValue a2, RTValue a3, RTValue a4) __attribute__((swiftcall)) {
   retain(frame->self);
   return PersistentVector_dynamic_nth(
       (PersistentVector *)RT_unboxPtr(frame->self), arg0);

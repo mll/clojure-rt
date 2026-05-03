@@ -37,6 +37,7 @@ public:
   bool isInstance;
   bool returnsProvided;
   bool isVariadic = false;
+  bool passBindingContext = false;
 
   RTValue functionObject = 0;
   struct FunctionMethod *method = nullptr;

@@ -52,10 +52,11 @@ TypedValue CodeGen::codegen(const Node &node, const RecurNode &subnode,
   guard.popAll();
 
   // 5. Distribute arguments according to baseline calling convention
-  // Baseline: RTValue (Frame*, RTValue r0, RTValue r1, RTValue r2, RTValue r3,
+  // Baseline: RTValue (ExecutionContext* ctx, Frame* frame, RTValue r0, RTValue r1, RTValue r2, RTValue r3,
   // RTValue r4)
 
   vector<Value *> callArgs;
+  callArgs.push_back(getExecutionContext());
   callArgs.push_back(target.framePtr);
 
   // If the function is variadic, the last parameter of the function matches the
@@ -97,6 +98,8 @@ TypedValue CodeGen::codegen(const Node &node, const RecurNode &subnode,
   // 7. Emit musttail call
   CallInst *call =
       Builder.CreateCall(types.baselineFunctionTy, target.function, callArgs);
+  call->setCallingConv(CallingConv::Swift);
+  call->addParamAttr(0, Attribute::SwiftSelf);
   call->setTailCallKind(CallInst::TCK_MustTail);
 
   Builder.CreateRet(call);

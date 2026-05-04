@@ -1,7 +1,7 @@
-#include "Object.h"
 #include "Var.h"
-#include "Nil.h"
 #include "Hash.h"
+#include "Nil.h"
+#include "Object.h"
 #include <stdarg.h>
 
 // TODO: UnboundClass is printed in different way
@@ -37,18 +37,20 @@ String *Var_toString(Var *self) {
 };
 
 void Var_destroy(Var *self) {
-  if (self->root) Object_release(self->root);
+  if (self->root)
+    Object_release(self->root);
   release(self->keyword);
 };
 
+/* outisde refcount system */
 Var *Var_setDynamic(Var *self, BOOL dynamic) { // modifies and returns self
   self->dynamic = dynamic;
   return self;
 };
 
+/* outside refcount system */
 BOOL Var_isDynamic(Var *self) {
   BOOL retVal = self->dynamic;
-  release(self);
   return retVal;
 };
 
@@ -77,7 +79,8 @@ Nil *Var_bindRoot(Var *self, void *object) { // TODO: synchronized
   return UNIQUE_NIL;
 }
 
-Nil *Var_unbindRoot(Var *self) { // TODO: synchronized - Marek: What does it exactly mean?
+Nil *Var_unbindRoot(
+    Var *self) { // TODO: synchronized - Marek: What does it exactly mean?
   Object *oldRoot = self->root;
   ++self->rev;
   self->unbound = TRUE;

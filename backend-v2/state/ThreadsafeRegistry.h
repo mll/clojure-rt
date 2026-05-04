@@ -27,6 +27,10 @@ public:
     std::lock_guard<std::mutex> lock(registryMutex);
     int32_t index = requiredIndex == -1 ? currentIndex++ : requiredIndex;
 
+    if (manageRuntimeMemory) {
+      promoteToShared(RT_boxPtr((void *)newDef));
+    }
+
     auto it = indexedRegistry.find(index);
     if (manageRuntimeMemory && it != indexedRegistry.end()) {
       Ptr_release((void *)it->second);
@@ -42,15 +46,18 @@ public:
   void registerObject(const char *name, T *newDef) {
     std::lock_guard<std::mutex> lock(registryMutex);
 
+    if (manageRuntimeMemory) {
+      promoteToShared(RT_boxPtr((void *)newDef));
+    }
+
     std::string key(name);
     auto it = registry.find(key);
 
     if (manageRuntimeMemory && it != registry.end()) {
-      promoteToShared(RT_boxPtr(it->second));
       Ptr_release((void *)it->second);
     }
 
-    registry[name] = newDef;
+    registry[key] = newDef;
   }
 
   template <typename F> T *getOrCreate(const char *name, F &&factory) {

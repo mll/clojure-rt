@@ -17,6 +17,7 @@ LLVMTypes::LLVMTypes(LLVMContext &context) {
   wordTy = K_WORD_SIZE == 32 ? i32Ty : i64Ty;
   voidTy = Type::getVoidTy(context);
   RT_valueTy = i64Ty;
+  ExecutionContextPtrTy = ptrTy;
 
   std::vector<Type *> objectFields = {wordTy, i32Ty};
   if (K_WORD_SIZE == 8) {
@@ -60,10 +61,10 @@ LLVMTypes::LLVMTypes(LLVMContext &context) {
                                              ArrayType::get(methodTy, 0) // methods
                                          },
                                          "Clojure_Function");
-  /* Usually 6 args fit in registers */
+  /* Usually 6 args fit in registers + 1 swift_context */
   baselineFunctionTy = FunctionType::get(
       RT_valueTy,
-      {ptrTy, RT_valueTy, RT_valueTy, RT_valueTy, RT_valueTy, RT_valueTy},
+      {ExecutionContextPtrTy, ptrTy, RT_valueTy, RT_valueTy, RT_valueTy, RT_valueTy, RT_valueTy},
       false);
 }
 

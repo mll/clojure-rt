@@ -13,21 +13,17 @@ static void test_var_basic_lifecycle(void **state) {
     RTValue sym = Keyword_create(String_create("my-var"));
     Var *v = Var_create(sym);
 
-    Ptr_retain(v);
     assert_true(Var_isDynamic(v) == false);
-
-    Ptr_retain(v);
     assert_true(Var_hasRoot(v) == false);
 
     RTValue val = RT_boxPtr(String_create("root-value"));
     Ptr_retain(v);
     Var_bindRoot(v, val);
 
-    Ptr_retain(v);
     assert_true(Var_hasRoot(v) == true);
 
     Ptr_retain(v);
-    RTValue deref = Var_deref(v);
+    RTValue deref = Var_deref(NULL, v);
     assert_string_equal(String_c_str(RT_unboxPtr(deref)), "root-value");
 
     release(deref);
@@ -36,8 +32,9 @@ static void test_var_basic_lifecycle(void **state) {
     Var_unbindRoot(v);
 
     assert_true(Var_hasRoot(v) == false);
-    Ebr_synchronize_and_reclaim();
-    Ebr_synchronize_and_reclaim();
+    Ptr_release(v);
+
+    Ebr_force_reclaim();
   });
 }
 
@@ -48,15 +45,13 @@ static void test_var_dynamic(void **state) {
     Var *v = Var_create(sym);
 
     v = Var_setDynamic(v, true);
-    Ptr_retain(v);
     assert_true(Var_isDynamic(v) == true);
 
     v = Var_setDynamic(v, false);
-    Ptr_retain(v);
     assert_true(Var_isDynamic(v) == false);
 
     Ptr_release(v);
-    release(sym);
+    Ebr_force_reclaim();
   });
 }
 
@@ -73,7 +68,7 @@ static void test_var_tostring(void **state) {
     assert_string_equal(String_c_str(s), "#'foo");
 
     Ptr_release(s);
-    release(sym);
+    Ebr_force_reclaim();
   });
 }
 
@@ -93,8 +88,7 @@ static void test_var_peek(void **state) {
     Object *obj = (Object *)RT_unboxPtr(val);
 
     // Test Var_peek
-    Ptr_retain(v);
-    RTValue peeked = Var_peek(v);
+    RTValue peeked = Var_peek(NULL, v);
     assert_true(peeked == val);
     // Peek should NOT increment refcount. Should still be 1.
     assert_int_equal(
@@ -102,7 +96,8 @@ static void test_var_peek(void **state) {
         1);
 
     // Test Var_deref for contrast
-    RTValue derefed = Var_deref(v);
+    Ptr_retain(v);
+    RTValue derefed = Var_deref(NULL, v);
     assert_true(derefed == val);
     // Deref SHOULD increment refcount. Should be 2 (Var root, derefed handle)
     assert_int_equal(
@@ -117,9 +112,7 @@ static void test_var_peek(void **state) {
 
     Ptr_release(v);
     // val is now released because v was destroyed.
-    release(sym);
-    Ebr_synchronize_and_reclaim();
-    Ebr_synchronize_and_reclaim();
+    Ebr_force_reclaim();
   });
 }
 

@@ -1,3 +1,4 @@
+struct ExecutionContext;
 #ifndef RT_PERSISTENT_LIST
 #define RT_PERSISTENT_LIST
 
@@ -42,8 +43,8 @@ int32_t PersistentList_count(PersistentList *self);
 PersistentList *PersistentList_identity(PersistentList *self);
 RTValue PersistentList_next(PersistentList *self);
 RTValue PersistentList_first(PersistentList *self);
-RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start);
-RTValue PersistentList_reduce2(PersistentList *self, RTValue f);
+RTValue PersistentList_reduce(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentList *self, RTValue f, RTValue start) __attribute__((swiftcall));
+RTValue PersistentList_reduce2(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentList *self, RTValue f) __attribute__((swiftcall));
 
 #ifdef __cplusplus
 }

@@ -64,6 +64,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
 
   // Define the bridge signature based on call-site knowledge
   std::vector<Type *> llvmArgTypes;
+  llvmArgTypes.push_back(types.ptrTy);      // ExecutionContext (swiftself)
   llvmArgTypes.push_back(types.RT_valueTy); // Instance
   uint64_t boxedMask = 0;
   for (size_t i = 0; i < args.size(); i++) {
@@ -177,6 +178,7 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
   bridgePtr->addIncoming(newBridge, slowPathEnd);
 
   std::vector<Value *> bridgeArgs;
+  bridgeArgs.push_back(codeGen.getExecutionContext()); // swiftself
   bridgeArgs.push_back(boxedInstance.value);
   for (size_t i = 0; i < args.size(); i++) {
     if (args[i].type.isDetermined()) {
@@ -196,7 +198,8 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
     }
   }
 
-  Value *result = invokeRaw(bridgePtr, bridgeSig, bridgeArgs, guard);
+  Value *result =
+      invokeRaw(bridgePtr, bridgeSig, bridgeArgs, guard, true, {}, true);
   return TypedValue(ObjectTypeSet::dynamicType(), result);
 }
 

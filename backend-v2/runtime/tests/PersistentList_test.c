@@ -163,7 +163,7 @@ static void testListReduce(void **state) {
     // 1. reduce with start value
     Ptr_retain(l);
     RTValue addFn = create_bigint_add_fn();
-    RTValue res = PersistentList_reduce(l, addFn, RT_boxPtr(BigInteger_createFromInt(0)));
+    RTValue res = PersistentList_reduce(NULL, l, addFn, RT_boxPtr(BigInteger_createFromInt(0)));
     
     BigInteger *expected = BigInteger_createFromInt((count * (count - 1)) / 2);
     assert_true(BigInteger_equals((BigInteger *)RT_unboxPtr(res), expected));
@@ -173,7 +173,7 @@ static void testListReduce(void **state) {
     // 2. reduce2 (without start value)
     Ptr_retain(l);
     RTValue addFn2 = create_bigint_add_fn();
-    RTValue res2 = PersistentList_reduce2(l, addFn2);
+    RTValue res2 = PersistentList_reduce2(NULL, l, addFn2);
     
     BigInteger *expected2 = BigInteger_createFromInt((count * (count - 1)) / 2);
     assert_true(BigInteger_equals((BigInteger *)RT_unboxPtr(res2), expected2));

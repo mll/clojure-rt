@@ -44,6 +44,7 @@ set(TEST_MODULES
     codegen/RecurNode_test
     codegen/EBRFlush_test
     codegen/MetadataNode_test
+    codegen/ContextPropagation_test
     state/ClassRegistration_test
     state/ProtocolValidation_test
     state/EdnParserLeak_test

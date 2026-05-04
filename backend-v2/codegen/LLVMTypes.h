@@ -20,6 +20,7 @@ struct LLVMTypes {
   llvm::Type *voidTy;
 
   llvm::Type *RT_valueTy;
+  llvm::Type *ExecutionContextPtrTy;
   llvm::StructType *RT_objectTy;
   llvm::StructType *frameTy;
   llvm::StructType *methodTy;

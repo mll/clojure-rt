@@ -53,6 +53,7 @@ enum objectType {
   persistentVectorChunkedSeqType = 24,
   arrayChunkType = 25,
   persistentVectorReverseSeqType = 26,
+  executionContextType = 27,
 };
 
 typedef enum objectType objectType;

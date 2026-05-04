@@ -220,9 +220,10 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
               auto RT = jit->getMainJITDylib().createResourceTracker();
 
               if (auto Err = jit->addIRModule(RT, std::move(TSM))) {
+                std::string errStr = llvm::toString(std::move(Err));
+                fprintf(stderr, "JIT LINK ERROR: %s\n", errStr.c_str());
                 throwInternalInconsistencyException(
-                    std::string("JIT Link Error: ") +
-                    llvm::toString(std::move(Err)));
+                    std::string("JIT Link Error: ") + errStr);
               }
 
               // Resolve IC slot addresses BEFORE the lock to avoid
@@ -316,6 +317,14 @@ std::shared_future<JITResult>
 JITEngine::compileAST(const Node &AST, const std::string &moduleName) {
   return compileGeneric([&AST](CodeGen &cg) { return cg.codegenTopLevel(AST); },
                         moduleName);
+}
+
+std::shared_future<JITResult>
+JITEngine::compileASTWithContext(const Node &AST,
+                                 const std::string &moduleName) {
+  return compileGeneric(
+      [&AST](CodeGen &cg) { return cg.codegenTopLevelWithContext(AST); },
+      moduleName);
 }
 
 std::shared_future<JITResult> JITEngine::compileInstanceCallBridge(

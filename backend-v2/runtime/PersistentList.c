@@ -1,4 +1,5 @@
 #include "PersistentList.h"
+#include "ExecutionContext.h"
 #include "Object.h"
 #include "RTValue.h"
 #include <stdarg.h>
@@ -263,7 +264,7 @@ RTValue RT_createListFromArray(int32_t argCount, RTValue *args) {
   return RT_boxPtr(PersistentList_fromArray(argCount, args));
 }
 
-RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start) {
+RTValue PersistentList_reduce(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentList *self, RTValue f, RTValue start) __attribute__((swiftcall)) {
   RTValue acc = start;
   PersistentList *current = self;
 
@@ -289,7 +290,7 @@ RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start) {
       args[0] = acc;
       args[1] = first;
       // No retain(first) because we stole the reference from the destroyed node
-      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+      acc = RT_invokeMethodWithFrame(ctx, frame, f, method, args, 2);
     } else {
       // Shared: standard retain/release
       retain(first);
@@ -298,7 +299,7 @@ RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start) {
 
       args[0] = acc;
       args[1] = first;
-      acc = RT_invokeMethodWithFrame(frame, f, method, args, 2);
+      acc = RT_invokeMethodWithFrame(ctx, frame, f, method, args, 2);
 
       Ptr_release(current);
     }
@@ -311,10 +312,10 @@ RTValue PersistentList_reduce(PersistentList *self, RTValue f, RTValue start) {
   return acc;
 }
 
-RTValue PersistentList_reduce2(PersistentList *self, RTValue f) {
+RTValue PersistentList_reduce2(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentList *self, RTValue f) __attribute__((swiftcall)) {
   if (RT_isNull(self->first)) {
     Ptr_release(self);
-    return RT_invokeDynamic(f, NULL, 0);
+    return RT_invokeDynamic(ctx, f, NULL, 0);
   }
 
   RTValue first;
@@ -340,5 +341,5 @@ RTValue PersistentList_reduce2(PersistentList *self, RTValue f) {
     return first;
   }
 
-  return PersistentList_reduce(rest, f, first);
+  return PersistentList_reduce(ctx, rest, f, first);
 }

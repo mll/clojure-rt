@@ -18,7 +18,8 @@ IntrinsicDescription::IntrinsicDescription(const IntrinsicDescription &other)
     : argTypes(other.argTypes), type(other.type), symbol(other.symbol),
       returnType(other.returnType), thisType(other.thisType),
       isInstance(other.isInstance), returnsProvided(other.returnsProvided),
-      isVariadic(other.isVariadic), functionObject(other.functionObject),
+      isVariadic(other.isVariadic), passBindingContext(other.passBindingContext),
+      functionObject(other.functionObject),
       method(other.method) {
   if (functionObject)
     retain(functionObject);
@@ -31,6 +32,7 @@ IntrinsicDescription::IntrinsicDescription(IntrinsicDescription &&other) noexcep
       symbol(std::move(other.symbol)), returnType(std::move(other.returnType)),
       thisType(std::move(other.thisType)), isInstance(other.isInstance),
       returnsProvided(other.returnsProvided), isVariadic(other.isVariadic),
+      passBindingContext(other.passBindingContext),
       functionObject(other.functionObject), method(other.method) {
   other.functionObject = 0;
   other.method = nullptr;
@@ -49,6 +51,7 @@ IntrinsicDescription::operator=(const IntrinsicDescription &other) {
     isInstance = other.isInstance;
     returnsProvided = other.returnsProvided;
     isVariadic = other.isVariadic;
+    passBindingContext = other.passBindingContext;
     functionObject = other.functionObject;
     method = other.method;
     if (functionObject)
@@ -70,6 +73,7 @@ IntrinsicDescription::operator=(IntrinsicDescription &&other) noexcept {
     isInstance = other.isInstance;
     returnsProvided = other.returnsProvided;
     isVariadic = other.isVariadic;
+    passBindingContext = other.passBindingContext;
     functionObject = other.functionObject;
     method = other.method;
     other.functionObject = 0;
@@ -730,6 +734,8 @@ IntrinsicDescription::IntrinsicDescription(
         this->argTypes.push_back(ObjectTypeSet(keywordType));
       } else if (sArgKey == ":double") {
         this->argTypes.push_back(ObjectTypeSet(doubleType));
+      } else if (sArgKey == ":context") {
+        this->argTypes.push_back(ObjectTypeSet(executionContextType));
       } else {
         if (classData.classesByName.find(sArgKey) ==
             classData.classesByName.end()) {
@@ -796,6 +802,13 @@ IntrinsicDescription::IntrinsicDescription(
   }
 
   retain(root.get());
+  RTValue passContextRaw = PersistentArrayMap_get(map, Keyword_create(String_create("pass-binding-context")));
+  ConsumedValue passContextWrapper(passContextRaw);
+  if (getType(passContextWrapper.get()) == booleanType) {
+    this->passBindingContext = RT_unboxBool(passContextWrapper.get());
+  }
+
+  retain(root.get());
   RTValue symbolRaw =
       PersistentArrayMap_get(map, Keyword_create(String_create("symbol")));
 
@@ -849,9 +862,16 @@ IntrinsicDescription::IntrinsicDescription(
           throwInternalInconsistencyException(
               ":this used in a static function/intrinsic.");
         }
-        if (j != 0) {
-          throwInternalInconsistencyException(
-              ":this must be the first argument.");
+        if (this->passBindingContext) {
+          if (j != 1) {
+            throwInternalInconsistencyException(
+                ":this must be the second argument when the context is present.");
+          }
+        } else {
+          if (j != 0) {
+            throwInternalInconsistencyException(
+                ":this must be the first argument.");
+          }
         }
         if (thisType.isDetermined() &&
             thisType.determinedType() == objectRootType) {
@@ -865,26 +885,35 @@ IntrinsicDescription::IntrinsicDescription(
       } else if (sArgKey == ":nil") {
         this->argTypes.push_back(ObjectTypeSet(nilType));
       } else {
-        if (classData.classesByName.find(sArgKey) ==
-            classData.classesByName.end()) {
+        // Data-driven type resolution
+        auto it = classData.classesByName.find(sArgKey);
+        if (it == classData.classesByName.end()) {
           throwInternalInconsistencyException("Unknown arg type: " + sArgKey);
         }
-        PersistentArrayMap *argClassMap = classData.classesByName[sArgKey];
 
+        PersistentArrayMap *argClassMap = it->second;
         Ptr_retain(argClassMap);
         RTValue argTypeRaw = PersistentArrayMap_get(
             argClassMap, Keyword_create(String_create("object-type")));
         ConsumedValue atWrapper(argTypeRaw);
 
-        if (getType(atWrapper.get()) == integerType) {
-          objectType t = (objectType)RT_unboxInt32(atWrapper.get());
+        if (getType(atWrapper.get()) != integerType) {
+           throwInternalInconsistencyException("Class " + sArgKey + " must have an integer :object-type");
+        }
+
+        objectType t = (objectType)RT_unboxInt32(atWrapper.get());
+        
+        if (t == executionContextType) {
+          if (j != 0) {
+            throwInternalInconsistencyException("The execution context argument must be the first one.");
+          }
+          this->passBindingContext = true;
+        } else {
           if (t == objectRootType) {
             this->argTypes.push_back(ObjectTypeSet::dynamicType());
           } else {
             this->argTypes.push_back(ObjectTypeSet(t));
           }
-        } else {
-          this->argTypes.push_back(ObjectTypeSet(classType));
         }
       }
       PersistentVector_iteratorNext(&it);
@@ -916,7 +945,6 @@ IntrinsicDescription::IntrinsicDescription(
 
   if (getType(returnsWrapper.get()) != nilType) {
     this->returnsProvided = true;
-    // toString consumes.
     String *retStr = String_compactify(::toString(returnsWrapper.take()));
     string sRetKey = String_c_str(retStr);
     Ptr_release(retStr);
@@ -925,39 +953,28 @@ IntrinsicDescription::IntrinsicDescription(
       this->returnType = ObjectTypeSet::dynamicType();
     } else if (sRetKey == ":nil") {
       this->returnType = ObjectTypeSet(nilType);
-    } else if (sRetKey == ":int") {
-      this->returnType = ObjectTypeSet(integerType);
-    } else if (sRetKey == ":bool") {
-      this->returnType = ObjectTypeSet(booleanType);
-    } else if (sRetKey == ":string") {
-      this->returnType = ObjectTypeSet(stringType);
-    } else if (sRetKey == ":symbol") {
-      this->returnType = ObjectTypeSet(symbolType);
-    } else if (sRetKey == ":keyword") {
-      this->returnType = ObjectTypeSet(keywordType);
-    } else if (sRetKey == ":double") {
-      this->returnType = ObjectTypeSet(doubleType);
-    } else if (classData.classesByName.find(sRetKey) !=
-               classData.classesByName.end()) {
-      PersistentArrayMap *retClassMap = classData.classesByName[sRetKey];
+    } else {
+      auto it = classData.classesByName.find(sRetKey);
+      if (it != classData.classesByName.end()) {
+        PersistentArrayMap *retClassMap = it->second;
+        Ptr_retain(retClassMap);
+        RTValue retTypeRaw = PersistentArrayMap_get(
+            retClassMap, Keyword_create(String_create("object-type")));
+        ConsumedValue rtWrapper(retTypeRaw);
 
-      Ptr_retain(retClassMap);
-      RTValue retTypeRaw = PersistentArrayMap_get(
-          retClassMap, Keyword_create(String_create("object-type")));
-      ConsumedValue rtWrapper(retTypeRaw);
-
-      if (getType(rtWrapper.get()) == integerType) {
-        objectType t = (objectType)RT_unboxInt32(rtWrapper.get());
-        if (t == objectRootType) {
-          this->returnType = ObjectTypeSet::dynamicType();
+        if (getType(rtWrapper.get()) == integerType) {
+          objectType t = (objectType)RT_unboxInt32(rtWrapper.get());
+          if (t == objectRootType) {
+            this->returnType = ObjectTypeSet::dynamicType();
+          } else {
+            this->returnType = ObjectTypeSet(t);
+          }
         } else {
-          this->returnType = ObjectTypeSet(t);
+          this->returnType = ObjectTypeSet(classType);
         }
       } else {
-        this->returnType = ObjectTypeSet(classType);
+        throwInternalInconsistencyException("Unknown return type: " + sRetKey);
       }
-    } else {
-      throwInternalInconsistencyException("Unknown return type: " + sRetKey);
     }
   } else {
     this->returnType = defaultReturnType;

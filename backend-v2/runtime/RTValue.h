@@ -30,6 +30,12 @@ static inline bool RT_isNil(RTValue v)     { return v == RT_TAG_NIL; }
 static inline bool RT_isKeyword(RTValue v) { return (v & RT_TAG_MASK) == RT_TAG_KEYWORD; }
 static inline bool RT_isNull(RTValue v)     { return v == RT_TAG_NULL; }
 
+static inline bool RT_isTruthy(RTValue v) {
+    if (RT_isNil(v)) return false;
+    if (RT_isBool(v) && (v & 0x1ULL) == 0) return false;
+    return true;
+}
+
 // --- Boxing (Creating RTValues) ---
 
 static inline RTValue RT_boxPtr(void* p) {

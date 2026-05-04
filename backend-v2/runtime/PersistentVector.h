@@ -1,3 +1,4 @@
+struct ExecutionContext;
 #ifndef RT_PERSISTENT_VECTOR
 #define RT_PERSISTENT_VECTOR
 
@@ -96,9 +97,9 @@ bool PersistentVector_contains(PersistentVector *restrict self, RTValue other);
 RTValue PersistentVector_seq(PersistentVector *self);
 RTValue PersistentVector_peek(PersistentVector *self);
 bool PersistentVector_equals_managed(PersistentVector *self, RTValue other);
-RTValue PersistentVector_reduce(PersistentVector *self, RTValue f,
-                                RTValue start);
-RTValue PersistentVector_reduce2(PersistentVector *self, RTValue f);
+RTValue PersistentVector_reduce(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentVector *self, RTValue f,
+                                RTValue start) __attribute__((swiftcall));
+RTValue PersistentVector_reduce2(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentVector *self, RTValue f) __attribute__((swiftcall));
 RTValue PersistentVector_empty(PersistentVector *self);
 
 #ifdef __cplusplus

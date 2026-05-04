@@ -69,6 +69,9 @@ class CodeGen {
   std::vector<RTValue> generatedConstants;
   DynamicConstructor dynamicConstructor;
   MemoryManagement memoryManagement;
+  std::vector<llvm::Value *> executionContextStack;
+  void pushExecutionContext(llvm::Value *ctx) { executionContextStack.push_back(ctx); }
+  void popExecutionContext() { executionContextStack.pop_back(); }
 
   ThreadsafeCompilerState &compilerState;
   std::unique_ptr<llvm::DIBuilder> DIB;
@@ -120,6 +123,7 @@ public:
   }
 
   std::string codegenTopLevel(const Node &node);
+  std::string codegenTopLevelWithContext(const Node &node);
   std::string
   generateInstanceCallBridge(const std::string &moduleName,
                              const std::string &methodName,
@@ -247,6 +251,7 @@ public:
   }
   MemoryManagement &getMemoryManagement() { return memoryManagement; }
   DynamicConstructor &getDynamicConstructor() { return dynamicConstructor; }
+  llvm::Value *getExecutionContext();
 
   class FunctionScopeGuard {
     CodeGen &cg;

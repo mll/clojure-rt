@@ -96,6 +96,8 @@ public:
    */
   std::shared_future<JITResult> compileAST(const Node &AST,
                                            const std::string &moduleName);
+  std::shared_future<JITResult> compileASTWithContext(const Node &AST,
+                                                      const std::string &moduleName);
 
   /**
    * Compiles a specialized bridge for an instance call.

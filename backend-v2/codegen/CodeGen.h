@@ -123,6 +123,7 @@ public:
   }
 
   std::string codegenTopLevel(const Node &node);
+  std::string codegenTopLevelWithContext(const Node &node);
   std::string
   generateInstanceCallBridge(const std::string &moduleName,
                              const std::string &methodName,

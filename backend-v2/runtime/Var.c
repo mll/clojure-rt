@@ -175,11 +175,19 @@ RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
     throwIllegalStateException_C("Can't set! a non-dynamic Var");
   }
 
-  // set! requires a thread-local binding to exist.
-  // Our current ExecutionContext uses an immutable map, so we don't support
-  // in-place mutation of the binding map yet.
-  release(value);
+  if (!ctx || ctx->bindingsMap == RT_boxNil()) {
+    release(value);
+    Ptr_release(self);
+    throwIllegalStateException_C(
+        "Can't set! dynamic Var outside of a binding context");
+  }
+
+  retain(self->keyword);
+  retain(value);
+  ctx->bindingsMap = RT_boxPtr(PersistentArrayMap_assoc(
+      RT_unboxPtr(ctx->bindingsMap), self->keyword, value));
+
   Ptr_release(self);
-  throwUnsupportedOperationException_C(
-      "set! on dynamic Vars is not yet supported (bindings are immutable)");
+
+  return value;
 }

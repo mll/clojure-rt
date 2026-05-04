@@ -78,6 +78,8 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
   BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
   Builder.SetInsertPoint(BB);
 
+  pushExecutionContext(llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(types.ExecutionContextPtrTy)));
+
   memoryManagement.initFunction(F);
 
   // Declare personality function
@@ -91,11 +93,85 @@ std::string CodeGen::codegenTopLevel(const Node &node) {
       llvm::DILocation::get(TheContext, env.line(), env.column(), SP));
 
   TypedValue result = codegen(node, ObjectTypeSet::all());
+  popExecutionContext();
 
   Builder.CreateRet(valueEncoder.box(result).value);
 
   LexicalBlocks.pop_back();
-  verifyFunction(*F);
+  if (verifyFunction(*F, &llvm::errs())) {
+    F->print(llvm::errs());
+    throwInternalInconsistencyException("Function verification failed for top-level");
+  }
+  return fname;
+}
+
+std::string CodeGen::codegenTopLevelWithContext(const Node &node) {
+  CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
+  uword_t i = compilerState.functionAstRegistry.registerObject(&node);
+  std::string fname = std::string("__repl_ctx__") + std::to_string(i);
+  FunctionType *FT =
+      FunctionType::get(types.i64Ty, {types.ExecutionContextPtrTy}, false);
+  Function *F =
+      Function::Create(FT, Function::ExternalLinkage, fname, *TheModule);
+
+  F->setCallingConv(CallingConv::Swift);
+  F->addParamAttr(0, Attribute::SwiftSelf);
+
+  // Enforce frame pointers for reliable stack traces
+  F->addFnAttr("frame-pointer", "all");
+
+  // Create debug info for the function
+  auto env = node.env();
+  std::string fileName = env.file();
+  std::string dir = ".";
+  if (fileName.empty()) {
+    fileName = CU->getFilename().str();
+    dir = CU->getDirectory().str();
+  } else {
+    size_t lastSlash = fileName.find_last_of('/');
+    if (lastSlash != std::string::npos) {
+      dir = fileName.substr(0, lastSlash);
+      fileName = fileName.substr(lastSlash + 1);
+    }
+  }
+
+  llvm::DIFile *Unit = DIB->createFile(fileName, dir);
+  llvm::DISubroutineType *AsmSignature =
+      DIB->createSubroutineType(DIB->getOrCreateTypeArray({}));
+  llvm::DISubprogram *SP = DIB->createFunction(
+      Unit, fname, fname, Unit, env.line(), AsmSignature, env.line(),
+      llvm::DINode::FlagPrototyped, llvm::DISubprogram::SPFlagDefinition);
+  F->setSubprogram(SP);
+  LexicalBlocks.push_back(SP);
+
+  BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
+  Builder.SetInsertPoint(BB);
+
+  pushExecutionContext(&*F->arg_begin());
+
+  memoryManagement.initFunction(F);
+
+  // Declare personality function
+  FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
+  personalityFn =
+      TheModule->getOrInsertFunction("__gxx_personality_v0", personalityFnTy);
+  F->setPersonalityFn(cast<Function>(personalityFn.getCallee()));
+
+  // Set initial debug location
+  Builder.SetCurrentDebugLocation(
+      llvm::DILocation::get(TheContext, env.line(), env.column(), SP));
+
+  TypedValue result = codegen(node, ObjectTypeSet::all());
+  popExecutionContext();
+
+  Builder.CreateRet(valueEncoder.box(result).value);
+
+  LexicalBlocks.pop_back();
+  if (verifyFunction(*F, &llvm::errs())) {
+    F->print(llvm::errs());
+    throwInternalInconsistencyException(
+        "Function verification failed for top-level with context");
+  }
   return fname;
 }
 
@@ -108,9 +184,10 @@ std::string CodeGen::generateInstanceCallBridge(
   std::string funcName = moduleName + "_" +
                          std::to_string(instanceType.determinedType()) + "_" +
                          generateRandomHex(16);
-  // 1. Define Signature: (Instance, Arg1, ...) -> RTValue
+  // 1. Define Signature: (ExecutionContext, Instance, Arg1, ...) -> RTValue
   // Specialized arguments use natural LLVM types for unboxed primitives
   std::vector<llvm::Type *> llvmArgTypes;
+  llvmArgTypes.push_back(types.ptrTy);      // ExecutionContext (swiftself)
   llvmArgTypes.push_back(types.RT_valueTy); // Instance
   for (size_t i = 0; i < argTypes.size(); i++) {
     const auto &t = argTypes[i];
@@ -122,7 +199,7 @@ std::string CodeGen::generateInstanceCallBridge(
         llvmArgTypes.push_back(types.doubleTy);
       else if (type == booleanType)
         llvmArgTypes.push_back(types.i1Ty);
-      else if (type == keywordType || type == symbolType || type == nilType)
+      else if (type == keywordType || type == nilType)
         llvmArgTypes.push_back(types.RT_valueTy);
       else
         llvmArgTypes.push_back(types.ptrTy);
@@ -135,6 +212,9 @@ std::string CodeGen::generateInstanceCallBridge(
       llvm::FunctionType::get(types.RT_valueTy, llvmArgTypes, false);
   llvm::Function *F = llvm::Function::Create(
       FT, llvm::Function::ExternalLinkage, funcName, *TheModule);
+
+  F->setCallingConv(llvm::CallingConv::Swift);
+  F->addParamAttr(0, llvm::Attribute::SwiftSelf);
 
   // Enforce frame pointers for reliable stack traces
   F->addFnAttr("frame-pointer", "all");
@@ -153,6 +233,8 @@ std::string CodeGen::generateInstanceCallBridge(
 
   // 4. Prepare TypedValues for the call
   auto it = F->arg_begin();
+  Value *contextVal = it++; // ExecutionContext*
+  pushExecutionContext(contextVal);
 
   // First argument is the instance, specialized to the known type from IC
   TypedValue instanceTV(instanceType.boxed(), it++);
@@ -172,6 +254,7 @@ std::string CodeGen::generateInstanceCallBridge(
   // 6. Ensure result is boxed and return
   Builder.CreateRet(valueEncoder.box(result).value);
 
+  popExecutionContext();
   verifyFunction(*F);
   return funcName;
 }

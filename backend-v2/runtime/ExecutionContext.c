@@ -39,12 +39,72 @@ RT_bind(__attribute__((swift_context)) struct ExecutionContext *ctx, RTValue v,
     throwIllegalStateException_C("Can't dynamically bind non-dynamic Var");
   }
 
-  RTValue currentMap = (ctx && ctx->bindingsMap != RT_boxNil())
-                           ? ctx->bindingsMap
-                           : RT_boxPtr(PersistentArrayMap_empty());
-  RTValue nextMap = RT_boxPtr(
-      PersistentArrayMap_assoc(RT_unboxPtr(currentMap), var->keyword, val));
+  PersistentArrayMap *currentMap;
+
+  if (ctx && ctx->bindingsMap != RT_boxNil()) {
+    currentMap = RT_unboxPtr(ctx->bindingsMap);
+    Ptr_retain(currentMap);
+  } else {
+    currentMap = PersistentArrayMap_empty();
+  }
+
+  RTValue nextMap =
+      RT_boxPtr(PersistentArrayMap_assoc(currentMap, var->keyword, val));
 
   ExecutionContext *nextCtx = ExecutionContext_create(nextMap);
   return nextCtx;
+}
+
+ExecutionContext *
+RT_bind_map(__attribute__((swift_context)) struct ExecutionContext *ctx,
+            RTValue bindingsMap) __attribute__((swiftcall)) {
+  if (getType(bindingsMap) != persistentArrayMapType) {
+    release(bindingsMap);
+    throwIllegalArgumentException_C(
+        "Second argument to RT_bind_map must be a PersistentArrayMap");
+  }
+
+  PersistentArrayMap *newBindings = RT_unboxPtr(bindingsMap);
+  PersistentArrayMap *currentMap;
+
+  if (ctx && ctx->bindingsMap != RT_boxNil()) {
+    currentMap = RT_unboxPtr(ctx->bindingsMap);
+    Ptr_retain(currentMap);
+  } else {
+    currentMap = PersistentArrayMap_empty();
+  }
+
+  for (uword_t i = 0; i < newBindings->count; i++) {
+    RTValue v = newBindings->keys[i];
+    RTValue val = newBindings->values[i];
+
+    if (getType(v) != varType) {
+      Ptr_release(currentMap);
+      release(bindingsMap);
+      throwIllegalArgumentException_C("Binding keys must be Vars");
+    }
+
+    Var *var = RT_unboxPtr(v);
+    if (!Var_isDynamic(var)) {
+      Ptr_release(currentMap);
+      release(bindingsMap);
+      throwIllegalStateException_C("Can't dynamically bind non-dynamic Var");
+    }
+
+    // assoc consumes its arguments, so we must retain them from the source map
+    retain(var->keyword);
+    retain(val);
+    currentMap = PersistentArrayMap_assoc(currentMap, var->keyword, val);
+  }
+
+  release(bindingsMap);
+  ExecutionContext *nextCtx = ExecutionContext_create(RT_boxPtr(currentMap));
+  return nextCtx;
+}
+
+ExecutionContext *
+ExecutionContext_pop(__attribute__((swift_context)) struct ExecutionContext *ctx)
+    __attribute__((swiftcall)) {
+  Ptr_release(ctx);
+  return NULL;
 }

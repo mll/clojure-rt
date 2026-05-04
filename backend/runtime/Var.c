@@ -42,7 +42,7 @@ void Var_destroy(Var *self) {
   release(self->keyword);
 };
 
-/
+/* outisde refcount system */
 Var *Var_setDynamic(Var *self, BOOL dynamic) { // modifies and returns self
   self->dynamic = dynamic;
   return self;

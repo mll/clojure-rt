@@ -78,7 +78,19 @@
    :object-type 19
    :implements {clojure.lang.IMeta {meta [{:args [:this] :type :call :symbol "Var_getMeta" :returns :any}]}
                 clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "Var_resetMeta" :returns clojure.lang.Var}]}
-                clojure.lang.IDeref {deref [{:args [:context :this] :type :call :symbol "Var_deref" :returns :any :pass-binding-context true}]}}}
+                clojure.lang.IDeref {deref [{:args [:context :this] :type :call :symbol "Var_deref" :returns :any :pass-binding-context true}]}}
+   :instance-fns
+   {set [{:args [:context :this :any] :type :call :symbol "Var_set" :returns :any :pass-binding-context true}]}
+   :static-fns
+   {pushThreadBindings [{:args [:context :any] :type :call :symbol "RT_bind_map" :returns :context :pass-binding-context true}]
+    popThreadBindings [{:args [:context] :type :call :symbol "ExecutionContext_pop" :returns :context :pass-binding-context true}]}}
+
+  clojure.lang.Namespace
+  {:object-type 22
+   :extends java.lang.Object
+   :static-fns
+   {find [{:args [clojure.lang.Symbol] :type :call :symbol "Namespace_find" :returns clojure.lang.Namespace}]
+    resetMeta [{:args [clojure.lang.Namespace :any] :type :call :symbol "Namespace_resetMeta" :returns clojure.lang.Namespace}]}}
 
   clojure.lang.Numbers
   {:static-fns

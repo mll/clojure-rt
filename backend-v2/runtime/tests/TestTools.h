@@ -4,6 +4,10 @@
 #include "../Object.h"
 #include "../RuntimeInterface.h"
 #include "../defines.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <assert.h>
 #include <gmp.h>
 #include <pthread.h>
@@ -163,6 +167,10 @@ void reset_exception_state();
       fail_msg("String '%s' contains '%s' (but should not)", __s, __sub);      \
     }                                                                          \
   } while (0)
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

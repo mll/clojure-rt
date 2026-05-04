@@ -58,11 +58,65 @@ static void test_dynamic_var_binding(void **state) {
   });
 }
 
+static void test_dynamic_var_set(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    RTValue sym = Keyword_create(String_create("dynamic-var-set"));
+    retain(sym);
+    Var *v = Var_create(sym);
+
+    Var_setDynamic(v, true);
+    Ptr_retain(v);
+    Var_bindRoot(v, RT_boxPtr(BigInteger_createFromInt(1)));
+
+    // Create initial context with v=10
+    PersistentArrayMap *m = PersistentArrayMap_createMany(
+        1, sym, RT_boxPtr(BigInteger_createFromInt(10)));
+    ExecutionContext *ctx = ExecutionContext_create(RT_boxPtr(m));
+
+    // 1. Verify initial state in context
+    Ptr_retain(v);
+    RTValue res1 = Var_deref(ctx, v);
+    BigInteger *t1 = BigInteger_createFromInt(10);
+    assert_true(equals(RT_boxPtr(t1), res1));
+    Ptr_release(t1);
+    release(res1);
+
+    // 2. Perform Var_set(ctx, v, 20)
+    Ptr_retain(v);
+    RTValue val20 = RT_boxPtr(BigInteger_createFromInt(20));
+    RTValue setRes = Var_set(ctx, v, val20);
+    assert_true(equals(val20, setRes));
+    release(setRes); // Var_set returns retained value
+
+    // 3. Verify that deref now returns 20 in the SAME context
+    Ptr_retain(v);
+    RTValue res2 = Var_deref(ctx, v);
+    BigInteger *t2 = BigInteger_createFromInt(20);
+    assert_true(equals(RT_boxPtr(t2), res2));
+    Ptr_release(t2);
+    release(res2);
+
+    // 4. Verify that root is still 1
+    Ptr_retain(v);
+    RTValue res3 = Var_deref(NULL, v);
+    BigInteger *t3 = BigInteger_createFromInt(1);
+    assert_true(equals(RT_boxPtr(t3), res3));
+    Ptr_release(t3);
+    release(res3);
+
+    release(RT_boxPtr(ctx));
+    Ptr_release(v);
+    Ebr_force_reclaim();
+  });
+}
+
 int main(int argc, char **argv) {
   initialise_memory();
   RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_dynamic_var_binding),
+      cmocka_unit_test(test_dynamic_var_set),
   };
   int result = cmocka_run_group_tests(tests, NULL, NULL);
   RuntimeInterface_cleanup();

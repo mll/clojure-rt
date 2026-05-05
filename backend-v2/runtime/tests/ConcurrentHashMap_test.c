@@ -366,6 +366,67 @@ static void test_chm_to_string(void **state) {
   });
 }
 
+typedef struct GOCThreadParams {
+  ConcurrentHashMap *map;
+  RTValue key;
+  RTValue value;
+  RTValue result;
+  int workerId;
+} GOCThreadParams;
+
+static void *gocThread(void *param) {
+  Ebr_register_thread();
+  Ebr_enter_critical();
+  GOCThreadParams *p = (GOCThreadParams *)param;
+
+  Ptr_retain(p->map);
+  // ConcurrentHashMap_getOrCreate consumes key and value
+  p->result = ConcurrentHashMap_getOrCreate(p->map, p->key, p->value);
+
+  Ebr_leave_critical();
+  Ebr_unregister_thread();
+  return NULL;
+}
+
+static void test_concurrent_get_or_create(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    ConcurrentHashMap *m = ConcurrentHashMap_create(10);
+    RTValue key = RT_boxPtr(String_createStatic("shared-key"));
+    GOCThreadParams params[BATTLE_THREADS];
+    pthread_t threads[BATTLE_THREADS];
+
+    for (int i = 0; i < BATTLE_THREADS; i++) {
+      params[i].map = m;
+      params[i].key = key;
+      retain(key);
+      char buf[32];
+      snprintf(buf, sizeof(buf), "value-%d", i);
+      params[i].value = RT_boxPtr(String_createDynamicStr(buf));
+      params[i].workerId = i;
+      pthread_create(&threads[i], NULL, gocThread, &params[i]);
+    }
+
+    for (int i = 0; i < BATTLE_THREADS; i++) {
+      pthread_join(threads[i], NULL);
+    }
+
+    RTValue firstResult = params[0].result;
+    assert_true(RT_isPtr(firstResult));
+    for (int i = 1; i < BATTLE_THREADS; i++) {
+      assert_ptr_equal(RT_unboxPtr(params[i].result), RT_unboxPtr(firstResult));
+    }
+
+    // Clean up results
+    for (int i = 0; i < BATTLE_THREADS; i++) {
+      release(params[i].result);
+    }
+    release(key);
+    Ptr_release(m);
+    Ebr_force_reclaim();
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_chm_promotion_on_assoc),
@@ -373,6 +434,7 @@ int main(void) {
                                 concurrentMapThreadingAndPerformance),
       cmocka_unit_test(test_concurrent_hash_map_overcrowded),
       cmocka_unit_test(test_concurrent_read_write),
+      cmocka_unit_test(test_concurrent_get_or_create),
       cmocka_unit_test(test_chm_with_strings),
       // cmocka_unit_test(test_ebr_reclamation_threshold),
       cmocka_unit_test(test_chm_to_string),

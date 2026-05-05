@@ -225,6 +225,145 @@ void ConcurrentHashMap_assoc_preservesSelf(ConcurrentHashMap *self, RTValue key,
       "ConcurrentHashMap is overcrowded - resizing not yet supported");
 }
 
+/* MUTABLE: self is not consumed, keyV and valueV are consumed. mem done */
+RTValue ConcurrentHashMap_putIfAbsent_preservesSelf(ConcurrentHashMap *self,
+                                                   RTValue key, RTValue value) {
+  promoteToShared(key);
+  promoteToShared(value);
+
+  ConcurrentHashMapNode *root =
+      atomic_load_explicit(&(self->root), memory_order_relaxed);
+
+  uword_t keyHash = hash(key);
+  uword_t startIndex = keyHash & root->sizeMask;
+  uword_t index = startIndex;
+  ConcurrentHashMapEntry *entry = &(root->array[index]);
+
+  uword_t encounteredHash = tryReservingEmptyNode(entry, key, value, keyHash);
+  if (encounteredHash == 0) {
+    return RT_boxNull();
+  }
+
+  RTValue existing = tryGettingFromEntry(entry, key, keyHash);
+  if (!RT_isNull(existing)) {
+    release(key);
+    release(value);
+    return existing;
+  }
+
+  unsigned short lastChainEntryLeaps =
+      atomic_load_explicit(&(entry->leaps), memory_order_relaxed);
+  unsigned short jump = getLongLeap(lastChainEntryLeaps);
+
+  while (jump > 0) { /* Let us traverse the chain searching for its end */
+    index = (index + jump) & root->sizeMask;
+    entry = &(root->array[index]);
+    /* We wait until the node appears */
+    while ((encounteredHash = atomic_load_explicit(&(entry->keyHash),
+                                                   memory_order_relaxed)) == 0)
+      ;
+    /* Maybe it is an existing node with the key? */
+    existing = tryGettingFromEntry(entry, key, keyHash);
+    if (!RT_isNull(existing)) {
+      release(key);
+      release(value);
+      return existing;
+    }
+    lastChainEntryLeaps =
+        atomic_load_explicit(&(entry->leaps), memory_order_relaxed);
+    jump = getShortLeap(lastChainEntryLeaps);
+  }
+
+  ConcurrentHashMapEntry *lastChainEntry = entry;
+  uword_t lastChainEntryIndex = index;
+  bool lastChainEntryIsFirstEntry = lastChainEntryIndex == startIndex;
+
+  /* We enter linear scan */
+  for (unsigned char i = 1; i < root->resizingThreshold; i++) {
+    index = (index + 1) & root->sizeMask;
+    entry = &(root->array[index]);
+    encounteredHash = tryReservingEmptyNode(entry, key, value, keyHash);
+
+    while (encounteredHash == 0) {
+      /* We succeeded in reserving the node! We create long or short jumps. */
+      unsigned short newLeaps =
+          lastChainEntryIsFirstEntry
+              ? buildLeaps(i, getShortLeap(lastChainEntryLeaps))
+              : buildLeaps(getLongLeap(lastChainEntryLeaps), i);
+      if (atomic_compare_exchange_strong_explicit(
+              &(lastChainEntry->leaps), &lastChainEntryLeaps, newLeaps,
+              memory_order_relaxed, memory_order_relaxed)) {
+        return RT_boxNull();
+      }
+      lastChainEntryLeaps =
+          atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
+    }
+
+    while ((encounteredHash & root->sizeMask) == startIndex) {
+      /* This is a problem. Another thread is in a process of adding an entry to
+         the same chain! */
+      existing = tryGettingFromEntry(entry, key, keyHash);
+      if (!RT_isNull(existing)) {
+        release(key);
+        release(value);
+        return existing;
+      }
+
+      unsigned short newLeaps =
+          lastChainEntryIsFirstEntry
+              ? buildLeaps(i, getShortLeap(lastChainEntryLeaps))
+              : buildLeaps(getLongLeap(lastChainEntryLeaps), i);
+      if (atomic_compare_exchange_strong_explicit(
+              &(lastChainEntry->leaps), &lastChainEntryLeaps, newLeaps,
+              memory_order_relaxed, memory_order_relaxed)) {
+        /* We move the last entry index and start afresh */
+        lastChainEntryIndex = index;
+        lastChainEntry = entry;
+        lastChainEntryLeaps = atomic_load_explicit(&(lastChainEntry->leaps),
+                                                   memory_order_relaxed);
+        lastChainEntryIsFirstEntry = false;
+        i = 0;
+        break;
+      }
+      lastChainEntryLeaps =
+          atomic_load_explicit(&(lastChainEntry->leaps), memory_order_relaxed);
+    }
+  }
+  /* The loop failed - the table is overcrowded and needs a migration */
+  release(key);
+  release(value);
+  throwIllegalStateException_C(
+      "ConcurrentHashMap is overcrowded - resizing not yet supported");
+  return RT_boxNull();
+}
+
+/* MUTABLE: self is not consumed, keyV and valueV are consumed. mem done */
+RTValue ConcurrentHashMap_getOrCreate_preservesSelf(ConcurrentHashMap *self,
+                                                   RTValue key, RTValue value) {
+  RTValue existing = ConcurrentHashMap_putIfAbsent_preservesSelf(self, key, value);
+  if (RT_isNull(existing)) {
+    retain(value);
+    return value;
+  }
+  return existing;
+}
+
+/* mem done */
+RTValue ConcurrentHashMap_putIfAbsent(ConcurrentHashMap *self, RTValue key,
+                                      RTValue value) {
+  RTValue retVal = ConcurrentHashMap_putIfAbsent_preservesSelf(self, key, value);
+  Ptr_release(self);
+  return retVal;
+}
+
+/* mem done */
+RTValue ConcurrentHashMap_getOrCreate(ConcurrentHashMap *self, RTValue key,
+                                      RTValue value) {
+  RTValue retVal = ConcurrentHashMap_getOrCreate_preservesSelf(self, key, value);
+  Ptr_release(self);
+  return retVal;
+}
+
 /* outside refcount system */
 inline bool tryDeletingFromEntry(ConcurrentHashMapEntry *entry, RTValue key,
                                  uword_t keyHash) {

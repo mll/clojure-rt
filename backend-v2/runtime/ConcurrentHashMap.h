@@ -59,6 +59,10 @@ void ConcurrentHashMap_assoc(ConcurrentHashMap *self, RTValue key,
                              RTValue value);
 void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, RTValue key);
 RTValue ConcurrentHashMap_get(ConcurrentHashMap *self, RTValue key);
+RTValue ConcurrentHashMap_putIfAbsent(ConcurrentHashMap *self, RTValue key,
+                                      RTValue value);
+RTValue ConcurrentHashMap_getOrCreate(ConcurrentHashMap *self, RTValue key,
+                                      RTValue value);
 
 void ConcurrentHashMap_assoc_preservesSelf(ConcurrentHashMap *self, RTValue key,
                                            RTValue value,
@@ -67,6 +71,10 @@ void ConcurrentHashMap_dissoc_preservesSelf(ConcurrentHashMap *self,
                                             RTValue key);
 RTValue ConcurrentHashMap_get_preservesSelf(ConcurrentHashMap *self,
                                             RTValue key);
+RTValue ConcurrentHashMap_putIfAbsent_preservesSelf(ConcurrentHashMap *self,
+                                                   RTValue key, RTValue value);
+RTValue ConcurrentHashMap_getOrCreate_preservesSelf(ConcurrentHashMap *self,
+                                                   RTValue key, RTValue value);
 String *ConcurrentHashMap_toString(ConcurrentHashMap *self);
 
 bool ConcurrentHashMap_equals(ConcurrentHashMap *self,

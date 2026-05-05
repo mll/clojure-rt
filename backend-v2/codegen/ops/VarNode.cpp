@@ -26,7 +26,8 @@ TypedValue CodeGen::codegen(const Node &node, const VarNode &subnode,
   memoryManagement.dynamicRetain(varPtr);
 
   auto res = invokeManager.invokeRuntime(
-      "Var_deref", nullptr, {ObjectTypeSet(varType)}, {varPtr}, false, nullptr);
+      "Var_deref", nullptr, {ObjectTypeSet(varType)}, {varPtr}, false, nullptr,
+      true, {}, true);
 
   return res;
 }

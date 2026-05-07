@@ -1,17 +1,29 @@
 #ifndef RT_KEYWORD
 #define RT_KEYWORD
 
-#include <stdio.h>
-#include <string.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include "defines.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ObjectProto.h"
 #include "RTValue.h"
-typedef struct String String; 
+#include "defines.h"
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+typedef struct String String;
 
 RTValue Keyword_create(String *string);
-String *Keyword_toString(int32_t self);
+String *Keyword_toString(RTValue self);
+RTValue Keyword_invoke(RTValue self, RTValue map, RTValue defaultVal);
+uint32_t Keyword_getInternCount();
+void Keyword_resetInterns();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

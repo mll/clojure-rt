@@ -1,16 +1,22 @@
 #ifndef RT_PERSISTENT_VECTOR_ITERATOR
 #define RT_PERSISTENT_VECTOR_ITERATOR
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ObjectProto.h"
 /* #include "PersistentVectorNode.h" */
 /* #include "PersistentVector.h" */
+#include "RTValue.h"
 #include <stdint.h>
 
 typedef struct PersistentVectorNode PersistentVectorNode;
 typedef struct PersistentVector PersistentVector;
 
 struct PersistentVectorIterator {
-  uint64_t index;
-  uint64_t blockIndex;
+  uword_t index;
+  uword_t blockIndex;
   PersistentVectorNode *block;
   PersistentVector *parent;
 };
@@ -18,7 +24,11 @@ struct PersistentVectorIterator {
 typedef struct PersistentVectorIterator PersistentVectorIterator;
 
 PersistentVectorIterator PersistentVector_iterator(PersistentVector *self);
-Object *PersistentVector_iteratorGet(PersistentVectorIterator *it);
-Object *PersistentVector_iteratorNext(PersistentVectorIterator *it);
+RTValue PersistentVector_iteratorGet(PersistentVectorIterator *it);
+RTValue PersistentVector_iteratorNext(PersistentVectorIterator *it);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

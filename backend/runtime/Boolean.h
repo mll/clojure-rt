@@ -1,21 +1,18 @@
 #ifndef RT_BOOLEAN
 #define RT_BOOLEAN
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "RTValue.h"
 #include "String.h"
 #include "defines.h"
 
-typedef struct Object Object;
+String *Boolean_toString(RTValue self);
 
-struct Boolean {
-  Object super;
-  unsigned char value;
-};
-
-typedef struct Boolean Boolean;
-
-Boolean* Boolean_create(BOOL initial);
-BOOL Boolean_equals(Boolean *self, Boolean *other);
-uint64_t Boolean_hash(Boolean *self);
-String *Boolean_toString(Boolean *self); 
-void Boolean_destroy(Boolean *self);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

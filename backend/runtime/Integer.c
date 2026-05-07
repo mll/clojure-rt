@@ -1,61 +1,44 @@
 #include "Integer.h"
-#include "String.h"
+#include "Exceptions.h"
+#include "word.h"
 #include "Object.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include "Hash.h"
+#include "RTValue.h"
 #include "Ratio.h"
+#include "String.h"
+#include <stdio.h>
 
 /* mem done */
-Integer* Integer_create(int64_t integer) {
-  Integer *self = allocate(sizeof(Integer)); 
-  self->value = integer;
-  Object_create((Object *) self, integerType);
-  return self;
-}
-
-/* outside refcount system */
-BOOL Integer_equals(Integer *self, Integer *other) {
-  return self->value == other->value;
-}
-
-/* outside refcount system */
-uint64_t Integer_hash(Integer *self) {
-  return combineHash(5381 , avalanche_64(self->value)); 
-}
-
-/* mem done */
-String *Integer_toString(Integer *self) { 
-  String *retVal = String_createDynamic(21);
-  retVal->count = snprintf(retVal->value, 20, "%lld", self->value);
+String *Integer_toString(RTValue self) {
+  String *retVal = String_createDynamic(20);
+  retVal->count = snprintf(retVal->value, 20, "%d", RT_unboxInt32(self));
+  retVal->value[20] = '\0';
   String_recomputeHash(retVal);
-  release(self);
   return retVal;
 }
 
-/* outside refcount system */
-void Integer_destroy(Integer *self) {
-}
-
 int64_t gcd(int64_t a, int64_t b) {
-  while (b != 0)
-  {
-      a %= b;
-      a ^= b;
-      b ^= a;
-      a ^= b;
+  while (b != 0) {
+    a %= b;
+    a ^= b;
+    b ^= a;
+    a ^= b;
   }
   return a;
 }
 
 // Integer or Ratio
-void* Integer_div(int64_t num, int64_t den) {
-  if (!den) return NULL; // Exception: divide by zero
-  if (!num) return Integer_create(0);
-  int64_t g = gcd(num, den);
-  int64_t n = num / g;
-  int64_t d = den / g;
-  if (d == 1) return Integer_create(n);
-  if (d == -1) return Integer_create(-n);
-  return Ratio_createFromInts(n, d);
+RTValue Integer_div(int32_t num, int32_t den) {
+  if (den == 0) {
+    throwArithmeticException_C("Divide by zero");
+  }
+  if (!num)
+    return RT_boxInt32(0);
+  int32_t g = gcd(num, den);
+  int32_t n = num / g;
+  int32_t d = den / g;
+  if (d == 1)
+    return RT_boxInt32(n);
+  if (d == -1)
+    return RT_boxInt32(-n);
+  return RT_boxPtr(Ratio_createFromInts(n, d));
 }

@@ -1,8 +1,14 @@
 #ifndef RT_PERSISTENT_VECTOR_NODE
 #define RT_PERSISTENT_VECTOR_NODE
+#include "word.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-typedef enum {leafNode, internalNode} NodeType;
+#include "RTValue.h"
+
+typedef enum { leafNode, internalNode } NodeType;
 
 typedef struct PersistentVectorNode PersistentVectorNode;
 typedef struct String String;
@@ -10,20 +16,40 @@ typedef struct String String;
 struct PersistentVectorNode {
   Object super;
   NodeType type;
-  uint64_t count;
-  uint64_t transientID;
-  Object *array[];
+  uword_t count;
+  uword_t transientID;
+  RTValue array[];
 };
 
-PersistentVectorNode* PersistentVectorNode_allocate(uint64_t count, NodeType type, uint64_t transientID);
-BOOL PersistentVectorNode_equals(PersistentVectorNode *restrict self, PersistentVectorNode *restrict other);
-uint64_t PersistentVectorNode_hash(PersistentVectorNode *restrict self);
+PersistentVectorNode *PersistentVectorNode_allocate(uword_t count,
+                                                    NodeType type,
+                                                    uword_t transientID);
+bool PersistentVectorNode_equals(PersistentVectorNode *restrict self,
+                                 PersistentVectorNode *restrict other);
+uword_t PersistentVectorNode_hash(PersistentVectorNode *restrict self);
 String *PersistentVectorNode_toString(PersistentVectorNode *restrict self);
-void PersistentVectorNode_destroy(PersistentVectorNode *restrict self, BOOL deallocateChildren);
+void PersistentVectorNode_destroy(PersistentVectorNode *restrict self,
+                                  bool deallocateChildren);
+void PersistentVectorNode_promoteToShared(PersistentVectorNode *self, uword_t current);
 
-PersistentVectorNode *PersistentVectorNode_pushTail(PersistentVectorNode *restrict parent, PersistentVectorNode *restrict self, PersistentVectorNode *restrict tailToPush, int32_t level, BOOL *copied, BOOL allowsReuse, uint64_t vectorTransientID);
-PersistentVectorNode *PersistentVectorNode_replacePath(PersistentVectorNode *restrict self, uint64_t level, uint64_t index, Object *restrict other, BOOL allowsReuse, uint64_t vectorTransientID);
-PersistentVectorNode *PersistentVectorNode_popTail(PersistentVectorNode *restrict self, PersistentVectorNode **restrict poppedLeaf, BOOL allowsReuse, uint64_t vectorTransientID);
+PersistentVectorNode *PersistentVectorNode_pushTail(
+    PersistentVectorNode *restrict parent, PersistentVectorNode *restrict self,
+    PersistentVectorNode *restrict tailToPush, int32_t level, bool *copied,
+    bool allowsReuse, uword_t vectorTransientID);
+PersistentVectorNode *
+PersistentVectorNode_replacePath(PersistentVectorNode *restrict self,
+                                 uword_t level, uword_t index, RTValue other,
+                                 bool allowsReuse, uword_t vectorTransientID);
+PersistentVectorNode *
+PersistentVectorNode_popTail(PersistentVectorNode *restrict self,
+                             PersistentVectorNode **restrict poppedLeaf,
+                             bool allowsReuse, uword_t vectorTransientID);
 
-BOOL PersistentVectorNode_contains(PersistentVectorNode *restrict self, void *restrict other);
+bool PersistentVectorNode_contains(PersistentVectorNode *restrict self,
+                                   RTValue other);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

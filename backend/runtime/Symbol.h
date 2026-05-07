@@ -1,29 +1,41 @@
 #ifndef RT_SYMBOL
 #define RT_SYMBOL
 
-#include <stdio.h>
-#include <string.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include "defines.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-typedef struct Object Object; 
-typedef struct String String; 
+#include "RTValue.h"
+#include "defines.h"
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "ObjectProto.h"
+typedef struct String String;
 
 struct Symbol {
-  Object super;
-  String *string;
+  Object header;
+  String *name;
+  String *ns;
+  RTValue metadata;
 };
+typedef struct Symbol Symbol;
 
-typedef struct Symbol Symbol; 
-
-/* Transfers ownership - symbol swallows those two strings - it does not retain but it will free */
-Symbol* Symbol_create(String *name);
-BOOL Symbol_equals(Symbol *self, Symbol *other);
-uint64_t Symbol_hash(Symbol *self);
-String *Symbol_toString(Symbol *self);
+Symbol *Symbol_create(String *string);
+Symbol *Symbol_withMeta(Symbol *self, RTValue meta);
+Symbol *Symbol_createWithMeta(String *string, RTValue meta);
+RTValue Symbol_getMeta(Symbol *self);
+String *Symbol_getName(Symbol *self);
 void Symbol_destroy(Symbol *self);
+bool Symbol_equals(Symbol *self, Symbol *other);
+uword_t Symbol_hash(Symbol *self);
+String *Symbol_toString(RTValue self);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

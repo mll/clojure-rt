@@ -12,7 +12,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: ./backend-v2
+        working-directory: ./backend
 
     steps:
     - uses: actions/checkout@v4
@@ -41,5 +41,5 @@ jobs:
       run: cmake --build build -j$(nproc)
 
     - name: Run Tests
-      working-directory: ./backend-v2/build
+      working-directory: ./backend/build
       run: ctest -j$(nproc) --output-on-failure

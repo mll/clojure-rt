@@ -1,15 +1,17 @@
 #include "Object.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include "RTValue.h"
+#include "RuntimeInterface.h"
 #include <assert.h>
 #include <stdatomic.h>
-#include "Interface.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-_Atomic uint64_t allocationCount[256]; 
-_Atomic uint64_t objectCount[256];
+_Atomic(uword_t) allocationCount[256];
+_Atomic(uword_t) objectCount[256];
+_Atomic(uword_t) globalMethodICEpoch = 0;
+
 _Thread_local void *memoryBank[8] = {0};
 _Thread_local int memoryBankSize[8] = {0};
-
 
 /* pool globalPool1; */
 /* pool globalPool2; */
@@ -20,16 +22,15 @@ _Thread_local int memoryBankSize[8] = {0};
 #define BLOCK_SIZE 8 * 40
 
 void PersistentVector_initialise();
-void Nil_initialise();
+void PersistentArrayMap_initialise();
 
 void initialise_memory() {
-  for(int i=0; i<200; i++) atomic_exchange(&(allocationCount[i]), 0); 
+  /* Idempotent */
+  for (int i = 0; i < 256; i++)
+    atomic_exchange(&(allocationCount[i]), 0);
   /* poolInitialize(&globalPool1, BLOCK_SIZE, 100000); */
   /* poolInitialize(&globalPool2, 128, 100000); */
   /* poolInitialize(&globalPool3, 64, 100000); */
-  PersistentVector_initialise();
-  Nil_initialise();
-  Interface_initialise();
 }
 
 /* BOOL poolFreeCheck(void *ptr, pool *mempool) { */
@@ -46,29 +47,105 @@ void initialise_memory() {
 /* } */
 
 extern void *allocate(size_t size);
-extern void deallocate(void * restrict ptr);
+extern void deallocate(void *restrict ptr);
 
-extern void retain(void * restrict self);
-extern BOOL release(void * restrict self);
-extern void autorelease(void * restrict self);
-extern BOOL release_internal(void * restrict self, BOOL deallocatesChildren);
-extern BOOL equals(void * restrict self, void * restrict other);
-extern uint64_t hash(void * restrict self);
-extern String *toString(void * restrict self);
+void retain(RTValue self);
+bool release(RTValue self);
+extern void autorelease(RTValue self);
+extern bool release_internal(void *restrict self, bool deallocatesChildren);
+bool equals(RTValue self, RTValue other);
+extern uword_t hash(RTValue self);
+String *toString(RTValue self);
 
-extern void Object_create(Object * restrict self, objectType type);
-extern void Object_retain(Object * restrict self);
-extern BOOL Object_release(Object * restrict self);
-extern BOOL Object_release_internal(Object * restrict self, BOOL deallocatesChildren);
-extern void Object_destroy(Object *restrict self, BOOL deallocateChildren);
-extern void Object_autorelease(Object * restrict self);
-extern BOOL Object_equals(Object * restrict self, Object * restrict other);
-extern uint64_t Object_hash(Object * restrict self);
-extern String *Object_toString(Object * restrict self);
-extern BOOL Object_isReusable(Object *restrict self);
-extern BOOL isReusable(void *restrict self);
-extern objectType getType(Object *obj);
+extern void Object_create(Object *restrict self, objectType type);
+extern void Object_retain(Object *restrict self);
+extern bool Object_release(Object *restrict self);
+extern bool Object_release_internal(Object *restrict self,
+                                    bool deallocatesChildren);
+extern void Object_destroy(Object *restrict self, bool deallocateChildren);
+extern void Object_autorelease(Object *restrict self);
+extern bool Object_equals(Object *restrict self, Object *restrict other);
+extern uword_t Object_hash(Object *restrict self);
+extern String *Object_toString(Object *restrict self);
+extern bool Object_isReusable(Object *restrict self);
+bool isReusable(RTValue self);
+objectType getType(RTValue obj);
 
-extern uint64_t combineHash(uint64_t lhs, uint64_t rhs);
+extern uword_t combineHash(uword_t lhs, uword_t rhs);
 
+extern void Ptr_autorelease(void *self);
+void Ptr_retain(void *self);
+bool Ptr_release(void *self);
+extern uword_t Ptr_hash(void *self);
+extern bool Ptr_equals(void *self, void *other);
+extern bool Ptr_isReusable(void *self);
+bool equals_managed(RTValue self, RTValue other);
+bool identical_managed(RTValue v1, RTValue v2);
+extern void Object_promoteToShared(Object *restrict self);
+extern void Object_promoteToSharedShallow(Object *restrict self,
+                                          uword_t current);
+extern uword_t Object_getRawRefCount(Object *self);
+extern void promoteToShared(RTValue self);
 
+RTValue RT_meta(RTValue v) {
+  if (!RT_isPtr(v))
+    return RT_boxNil();
+  Object *obj = (Object *)RT_unboxPtr(v);
+  RTValue meta = RT_boxNil();
+  switch (obj->type) {
+  case symbolType:
+    meta = ((Symbol *)obj)->metadata;
+    break;
+  case persistentVectorType:
+    meta = ((PersistentVector *)obj)->metadata;
+    break;
+  case persistentListType:
+    meta = ((PersistentList *)obj)->metadata;
+    break;
+  case persistentArrayMapType:
+    meta = ((PersistentArrayMap *)obj)->metadata;
+    break;
+  case varType:
+    meta = atomic_load_explicit(&((Var *)obj)->metadata, memory_order_relaxed);
+    break;
+  default:
+    break;
+  }
+  retain(meta);
+  release(v);
+  return meta;
+}
+
+RTValue RT_withMeta(RTValue v, RTValue meta) {
+  if (!RT_isPtr(v)) {
+    release(meta);
+    return v;
+  }
+  Object *obj = (Object *)RT_unboxPtr(v);
+  RTValue result;
+  switch (obj->type) {
+  case symbolType:
+    result = RT_boxPtr(Symbol_withMeta((Symbol *)obj, meta));
+    break;
+  case persistentVectorType:
+    result =
+        RT_boxPtr(PersistentVector_withMeta((PersistentVector *)obj, meta));
+    break;
+  case persistentListType:
+    result = RT_boxPtr(PersistentList_withMeta((PersistentList *)obj, meta));
+    break;
+  case persistentArrayMapType:
+    result =
+        RT_boxPtr(PersistentArrayMap_withMeta((PersistentArrayMap *)obj, meta));
+    break;
+  case varType:
+    // For Vars, with-meta is destructive on the Var itself in our RT
+    // but returns the Var.
+    result = RT_boxPtr(Var_resetMeta((Var *)obj, meta));
+    break;
+  default:
+    release(meta);
+    return v;
+  }
+  return result;
+}

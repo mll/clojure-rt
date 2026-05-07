@@ -1,94 +1,215 @@
 #include "Var.h"
-#include "Hash.h"
-#include "Nil.h"
+#include "Ebr.h"
+#include "Exceptions.h"
+#include "ExecutionContext.h"
 #include "Object.h"
-#include <stdarg.h>
+#include "RTValue.h"
+#include "String.h"
+#include "word.h"
+#include <stdio.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
-// TODO: UnboundClass is printed in different way
-Class *UNIQUE_UnboundClass;
+#if defined(__x86_64__) || defined(__i386__)
+/* Works for both Intel Macs and Linux on x86 */
+#include <immintrin.h>
+#define CPU_PAUSE() _mm_pause()
+#elif defined(__aarch64__) || defined(__arm__)
+/* Works for Apple Silicon (M1/M2/M3) and ARM Linux */
+#if defined(__GNUC__) || defined(__clang__)
+#define CPU_PAUSE() __asm__ __volatile__("yield")
+#else
+/* Fallback for other compilers on ARM */
+#define CPU_PAUSE() __builtin_arm_yield()
+#endif
+#else
+/* No-op for unknown architectures */
+#define CPU_PAUSE()                                                            \
+  do {                                                                         \
+  } while (0)
+#endif
 
-Var *Var_create(Keyword *keyword) {
+Var *Var_create(RTValue keyword) {
   Var *self = (Var *)allocate(sizeof(Var));
-  self->unbound = TRUE;
-  retain(keyword);
-  retain(UNIQUE_UnboundClass);
-  self->root = (Object *)Deftype_create(UNIQUE_UnboundClass, 1, keyword);
-  self->dynamic = FALSE;
+  atomic_store_explicit(&(self->root), RT_boxNull(), memory_order_relaxed);
+  self->dynamic = false;
   self->keyword = keyword;
-  self->rev = 0;
+  atomic_store_explicit(&self->metadata, RT_boxNil(), memory_order_relaxed);
+  atomic_store_explicit(&self->rev, 0, memory_order_relaxed);
   Object_create((Object *)self, varType);
+  // Var is always shared
+  atomic_store_explicit(&(((Object *)self)->atomicRefCount),
+                        COUNT_INC | SHARED_BIT, memory_order_release);
   return self;
 };
 
-BOOL Var_equals(Var *self, Var *other) {
-  return FALSE; // pointer equality in Object_equals
+bool Var_equals(Var *self, Var *other) {
+  return false; // pointer equality in Object_equals
 };
 
-uint64_t Var_hash(Var *self) {
-  return combineHash(hash(self->keyword), Object_hash(self->root));
-};
+uword_t Var_hash(Var *self) { return hash(self->keyword); };
 
 String *Var_toString(Var *self) {
-  String *retVal = String_create("#'");
-  retain(self->keyword->string);
-  retVal = String_concat(retVal, self->keyword->string);
-  release(self);
+  String *retVal = String_create("#");
+  retVal = String_concat(retVal, String_replace(toString(self->keyword),
+                                                String_create(":"),
+                                                String_create("'")));
+  Ptr_release(self);
   return retVal;
 };
 
 void Var_destroy(Var *self) {
-  if (self->root)
-    Object_release(self->root);
+  RTValue oldRoot = atomic_load_explicit(&self->root, memory_order_relaxed);
+  if (oldRoot != RT_boxNull()) {
+    autorelease(oldRoot);
+  }
   release(self->keyword);
+  RTValue oldMeta = atomic_load_explicit(&self->metadata, memory_order_relaxed);
+  if (!RT_isNil(oldMeta)) {
+    autorelease(oldMeta);
+  }
 };
 
-/* outisde refcount system */
-Var *Var_setDynamic(Var *self, BOOL dynamic) { // modifies and returns self
+Var *Var_resetMeta(Var *self, RTValue meta) {
+  promoteToShared(meta);
+
+  if (getType(meta) == persistentArrayMapType) {
+    RTValue k = Keyword_create(String_create("dynamic"));
+    Ptr_retain(RT_unboxPtr(meta));
+    RTValue dynamicVal = PersistentArrayMap_get(RT_unboxPtr(meta), k);
+    self->dynamic = RT_isTruthy(dynamicVal);
+    release(dynamicVal);
+  }
+
+  RTValue oldMeta =
+      atomic_exchange_explicit(&self->metadata, meta, memory_order_seq_cst);
+  autorelease(oldMeta);
+  return self;
+}
+
+RTValue Var_getMeta(Var *self) {
+  RTValue val = atomic_load_explicit(&self->metadata, memory_order_relaxed);
+  retain(val);
+  Ptr_release(self);
+  return val;
+}
+
+Var *Var_setDynamic(Var *self, bool dynamic) { // modifies and returns self
   self->dynamic = dynamic;
   return self;
 };
 
-/* outside refcount system */
-BOOL Var_isDynamic(Var *self) {
-  BOOL retVal = self->dynamic;
-  return retVal;
+// outside refcount system
+bool Var_isDynamic(Var *self) { return self->dynamic; };
+
+// outside refcount system
+bool Var_hasRoot(Var *self) {
+  return atomic_load_explicit(&self->root, memory_order_acquire) !=
+         RT_boxNull();
 };
 
-BOOL Var_hasRoot(Var *self) {
-  BOOL retVal = !self->unbound;
-  release(self);
-  return retVal;
+/* context is borrowed! */
+RTValue Var_deref(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                  Var *self) __attribute__((swiftcall)) {
+  if (__builtin_expect(self->dynamic, 0) && ctx != NULL &&
+      !RT_isNil(ctx->bindingsMap)) {
+    assert(getType(ctx->bindingsMap) == persistentArrayMapType && "Wrong type");
+    PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
+    RTValue key = self->keyword;
+    for (uword_t i = 0; i < m->count; i++) {
+      if (equals(key, m->keys[i])) {
+        RTValue val = m->values[i];
+        retain(val);
+        Ptr_release(self);
+        return val;
+      }
+    }
+  }
+
+  RTValue val = atomic_load_explicit(&self->root, memory_order_acquire);
+  retain(val);
+  Ptr_release(self);
+  return val;
 };
 
-void *Var_deref(Var *self) { // TODO: synchronized
-  void *retVal = self->root;
-  // TODO: threadBound
-  retain(retVal);
-  release(self);
-  return retVal;
-};
+RTValue Var_bindRoot(Var *self, RTValue object) {
+  promoteToShared(object);
+  RTValue oldRoot =
+      atomic_exchange_explicit(&self->root, object, memory_order_seq_cst);
+  atomic_fetch_add_explicit(&(self->rev), 1, memory_order_relaxed);
 
-Nil *Var_bindRoot(Var *self, void *object) { // TODO: synchronized
-  Object *oldRoot = self->root;
-  ++self->rev;
-  self->unbound = FALSE;
-  self->root = (Object *)object;
-  Object_release(oldRoot);
-  release(self);
-  retain(UNIQUE_NIL);
-  return UNIQUE_NIL;
+  if (oldRoot != RT_boxNull()) {
+    autorelease(oldRoot);
+  }
+
+  Ptr_release(self);
+  return RT_boxNil();
 }
 
-Nil *Var_unbindRoot(
-    Var *self) { // TODO: synchronized - Marek: What does it exactly mean?
-  Object *oldRoot = self->root;
-  ++self->rev;
-  self->unbound = TRUE;
+RTValue Var_unbindRoot(Var *self) {
+  RTValue oldRoot =
+      atomic_exchange_explicit(&self->root, RT_boxNull(), memory_order_seq_cst);
+  atomic_fetch_add_explicit(&(self->rev), 1, memory_order_relaxed);
+
+  if (oldRoot != RT_boxNull()) {
+    autorelease(oldRoot);
+  }
+
+  Ptr_release(self);
+  return RT_boxNil();
+}
+
+/* the returned reference is not retained and is not guaranteed to even
+   be valid after the call returns. Outside ref system. */
+
+/* outside refcount system */
+RTValue Var_peek(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                 Var *self) __attribute__((swiftcall)) {
+  if (__builtin_expect(self->dynamic, 0) && ctx != NULL &&
+      !RT_isNil(ctx->bindingsMap)) {
+    assert(getType(ctx->bindingsMap) == persistentArrayMapType && "Wrong type");
+    PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
+    RTValue key = self->keyword;
+    for (uword_t i = 0; i < m->count; i++) {
+      if (equals(key, m->keys[i])) {
+        return m->values[i];
+      }
+    }
+  }
+  return atomic_load_explicit(&self->root, memory_order_acquire);
+}
+
+RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                Var *self, RTValue value) __attribute__((swiftcall)) {
+  if (__builtin_expect(!self->dynamic, 0)) {
+    release(value);
+    Ptr_release(self);
+    throwIllegalStateException_C("Can't set! a non-dynamic Var");
+  }
+
+  if (!ctx || RT_isNil(ctx->bindingsMap)) {
+    release(value);
+    Ptr_release(self);
+    throwIllegalStateException_C(
+        "Can't set! dynamic Var outside of a binding context");
+  }
+
+  // Check if the var has a thread-local binding (Clojure behavior)
+  PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
+  Ptr_retain(m);
   retain(self->keyword);
-  retain(UNIQUE_UnboundClass);
-  self->root = (Object *)Deftype_create(UNIQUE_UnboundClass, 1, self->keyword);
-  Object_release(oldRoot);
-  release(self);
-  retain(UNIQUE_NIL);
-  return UNIQUE_NIL;
+  if (PersistentArrayMap_indexOf(m, self->keyword) == -1) {
+    release(value);
+    Ptr_release(self);
+    throwIllegalStateException_C("Can't set!: Var has no thread-local binding");
+  }
+
+  retain(self->keyword);
+  retain(value);
+  ctx->bindingsMap = RT_boxPtr(PersistentArrayMap_assoc(
+      RT_unboxPtr(ctx->bindingsMap), self->keyword, value));
+
+  Ptr_release(self);
+
+  return value;
 }

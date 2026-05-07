@@ -1,21 +1,20 @@
 #ifndef RT_INTEGER
 #define RT_INTEGER
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "RTValue.h"
 #include "String.h"
 #include "defines.h"
 
-struct Integer {
-  Object super;
-  int64_t value;
-};
+String *Integer_toString(RTValue self);
 
-typedef struct Integer Integer;
+RTValue Integer_div(int32_t num, int32_t den);
 
-Integer* Integer_create(int64_t integer);
-BOOL Integer_equals(Integer *self, Integer *other);
-uint64_t Integer_hash(Integer *self);
-String *Integer_toString(Integer *self); 
-void Integer_destroy(Integer *self);
-
-void* Integer_div(int64_t num, int64_t den);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

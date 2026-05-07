@@ -1,6 +1,7 @@
 #include "PersistentVectorIterator.h"
 #include "PersistentVector.h"
 #include "PersistentVectorNode.h"
+#include "RTValue.h"
 
 /* outside refcount system */
 PersistentVectorIterator PersistentVector_iterator(PersistentVector *self) {
@@ -14,21 +15,21 @@ PersistentVectorIterator PersistentVector_iterator(PersistentVector *self) {
 }
 
 /* outside refcount system */
-Object *PersistentVector_iteratorGet(PersistentVectorIterator *it) {
+RTValue PersistentVector_iteratorGet(PersistentVectorIterator *it) {
   /* no bounds check, has to always be used carefully */
   return it->block->array[it->blockIndex];
 }
 
 /* outside refcount system */
-Object *PersistentVector_iteratorNext(PersistentVectorIterator *it) {
+RTValue PersistentVector_iteratorNext(PersistentVectorIterator *it) {
   it->blockIndex++;
   it->index++;
   if(it->blockIndex < it->block->count) {
     return it->block->array[it->blockIndex];
   } 
-  if(it->parent->count == it->index) return NULL;
+  if(it->parent->count == it->index) return RT_boxNull();
   PersistentVectorNode *newBlock = PersistentVector_nthBlock(it->parent, it->index);
-  if(newBlock == NULL) return NULL;
+  if(newBlock == NULL) return RT_boxNull();
   it->blockIndex = 0;
   it->block = newBlock;
   return it->block->array[0];

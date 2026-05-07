@@ -31,7 +31,7 @@ The compilation process is tested on OS X only, but due to cmake it should work 
 using your system's package manager.
 
 1. ./begin_development.sh
-2. cd backend-v2
+2. cd backend
 3. cmake . -DCMAKE_PREFIX_PATH=/opt/homebrew -DCMAKE_BUILD_TYPE=Debug ;; or Release
 4. make -j 8
 

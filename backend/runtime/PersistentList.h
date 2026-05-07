@@ -1,6 +1,12 @@
+struct ExecutionContext;
 #ifndef RT_PERSISTENT_LIST
 #define RT_PERSISTENT_LIST
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "RTValue.h"
 #include "String.h"
 
 typedef struct Object Object;
@@ -8,20 +14,40 @@ typedef struct PersistentList PersistentList;
 
 struct PersistentList {
   Object super;
-  void *first;
+  RTValue first;
   PersistentList *rest;
-  uint64_t count;
+  int32_t count;
+  RTValue metadata;
 };
 
-PersistentList* PersistentList_empty();
+void PersistentList_initialise();
+PersistentList *PersistentList_empty();
+PersistentList *PersistentList_withMeta(PersistentList *self, RTValue meta);
+RTValue PersistentList_getMeta(PersistentList *self);
+void PersistentList_cleanup();
 
-BOOL PersistentList_equals(PersistentList *self, PersistentList *other);
+bool PersistentList_equals(PersistentList *self, PersistentList *other);
+bool PersistentList_equals_managed(PersistentList *self, RTValue other);
 uint64_t PersistentList_hash(PersistentList *self);
 String *PersistentList_toString(PersistentList *self);
-void PersistentList_destroy(PersistentList *self, BOOL deallocateChildren);
+void PersistentList_destroy(PersistentList *self, bool deallocateChildren);
+void PersistentList_promoteToShared(PersistentList *self, uword_t current);
 
-PersistentList* PersistentList_create(void *first, PersistentList *rest);
-PersistentList* PersistentList_conj(PersistentList *self, void *other);
+PersistentList *PersistentList_create(RTValue first, PersistentList *rest);
+PersistentList *PersistentList_conj(PersistentList *self, RTValue other);
+PersistentList *PersistentList_createMany(int32_t argCount, ...);
+PersistentList *PersistentList_fromArray(int32_t argCount, RTValue *args);
+RTValue RT_createListFromArray(int32_t argCount, RTValue *args);
 
+int32_t PersistentList_count(PersistentList *self);
+PersistentList *PersistentList_identity(PersistentList *self);
+RTValue PersistentList_next(PersistentList *self);
+RTValue PersistentList_first(PersistentList *self);
+RTValue PersistentList_reduce(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentList *self, RTValue f, RTValue start) __attribute__((swiftcall));
+RTValue PersistentList_reduce2(__attribute__((swift_context)) struct ExecutionContext *ctx, PersistentList *self, RTValue f) __attribute__((swiftcall));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

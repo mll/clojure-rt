@@ -1,29 +1,38 @@
+struct ExecutionContext;
 #ifndef RT_FUNCTION
 #define RT_FUNCTION
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "RTValue.h"
 #include "String.h"
 #include "defines.h"
 
 #define INVOKATION_CACHE_SIZE 3
 
-struct InvokationCache {
-  uint64_t signature[3];
-  uint64_t packed;
-
-  unsigned char returnType;
-  void *fptr;
-};
-
 typedef struct InvokationCache InvokationCache;
 
-struct FunctionMethod  {
+struct FunctionMethod {
   unsigned char index;
-  uint64_t fixedArity;
-  uint64_t isVariadic;
-  uint64_t closedOversCount;
+  unsigned char isVariadic;
+  unsigned char fixedArity;
+  unsigned char closedOversCount;
+  void *baselineImplementation;
   char *loopId;
-  void **closedOvers;
-  struct InvokationCache invokations[INVOKATION_CACHE_SIZE];
+  RTValue *closedOvers;
 };
+
+typedef struct Frame {
+  struct Frame *leafFrame;       // 0
+  struct FunctionMethod *method; // 1
+  RTValue self;                  // 2
+  RTValue variadicSeq;           // 3
+  int32_t bailoutEntryIndex;     // 4
+  int32_t localsCount;           // 5
+  RTValue locals[];              // 6...
+} Frame;
 
 typedef struct FunctionMethod FunctionMethod;
 
@@ -31,25 +40,51 @@ typedef struct Object Object;
 
 struct ClojureFunction {
   Object super;
-  BOOL once;
-  BOOL executed;
-  uint64_t uniqueId;
-  uint64_t methodCount;
-  uint64_t maxArity;
+  bool once;
+  bool executed;
+  uword_t methodCount;
+  uword_t maxArity;
   struct FunctionMethod methods[];
 };
 
 typedef struct ClojureFunction ClojureFunction;
 
-struct ClojureFunction* Function_create(uint64_t methodCount, uint64_t uniqueId, uint64_t maxArity, BOOL once);
+struct ClojureFunction *Function_create(uword_t methodCount, uword_t maxArity,
+                                        bool once);
 
-void Function_fillMethod(struct ClojureFunction *self, uint64_t position, uint64_t index, uint64_t fixedArity,  BOOL isVariadic, char *loopId, int64_t closedOversCount, ...);
+void Function_fillMethod(struct ClojureFunction *self, uword_t position,
+                         uword_t index, uword_t fixedArity, bool isVariadic,
+                         void *implementation, char *loopId,
+                         word_t closedOversCount, ...);
 
-BOOL Function_validCallWithArgCount(ClojureFunction *self, uint64_t argCount);
-BOOL Function_equals(ClojureFunction *self, ClojureFunction *other);
-uint64_t Function_hash(ClojureFunction *self);
-String *Function_toString(ClojureFunction *self); 
+bool Function_validCallWithArgCount(ClojureFunction *self, uword_t argCount);
+bool Function_equals(ClojureFunction *self, ClojureFunction *other);
+uword_t Function_hash(ClojureFunction *self);
+String *Function_toString(ClojureFunction *self);
 void Function_destroy(ClojureFunction *self);
 void Function_cleanupOnce(ClojureFunction *self);
+void Function_promoteToShared(ClojureFunction *self, uword_t count);
+
+RTValue RT_invokeDynamic(__attribute__((swift_context)) struct ExecutionContext *ctx, RTValue funObj, RTValue *args, int32_t argCount) __attribute__((swiftcall));
+RTValue RT_invokeMethod(__attribute__((swift_context)) struct ExecutionContext *ctx, RTValue funObj, FunctionMethod *method, RTValue *args, int32_t argCount) __attribute__((swiftcall));
+RTValue RT_invokeMethodWithFrame(__attribute__((swift_context)) struct ExecutionContext *ctx, Frame *frame, RTValue funObj, FunctionMethod *method, RTValue *args, int32_t argCount) __attribute__((swiftcall));
+FunctionMethod *Function_extractMethod(RTValue funObj, uword_t argCount);
+struct FunctionMethod *RT_updateICSlot(void *slot, RTValue currentVal,
+                                       uint64_t argCount);
+
+/* Global bridges for Keywords, Maps, etc. */
+extern struct FunctionMethod Global_Keyword_Method_1;
+extern struct FunctionMethod Global_Keyword_Method_2;
+extern struct FunctionMethod Global_Map_Method_1;
+extern struct FunctionMethod Global_Map_Method_2;
+extern struct FunctionMethod Global_Vector_Method_1;
+extern struct FunctionMethod Global_Vector_Method_2;
+extern struct FunctionMethod Global_Set_Method_1;
+
+RTValue RT_packVariadic(uword_t argCount, RTValue *args, uword_t fixedArity);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

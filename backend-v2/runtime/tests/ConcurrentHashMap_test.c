@@ -1,3 +1,4 @@
+#include "../BigInteger.h"
 #include "../ConcurrentHashMap.h"
 #include "../Ebr.h"
 #include "../Hash.h"
@@ -112,19 +113,34 @@ static void concurrentMapThreadingAndPerformance(void **state) {
   Ebr_force_reclaim();
 }
 
-static void test_concurrent_hash_map_overcrowded(void **state) {
-  (void)state;
-  ASSERT_MEMORY_ALL_BALANCED({
-    ConcurrentHashMap *m = ConcurrentHashMap_create(2);
-    ASSERT_THROWS("IllegalStateException", {
-      for (int i = 0; i < 100; i++) {
-        Ptr_retain(m);
-        ConcurrentHashMap_assoc(m, RT_boxInt32(i), RT_boxInt32(i));
-      }
-    });
-    Ptr_release(m);
-  });
-}
+// Resizing is not implemented yet
+// static void test_concurrent_hash_map_resizing(void **state) {
+//   (void)state;
+//   ASSERT_MEMORY_ALL_BALANCED({
+//     // Initial size 4
+//     ConcurrentHashMap *m = ConcurrentHashMap_create(2);
+//     // Insert 1000 elements to trigger multiple resizes
+//     for (int i = 0; i < 1000; i++) {
+//       Ptr_retain(m);
+//       ConcurrentHashMap_assoc(m, RT_boxPtr(BigInteger_createFromInt(i)),
+//                               RT_boxPtr(BigInteger_createFromInt(i +
+//                               10000)));
+//     }
+
+//     // Verify all elements are there
+//     for (int i = 0; i < 1000; i++) {
+//       Ptr_retain(m);
+//       RTValue k = RT_boxPtr(BigInteger_createFromInt(i));
+//       RTValue v = ConcurrentHashMap_get(m, k);
+//       assert_true(RT_isPtr(v));
+//       assert_true(
+//           BigInteger_equalsInt((BigInteger *)RT_unboxPtr(v), i + 10000));
+//       release(v);
+//     }
+//     Ptr_release(m);
+//     Ebr_force_reclaim();
+//   });
+// }
 
 static void test_chm_promotion_on_assoc(void **state) {
   (void)state;
@@ -154,7 +170,8 @@ static void test_chm_promotion_on_assoc(void **state) {
     assert_false(Ptr_isShared(l));
 
     Ptr_retain(m);
-    ConcurrentHashMap_assoc(m, RT_boxPtr(l), RT_boxInt32(100));
+    ConcurrentHashMap_assoc(m, RT_boxPtr(l),
+                            RT_boxPtr(BigInteger_createFromInt(100)));
     // The list should have been promoted because it was inserted into CHM
     assert_true(Ptr_isShared(l));
 
@@ -178,7 +195,7 @@ static void *writerThread(void *param) {
   unsigned int seed = (unsigned int)time(NULL) + p->workerId;
   while (atomic_load(&p->running)) {
     int k_val = rand_r(&seed) % BATTLE_KEYS;
-    RTValue k = RT_boxInt32(k_val);
+    RTValue k = RT_boxPtr(BigInteger_createFromInt(k_val));
     RTValue v;
 
     if (rand_r(&seed) % 5 == 0) { // 20% dissoc
@@ -191,7 +208,7 @@ static void *writerThread(void *param) {
         snprintf(buf, sizeof(buf), "val-%d", (k_val ^ 0xDEADC0DE));
         v = RT_boxPtr(String_createDynamicStr(buf));
       } else {
-        v = RT_boxInt32(k_val ^ 0xDEADC0DE);
+        v = RT_boxPtr(BigInteger_createFromInt(k_val ^ 0xDEADC0DE));
       }
       Ptr_retain(p->map);
       ConcurrentHashMap_assoc(p->map, k, v);
@@ -210,7 +227,7 @@ static void *readerThread(void *param) {
   unsigned int seed = (unsigned int)time(NULL) + p->workerId;
   while (atomic_load(&p->running)) {
     int k_val = rand_r(&seed) % BATTLE_KEYS;
-    RTValue k = RT_boxInt32(k_val);
+    RTValue k = RT_boxPtr(BigInteger_createFromInt(k_val));
     Ptr_retain(p->map);
     RTValue v = ConcurrentHashMap_get(p->map, k);
     if (!RT_isNil(v)) {
@@ -221,9 +238,12 @@ static void *readerThread(void *param) {
         assert_string_equal(String_c_str(s), buf);
         release(v);
       } else {
-        assert_true(RT_isInt32(v));
-        assert_int_equal((uint32_t)RT_unboxInt32(v),
-                         (uint32_t)(k_val ^ 0xDEADC0DE));
+        assert_true(RT_isPtr(v));
+        assert_true(getType(v) == bigIntegerType);
+
+        // EqualsInt consumes!
+        assert_true(BigInteger_equalsInt((BigInteger *)RT_unboxPtr(v),
+                                         k_val ^ 0xDEADC0DE));
       }
     }
     Ebr_flush_critical();
@@ -427,15 +447,66 @@ static void test_concurrent_get_or_create(void **state) {
   });
 }
 
+// Resizing not implemented yet
+// static void test_chm_resizing_with_strings(void **state) {
+//   (void)state;
+//   ASSERT_MEMORY_ALL_BALANCED({
+//     // Start with tiny map (size 4)
+//     ConcurrentHashMap *m = ConcurrentHashMap_create(2);
+//     for (int i = 0; i < 500; i++) {
+//       char buf[32];
+//       snprintf(buf, sizeof(buf), "key-%d", i);
+//       RTValue k = RT_boxPtr(String_createDynamicStr(buf));
+//       snprintf(buf, sizeof(buf), "val-%d", i);
+//       RTValue v = RT_boxPtr(String_createDynamicStr(buf));
+
+//       Ptr_retain(m);
+//       ConcurrentHashMap_assoc(m, k, v);
+//     }
+
+//     // Verify
+//     for (int i = 0; i < 500; i++) {
+//       char buf[32];
+//       snprintf(buf, sizeof(buf), "key-%d", i);
+//       RTValue k = RT_boxPtr(String_createDynamicStr(buf));
+//       Ptr_retain(m);
+//       RTValue v = ConcurrentHashMap_get(m, k);
+//       assert_true(RT_isPtr(v));
+//       assert_int_equal(getType(v), stringType);
+//       release(v);
+//     }
+
+//     Ptr_release(m);
+//     Ebr_force_reclaim();
+//   });
+// }
+
+static void test_concurrent_hash_map_overcrowded(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    ConcurrentHashMap *m = ConcurrentHashMap_create(2);
+    ASSERT_THROWS("IllegalStateException", {
+      for (int i = 0; i < 100; i++) {
+        Ptr_retain(m);
+        ConcurrentHashMap_assoc(m, RT_boxInt32(i), RT_boxInt32(i));
+      }
+    });
+    Ptr_release(m);
+  });
+}
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_chm_promotion_on_assoc),
       cmocka_unit_test_prestate(testScalingBehavior,
                                 concurrentMapThreadingAndPerformance),
+      // Resizing is not implemented yet
+      // cmocka_unit_test(test_concurrent_hash_map_resizing),
       cmocka_unit_test(test_concurrent_hash_map_overcrowded),
       cmocka_unit_test(test_concurrent_read_write),
       cmocka_unit_test(test_concurrent_get_or_create),
       cmocka_unit_test(test_chm_with_strings),
+      // Resizing is not implemented yet
+      //      cmocka_unit_test(test_chm_resizing_with_strings),
       // cmocka_unit_test(test_ebr_reclamation_threshold),
       cmocka_unit_test(test_chm_to_string),
   };

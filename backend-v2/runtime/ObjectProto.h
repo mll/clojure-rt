@@ -54,6 +54,7 @@ enum objectType {
   arrayChunkType = 25,
   persistentVectorReverseSeqType = 26,
   executionContextType = 27,
+  concurrentHashMapNodeType = 28,
 };
 
 typedef enum objectType objectType;

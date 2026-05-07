@@ -18,6 +18,7 @@ typedef uint64_t RTValue;
 // Null is a marker of lack of value (e.g. in a list)
 // Nil is a valid value/type in the language that is falsly, but can be stored in lists.
 #define RT_TAG_NULL         0xFFF9000000000000ULL
+#define RT_TAG_REDIRECT     0xFFF8000000000000ULL
 #define RT_TAG_NIL          0xFFFC000000000000ULL
 
 // --- Type Checking ---

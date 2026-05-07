@@ -33,10 +33,10 @@ RTValue Keyword_create(String *string) {
                                           false);
 
     Ptr_retain(string);
-    RTValue existing =
-        ConcurrentHashMap_putIfAbsent_preservesSelf(keywords, stringVal, new);
+    RTValue existing = ConcurrentHashMap_putIfAbsent_preservesSelf(
+        keywords, stringVal, new, false);
 
-    if (!RT_isNull(existing)) {
+    if (!RT_isNil(existing)) {
       /* We lost the race. Another thread inserted the same string first.
          Return the existing keyword. */
       Ptr_release(string); /* consume caller's ref */

@@ -111,7 +111,8 @@ bool Var_hasRoot(Var *self) {
 /* context is borrowed! */
 RTValue Var_deref(__attribute__((swift_context)) struct ExecutionContext *ctx,
                   Var *self) __attribute__((swiftcall)) {
-  if (self->dynamic && ctx != NULL && !RT_isNil(ctx->bindingsMap)) {
+  if (__builtin_expect(self->dynamic, 0) && ctx != NULL &&
+      !RT_isNil(ctx->bindingsMap)) {
     assert(getType(ctx->bindingsMap) == persistentArrayMapType && "Wrong type");
     PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
     RTValue key = self->keyword;
@@ -164,22 +165,43 @@ RTValue Var_unbindRoot(Var *self) {
 /* outside refcount system */
 RTValue Var_peek(__attribute__((swift_context)) struct ExecutionContext *ctx,
                  Var *self) __attribute__((swiftcall)) {
-  return atomic_load_explicit(&self->root, memory_order_relaxed);
+  if (__builtin_expect(self->dynamic, 0) && ctx != NULL &&
+      !RT_isNil(ctx->bindingsMap)) {
+    assert(getType(ctx->bindingsMap) == persistentArrayMapType && "Wrong type");
+    PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
+    RTValue key = self->keyword;
+    for (uword_t i = 0; i < m->count; i++) {
+      if (equals(key, m->keys[i])) {
+        return m->values[i];
+      }
+    }
+  }
+  return atomic_load_explicit(&self->root, memory_order_acquire);
 }
 
 RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
                 Var *self, RTValue value) __attribute__((swiftcall)) {
-  if (!self->dynamic) {
+  if (__builtin_expect(!self->dynamic, 0)) {
     release(value);
     Ptr_release(self);
     throwIllegalStateException_C("Can't set! a non-dynamic Var");
   }
 
-  if (!ctx || ctx->bindingsMap == RT_boxNil()) {
+  if (!ctx || RT_isNil(ctx->bindingsMap)) {
     release(value);
     Ptr_release(self);
     throwIllegalStateException_C(
         "Can't set! dynamic Var outside of a binding context");
+  }
+
+  // Check if the var has a thread-local binding (Clojure behavior)
+  PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
+  Ptr_retain(m);
+  retain(self->keyword);
+  if (PersistentArrayMap_indexOf(m, self->keyword) == -1) {
+    release(value);
+    Ptr_release(self);
+    throwIllegalStateException_C("Can't set!: Var has no thread-local binding");
   }
 
   retain(self->keyword);

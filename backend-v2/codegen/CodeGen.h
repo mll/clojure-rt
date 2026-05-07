@@ -285,6 +285,7 @@ public:
 private:
   std::map<SourceLocation, std::string> formMap;
   std::map<BaseSourceLocation, std::string> contextFormMap;
+  std::string codegenTopLevelInternal(const Node &node, bool passContext);
   int nodeIDCounter = 0;
 
 public:

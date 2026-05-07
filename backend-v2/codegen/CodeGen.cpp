@@ -41,81 +41,32 @@ CodeGenResult CodeGen::release() && {
 }
 
 std::string CodeGen::codegenTopLevel(const Node &node) {
-  CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
-  uword_t i = compilerState.functionAstRegistry.registerObject(&node);
-  std::string fname = std::string("__repl__") + std::to_string(i);
-  FunctionType *FT = FunctionType::get(types.i64Ty, {}, false);
-  Function *F =
-      Function::Create(FT, Function::ExternalLinkage, fname, *TheModule);
-
-  // Enforce frame pointers for reliable stack traces
-  F->addFnAttr("frame-pointer", "all");
-
-  // Create debug info for the function
-  auto env = node.env();
-  std::string fileName = env.file();
-  std::string dir = ".";
-  if (fileName.empty()) {
-    fileName = CU->getFilename().str();
-    dir = CU->getDirectory().str();
-  } else {
-    size_t lastSlash = fileName.find_last_of('/');
-    if (lastSlash != std::string::npos) {
-      dir = fileName.substr(0, lastSlash);
-      fileName = fileName.substr(lastSlash + 1);
-    }
-  }
-
-  llvm::DIFile *Unit = DIB->createFile(fileName, dir);
-  llvm::DISubroutineType *AsmSignature =
-      DIB->createSubroutineType(DIB->getOrCreateTypeArray({}));
-  llvm::DISubprogram *SP = DIB->createFunction(
-      Unit, fname, fname, Unit, env.line(), AsmSignature, env.line(),
-      llvm::DINode::FlagPrototyped, llvm::DISubprogram::SPFlagDefinition);
-  F->setSubprogram(SP);
-  LexicalBlocks.push_back(SP);
-
-  BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
-  Builder.SetInsertPoint(BB);
-
-  pushExecutionContext(llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(types.ExecutionContextPtrTy)));
-
-  memoryManagement.initFunction(F);
-
-  // Declare personality function
-  FunctionType *personalityFnTy = FunctionType::get(types.i32Ty, true);
-  personalityFn =
-      TheModule->getOrInsertFunction("__gxx_personality_v0", personalityFnTy);
-  F->setPersonalityFn(cast<Function>(personalityFn.getCallee()));
-
-  // Set initial debug location
-  Builder.SetCurrentDebugLocation(
-      llvm::DILocation::get(TheContext, env.line(), env.column(), SP));
-
-  TypedValue result = codegen(node, ObjectTypeSet::all());
-  popExecutionContext();
-
-  Builder.CreateRet(valueEncoder.box(result).value);
-
-  LexicalBlocks.pop_back();
-  if (verifyFunction(*F, &llvm::errs())) {
-    F->print(llvm::errs());
-    throwInternalInconsistencyException("Function verification failed for top-level");
-  }
-  return fname;
+  return codegenTopLevelInternal(node, false);
 }
 
 std::string CodeGen::codegenTopLevelWithContext(const Node &node) {
+  return codegenTopLevelInternal(node, true);
+}
+
+std::string CodeGen::codegenTopLevelInternal(const Node &node,
+                                             bool passContext) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
   uword_t i = compilerState.functionAstRegistry.registerObject(&node);
-  std::string fname = std::string("__repl_ctx__") + std::to_string(i);
-  FunctionType *FT =
-      FunctionType::get(types.i64Ty, {types.ExecutionContextPtrTy}, false);
+  std::string fname =
+      (passContext ? "__repl_ctx__" : "__repl__") + std::to_string(i);
+
+  std::vector<Type *> argTypes;
+  if (passContext) {
+    argTypes.push_back(types.ExecutionContextPtrTy);
+  }
+
+  FunctionType *FT = FunctionType::get(types.i64Ty, argTypes, false);
   Function *F =
       Function::Create(FT, Function::ExternalLinkage, fname, *TheModule);
 
-  F->setCallingConv(CallingConv::Swift);
-  F->addParamAttr(0, Attribute::SwiftSelf);
+  // We use Default calling convention for top-level functions to make them
+  // easily callable from C++. If passContext is true, the context is passed
+  // as a regular first argument.
 
   // Enforce frame pointers for reliable stack traces
   F->addFnAttr("frame-pointer", "all");
@@ -147,7 +98,12 @@ std::string CodeGen::codegenTopLevelWithContext(const Node &node) {
   BasicBlock *BB = BasicBlock::Create(TheContext, "entry", F);
   Builder.SetInsertPoint(BB);
 
-  pushExecutionContext(&*F->arg_begin());
+  if (passContext) {
+    pushExecutionContext(&*F->arg_begin());
+  } else {
+    pushExecutionContext(llvm::ConstantPointerNull::get(
+        llvm::cast<llvm::PointerType>(types.ExecutionContextPtrTy)));
+  }
 
   memoryManagement.initFunction(F);
 
@@ -170,7 +126,7 @@ std::string CodeGen::codegenTopLevelWithContext(const Node &node) {
   if (verifyFunction(*F, &llvm::errs())) {
     F->print(llvm::errs());
     throwInternalInconsistencyException(
-        "Function verification failed for top-level with context");
+        "Function verification failed for top-level (" + fname + ")");
   }
   return fname;
 }

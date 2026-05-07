@@ -722,42 +722,35 @@ IntrinsicDescription::IntrinsicDescription(
         this->argTypes.push_back(ObjectTypeSet::dynamicType());
       } else if (sArgKey == ":nil") {
         this->argTypes.push_back(ObjectTypeSet(nilType));
-      } else if (sArgKey == ":int") {
-        this->argTypes.push_back(ObjectTypeSet(integerType));
-      } else if (sArgKey == ":bool") {
-        this->argTypes.push_back(ObjectTypeSet(booleanType));
-      } else if (sArgKey == ":string") {
-        this->argTypes.push_back(ObjectTypeSet(stringType));
-      } else if (sArgKey == ":symbol") {
-        this->argTypes.push_back(ObjectTypeSet(symbolType));
-      } else if (sArgKey == ":keyword") {
-        this->argTypes.push_back(ObjectTypeSet(keywordType));
-      } else if (sArgKey == ":double") {
-        this->argTypes.push_back(ObjectTypeSet(doubleType));
-      } else if (sArgKey == ":context") {
-        this->argTypes.push_back(ObjectTypeSet(executionContextType));
       } else {
-        if (classData.classesByName.find(sArgKey) ==
-            classData.classesByName.end()) {
+        auto it = classData.classesByName.find(sArgKey);
+        if (it == classData.classesByName.end()) {
           throwInternalInconsistencyException("Unknown arg type: " + sArgKey);
         }
-        PersistentArrayMap *argClassMap = classData.classesByName[sArgKey];
 
-        // PersistentArrayMap_get consumes argClassMap.
+        PersistentArrayMap *argClassMap = it->second;
         Ptr_retain(argClassMap);
         RTValue argTypeRaw = PersistentArrayMap_get(
             argClassMap, Keyword_create(String_create("object-type")));
         ConsumedValue atWrapper(argTypeRaw);
 
-        if (getType(atWrapper.get()) == integerType) {
-          objectType t = (objectType)RT_unboxInt32(atWrapper.get());
+        if (getType(atWrapper.get()) != integerType) {
+          throwInternalInconsistencyException("Class " + sArgKey + " must have an integer :object-type");
+        }
+
+        objectType t = (objectType)RT_unboxInt32(atWrapper.get());
+        
+        if (t == executionContextType) {
+          if (j != 0) {
+            throwInternalInconsistencyException("The execution context argument must be the first one.");
+          }
+          this->passBindingContext = true;
+        } else {
           if (t == objectRootType) {
             this->argTypes.push_back(ObjectTypeSet::dynamicType());
           } else {
             this->argTypes.push_back(ObjectTypeSet(t));
           }
-        } else {
-          this->argTypes.push_back(ObjectTypeSet(classType));
         }
       }
       PersistentVector_iteratorNext(&it);
@@ -806,6 +799,10 @@ IntrinsicDescription::IntrinsicDescription(
   ConsumedValue passContextWrapper(passContextRaw);
   if (getType(passContextWrapper.get()) == booleanType) {
     this->passBindingContext = RT_unboxBool(passContextWrapper.get());
+  }
+
+  if (this->passBindingContext && this->type != CallType::Call) {
+    throwInternalInconsistencyException("pass-binding-context is only allowed for methods of type :call.");
   }
 
   retain(root.get());
@@ -904,11 +901,17 @@ IntrinsicDescription::IntrinsicDescription(
         objectType t = (objectType)RT_unboxInt32(atWrapper.get());
         
         if (t == executionContextType) {
-          if (j != 0) {
-            throwInternalInconsistencyException("The execution context argument must be the first one.");
-          }
-          this->passBindingContext = true;
+           if (j != 0) {
+             throwInternalInconsistencyException("The execution context argument must be the first one.");
+           }
+           if (!this->passBindingContext) {
+             throwInternalInconsistencyException("ExecutionContext argument used without :pass-binding-context true flag.");
+           }
+           // Context argument is internal, do not push to argTypes.
         } else {
+          if (j == 0 && this->passBindingContext) {
+             throwInternalInconsistencyException(":pass-binding-context true requires the first argument to be of type clojure.lang.ExecutionContext.");
+          }
           if (t == objectRootType) {
             this->argTypes.push_back(ObjectTypeSet::dynamicType());
           } else {

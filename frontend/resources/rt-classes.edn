@@ -80,9 +80,10 @@
                 clojure.lang.IObj {withMeta [{:args [:this :any] :type :call :symbol "Var_resetMeta" :returns clojure.lang.Var}]}
                 clojure.lang.IDeref {deref [{:args [:context :this] :type :call :symbol "Var_deref" :returns :any :pass-binding-context true}]}}
    :instance-fns
-   {set [{:args [:context :this :any] :type :call :symbol "Var_set" :returns :any :pass-binding-context true}]}
+   {}
    :static-fns
-   {pushThreadBindings [{:args [:context :any] :type :call :symbol "RT_bind_map" :returns :context :pass-binding-context true}]
+   {set [{:args [:context clojure.lang.Var :any] :type :call :symbol "Var_set" :returns :any :pass-binding-context true}]
+    pushThreadBindings [{:args [:context :any] :type :call :symbol "RT_bind_map" :returns :context :pass-binding-context true}]
     popThreadBindings [{:args [:context] :type :call :symbol "ExecutionContext_pop" :returns :context :pass-binding-context true}]}}
 
   clojure.lang.Namespace

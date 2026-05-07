@@ -26,8 +26,10 @@
 
 #include "jit/JITEngine.h"
 #include "runtime/Ebr.h"
+#include "runtime/ExecutionContext.h"
 #include "runtime/String.h"
-#include "state/ThreadsafeCompilerState.h"
+#include "runtime/Var.h"
+#include "tools/RTValueWrapper.h"
 #include <chrono>
 
 using namespace std;
@@ -120,6 +122,30 @@ int main(int argc, char *argv[]) {
     cout << "Initialising compiler state..." << endl;
     initialise_memory();
     rt::JITEngine engine(llvm::OptimizationLevel::O0, true);
+
+    rt::ScopedRef<ExecutionContext> ctx(
+        ExecutionContext_create(RT_boxPtr(PersistentArrayMap_empty())));
+
+    // Setup default *ns* = "user"
+    {
+      RTValue nsVarKw = Keyword_create(String_create("clojure.core/*ns*"));
+      retain(nsVarKw);
+      Var *nsVar = Var_create(nsVarKw);
+      Var_setDynamic(nsVar, true);
+      RTValue userNs = RT_boxPtr(String_create("user"));
+      retain(userNs);
+      Ptr_retain(nsVar);
+      Var_bindRoot(nsVar, userNs);
+
+      ctx->bindingsMap = RT_boxPtr(PersistentArrayMap_assoc(
+          (PersistentArrayMap *)RT_unboxPtr(ctx->bindingsMap), nsVarKw,
+          userNs));
+
+      // Register in compiler state so JIT finds this exact Var object
+      engine.threadsafeState.varRegistry.registerObject("clojure.core/*ns*",
+                                                        nsVar);
+    }
+
     {
       ExecutionTimer t("Compiling and storing interfaces");
       cout << "Compiling interfaces..." << endl;
@@ -162,7 +188,7 @@ int main(int argc, char *argv[]) {
       {
         ExecutionTimer t("Compiling " + moduleName);
         cout << "Compiling!!!" << endl;
-        res = engine.compileAST(topLevelNode, moduleName).get();
+        res = engine.compileASTWithContext(topLevelNode, moduleName).get();
       }
 
       if (!res.optimizedIR.empty()) {
@@ -173,7 +199,9 @@ int main(int argc, char *argv[]) {
 
       {
         ExecutionTimer t("Executing " + moduleName);
-        RTValue whaat = res.address.toPtr<RTValue (*)()>()();
+        typedef RTValue (*JitFn)(ExecutionContext *);
+        JitFn fn = (JitFn)res.address.toPtr<void *>();
+        RTValue whaat = fn(ctx);
         String *s = toString(whaat);
         s = String_compactify(s);
 
@@ -186,7 +214,8 @@ int main(int argc, char *argv[]) {
     retVal = 0;
   } catch (const rt::LanguageException &e) {
     cerr << rt::getExceptionString(e) << endl;
-  } catch (std::exception e) {
+  } catch (const std::exception &e) {
+    cerr << "Error: " << endl;
     cerr << e.what() << endl;
   }
 

@@ -22,8 +22,7 @@ using namespace std;
 using namespace rt;
 using namespace clojure::rt::protobuf::bytecode;
 
-typedef RTValue (*JitFn)(ExecutionContext *__attribute__((swift_context)))
-    __attribute__((swiftcall));
+typedef RTValue (*JitFn)(ExecutionContext *ctx);
 
 static void test_context_propagation_in_jit(void **state) {
   (void)state;

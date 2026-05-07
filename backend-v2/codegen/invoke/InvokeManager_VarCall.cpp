@@ -20,10 +20,13 @@ TypedValue InvokeManager::generateVarInvoke(
   // 1. Get Var pointer (unboxed)
   Value *varPtr = valueEncoder.unboxPointer(varObj).value;
 
-  // 2. Load current value FROM VAR (WITHOUT RETAIN/RELEASE - Var_peek)
-  FunctionType *peekSig =
-      FunctionType::get(types.RT_valueTy, {types.ptrTy}, false);
-  Value *currentVal = invokeRaw("Var_peek", peekSig, {varPtr}, guard, false);
+  // 2. Load current value FROM VAR (borrowed call - Var_peek)
+  FunctionType *peekSig = FunctionType::get(
+      types.RT_valueTy, {types.ExecutionContextPtrTy, types.ptrTy}, false);
+  Value *currentVal =
+      invokeRaw("Var_peek", peekSig, {codeGen.getExecutionContext(), varPtr},
+                guard, false, {}, true);
+
 
   // 3. Unified IC resolution (Handles Functions, Keywords, Maps, Vectors)
   Value *methodToCall = generateICLookup(currentVal, argCount, guard);

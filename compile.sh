@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BACKEND=backend-v2
+BACKEND=backend
 TIME=
 
 while getopts t opt; do

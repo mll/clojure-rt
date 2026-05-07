@@ -290,6 +290,8 @@ public:
         return "LY";
       case persistentVectorNodeType:
         assert(false && "Node cannot be used as an argument");
+      case concurrentHashMapNodeType:
+        assert(false && "CHM Node cannot be used as an argument");
       case concurrentHashMapType:
         assert(false && "Concurrent hash map cannot be used as an argument");
       case doubleType:
@@ -384,6 +386,8 @@ public:
       return ":map";
     case persistentVectorNodeType:
       return ":vector-node";
+    case concurrentHashMapNodeType:
+      return ":chm-node";
     case concurrentHashMapType:
       return ":chm";
     case varType:

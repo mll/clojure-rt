@@ -23,9 +23,11 @@ using std::memory_order_seq_cst;
 extern "C" {
 #endif
 
+#include "ObjectProto.h"
 #include "RTValue.h"
 #include "String.h"
 #include "defines.h"
+#include <stdalign.h>
 
 /* https://preshing.com/20160201/new-concurrent-hash-maps-for-cpp/
    Leapfrog */
@@ -35,16 +37,22 @@ typedef struct Object Object;
 #define CHM_REDIRECT 1
 #define CHM_EMPTY 0
 
-typedef struct ConcurrentHashMapEntry {
-  _Atomic(RTValue) key;
+struct ConcurrentHashMapEntry {
+  alignas(32) _Atomic(RTValue) key;
   _Atomic(RTValue) value;
   _Atomic(uword_t) keyHash;
-  _Atomic(unsigned short) leaps;
-} ConcurrentHashMapEntry;
+  _Atomic(unsigned char) shortLeap;
+  _Atomic(unsigned char) longLeap;
+};
+typedef struct ConcurrentHashMapEntry ConcurrentHashMapEntry;
 
 typedef struct ConcurrentHashMapNode {
+  Object super;
   uword_t sizeMask;
   short int resizingThreshold;
+  _Atomic(struct ConcurrentHashMapNode *) next;
+  _Atomic(size_t) migrationIndex;
+  _Atomic(size_t) count;
   ConcurrentHashMapEntry array[];
 } ConcurrentHashMapNode;
 
@@ -55,10 +63,16 @@ typedef struct ConcurrentHashMap {
 
 ConcurrentHashMap *ConcurrentHashMap_create(unsigned char initialSizeExponent);
 
+void ConcurrentHashMapNode_destroy(ConcurrentHashMapNode *node);
+
 void ConcurrentHashMap_assoc(ConcurrentHashMap *self, RTValue key,
                              RTValue value);
 void ConcurrentHashMap_dissoc(ConcurrentHashMap *self, RTValue key);
 RTValue ConcurrentHashMap_get(ConcurrentHashMap *self, RTValue key);
+RTValue ConcurrentHashMap_putIfAbsent(ConcurrentHashMap *self, RTValue key,
+                                      RTValue value);
+RTValue ConcurrentHashMap_getOrCreate(ConcurrentHashMap *self, RTValue key,
+                                      RTValue value);
 
 void ConcurrentHashMap_assoc_preservesSelf(ConcurrentHashMap *self, RTValue key,
                                            RTValue value,
@@ -67,6 +81,14 @@ void ConcurrentHashMap_dissoc_preservesSelf(ConcurrentHashMap *self,
                                             RTValue key);
 RTValue ConcurrentHashMap_get_preservesSelf(ConcurrentHashMap *self,
                                             RTValue key);
+RTValue ConcurrentHashMap_putIfAbsent_preservesSelf(ConcurrentHashMap *self,
+                                                    RTValue key, RTValue value,
+                                                    bool releaseSelfOnError);
+
+RTValue ConcurrentHashMap_getOrCreate_preservesSelf(ConcurrentHashMap *self,
+                                                    RTValue key, RTValue value,
+                                                    bool releaseSelfOnError);
+
 String *ConcurrentHashMap_toString(ConcurrentHashMap *self);
 
 bool ConcurrentHashMap_equals(ConcurrentHashMap *self,

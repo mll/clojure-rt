@@ -292,6 +292,9 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   case concurrentHashMapType:
     ConcurrentHashMap_destroy((ConcurrentHashMap *)self);
     break;
+  case concurrentHashMapNodeType:
+    ConcurrentHashMapNode_destroy((ConcurrentHashMapNode *)self);
+    break;
   case functionType:
     Function_destroy((ClojureFunction *)self);
     break;

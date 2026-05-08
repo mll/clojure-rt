@@ -162,6 +162,7 @@ RTValue RT_withMeta(RTValue v, RTValue meta);
 #include "Symbol.h"
 #include "Var.h"
 #include "ExecutionContext.h"
+#include "Namespace.h"
 
 extern void ExecutionContext_destroy(ExecutionContext* self);
 
@@ -334,6 +335,9 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
   case executionContextType:
     ExecutionContext_destroy((ExecutionContext *)self);
     break;
+  case namespaceType:
+    Namespace_destroy((Namespace *)self, deallocateChildren);
+    break;
 
   default:
     break;
@@ -485,6 +489,9 @@ inline void Object_promoteToShared(Object *restrict self) {
     Object_promoteToShared((Object *)((ArrayChunk *)self)->node);
     Object_promoteToSharedShallow(self, count);
     break;
+  case namespaceType:
+    Namespace_promoteToShared((Namespace *)self, count);
+    break;
 
   default:
     Object_promoteToSharedShallow(self, count);
@@ -532,6 +539,8 @@ inline uword_t Object_hash(Object *restrict self) {
     return PersistentVectorChunkedSeq_hash((PersistentVectorChunkedSeq *)self);
   case symbolType:
     return Symbol_hash((Symbol *)self);
+  case namespaceType:
+    return Namespace_hash((Namespace *)self);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -621,6 +630,8 @@ inline bool Object_equals(Object *self, Object *other) {
     return PersistentVectorChunkedSeq_equals((PersistentVectorChunkedSeq *)self, (PersistentVectorChunkedSeq *)other);
   case symbolType:
     return Symbol_equals((Symbol *)self, (Symbol *)other);
+  case namespaceType:
+    return Namespace_equals((Namespace *)self, (Namespace *)other);
   default:
     assert(false && "Internal error: hash computation for NaN tagged types "
                     "should be computed earlier.");
@@ -688,6 +699,8 @@ inline String *Object_toString(Object *restrict self) {
     return PersistentVectorChunkedSeq_toString((PersistentVectorChunkedSeq *)self);
   case symbolType:
     return Symbol_toString(RT_boxSymbol(self));
+  case namespaceType:
+    return Namespace_toString((Namespace *)self);
   default:
     assert(false && "Internal error: Object_toString got an unsupported type");
   }

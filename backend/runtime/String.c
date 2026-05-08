@@ -230,8 +230,10 @@ bool String_equals(String *self, String *other) {
   while (leftChar != 0) {
     if (leftChar != rightChar)
       return false;
-    leftChar = *String_iteratorNext(&left);
-    rightChar = *String_iteratorNext(&right);
+    char *pLeft = String_iteratorNext(&left);
+    char *pRight = String_iteratorNext(&right);
+    leftChar = pLeft ? *pLeft : 0;
+    rightChar = pRight ? *pRight : 0;
   }
   return true;
 }

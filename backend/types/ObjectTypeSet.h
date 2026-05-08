@@ -258,6 +258,7 @@ public:
     retVal.insert(persistentVectorChunkedSeqType);
     retVal.insert(persistentVectorReverseSeqType);
     retVal.insert(arrayChunkType);
+    retVal.insert(namespaceType);
     retVal.allTypes = true;
     retVal.isBoxed = true;
     return retVal;
@@ -328,6 +329,8 @@ public:
         return "LY";
       case arrayChunkType:
         return "LH";
+      case namespaceType:
+        return "Lw";
       default:
         return "LR";
       }
@@ -406,6 +409,8 @@ public:
       return ":reverse-seq";
     case arrayChunkType:
       return ":array-chunk";
+    case namespaceType:
+      return ":namespace";
     default:
       return ":custom(" + std::to_string(type) + ")";
     }

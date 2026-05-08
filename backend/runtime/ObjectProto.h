@@ -55,6 +55,7 @@ enum objectType {
   persistentVectorReverseSeqType = 26,
   executionContextType = 27,
   concurrentHashMapNodeType = 28,
+  namespaceType = 29,
 };
 
 typedef enum objectType objectType;
@@ -71,5 +72,6 @@ struct Object {
 };
 typedef struct Object Object;
 typedef struct Symbol Symbol;
+typedef struct Namespace Namespace;
 
 #endif

@@ -244,6 +244,25 @@ static void test_string_exceptions(void **state) {
   });
 }
 
+static void testCompoundStringEqualsCrash(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    String *s1 = String_createStatic("hello ");
+    String *s2 = String_createDynamicStr("world");
+    String *compound1 = String_concat(s1, s2); // "hello world" (compoundString)
+
+    String *s3 = String_createStatic("hello ");
+    String *s4 = String_createDynamicStr("world");
+    String *compound2 = String_concat(s3, s4); // "hello world" (compoundString)
+
+    // This should reproduce the NULL pointer dereference crash in String_equals
+    assert_true(String_equals(compound1, compound2));
+
+    Ptr_release(compound1);
+    Ptr_release(compound2);
+  });
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(testStaticStringMemory),
@@ -256,6 +275,7 @@ int main(void) {
       cmocka_unit_test(testStringMemoryManagement),
       cmocka_unit_test(test_string_char_at_subs),
       cmocka_unit_test(test_string_exceptions),
+      cmocka_unit_test(testCompoundStringEqualsCrash),
   };
   initialise_memory();
   RuntimeInterface_initialise();

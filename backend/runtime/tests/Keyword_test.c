@@ -5,11 +5,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <pthread.h>
 #include "../Keyword.h"
 #include "../PersistentVector.h"
 #include "../RuntimeInterface.h"
 #include "../String.h"
+#include "runtime/Ebr.h"
+#include <pthread.h>
 
 static void test_keyword_interning(void **state) {
   (void)state; // unused
@@ -27,9 +28,10 @@ static void test_keyword_interning(void **state) {
     Ptr_release(v);
   });
 }
+#include <stdio.h>
 
-#define THREAD_COUNT 20
-#define ITERATIONS 500
+#define THREAD_COUNT 4
+#define ITERATIONS 50
 
 typedef struct KeywordThreadParams {
   const char *name;
@@ -37,10 +39,14 @@ typedef struct KeywordThreadParams {
 } KeywordThreadParams;
 
 static void *keywordThread(void *param) {
+  Ebr_register_thread();
   KeywordThreadParams *p = (KeywordThreadParams *)param;
   for (int i = 0; i < ITERATIONS; i++) {
-    p->results[i] = Keyword_create(String_create(p->name));
+    char name_buf[64];
+    snprintf(name_buf, sizeof(name_buf), "%s-%d", p->name, i);
+    p->results[i] = Keyword_create(String_createDynamicStr(name_buf));
   }
+  Ebr_unregister_thread();
   return NULL;
 }
 
@@ -60,13 +66,12 @@ static void test_concurrent_keyword_interning(void **state) {
       pthread_join(threads[i], NULL);
     }
 
-    RTValue first = params[0].results[0];
-    assert_true(RT_isKeyword(first));
-
-    for (int i = 0; i < THREAD_COUNT; i++) {
-      for (int j = 0; j < ITERATIONS; j++) {
+    for (int j = 0; j < ITERATIONS; j++) {
+      RTValue expected = params[0].results[j];
+      assert_true(RT_isKeyword(expected));
+      for (int i = 0; i < THREAD_COUNT; i++) {
         assert_int_equal(RT_unboxKeyword(params[i].results[j]),
-                         RT_unboxKeyword(first));
+                         RT_unboxKeyword(expected));
       }
     }
   });

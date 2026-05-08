@@ -13,6 +13,8 @@ extern "C" {
 #include "String.h"
 
 typedef struct Object Object;
+struct Namespace;
+struct Symbol;
 
 struct Var {
   Object super;
@@ -20,6 +22,8 @@ struct Var {
   _Atomic(uword_t) rev;
   _Atomic(RTValue) root;
   RTValue keyword; // TODO: split name and namespace - Marek - why?
+  struct Namespace *ns;
+  struct Symbol *sym;
   _Atomic(RTValue) metadata;
 
   // TODO: threadBound
@@ -30,6 +34,7 @@ typedef struct Var Var;
 // Class *UNIQUE_UnboundClass;
 
 Var *Var_create(RTValue keyword);
+Var *Var_create_interned(struct Namespace *ns, struct Symbol *sym);
 Var *Var_resetMeta(Var *self, RTValue meta);
 RTValue Var_getMeta(Var *self);
 bool Var_equals(Var *self, Var *other);

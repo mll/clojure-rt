@@ -4,6 +4,7 @@
 #include "ExecutionContext.h"
 #include "Object.h"
 #include "RTValue.h"
+#include "Namespace.h"
 #include "String.h"
 #include "word.h"
 #include <stdio.h>
@@ -34,6 +35,8 @@ Var *Var_create(RTValue keyword) {
   atomic_store_explicit(&(self->root), RT_boxNull(), memory_order_relaxed);
   self->dynamic = false;
   self->keyword = keyword;
+  self->ns = NULL;
+  self->sym = NULL;
   atomic_store_explicit(&self->metadata, RT_boxNil(), memory_order_relaxed);
   atomic_store_explicit(&self->rev, 0, memory_order_relaxed);
   Object_create((Object *)self, varType);
@@ -42,6 +45,36 @@ Var *Var_create(RTValue keyword) {
                         COUNT_INC | SHARED_BIT, memory_order_release);
   return self;
 };
+
+Var *Var_create_interned(struct Namespace *ns, struct Symbol *sym) {
+  Var *self = (Var *)allocate(sizeof(Var));
+  atomic_store_explicit(&(self->root), RT_boxNull(), memory_order_relaxed);
+  self->dynamic = false;
+  self->ns = ns;
+  if(ns) Ptr_retain(ns);
+  self->sym = sym;
+  if(sym) Ptr_retain(sym);
+  
+  
+  Ptr_retain(ns->name);
+  String *nsStr = Symbol_toString(RT_boxSymbol((Object *)ns->name));
+  String *slashStr = String_create("/");
+  Ptr_retain(sym);
+  String *symStr = Symbol_toString(RT_boxSymbol((Object *)sym));
+
+  
+  String *s1 = String_concat(nsStr, slashStr);
+  String *s2 = String_concat(s1, symStr);
+  
+  self->keyword = Keyword_create(s2); // keyword takes ownership
+  
+  atomic_store_explicit(&self->metadata, RT_boxNil(), memory_order_relaxed);
+  atomic_store_explicit(&self->rev, 0, memory_order_relaxed);
+  Object_create((Object *)self, varType);
+  atomic_store_explicit(&(((Object *)self)->atomicRefCount),
+                        COUNT_INC | SHARED_BIT, memory_order_release);
+  return self;
+}
 
 bool Var_equals(Var *self, Var *other) {
   return false; // pointer equality in Object_equals
@@ -67,6 +100,12 @@ void Var_destroy(Var *self) {
   RTValue oldMeta = atomic_load_explicit(&self->metadata, memory_order_relaxed);
   if (!RT_isNil(oldMeta)) {
     autorelease(oldMeta);
+  }
+  if (self->ns) {
+    Ptr_release(self->ns);
+  }
+  if (self->sym) {
+    Ptr_release(self->sym);
   }
 };
 

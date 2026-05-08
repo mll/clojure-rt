@@ -186,6 +186,24 @@ static void test_namespace_global_registry(void **state) {
   assertMemoryBalanceExcept(&before, &after, (int[]){stringType, persistentVectorType, persistentVectorNodeType, symbolType}, 4);
 }
 
+static void test_namespace_var_circular_leak(void **state) {
+  (void)state;
+  ASSERT_MEMORY_BALANCED_EXCEPT_STRINGS({
+    Symbol *nsSym = Symbol_create(String_create("temp-ns"));
+    Namespace *ns = Namespace_create(nsSym);
+
+    Symbol *varSym = Symbol_create(String_create("temp-var"));
+    
+    Ptr_retain(ns); Ptr_retain(varSym);
+    Var *v = Namespace_intern(ns, varSym);
+    
+    Ptr_release(v);
+    Ptr_release(ns);
+    Ptr_release(varSym);
+    Ebr_force_reclaim();
+  });
+}
+
 int main(void) {
   RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
@@ -194,6 +212,7 @@ int main(void) {
       cmocka_unit_test(test_namespace_aliases),
       cmocka_unit_test(test_namespace_reference),
       cmocka_unit_test(test_namespace_global_registry),
+      cmocka_unit_test(test_namespace_var_circular_leak),
   };
   int res = cmocka_run_group_tests(tests, NULL, NULL);
   RuntimeInterface_cleanup();

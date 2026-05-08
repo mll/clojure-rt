@@ -61,6 +61,7 @@ void RuntimeInterface_cleanup() {
   PersistentList_cleanup();
   PersistentVector_cleanup();
   PersistentArrayMap_cleanup();
+  Ebr_force_reclaim();
   // Unregistering main thread.
   Ebr_unregister_thread();
   Ebr_shutdown();

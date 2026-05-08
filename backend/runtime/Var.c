@@ -51,7 +51,6 @@ Var *Var_create_interned(struct Namespace *ns, struct Symbol *sym) {
   atomic_store_explicit(&(self->root), RT_boxNull(), memory_order_relaxed);
   self->dynamic = false;
   self->ns = ns;
-  if(ns) Ptr_retain(ns);
   self->sym = sym;
   if(sym) Ptr_retain(sym);
   
@@ -100,9 +99,6 @@ void Var_destroy(Var *self) {
   RTValue oldMeta = atomic_load_explicit(&self->metadata, memory_order_relaxed);
   if (!RT_isNil(oldMeta)) {
     autorelease(oldMeta);
-  }
-  if (self->ns) {
-    Ptr_release(self->ns);
   }
   if (self->sym) {
     Ptr_release(self->sym);

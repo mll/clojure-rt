@@ -5,7 +5,10 @@
 #include "String.h"
 #include "Exceptions.h"
 #include "Var.h"
+#include "ConcurrentHashMap.h"
 #include <stdio.h>
+
+extern ConcurrentHashMap *namespaces;
 
 /*
  * Allocates and initializes a new Namespace object with the given symbol as its name.
@@ -24,6 +27,63 @@ Namespace *Namespace_create(Symbol *name) {
   retain(emptyMap); // Retain once more for the second pointer (aliases), making refcount 2
   
   return self;
+}
+
+/*
+ * Searches for a Namespace with the given name symbol in the global register.
+ * Returns the retained Namespace (+1 refcount) if found, or NULL otherwise.
+ * Consumes `name` argument.
+ */
+Namespace *Namespace_find(Symbol *name) {
+  RTValue symVal = RT_boxSymbol((Object *)name);
+  RTValue nsVal = ConcurrentHashMap_get_preservesSelf(namespaces, symVal);
+  if (RT_isNil(nsVal)) {
+    return NULL;
+  }
+  return (Namespace *)RT_unboxPtr(nsVal);
+}
+
+/*
+ * Searches for a Namespace with the given name symbol in the global register.
+ * If not found, a new Namespace is created and registered.
+ * Returns the Namespace with a +1 refcount.
+ * Consumes `name` argument.
+ */
+Namespace *Namespace_findOrCreate(Symbol *name) {
+  Ptr_retain(name);
+  Namespace *ns = Namespace_find(name);
+  if (ns != NULL) {
+    Ptr_release(name); // Consume argument
+    return ns;
+  }
+  
+  Namespace *newNs = Namespace_create(name);
+  
+  Symbol *keySym = newNs->name;
+  Ptr_retain(keySym);
+  RTValue keyVal = RT_boxSymbol((Object *)keySym);
+  
+  Ptr_retain(newNs);
+  RTValue valVal = RT_boxPtr((Object *)newNs);
+  
+  RTValue existing = ConcurrentHashMap_putIfAbsent_preservesSelf(namespaces, keyVal, valVal, false);
+  if (!RT_isNil(existing)) {
+    Ptr_release(newNs);
+    return (Namespace *)RT_unboxPtr(existing);
+  }
+  
+  return newNs;
+}
+
+/*
+ * Returns the name symbol of the Namespace.
+ * Consumes the `self` argument.
+ */
+Symbol *Namespace_getName(Namespace *self) {
+  Symbol *name = self->name;
+  Ptr_retain(name);
+  Ptr_release(self);
+  return name;
 }
 
 /*

@@ -13,6 +13,7 @@
 ConcurrentHashMap *keywords = NULL;
 ConcurrentHashMap *keywordsInverted = NULL;
 ConcurrentHashMap *vars = NULL;
+ConcurrentHashMap *namespaces = NULL;
 
 extern bool logicalValue(RTValue self);
 extern void logException(const char *description);
@@ -37,6 +38,7 @@ void RuntimeInterface_initialise() {
   keywords = ConcurrentHashMap_create(10);         // 2^10
   keywordsInverted = ConcurrentHashMap_create(10); // 2^10
   vars = ConcurrentHashMap_create(10);             // 2^10
+  namespaces = ConcurrentHashMap_create(10);       // 2^10
 }
 
 void RuntimeInterface_cleanup() {
@@ -51,6 +53,10 @@ void RuntimeInterface_cleanup() {
   if (vars) {
     Ptr_release(vars);
     vars = NULL;
+  }
+  if (namespaces) {
+    Ptr_release(namespaces);
+    namespaces = NULL;
   }
   PersistentList_cleanup();
   PersistentVector_cleanup();

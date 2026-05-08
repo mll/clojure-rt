@@ -39,5 +39,7 @@
 #include "runtime/RuntimeInterface.h"
 #include "runtime/String.h"
 #include "runtime/Symbol.h"
+#include "runtime/Var.h"
+#include "runtime/Namespace.h"
 
 #endif

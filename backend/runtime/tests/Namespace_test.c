@@ -8,6 +8,9 @@
 #include "../Var.h"
 #include "../PersistentArrayMap.h"
 #include "../RuntimeInterface.h"
+#include "../ConcurrentHashMap.h"
+
+extern ConcurrentHashMap *namespaces;
 
 #define ASSERT_MEMORY_BALANCED_EXCEPT_STRINGS(block) \
   do { \
@@ -134,6 +137,55 @@ static void test_namespace_reference(void **state) {
   });
 }
 
+static void test_namespace_global_registry(void **state) {
+  (void)state;
+  MemoryState before, after;
+  captureMemoryState(&before);
+  {
+    // Create name symbol
+    Symbol *nsSym1 = Symbol_create(String_create("my.global.ns"));
+    
+    // Check that Namespace_find returns NULL before we register it
+    Ptr_retain(nsSym1);
+    Namespace *found1 = Namespace_find(nsSym1);
+    assert_null(found1);
+    
+    // Now call findOrCreate (should create and register a new one)
+    Ptr_retain(nsSym1);
+    Namespace *ns1 = Namespace_findOrCreate(nsSym1);
+    assert_non_null(ns1);
+    assert_string_equal(String_c_str(ns1->name->name), "my.global.ns");
+    
+    // Call findOrCreate again (should find the existing registered one)
+    Ptr_retain(nsSym1);
+    Namespace *ns2 = Namespace_findOrCreate(nsSym1);
+    assert_ptr_equal(ns1, ns2);
+    
+    // Release ns2 reference
+    Ptr_release(ns2);
+    
+    // Call find (should find it)
+    Ptr_retain(nsSym1);
+    Namespace *ns3 = Namespace_find(nsSym1);
+    assert_ptr_equal(ns1, ns3);
+    Ptr_release(ns3);
+    
+    // Now let's remove it from global map so we don't have global reference leak
+    Ptr_retain(nsSym1);
+    RTValue symVal = RT_boxSymbol((Object *)nsSym1);
+    ConcurrentHashMap_dissoc_preservesSelf(namespaces, symVal);
+    
+    // Release our caller's reference to ns1
+    Ptr_release(ns1);
+    
+    // Clean up symbol reference
+    Ptr_release(nsSym1);
+    Ebr_force_reclaim();
+  }
+  captureMemoryState(&after);
+  assertMemoryBalanceExcept(&before, &after, (int[]){stringType, persistentVectorType, persistentVectorNodeType, symbolType}, 4);
+}
+
 int main(void) {
   RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
@@ -141,6 +193,7 @@ int main(void) {
       cmocka_unit_test(test_namespace_intern),
       cmocka_unit_test(test_namespace_aliases),
       cmocka_unit_test(test_namespace_reference),
+      cmocka_unit_test(test_namespace_global_registry),
   };
   int res = cmocka_run_group_tests(tests, NULL, NULL);
   RuntimeInterface_cleanup();

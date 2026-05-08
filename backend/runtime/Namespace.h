@@ -20,6 +20,9 @@ struct Namespace {
 };
 
 Namespace *Namespace_create(Symbol *name);
+Namespace *Namespace_find(Symbol *name);
+Namespace *Namespace_findOrCreate(Symbol *name);
+Symbol *Namespace_getName(Namespace *self);
 void Namespace_destroy(Namespace *self, bool deallocateChildren);
 uword_t Namespace_hash(Namespace *self);
 bool Namespace_equals(Namespace *self, Namespace *other);

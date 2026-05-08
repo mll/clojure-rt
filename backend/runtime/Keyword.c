@@ -11,6 +11,10 @@ extern ConcurrentHashMap *keywordsInverted;
 
 static _Atomic(uint32_t) minUnusedKeyword = 1;
 
+#ifdef REFCOUNT_TRACING
+static _Atomic(uint32_t) successfulKeywordsCount = 0;
+#endif
+
 /* mem done - consumes string */
 RTValue Keyword_create(String *string) {
   RTValue stringVal = RT_boxPtr(string);
@@ -39,9 +43,14 @@ RTValue Keyword_create(String *string) {
     if (!RT_isNil(existing)) {
       /* We lost the race. Another thread inserted the same string first.
          Return the existing keyword. */
+      ConcurrentHashMap_dissoc_preservesSelf(keywordsInverted, new);
       Ptr_release(string); /* consume caller's ref */
       return existing;
     }
+
+#ifdef REFCOUNT_TRACING
+    atomic_fetch_add_explicit(&successfulKeywordsCount, 1, memory_order_relaxed);
+#endif
 
     Ptr_release(string); /* consume caller's ref */
     return new;
@@ -60,11 +69,18 @@ String *Keyword_toString(RTValue self) {
 }
 
 uint32_t Keyword_getInternCount() {
+#ifdef REFCOUNT_TRACING
+  return atomic_load_explicit(&successfulKeywordsCount, memory_order_relaxed);
+#else
   return atomic_load_explicit(&minUnusedKeyword, memory_order_relaxed) - 1;
+#endif
 }
 
 void Keyword_resetInterns() {
   atomic_store_explicit(&minUnusedKeyword, 1, memory_order_relaxed);
+#ifdef REFCOUNT_TRACING
+  atomic_store_explicit(&successfulKeywordsCount, 0, memory_order_relaxed);
+#endif
 }
 
 /* mem done. The assumption is that we are *sure* self is a keyword */

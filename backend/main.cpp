@@ -121,7 +121,11 @@ int main(int argc, char *argv[]) {
   try {
     cout << "Initialising compiler state..." << endl;
     initialise_memory();
+#ifndef NDEBUG
     rt::JITEngine engine(llvm::OptimizationLevel::O0, true);
+#else
+    rt::JITEngine engine(llvm::OptimizationLevel::O3, false);
+#endif
 
     rt::ScopedRef<ExecutionContext> ctx(
         ExecutionContext_create(RT_boxPtr(PersistentArrayMap_empty())));

@@ -191,29 +191,20 @@ bool Namespace_isInternedMapping(Namespace *self, Symbol *sym, RTValue o) {
  * Validates whether an existing mapping (`oldVal`) can be safely replaced by a
  * new mapping (`neuVal`). Throws an IllegalStateException if an attempt is made
  * to overwrite a Var interned in this namespace. Consumes all arguments:
- * `self`, `sym`, `oldVal`, and `neuVal`.
+ * `self`, `sym`, `oldVal`, and `newVal`.
  */
-bool Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue oldVal,
-                                RTValue neuVal) {
-  bool res = true;
+void Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue oldVal,
+                                RTValue newVal) {
   if (getType(oldVal) == varType) {
-    Ptr_retain(self);
-    Ptr_retain(sym);
-    retain(oldVal); // for isInternedMapping which consumes
     if (Namespace_isInternedMapping(self, sym, oldVal)) {
-      Ptr_release(self);
-      Ptr_release(sym);
-      release(oldVal);
-      release(neuVal);
+      release(newVal);
       throwIllegalStateException_C("REJECTED: attempt to replace interned var");
-      return false;
     }
+    release(newVal);
+    return;
   }
-  Ptr_release(self);
-  Ptr_release(sym);
-  release(oldVal);
-  release(neuVal);
-  return res;
+  
+
 }
 
 /*
@@ -248,88 +239,55 @@ Var *Namespace_intern(Namespace *self, Symbol *sym) {
     Ptr_retain(map);
     retain(symVal);
     RTValue o = PersistentArrayMap_get(map, symVal);
+
     if (!RT_isNil(o)) {
+      retain(o);
       Ptr_retain(self);
       Ptr_retain(sym);
-      retain(o);
       if (Namespace_isInternedMapping(self, sym, o)) {
-        if (v) {
+        if (v != NULL) {
           release(RT_boxPtr((Object *)v));
-        }
-        Ptr_release(self);
-        Ptr_release(sym);
-        return (Var *)RT_unboxPtr(o);
-      }
-
-      if (v == NULL) {
-        v = Var_create_interned(self, sym); // v has +1 refcount
-      }
-
-      Ptr_retain(self);
-      Ptr_retain(sym);
-      retain(o);
-      retain(RT_boxPtr((Object *)v));
-      if (Namespace_checkReplacement(self, sym, o, RT_boxPtr((Object *)v))) {
-        release(o);
-        RTValue newVal = RT_boxPtr((Object *)v);
-        Ptr_retain(map);
-        retain(symVal);
-        retain(newVal);
-        PersistentArrayMap *newMap =
-            PersistentArrayMap_assoc(map, symVal, newVal);
-        RTValue newMapVal = RT_boxPtr((Object *)newMap);
-
-        if (atomic_compare_exchange_strong_explicit(
-                &self->mappings, &mapVal, newMapVal, memory_order_acq_rel,
-                memory_order_acquire)) {
-          autorelease(mapVal);
+        } else {
           Ptr_release(self);
           Ptr_release(sym);
-          // return v without releasing it, so caller owns the ref. Wait, assoc
-          // also retained it. So v has +2. We need to return it with +1 to
-          // caller. But wait, assoc retained newVal. v was created with +1. So
-          // returning v directly leaves it with +2. Wait, caller expects +1. We
-          // just drop our reference? If we drop our reference, we must
-          // `release(RT_boxPtr(v));` but wait! We can't release it AND return
-          // it. We just don't release it! Wait! If it has +2 and we give 1 to
-          // caller, we must release the other. But `assoc` took +1. We created
-          // it with +1. So +2. Caller takes +1. We don't need to retain. Wait!
-          // If `assoc` took +1, we have +1. We give +1 to caller. Perfect.
-          return v;
-        } else {
-          release(newMapVal);
         }
-      } else {
-        if (v) {
-          release(RT_boxPtr((Object *)v));
-        }
-        Ptr_release(self);
-        Ptr_release(sym);
         return (Var *)RT_unboxPtr(o);
       }
-    } else {
-      if (v == NULL) {
-        v = Var_create_interned(self, sym);
-      }
-      RTValue newVal = RT_boxPtr((Object *)v);
-      Ptr_retain(map);
-      retain(symVal);
-      retain(newVal);
-      PersistentArrayMap *newMap =
-          PersistentArrayMap_assoc(map, symVal, newVal);
-      RTValue newMapVal = RT_boxPtr((Object *)newMap);
-
-      if (atomic_compare_exchange_strong_explicit(
-              &self->mappings, &mapVal, newMapVal, memory_order_acq_rel,
-              memory_order_acquire)) {
-        autorelease(mapVal);
-        Ptr_release(self);
-        Ptr_release(sym);
-        return v;
-      } else {
-        release(newMapVal);
-      }
     }
+
+    if (v == NULL) {
+      v = Var_create_interned(self, sym);
+    }
+    RTValue newVal = RT_boxPtr((Object *)v);
+
+    if (!RT_isNil(o)) {
+      Ptr_retain(self);
+      Ptr_retain(v->sym);
+      retain(o);
+      retain(newVal);
+      if (!Namespace_checkReplacement(self, sym, o, newVal)) {
+        release(newVal);
+        Ptr_release(self);
+        return (Var *)RT_unboxPtr(o);
+      }
+      release(o);
+    }
+
+    Ptr_retain(map);
+    retain(symVal);
+    retain(newVal);
+    PersistentArrayMap *newMap = PersistentArrayMap_assoc(map, symVal, newVal);
+    RTValue newMapVal = RT_boxPtr((Object *)newMap);
+
+    if (atomic_compare_exchange_strong_explicit(&self->mappings, &mapVal,
+                                                newMapVal, memory_order_acq_rel,
+                                                memory_order_acquire)) {
+      autorelease(mapVal);
+      Ptr_release(self);
+      return v;
+    }
+
+    release(newMapVal);
   }
 }
 
@@ -368,24 +326,8 @@ RTValue Namespace_reference(Namespace *self, Symbol *sym, RTValue val) {
       Ptr_retain(self);
       Ptr_retain(sym);
       retain(o);
-      if (Namespace_isInternedMapping(self, sym, o)) {
-        Ptr_release(self);
-        Ptr_release(sym);
-        release(val);
-        release(o);
-        throwIllegalStateException_C(
-            "Cannot reference into an interned mapping");
-      }
-      Ptr_retain(self);
-      Ptr_retain(sym);
-      retain(o);
       retain(val);
-      if (!Namespace_checkReplacement(self, sym, o, val)) {
-        Ptr_release(self);
-        Ptr_release(sym);
-        release(val);
-        return o;
-      }
+      Namespace_checkReplacement(self, sym, o, val);
       release(o);
     }
 
@@ -401,14 +343,6 @@ RTValue Namespace_reference(Namespace *self, Symbol *sym, RTValue val) {
       autorelease(mapVal);
       Ptr_release(self);
       Ptr_release(sym);
-      // We don't release `val` because we return it to the caller!
-      // But wait! assoc retained `val`. So `val` has +2 refcount.
-      // If we return `val` to caller, caller takes +1. The map holds +1.
-      // So we MUST release `val` if we want to give caller the same `val`? No!
-      // If we received `val` with +1, we give `val` with +1 to caller. The map
-      // took +1. Wait! `assoc` called `retain(val)`. So `val` refcount is +2.
-      // We own +1 (from argument). We give +1 to caller. So it balances out. We
-      // do NOT release `val`.
       return val;
     } else {
       release(newMapVal);

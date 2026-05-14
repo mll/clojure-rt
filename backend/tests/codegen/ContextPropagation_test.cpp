@@ -64,7 +64,7 @@ static void test_context_propagation_in_jit(void **state) {
     compState.classRegistry.registerObject("clojure.lang.Var", varCls);
     compState.classRegistry.registerObject(varCls, varType);
 
-    compState.varRegistry.registerObject("user/test-var", myVar);
+    compState.registerVar("user/test-var", myVar);
 
     Node callNode;
     callNode.set_op(opInstanceCall);

@@ -2,9 +2,9 @@
 #include "Ebr.h"
 #include "Exceptions.h"
 #include "ExecutionContext.h"
+#include "Namespace.h"
 #include "Object.h"
 #include "RTValue.h"
-#include "Namespace.h"
 #include "String.h"
 #include "word.h"
 #include <stdio.h>
@@ -30,13 +30,13 @@
   } while (0)
 #endif
 
-Var *Var_create(RTValue keyword) {
+Var *Var_create(struct Symbol *sym) {
+  assert(sym != NULL && "Must have sym to create a Var");
   Var *self = (Var *)allocate(sizeof(Var));
   atomic_store_explicit(&(self->root), RT_boxNull(), memory_order_relaxed);
   self->dynamic = false;
-  self->keyword = keyword;
   self->ns = NULL;
-  self->sym = NULL;
+  self->sym = sym;
   atomic_store_explicit(&self->metadata, RT_boxNil(), memory_order_relaxed);
   atomic_store_explicit(&self->rev, 0, memory_order_relaxed);
   Object_create((Object *)self, varType);
@@ -52,21 +52,6 @@ Var *Var_create_interned(struct Namespace *ns, struct Symbol *sym) {
   self->dynamic = false;
   self->ns = ns;
   self->sym = sym;
-  if(sym) Ptr_retain(sym);
-  
-  
-  Ptr_retain(ns->name);
-  String *nsStr = Symbol_toString(RT_boxSymbol((Object *)ns->name));
-  String *slashStr = String_create("/");
-  Ptr_retain(sym);
-  String *symStr = Symbol_toString(RT_boxSymbol((Object *)sym));
-
-  
-  String *s1 = String_concat(nsStr, slashStr);
-  String *s2 = String_concat(s1, symStr);
-  
-  self->keyword = Keyword_create(s2); // keyword takes ownership
-  
   atomic_store_explicit(&self->metadata, RT_boxNil(), memory_order_relaxed);
   atomic_store_explicit(&self->rev, 0, memory_order_relaxed);
   Object_create((Object *)self, varType);
@@ -79,13 +64,16 @@ bool Var_equals(Var *self, Var *other) {
   return false; // pointer equality in Object_equals
 };
 
-uword_t Var_hash(Var *self) { return hash(self->keyword); };
+uword_t Var_hash(Var *self) {
+  /* Vars are purely pointer based entities */
+  return hash(RT_boxPtr(self));
+};
 
 String *Var_toString(Var *self) {
-  String *retVal = String_create("#");
-  retVal = String_concat(retVal, String_replace(toString(self->keyword),
-                                                String_create(":"),
-                                                String_create("'")));
+  String *retVal = String_create("#'");
+  Ptr_retain(self->sym);
+  retVal =
+      String_concat(retVal, Symbol_toString(RT_boxSymbol((Object *)self->sym)));
   Ptr_release(self);
   return retVal;
 };
@@ -95,13 +83,10 @@ void Var_destroy(Var *self) {
   if (oldRoot != RT_boxNull()) {
     autorelease(oldRoot);
   }
-  release(self->keyword);
+  Ptr_release(self->sym);
   RTValue oldMeta = atomic_load_explicit(&self->metadata, memory_order_relaxed);
   if (!RT_isNil(oldMeta)) {
     autorelease(oldMeta);
-  }
-  if (self->sym) {
-    Ptr_release(self->sym);
   }
 };
 
@@ -150,9 +135,10 @@ RTValue Var_deref(__attribute__((swift_context)) struct ExecutionContext *ctx,
       !RT_isNil(ctx->bindingsMap)) {
     assert(getType(ctx->bindingsMap) == persistentArrayMapType && "Wrong type");
     PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
-    RTValue key = self->keyword;
+    RTValue key = RT_boxPtr(self);
     for (uword_t i = 0; i < m->count; i++) {
-      if (equals(key, m->keys[i])) {
+      // Pointer equality instead of "equals" for speed.
+      if (key == m->keys[i]) {
         RTValue val = m->values[i];
         retain(val);
         Ptr_release(self);
@@ -204,9 +190,10 @@ RTValue Var_peek(__attribute__((swift_context)) struct ExecutionContext *ctx,
       !RT_isNil(ctx->bindingsMap)) {
     assert(getType(ctx->bindingsMap) == persistentArrayMapType && "Wrong type");
     PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
-    RTValue key = self->keyword;
+    RTValue key = RT_boxPtr(self);
     for (uword_t i = 0; i < m->count; i++) {
-      if (equals(key, m->keys[i])) {
+      // Pointer equality instead of "equals" for speed.
+      if (key == m->keys[i]) {
         return m->values[i];
       }
     }
@@ -232,17 +219,16 @@ RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
   // Check if the var has a thread-local binding (Clojure behavior)
   PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
   Ptr_retain(m);
-  retain(self->keyword);
-  if (PersistentArrayMap_indexOf(m, self->keyword) == -1) {
+  Ptr_retain(self);
+  if (PersistentArrayMap_indexOf(m, RT_boxPtr(self)) == -1) {
     release(value);
     Ptr_release(self);
     throwIllegalStateException_C("Can't set!: Var has no thread-local binding");
   }
 
-  retain(self->keyword);
   retain(value);
-  ctx->bindingsMap = RT_boxPtr(PersistentArrayMap_assoc(
-      RT_unboxPtr(ctx->bindingsMap), self->keyword, value));
+  ctx->bindingsMap =
+      RT_boxPtr(PersistentArrayMap_assoc(m, RT_boxPtr(self), value));
 
   Ptr_release(self);
 

@@ -10,7 +10,7 @@
 static void test_var_basic_lifecycle(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    RTValue sym = Keyword_create(String_create("my-var"));
+    Symbol *sym = Symbol_create(String_create("my-var"));
     Var *v = Var_create(sym);
 
     assert_true(Var_isDynamic(v) == false);
@@ -41,7 +41,7 @@ static void test_var_basic_lifecycle(void **state) {
 static void test_var_dynamic(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    RTValue sym = Keyword_create(String_create("dynamic-var"));
+    Symbol *sym = Symbol_create(String_create("dynamic-var"));
     Var *v = Var_create(sym);
 
     v = Var_setDynamic(v, true);
@@ -59,7 +59,7 @@ static void test_var_tostring(void **state) {
   (void)state;
 
   ASSERT_MEMORY_ALL_BALANCED({
-    RTValue sym = Keyword_create(String_create("foo"));
+    Symbol *sym = Symbol_create(String_create("foo"));
     Var *v = Var_create(sym);
 
     // Var_toString consumes self and may return a compound string
@@ -75,7 +75,7 @@ static void test_var_tostring(void **state) {
 static void test_var_peek(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    RTValue sym = Keyword_create(String_create("peek-var"));
+    Symbol *sym = Symbol_create(String_create("peek-var"));
     Var *v = Var_create(sym);
 
     RTValue val = RT_boxPtr(String_create("peek-value"));

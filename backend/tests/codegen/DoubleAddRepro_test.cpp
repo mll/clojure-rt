@@ -37,7 +37,7 @@ static void test_double_add_repro(void **state) {
 
     Ptr_retain(v);
     Var_bindRoot(v, str);
-    engine.threadsafeState.varRegistry.registerObject("a", v);
+    engine.threadsafeState.registerVar("a", v);
   }
 
   // (+ a a)

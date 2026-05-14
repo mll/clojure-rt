@@ -381,7 +381,7 @@ static void test_dynamic_invoke_arity_exception_erased(void **state) {
     Var *v = Var_create(kw);
     Ptr_retain(v);
     Ptr_retain(v);
-    compState.varRegistry.registerObject(varName, v);
+    compState.registerVar(varName, v);
 
     // fn = (fn [x] x)
     Node fnNode;
@@ -439,7 +439,7 @@ static void test_dynamic_invoke_intermediate_throw(void **state) {
     Var *v = Var_create(kw);
     Ptr_retain(v);
     Ptr_retain(v);
-    compState.varRegistry.registerObject(varName, v);
+    compState.registerVar(varName, v);
 
     Node fnNode;
     create_identity_fn(fnNode);
@@ -525,7 +525,7 @@ static void test_dynamic_invoke_nested_guidance(void **state) {
     Var *v = Var_create(kw);
     Ptr_retain(v);
     Ptr_retain(v);
-    compState.varRegistry.registerObject(varName, v);
+    compState.registerVar(varName, v);
 
     Node fnNode;
     create_identity_fn(fnNode);

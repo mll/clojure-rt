@@ -194,7 +194,7 @@ static void test_dynamic_invoke_arity_mismatch_leak(void **state) {
     Var *v = Var_create(kw);
     Ptr_retain(v);
     Ptr_retain(v);
-    compState.varRegistry.registerObject(varName, v);
+    compState.registerVar(varName, v);
 
     // fn = (fn [x] x)
     Node fnNode;
@@ -299,7 +299,7 @@ static void test_var_call_unbound(void **state) {
     RTValue kw = Keyword_create(String_create(varName));
     Var *v = Var_create(kw);
     Ptr_retain(v);
-    compState.varRegistry.registerObject(varName, v);
+    compState.registerVar(varName, v);
 
     // 2. Create an InvokeNode calling #'user/unbound-fn
     Node invokeNode;
@@ -417,7 +417,7 @@ static void test_dynamic_keyword_invoke_on_number(void **state) {
     Ptr_retain(v);
     Var_bindRoot(v, kwVal); // Var_bindRoot releases v once, so we retained it above
     Ptr_retain(v);          // Retain again so the registry and our manual release both have one
-    engine.threadsafeState.varRegistry.registerObject("v_kw", v);
+    engine.threadsafeState.registerVar("v_kw", v);
 
     Node root;
     root.set_op(opInvoke);

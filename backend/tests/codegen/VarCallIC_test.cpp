@@ -65,7 +65,7 @@ static void test_var_call_ic(void **state) {
     RTValue kw = Keyword_create(String_create("user/my-fn"));
     Var *v = Var_create(kw);
     Ptr_retain(v);
-    compState.varRegistry.registerObject("user/my-fn", v);
+    compState.registerVar("user/my-fn", v);
 
     // Function 1: Identity
     Node fn1Node = create_identity_fn();

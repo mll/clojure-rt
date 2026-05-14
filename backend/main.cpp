@@ -27,7 +27,11 @@
 #include "jit/JITEngine.h"
 #include "runtime/Ebr.h"
 #include "runtime/ExecutionContext.h"
+#include "runtime/Keyword.h"
+#include "runtime/Namespace.h"
+#include "runtime/RTValue.h"
 #include "runtime/String.h"
+#include "runtime/Symbol.h"
 #include "runtime/Var.h"
 #include "tools/RTValueWrapper.h"
 #include <chrono>
@@ -130,47 +134,15 @@ int main(int argc, char *argv[]) {
     rt::ScopedRef<ExecutionContext> ctx(
         ExecutionContext_create(RT_boxPtr(PersistentArrayMap_empty())));
 
-    // Setup default Clojure namespaces and *ns* Var
-    {
-      // 1. Create "clojure.core" namespace
-      Symbol *coreSym = Symbol_create(String_create("clojure.core"));
-      Namespace *coreNs = Namespace_findOrCreate(coreSym); // coreNs has +1 refcount
-      
-      // 2. Intern "*ns*" Var in "clojure.core"
-      Symbol *nsSym = Symbol_create(String_create("*ns*"));
-      Ptr_retain(coreNs); // Retain coreNs because Namespace_intern consumes self
-      Var *nsVar = Namespace_intern(coreNs, nsSym); // nsVar has +1 refcount. nsSym is consumed.
-      Var_setDynamic(nsVar, true);
-      
-      // 3. Create "user" namespace
-      Symbol *userSym = Symbol_create(String_create("user"));
-      Namespace *userNs = Namespace_findOrCreate(userSym); // userNs has +1 refcount
-      RTValue userNsVal = RT_boxPtr(userNs); // userNsVal has +1 refcount
-      retain(userNsVal); // userNsVal has +2 refcount
-      
-      // 4. Bind clojure.core/*ns* Var root to the user namespace object
-      Ptr_retain(nsVar); // Retain nsVar because Var_bindRoot consumes self
-      Var_bindRoot(nsVar, userNsVal); // Consumes userNsVal (+2 -> +1) and nsVar
-      
-      // 5. Build clojure.core/*ns* keyword for ExecutionContext dynamic bindings map
-      RTValue nsVarKw = Keyword_create(String_create("clojure.core/*ns*"));
-      retain(nsVarKw); // nsVarKw has +2 refcount
-      
-      // Assoc clojure.core/*ns* keyword with userNsVal in ExecutionContext bindings map
-      ctx->bindingsMap = RT_boxPtr(PersistentArrayMap_assoc(
-          (PersistentArrayMap *)RT_unboxPtr(ctx->bindingsMap), nsVarKw,
-          userNsVal)); // assoc consumes nsVarKw (+2 -> +1) and userNsVal (+1 -> +0)
-      
-      // 6. Register in compiler state so JIT finds this exact Var object
-      engine.threadsafeState.varRegistry.registerObject("clojure.core/*ns*",
-                                                        nsVar); // Registry takes ownership of nsVar (+1)
-      
-      // Release remaining local reference to clojure.core namespace object
-      Ptr_release(coreNs);
-      
-      // Release remaining keyword reference
-      release(nsVarKw);
-    }
+    Var *nsVar = engine.threadsafeState.getCurrentVar("clojure.core/*ns*");
+    assert(nsVar != nullptr && "clojure.core/*ns* Var not found");
+
+    // Assoc clojure.core/*ns* Var pointer with user namespace in ExecutionContext
+    // bindings map (as we now perform dynamic bindings lookup by pointer)
+    ctx->bindingsMap = RT_boxPtr(PersistentArrayMap_assoc(
+        (PersistentArrayMap *)RT_unboxPtr(ctx->bindingsMap),
+        RT_boxPtr(nsVar),
+        RT_boxPtr(Namespace_findOrCreate(Symbol_create(String_create("user"))))));
 
     {
       ExecutionTimer t("Compiling and storing interfaces");

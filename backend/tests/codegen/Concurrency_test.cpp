@@ -122,7 +122,7 @@ static void test_concurrent_closures(void **state) {
     Var *v = Var_create(Keyword_create(String_create(varName)));
     Ptr_retain(v); // For Var_bindRoot (consumes 1)
     Var_bindRoot(v, funObj);
-    engine.threadsafeState.varRegistry.registerObject(varName, v);
+    engine.threadsafeState.registerVar(varName, v);
 
     // 2. Create the caller
     // (fn [] (user/shared-fn 5))

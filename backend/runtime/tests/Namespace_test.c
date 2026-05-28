@@ -111,6 +111,8 @@ static void test_namespace_reference(void **state) {
     Namespace *ns = Namespace_create(nsSym);
     
     Symbol *sym = Symbol_create(String_create("inc"));
+    Ptr_retain(ns);
+    Ptr_retain(sym);
     Var *v = Var_create_interned(ns, sym);
     
     Ptr_retain(ns); Ptr_retain(sym); Ptr_retain(v);
@@ -131,8 +133,9 @@ static void test_namespace_reference(void **state) {
     assert_true(RT_isNil(mappingAfter));
     
     Ptr_release(v);
-    Ptr_release(ns);
     Ptr_release(sym);
+    Ptr_release(ns);
+    
     Ebr_force_reclaim();
   });
 }

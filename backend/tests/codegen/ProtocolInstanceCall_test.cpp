@@ -90,7 +90,7 @@ static void test_protocol_instance_call_lookup_and_invalidation(void **state) {
     setupC1("mock_P1_m1_v1");
 
     // Register Var user/x
-    RTValue varKeyword = Keyword_create(String_create("user/x"));
+    Symbol *varKeyword = Symbol_create(String_create("user/x"));
     Var *myVar = Var_create(varKeyword);
     compState.registerVar("user/x", myVar);
 

@@ -238,39 +238,36 @@ Var *Namespace_intern(Namespace *self, Symbol *sym) {
 
     Ptr_retain(map);
     retain(symVal);
-    RTValue o = PersistentArrayMap_get(map, symVal);
+    RTValue existingVar = PersistentArrayMap_get(map, symVal);
 
-    if (!RT_isNil(o)) {
-      retain(o);
+    if (!RT_isNil(existingVar)) {
       Ptr_retain(self);
       Ptr_retain(sym);
-      if (Namespace_isInternedMapping(self, sym, o)) {
+      retain(existingVar);
+      if (Namespace_isInternedMapping(self, sym, existingVar)) {
         if (v != NULL) {
           release(RT_boxPtr((Object *)v));
-        } else {
-          Ptr_release(self);
-          Ptr_release(sym);
         }
-        return (Var *)RT_unboxPtr(o);
+        Ptr_release(self);
+        Ptr_release(sym);
+        return (Var *)RT_unboxPtr(existingVar);
       }
     }
 
     if (v == NULL) {
+      Ptr_retain(self);
+      Ptr_retain(sym);
       v = Var_create_interned(self, sym);
     }
     RTValue newVal = RT_boxPtr((Object *)v);
 
-    if (!RT_isNil(o)) {
+    if (!RT_isNil(existingVar)) {
       Ptr_retain(self);
-      Ptr_retain(v->sym);
-      retain(o);
+      Ptr_retain(sym);
+      retain(existingVar);
       retain(newVal);
-      if (!Namespace_checkReplacement(self, sym, o, newVal)) {
-        release(newVal);
-        Ptr_release(self);
-        return (Var *)RT_unboxPtr(o);
-      }
-      release(o);
+      Namespace_checkReplacement(self, sym, existingVar, newVal);
+      release(existingVar);
     }
 
     Ptr_retain(map);
@@ -284,6 +281,7 @@ Var *Namespace_intern(Namespace *self, Symbol *sym) {
                                                 memory_order_acquire)) {
       autorelease(mapVal);
       Ptr_release(self);
+      Ptr_release(sym);
       return v;
     }
 

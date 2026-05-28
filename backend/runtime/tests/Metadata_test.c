@@ -27,6 +27,7 @@ static void testSymbolMetadata(void **state) {
 
     assert_ptr_not_equal(sym, symWithMeta);
 
+    retain(RT_boxPtr(symWithMeta));
     RTValue retrievedMeta =
         RT_meta(RT_boxPtr(symWithMeta)); // CONSUMES symWithMeta
     assert_true(equals(meta, retrievedMeta));
@@ -34,13 +35,14 @@ static void testSymbolMetadata(void **state) {
     release(retrievedMeta);
     release(meta);
     Ptr_release(sym);
+    Ptr_release(symWithMeta);
   });
 }
 
 static void testVarMetadata(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    RTValue name = RT_boxPtr(String_create("my-var"));
+    Symbol *name = Symbol_create(String_create("my-var"));
     RTValue v = RT_boxPtr(Var_create(name));
 
     RTValue meta = RT_boxPtr(PersistentArrayMap_create());

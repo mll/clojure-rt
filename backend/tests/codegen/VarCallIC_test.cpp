@@ -61,11 +61,9 @@ static void test_var_call_ic(void **state) {
     rt::JITEngine engine;
     auto &compState = engine.threadsafeState;
 
-    // 1. Create a Var and bind a function to it
-    RTValue kw = Keyword_create(String_create("user/my-fn"));
-    Var *v = Var_create(kw);
-    Ptr_retain(v);
-    compState.registerVar("user/my-fn", v);
+    Var *v = compState.getOrCreateVar("user/my-fn");
+    printf("Var v from getOrCreateVar is %p\n", (void*)v);
+    Ptr_retain(v); // for Var_bindRoot
 
     // Function 1: Identity
     Node fn1Node = create_identity_fn();
@@ -74,7 +72,7 @@ static void test_var_call_ic(void **state) {
             .get();
     RTValue (*fn1Ctor)() = fn1Res.address.toPtr<RTValue (*)()>();
     RTValue fn1 = fn1Ctor();
-    Ptr_retain(v);
+    Ptr_retain(v); // for Var_bindRoot
     Var_bindRoot(v, fn1);
 
     // 2. Create an InvokeNode calling #'user/my-fn
@@ -115,7 +113,7 @@ static void test_var_call_ic(void **state) {
       RTValue (*fn2Ctor)() = fn2Res.address.toPtr<RTValue (*)()>();
       RTValue fn2 = fn2Ctor();
 
-      Ptr_retain(v);
+      Ptr_retain(v); // for Var_bindRoot
       Var_bindRoot(v, fn2);
 
       // 5. Call again: IC miss due to change, update IC, slow path

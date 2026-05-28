@@ -586,15 +586,14 @@ void ThreadsafeCompilerState::registerVar(const char *name, Var *var) {
 
   // 1. Znajdź lub utwórz Namespace
   Symbol *nsSym = Symbol_create(String_createDynamicStr(nsName.c_str()));
-  Namespace *ns = Namespace_findOrCreate(nsSym); // ns ma +1 refcount
+  Namespace *ns = Namespace_findOrCreate(nsSym);
 
   // 2. Utwórz Symbol dla Var
-  Symbol *varSym = Symbol_create(String_createDynamicStr(symName.c_str())); // varSym ma +1 refcount
+  Symbol *varSym = Symbol_create(String_createDynamicStr(symName.c_str()));
 
   // 3. Uzupełnij pola ns i sym w strukturze Var, jeśli są puste
   if (var->ns == nullptr) {
     var->ns = ns;
-    Ptr_retain(ns);
   }
   if (var->sym == nullptr) {
     var->sym = varSym;
@@ -602,11 +601,8 @@ void ThreadsafeCompilerState::registerVar(const char *name, Var *var) {
   }
 
   // 4. Przypisz Var w Namespace za pomocą referencji
-  Ptr_retain(var);
-  Var *res = Namespace_refer(ns, varSym, var);
-  
-  // Zwalniamy nieużywany wskaźnik zwrócony przez refer (+1 refcount)
-  Ptr_release(res);
+  Var *referred = Namespace_refer(ns, varSym, var);
+  Ptr_release(referred);
 }
 
 // void registerObject(const char *name, T *newDef) {

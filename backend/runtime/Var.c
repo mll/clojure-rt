@@ -51,6 +51,7 @@ Var *Var_create_interned(struct Namespace *ns, struct Symbol *sym) {
   atomic_store_explicit(&(self->root), RT_boxNull(), memory_order_relaxed);
   self->dynamic = false;
   self->ns = ns;
+  Ptr_release(ns); // Consumes the refcount, but keeps it weak
   self->sym = sym;
   atomic_store_explicit(&self->metadata, RT_boxNil(), memory_order_relaxed);
   atomic_store_explicit(&self->rev, 0, memory_order_relaxed);
@@ -218,8 +219,8 @@ RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
 
   // Check if the var has a thread-local binding (Clojure behavior)
   PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
-  Ptr_retain(m);
-  Ptr_retain(self);
+  Ptr_retain(m); // indexOf consumes map
+  Ptr_retain(self); // indexOf consumes key
   if (PersistentArrayMap_indexOf(m, RT_boxPtr(self)) == -1) {
     release(value);
     Ptr_release(self);
@@ -227,8 +228,12 @@ RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
   }
 
   retain(value);
+  RTValue oldMap = ctx->bindingsMap;
+  Ptr_retain(self); // assoc consumes key
+  Ptr_retain(m); // assoc consumes map
   ctx->bindingsMap =
       RT_boxPtr(PersistentArrayMap_assoc(m, RT_boxPtr(self), value));
+  release(oldMap);
 
   Ptr_release(self);
 

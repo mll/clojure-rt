@@ -31,7 +31,7 @@ static void test_double_add_repro(void **state) {
 
   // (def a "aa")
   {
-    RTValue k = Keyword_create(String_create("a"));
+    Symbol *k = Symbol_create(String_create("a"));
     Var *v = Var_create(k);
     RTValue str = RT_boxPtr(String_create("aa"));
 

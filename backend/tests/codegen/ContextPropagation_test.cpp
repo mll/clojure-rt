@@ -30,9 +30,7 @@ static void test_context_propagation_in_jit(void **state) {
     JITEngine engine;
     rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
 
-    RTValue varKeyword = Keyword_create(String_create("user/test-var"));
-
-    Var *myVar = Var_create(varKeyword);
+    Var *myVar = compState.getOrCreateVar("user/test-var");
     Var_setDynamic(myVar, true);
 
     Ptr_retain(myVar);
@@ -64,7 +62,6 @@ static void test_context_propagation_in_jit(void **state) {
     compState.classRegistry.registerObject("clojure.lang.Var", varCls);
     compState.classRegistry.registerObject(varCls, varType);
 
-    compState.registerVar("user/test-var", myVar);
 
     Node callNode;
     callNode.set_op(opInstanceCall);
@@ -83,11 +80,14 @@ static void test_context_propagation_in_jit(void **state) {
 
       RTValue val100 = RT_boxInt32(100);
       PersistentArrayMap *m =
-          PersistentArrayMap_createMany(1, varKeyword, val100);
+          PersistentArrayMap_createMany(1, RT_boxPtr(myVar), val100);
       ExecutionContext *ctx = ExecutionContext_create(RT_boxPtr(m));
 
       RTValue result = fn(ctx);
 
+      printf("Result Type: %d, Value: %ld\n", getType(result),
+             RT_isInt32(result) ? (long)RT_unboxInt32(result) : -1);
+      
       assert_true(RT_isInt32(result));
       assert_int_equal(RT_unboxInt32(result), 100);
 

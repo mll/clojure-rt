@@ -182,7 +182,7 @@ static void test_math_sqrt_leak_repro(void **state) {
 
     // Create a String 'a' and bind it to a Var
     {
-      RTValue k = Keyword_create(String_create("a"));
+      Symbol *k = Symbol_create(String_create("a"));
       Var *v = Var_create(k);
       RTValue str = RT_boxPtr(String_create("aa"));
 
@@ -239,7 +239,7 @@ static void test_math_pow_var(void **state) {
     // (def a 2)
     {
       RTValue v_a = RT_boxInt32(2);
-      RTValue k = Keyword_create(String_create("a"));
+      Symbol *k = Symbol_create(String_create("a"));
       Var *v = Var_create(k);
 
       Ptr_retain(v);

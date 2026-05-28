@@ -114,15 +114,11 @@ static void test_concurrent_closures(void **state) {
         engine.compileAST(fnDef, "closure_builder").get().address;
     RTValue funObj = builderAddr.toPtr<RTValue (*)()>()();
 
-    // Promote the function object and its captures to shared!
-    promoteToShared(funObj);
-
-    // Find/Create the Var. Var_create returns with +1 (shared).
+    // Find/Create the Var via ThreadsafeCompilerState so it is properly interned.
     const char *varName = "user/shared-fn";
-    Var *v = Var_create(Keyword_create(String_create(varName)));
-    Ptr_retain(v); // For Var_bindRoot (consumes 1)
+    Var *v = engine.threadsafeState.getOrCreateVar(varName); // Returns +1
+    Ptr_retain(v); // for Var_bindRoot
     Var_bindRoot(v, funObj);
-    engine.threadsafeState.registerVar(varName, v);
 
     // 2. Create the caller
     // (fn [] (user/shared-fn 5))
@@ -171,6 +167,8 @@ static void test_concurrent_closures(void **state) {
     start.store(true);
     for (auto &t : threads)
       t.join();
+      
+    Var_unbindRoot(v);
   });
 }
 

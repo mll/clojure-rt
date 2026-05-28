@@ -377,11 +377,8 @@ static void test_dynamic_invoke_arity_exception_erased(void **state) {
 
     // 1. Create a Var and bind a 1-arity function to it
     const char *varName = "user/dynamic-arity-ex-erased";
-    RTValue kw = Keyword_create(String_create(varName));
-    Var *v = Var_create(kw);
-    Ptr_retain(v);
-    Ptr_retain(v);
-    compState.registerVar(varName, v);
+    Var *v = compState.getOrCreateVar(varName);
+    Ptr_retain(v); // for Var_bindRoot
 
     // fn = (fn [x] x)
     Node fnNode;
@@ -435,11 +432,8 @@ static void test_dynamic_invoke_intermediate_throw(void **state) {
 
     // 1. Create a Var and bind the identity function
     const char *varName = "user/f-throw";
-    RTValue kw = Keyword_create(String_create(varName));
-    Var *v = Var_create(kw);
-    Ptr_retain(v);
-    Ptr_retain(v);
-    compState.registerVar(varName, v);
+    Var *v = compState.getOrCreateVar(varName);
+    Ptr_retain(v); // for Var_bindRoot
 
     Node fnNode;
     create_identity_fn(fnNode);
@@ -521,11 +515,8 @@ static void test_dynamic_invoke_nested_guidance(void **state) {
 
     // 1. Create a Var and bind the identity function
     const char *varName = "user/f-nested";
-    RTValue kw = Keyword_create(String_create(varName));
-    Var *v = Var_create(kw);
-    Ptr_retain(v);
-    Ptr_retain(v);
-    compState.registerVar(varName, v);
+    Var *v = compState.getOrCreateVar(varName);
+    Ptr_retain(v); // for Var_bindRoot
 
     Node fnNode;
     create_identity_fn(fnNode);

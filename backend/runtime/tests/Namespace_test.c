@@ -57,9 +57,11 @@ static void test_namespace_intern(void **state) {
     assert_ptr_equal(v->sym, varSym);
     
     Ptr_retain(ns); Ptr_retain(varSym);
-    Var *found = Namespace_findInternedVar(ns, varSym);
+    RTValue foundVal = Namespace_findInternedVar(ns, varSym);
+    assert_false(RT_isNil(foundVal));
+    Var *found = (Var *)RT_unboxPtr(foundVal);
     assert_ptr_equal(found, v);
-    if(found) Ptr_release(found);
+    release(foundVal);
     
     Ptr_retain(ns); Ptr_retain(varSym);
     Namespace_unmap(ns, varSym);
@@ -86,16 +88,19 @@ static void test_namespace_aliases(void **state) {
     Namespace_addAlias(userNs, aliasSym, coreNs);
     
     Ptr_retain(userNs); Ptr_retain(aliasSym);
-    Namespace *foundNs = Namespace_lookupAlias(userNs, aliasSym);
+    RTValue foundNsVal = Namespace_lookupAlias(userNs, aliasSym);
+    assert_false(RT_isNil(foundNsVal));
+    Namespace *foundNs = (Namespace *)RT_unboxPtr(foundNsVal);
     assert_ptr_equal(foundNs, coreNs);
-    if(foundNs) Ptr_release(foundNs);
+    release(foundNsVal);
     
     Ptr_retain(userNs); Ptr_retain(aliasSym);
     Namespace_removeAlias(userNs, aliasSym);
     
     Ptr_retain(userNs); Ptr_retain(aliasSym);
-    Namespace *foundNsAfter = Namespace_lookupAlias(userNs, aliasSym);
-    assert_null(foundNsAfter);
+    RTValue foundNsAfterVal = Namespace_lookupAlias(userNs, aliasSym);
+    assert_true(RT_isNil(foundNsAfterVal));
+    release(foundNsAfterVal);
     
     Ptr_release(coreNs);
     Ptr_release(userNs);
@@ -111,6 +116,8 @@ static void test_namespace_reference(void **state) {
     Namespace *ns = Namespace_create(nsSym);
     
     Symbol *sym = Symbol_create(String_create("inc"));
+    Ptr_retain(ns);
+    Ptr_retain(sym);
     Var *v = Var_create_interned(ns, sym);
     
     Ptr_retain(ns); Ptr_retain(sym); Ptr_retain(v);
@@ -131,8 +138,9 @@ static void test_namespace_reference(void **state) {
     assert_true(RT_isNil(mappingAfter));
     
     Ptr_release(v);
-    Ptr_release(ns);
     Ptr_release(sym);
+    Ptr_release(ns);
+    
     Ebr_force_reclaim();
   });
 }
@@ -145,10 +153,11 @@ static void test_namespace_global_registry(void **state) {
     // Create name symbol
     Symbol *nsSym1 = Symbol_create(String_create("my.global.ns"));
     
-    // Check that Namespace_find returns NULL before we register it
+    // Check that Namespace_find returns nil before we register it
     Ptr_retain(nsSym1);
-    Namespace *found1 = Namespace_find(nsSym1);
-    assert_null(found1);
+    RTValue found1Val = Namespace_find(nsSym1);
+    assert_true(RT_isNil(found1Val));
+    release(found1Val);
     
     // Now call findOrCreate (should create and register a new one)
     Ptr_retain(nsSym1);
@@ -166,9 +175,11 @@ static void test_namespace_global_registry(void **state) {
     
     // Call find (should find it)
     Ptr_retain(nsSym1);
-    Namespace *ns3 = Namespace_find(nsSym1);
+    RTValue ns3Val = Namespace_find(nsSym1);
+    assert_false(RT_isNil(ns3Val));
+    Namespace *ns3 = (Namespace *)RT_unboxPtr(ns3Val);
     assert_ptr_equal(ns1, ns3);
-    Ptr_release(ns3);
+    release(ns3Val);
     
     // Now let's remove it from global map so we don't have global reference leak
     Ptr_retain(nsSym1);
@@ -204,6 +215,111 @@ static void test_namespace_var_circular_leak(void **state) {
   });
 }
 
+static void test_namespace_redefine_referred_var_should_throw(void **state) {
+  (void)state;
+  ASSERT_MEMORY_BALANCED_EXCEPT_STRINGS({
+    Symbol *nsSym = Symbol_create(String_create("my.ns"));
+    Namespace *ns = Namespace_create(nsSym);
+    
+    Symbol *otherNsSym = Symbol_create(String_create("other.ns"));
+    Namespace *otherNs = Namespace_create(otherNsSym);
+    
+    Symbol *sym = Symbol_create(String_create("foo"));
+    
+    Ptr_retain(otherNs); Ptr_retain(sym);
+    Var *otherVar = Var_create_interned(otherNs, sym);
+    
+    // Refer otherVar in ns under "foo"
+    Ptr_retain(ns); Ptr_retain(sym); Ptr_retain(otherVar);
+    Var *ref = Namespace_refer(ns, sym, otherVar);
+    Ptr_release(ref);
+    
+    // Now try to intern "foo" in ns. This should throw IllegalStateException!
+    Ptr_retain(ns); Ptr_retain(sym);
+    ASSERT_THROWS("IllegalStateException", {
+      Var *v = Namespace_intern(ns, sym);
+      Ptr_release(v);
+    });
+    
+    Ptr_release(otherVar);
+    Ptr_release(otherNs);
+    Ptr_release(ns);
+    Ptr_release(sym);
+    Ebr_force_reclaim();
+  });
+}
+
+static void test_namespace_redefine_class_should_throw(void **state) {
+  (void)state;
+  ASSERT_MEMORY_BALANCED_EXCEPT_STRINGS({
+    Symbol *nsSym = Symbol_create(String_create("my.ns"));
+    Namespace *ns = Namespace_create(nsSym);
+    
+    Symbol *sym = Symbol_create(String_create("foo"));
+    
+    // Map an arbitrary non-Var value, say a String, to sym
+    String *strVal = String_create("some class or other value");
+    
+    Ptr_retain(ns); Ptr_retain(sym); retain(RT_boxPtr((Object *)strVal));
+    RTValue ref = Namespace_reference(ns, sym, RT_boxPtr((Object *)strVal));
+    release(ref);
+    
+    // Now try to intern "foo" in ns. This should throw IllegalStateException!
+    Ptr_retain(ns); Ptr_retain(sym);
+    ASSERT_THROWS("IllegalStateException", {
+      Var *v = Namespace_intern(ns, sym);
+      Ptr_release(v);
+    });
+    
+    Ptr_release(ns);
+    Ptr_release(sym);
+    Ptr_release(strVal);
+    Ebr_force_reclaim();
+  });
+}
+
+static void test_namespace_redefine_referred_var_with_other_reference_should_throw(void **state) {
+  (void)state;
+  ASSERT_MEMORY_BALANCED_EXCEPT_STRINGS({
+    Symbol *nsSym = Symbol_create(String_create("my.ns"));
+    Namespace *ns = Namespace_create(nsSym);
+    
+    Symbol *otherNsSym = Symbol_create(String_create("other.ns"));
+    Namespace *otherNs = Namespace_create(otherNsSym);
+    
+    Symbol *thirdNsSym = Symbol_create(String_create("third.ns"));
+    Namespace *thirdNs = Namespace_create(thirdNsSym);
+    
+    Symbol *sym = Symbol_create(String_create("foo"));
+    
+    Ptr_retain(otherNs); Ptr_retain(sym);
+    Var *otherVar = Var_create_interned(otherNs, sym);
+    
+    Ptr_retain(thirdNs); Ptr_retain(sym);
+    Var *thirdVar = Var_create_interned(thirdNs, sym);
+    
+    // Refer otherVar in ns under "foo"
+    Ptr_retain(ns); Ptr_retain(sym); Ptr_retain(otherVar);
+    Var *ref1 = Namespace_refer(ns, sym, otherVar);
+    Ptr_release(ref1);
+    
+    // Now try to refer thirdVar in ns under "foo". This should throw IllegalStateException!
+    Ptr_retain(ns); Ptr_retain(sym); Ptr_retain(thirdVar);
+    ASSERT_THROWS("IllegalStateException", {
+      Var *ref2 = Namespace_refer(ns, sym, thirdVar);
+      Ptr_release(ref2);
+    });
+    
+    Ptr_release(otherVar);
+    Ptr_release(thirdVar);
+    Ptr_release(otherNs);
+    Ptr_release(thirdNs);
+    Ptr_release(ns);
+    Ptr_release(sym);
+    Ebr_force_reclaim();
+  });
+}
+
 int main(void) {
   RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
@@ -213,6 +329,9 @@ int main(void) {
       cmocka_unit_test(test_namespace_reference),
       cmocka_unit_test(test_namespace_global_registry),
       cmocka_unit_test(test_namespace_var_circular_leak),
+      cmocka_unit_test(test_namespace_redefine_referred_var_should_throw),
+      cmocka_unit_test(test_namespace_redefine_class_should_throw),
+      cmocka_unit_test(test_namespace_redefine_referred_var_with_other_reference_should_throw),
   };
   int res = cmocka_run_group_tests(tests, NULL, NULL);
   RuntimeInterface_cleanup();

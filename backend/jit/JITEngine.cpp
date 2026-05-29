@@ -76,6 +76,7 @@ JITEngine::JITEngine(llvm::OptimizationLevel defaultOptLevel,
   // Initialise runtime.
   RuntimeInterface_initialise();
   Ebr_enter_critical();
+  threadsafeState.initializeDefaultNamespaces();
 
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();

@@ -21,7 +21,6 @@ struct Var {
   bool dynamic;
   _Atomic(uword_t) rev;
   _Atomic(RTValue) root;
-  RTValue keyword; // TODO: split name and namespace - Marek - why?
   struct Namespace *ns;
   struct Symbol *sym;
   _Atomic(RTValue) metadata;
@@ -33,7 +32,7 @@ typedef struct Var Var;
 
 // Class *UNIQUE_UnboundClass;
 
-Var *Var_create(RTValue keyword);
+Var *Var_create(struct Symbol *sym);
 Var *Var_create_interned(struct Namespace *ns, struct Symbol *sym);
 Var *Var_resetMeta(Var *self, RTValue meta);
 RTValue Var_getMeta(Var *self);

@@ -182,14 +182,14 @@ static void test_math_sqrt_leak_repro(void **state) {
 
     // Create a String 'a' and bind it to a Var
     {
-      RTValue k = Keyword_create(String_create("a"));
+      Symbol *k = Symbol_create(String_create("a"));
       Var *v = Var_create(k);
       RTValue str = RT_boxPtr(String_create("aa"));
 
       Ptr_retain(v); // Var_bindRoot consumes v, so retain it
       Var_bindRoot(v, str);
 
-      compState.varRegistry.registerObject("a", v);
+      compState.registerVar("a", v);
     }
 
     // (Math/sqrt a)
@@ -239,12 +239,12 @@ static void test_math_pow_var(void **state) {
     // (def a 2)
     {
       RTValue v_a = RT_boxInt32(2);
-      RTValue k = Keyword_create(String_create("a"));
+      Symbol *k = Symbol_create(String_create("a"));
       Var *v = Var_create(k);
 
       Ptr_retain(v);
       Var_bindRoot(v, v_a);
-      compState.varRegistry.registerObject("a", v);
+      compState.registerVar("a", v);
     }
 
     // (Math/pow 2.0 a)

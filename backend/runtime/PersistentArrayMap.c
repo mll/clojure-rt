@@ -226,6 +226,7 @@ PersistentArrayMap *PersistentArrayMap_assoc(PersistentArrayMap *self,
   retVal->values[found] = value;
   if (!reusable) {
     PersistentArrayMap_retainChildren(retVal, found);
+    retain(retVal->keys[found]);
     Ptr_release(self);
   }
   release(key);

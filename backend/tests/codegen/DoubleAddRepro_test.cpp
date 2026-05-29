@@ -31,13 +31,13 @@ static void test_double_add_repro(void **state) {
 
   // (def a "aa")
   {
-    RTValue k = Keyword_create(String_create("a"));
+    Symbol *k = Symbol_create(String_create("a"));
     Var *v = Var_create(k);
     RTValue str = RT_boxPtr(String_create("aa"));
 
     Ptr_retain(v);
     Var_bindRoot(v, str);
-    engine.threadsafeState.varRegistry.registerObject("a", v);
+    engine.threadsafeState.registerVar("a", v);
   }
 
   // (+ a a)

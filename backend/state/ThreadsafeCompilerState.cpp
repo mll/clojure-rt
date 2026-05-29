@@ -1,12 +1,43 @@
 #include "ThreadsafeCompilerState.h"
 #include "../bridge/Exceptions.h"
+#include "../runtime/Namespace.h"
+#include "../runtime/Symbol.h"
+#include "../runtime/Var.h"
 #include "../tools/EdnParser.h"
 #include "../tools/RTValueWrapper.h"
-
 namespace rt {
 
 extern "C" void delete_class_description(void *ptr);
 extern "C" _Atomic(uword_t) globalMethodICEpoch;
+
+ThreadsafeCompilerState::ThreadsafeCompilerState()
+    : classRegistry(true, 1000), protocolRegistry(true, 2000),
+      functionAstRegistry(false) {}
+
+void ThreadsafeCompilerState::initializeDefaultNamespaces() {
+  // Setup default Clojure namespaces and *ns* Var
+
+  // 1. Create "clojure.core" namespace
+  Symbol *coreSym = Symbol_create(String_create("clojure.core"));
+  Namespace *coreNs = Namespace_findOrCreate(coreSym); // coreNs has +1 refcount
+
+  // 2. Intern "*ns*" Var in "clojure.core"
+  Symbol *nsSym = Symbol_create(String_create("*ns*"));
+  Var *nsVar = Namespace_intern(coreNs, nsSym);
+  Var_setDynamic(nsVar, true);
+
+  // 3. Create "user" namespace
+  Symbol *userSym = Symbol_create(String_create("user"));
+  Namespace *userNs = Namespace_findOrCreate(userSym); // userNs has +1 refcount
+  RTValue userNsVal = RT_boxPtr(userNs);
+
+  // 4. Bind clojure.core/*ns* Var root to the user namespace object
+  Ptr_retain(nsVar); // Retain nsVar because Var_bindRoot consumes self
+  Var_bindRoot(nsVar, userNsVal);
+
+  // 6. Register in compiler state so JIT finds this exact Var object
+  registerVar("clojure.core/*ns*", nsVar);
+}
 
 ThreadsafeCompilerState::~ThreadsafeCompilerState() {}
 
@@ -29,80 +60,83 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
     c->compilerExtensionDestructor = delete_class_description;
   }
 
-    try {
-      // Phase 2: Link inheritance
-      for (auto const &pair : localMap) {
-        ::Class *c = pair.second;
-        ClassDescription *desc =
-            static_cast<ClassDescription *>(c->compilerExtension);
+  try {
+    // Phase 2: Link inheritance
+    for (auto const &pair : localMap) {
+      ::Class *c = pair.second;
+      ClassDescription *desc =
+          static_cast<ClassDescription *>(c->compilerExtension);
 
-        if (!desc->parentName.empty() || !desc->parentNames.empty()) {
-          // Populate runtime Class superclasses
-          int32_t count = (int32_t)desc->parentNames.size();
-          ClassList *list =
-              (ClassList *)allocate(sizeof(ClassList) + sizeof(::Class *) * count);
-          list->count = count;
-          for (int32_t i = 0; i < count; i++) {
-            ::Class *pc = nullptr;
-            auto it2 = localMap.find(desc->parentNames[i]);
-            if (it2 != localMap.end()) {
-              pc = it2->second;
-              Ptr_retain(pc);
-            } else {
-              pc = classRegistry.getCurrent(desc->parentNames[i].c_str());
-              if (!pc) {
-                pc = protocolRegistry.getCurrent(desc->parentNames[i].c_str());
-              }
-            }
-            if (pc) {
-              list->classes[i] = pc;
-              if (i == 0) {
-                desc->extends = pc;
-                Ptr_retain(pc); // Extra retain for desc->extends
-              }
-            } else {
-              throwInternalInconsistencyException(
-                  "Parent class/protocol not found: " + desc->parentNames[i]);
+      if (!desc->parentName.empty() || !desc->parentNames.empty()) {
+        // Populate runtime Class superclasses
+        int32_t count = (int32_t)desc->parentNames.size();
+        ClassList *list = (ClassList *)allocate(sizeof(ClassList) +
+                                                sizeof(::Class *) * count);
+        list->count = count;
+        for (int32_t i = 0; i < count; i++) {
+          ::Class *pc = nullptr;
+          auto it2 = localMap.find(desc->parentNames[i]);
+          if (it2 != localMap.end()) {
+            pc = it2->second;
+            Ptr_retain(pc);
+          } else {
+            pc = classRegistry.getCurrent(desc->parentNames[i].c_str());
+            if (!pc) {
+              pc = protocolRegistry.getCurrent(desc->parentNames[i].c_str());
             }
           }
-          // Atomic store to publish superclasses.
-          // Note: The initial empty list from Class_create is leaked here unless we destroy it.
-          // But Class_create was called with 0 superclasses, so it allocated an empty ClassList.
-          ClassList *oldList = atomic_load_explicit(&c->superclasses, memory_order_relaxed);
-          atomic_store_explicit(&c->superclasses, list, memory_order_relaxed);
-          if (oldList) deallocate(oldList);
+          if (pc) {
+            list->classes[i] = pc;
+            if (i == 0) {
+              desc->extends = pc;
+              Ptr_retain(pc); // Extra retain for desc->extends
+            }
+          } else {
+            throwInternalInconsistencyException(
+                "Parent class/protocol not found: " + desc->parentNames[i]);
+          }
         }
+        // Atomic store to publish superclasses.
+        // Note: The initial empty list from Class_create is leaked here unless
+        // we destroy it. But Class_create was called with 0 superclasses, so it
+        // allocated an empty ClassList.
+        ClassList *oldList =
+            atomic_load_explicit(&c->superclasses, memory_order_relaxed);
+        atomic_store_explicit(&c->superclasses, list, memory_order_relaxed);
+        if (oldList)
+          deallocate(oldList);
       }
-
-      // Phase 3: Register and cleanup local references
-      for (auto const &pair : localMap) {
-        ::Class *c = pair.second;
-        ClassDescription *desc =
-            static_cast<ClassDescription *>(c->compilerExtension);
-
-        Ptr_retain(c); // For name-based registry
-        classRegistry.registerObject(desc->name.c_str(), c);
-
-        if (desc->type.isDetermined()) {
-          c->registerId = (int32_t)desc->type.determinedType();
-        }
-
-        Ptr_retain(c); // For ID-based registry
-        if (desc->type.isDetermined()) {
-          classRegistry.registerObject(c, c->registerId);
-        } else {
-          c->registerId = (int32_t)classRegistry.registerObject(c, -1);
-        }
-
-        // Release the initial reference from Phase 1
-        Ptr_release(c);
-      }
-    } catch (...) {
-      for (auto const &pair : localMap) {
-        Ptr_release(pair.second);
-      }
-      throw;
     }
+
+    // Phase 3: Register and cleanup local references
+    for (auto const &pair : localMap) {
+      ::Class *c = pair.second;
+      ClassDescription *desc =
+          static_cast<ClassDescription *>(c->compilerExtension);
+
+      Ptr_retain(c); // For name-based registry
+      classRegistry.registerObject(desc->name.c_str(), c);
+
+      if (desc->type.isDetermined()) {
+        c->registerId = (int32_t)desc->type.determinedType();
+      }
+
+      Ptr_retain(c); // For ID-based registry
+      if (desc->type.isDetermined()) {
+        classRegistry.registerObject(c, c->registerId);
+      } else {
+        c->registerId = (int32_t)classRegistry.registerObject(c, -1);
+      }
+
+      // Release the initial reference from Phase 1
+      Ptr_release(c);
+    }
+  } catch (...) {
+    for (auto const &pair : localMap) {
+      Ptr_release(pair.second);
+    }
+    throw;
+  }
 
   // Phase 4: Link implemented protocols
   for (auto const &pair : localMap) {
@@ -110,28 +144,30 @@ void ThreadsafeCompilerState::storeInternalClasses(RTValue from) {
     ClassDescription *desc =
         static_cast<ClassDescription *>(c->compilerExtension);
 
-      if (!desc->implements.empty()) {
-        std::vector<::Class *> classImpls;
-        for (auto const &[protoName, protoMethods] : desc->implements) {
-          ::Class *proto = protocolRegistry.getCurrent(protoName.c_str());
-          if (!proto) {
-            continue;
-          }
-          // proto was already retained by getCurrent. Ownership transferred to c->implementedProtocols.
-          classImpls.push_back(proto);
+    if (!desc->implements.empty()) {
+      std::vector<::Class *> classImpls;
+      for (auto const &[protoName, protoMethods] : desc->implements) {
+        ::Class *proto = protocolRegistry.getCurrent(protoName.c_str());
+        if (!proto) {
+          continue;
         }
-
-        if (!classImpls.empty()) {
-          int32_t count = (int32_t)classImpls.size();
-          ClassList *list =
-              (ClassList *)allocate(sizeof(ClassList) + sizeof(::Class *) * count);
-          list->count = count;
-          for (int i = 0; i < count; i++) {
-            list->classes[i] = classImpls[i];
-          }
-          atomic_store_explicit(&c->implementedProtocols, list, memory_order_relaxed);
-        }
+        // proto was already retained by getCurrent. Ownership transferred to
+        // c->implementedProtocols.
+        classImpls.push_back(proto);
       }
+
+      if (!classImpls.empty()) {
+        int32_t count = (int32_t)classImpls.size();
+        ClassList *list = (ClassList *)allocate(sizeof(ClassList) +
+                                                sizeof(::Class *) * count);
+        list->count = count;
+        for (int i = 0; i < count; i++) {
+          list->classes[i] = classImpls[i];
+        }
+        atomic_store_explicit(&c->implementedProtocols, list,
+                              memory_order_relaxed);
+      }
+    }
   }
 
   try {
@@ -175,8 +211,8 @@ void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {
 
       if (!desc->parentNames.empty()) {
         int32_t count = (int32_t)desc->parentNames.size();
-        ClassList *list =
-            (ClassList *)allocate(sizeof(ClassList) + sizeof(::Class *) * count);
+        ClassList *list = (ClassList *)allocate(sizeof(ClassList) +
+                                                sizeof(::Class *) * count);
         list->count = count;
         for (int32_t i = 0; i < count; i++) {
           ::Class *pc = nullptr;
@@ -196,16 +232,19 @@ void ThreadsafeCompilerState::storeInternalProtocols(RTValue from) {
             // here (the one from getCurrent/localMap is consumed here)
             if (i == 0) {
               desc->extends = pc;
-              Ptr_retain(pc); // Extra retain for desc->extends which is released in ~ClassDescription
+              Ptr_retain(pc); // Extra retain for desc->extends which is
+                              // released in ~ClassDescription
             }
           } else {
             throwInternalInconsistencyException(
                 "Extended protocol not found: " + desc->parentNames[i]);
           }
         }
-        ClassList *oldList = atomic_load_explicit(&c->superclasses, memory_order_relaxed);
+        ClassList *oldList =
+            atomic_load_explicit(&c->superclasses, memory_order_relaxed);
         atomic_store_explicit(&c->superclasses, list, memory_order_relaxed);
-        if (oldList) deallocate(oldList);
+        if (oldList)
+          deallocate(oldList);
       }
     }
 
@@ -283,7 +322,8 @@ void ThreadsafeCompilerState::validateProtocolImplementations(
                 }
               }
               // Also add parents of this protocol
-              ClassList *supers = atomic_load_explicit(&curr->superclasses, memory_order_acquire);
+              ClassList *supers = atomic_load_explicit(&curr->superclasses,
+                                                       memory_order_acquire);
               if (supers) {
                 for (int j = 0; j < supers->count; j++) {
                   ::Class *parent = supers->classes[j];
@@ -296,9 +336,11 @@ void ThreadsafeCompilerState::validateProtocolImplementations(
 
           // Validate each required method
           for (auto const &[methodName, protoFns] : requiredMethods) {
-            // Find all implementations of this method across all protocol blocks of the class
+            // Find all implementations of this method across all protocol
+            // blocks of the class
             std::vector<const IntrinsicDescription *> allImpls;
-            for (auto const &[anyProtoName, anyImplMethods] : desc->implements) {
+            for (auto const &[anyProtoName, anyImplMethods] :
+                 desc->implements) {
               auto it = anyImplMethods.find(methodName);
               if (it != anyImplMethods.end()) {
                 for (auto const &implFn : it->second) {
@@ -402,7 +444,8 @@ void ThreadsafeCompilerState::extendInternalClasses(RTValue from) {
   auto descriptions = buildClasses(from);
 
   for (auto &desc : descriptions) {
-    if (!desc) continue;
+    if (!desc)
+      continue;
     string className = desc->name;
     ::Class *existing = classRegistry.getCurrent(className.c_str());
     if (existing) {
@@ -411,7 +454,7 @@ void ThreadsafeCompilerState::extendInternalClasses(RTValue from) {
           static_cast<ClassDescription *>(existing->compilerExtension);
       if (!oldDesc) {
         throwInternalInconsistencyException("Class " + className +
-                                             " has no compiler metadata");
+                                            " has no compiler metadata");
       }
 
       // Use the new merge method for basic metadata merging
@@ -422,11 +465,197 @@ void ThreadsafeCompilerState::extendInternalClasses(RTValue from) {
         ::Class *proto = protocolRegistry.getCurrent(protoName.c_str());
         if (proto) {
           Class_addProtocol(existing, proto);
-          Ptr_release(proto); 
+          Ptr_release(proto);
         }
       }
     }
   }
 }
+
+Var *ThreadsafeCompilerState::getOrCreateVar(const char *name) {
+  std::string varName(name);
+  std::string nsName = "user";
+  std::string symName = varName;
+
+  size_t slashPos = varName.find('/');
+  if (slashPos != std::string::npos) {
+    nsName = varName.substr(0, slashPos);
+    symName = varName.substr(slashPos + 1);
+  }
+
+  // 1. Create Symbol for Namespace
+  Symbol *nsSym = Symbol_create(String_createDynamicStr(nsName.c_str()));
+  
+  // 2. Find or create the Namespace (consumes nsSym, returns +1 ref)
+  Namespace *ns = Namespace_findOrCreate(nsSym);
+
+  // 3. Create Symbol for Var
+  Symbol *varSym = Symbol_create(String_createDynamicStr(symName.c_str()));
+
+  // 4. Intern symbol inside Namespace (consumes ns and varSym, returns retained Var +1)
+  Var *var = Namespace_intern(ns, varSym);
+  return var;
+}
+
+Var *ThreadsafeCompilerState::getCurrentVar(const char *name) {
+  std::string varName(name);
+  std::string nsName = "user";
+  std::string symName = varName;
+
+  size_t slashPos = varName.find('/');
+  if (slashPos != std::string::npos) {
+    nsName = varName.substr(0, slashPos);
+    symName = varName.substr(slashPos + 1);
+  }
+  // 1. Szukamy Namespace
+  Symbol *nsSym = Symbol_create(String_createDynamicStr(nsName.c_str()));
+  RTValue nsVal = Namespace_find(nsSym);
+
+  if (RT_isNil(nsVal)) {
+    release(nsVal);
+    // Jeśli brak namespace, a nazwa była niekwalifikowana, szukamy w clojure.core
+    if (slashPos == std::string::npos && nsName != "clojure.core") {
+      Symbol *coreSym = Symbol_create(String_create("clojure.core"));
+      RTValue coreNsVal = Namespace_find(coreSym);
+      
+      if (!RT_isNil(coreNsVal)) {
+        Namespace *coreNs = (Namespace *)RT_unboxPtr(coreNsVal);
+        Symbol *coreVarSym = Symbol_create(String_createDynamicStr(symName.c_str()));
+        Ptr_retain(coreNs);
+        RTValue coreMapping = Namespace_getMapping(coreNs, coreVarSym);
+        Ptr_release(coreNs);
+        release(coreNsVal);
+        
+        if (!RT_isNil(coreMapping) && getType(coreMapping) == varType) {
+          Var *var = (Var *)RT_unboxPtr(coreMapping);
+          return var;
+        }
+        release(coreMapping);
+      } else {
+        release(coreNsVal);
+      }
+    }
+    return nullptr;
+  }
+
+  Namespace *ns = (Namespace *)RT_unboxPtr(nsVal);
+
+  // 2. Szukamy symbolu w mappings znalezionego namespace'u
+  Symbol *varSym = Symbol_create(String_createDynamicStr(symName.c_str()));
+  Ptr_retain(ns);
+  RTValue mapping = Namespace_getMapping(ns, varSym);
+
+  if (RT_isNil(mapping)) {
+    release(mapping);
+    release(nsVal);
+
+    // Jeśli nazwa była niekwalifikowana i brak w user, szukamy w clojure.core
+    if (slashPos == std::string::npos && nsName != "clojure.core") {
+      Symbol *coreSym = Symbol_create(String_create("clojure.core"));
+      RTValue coreNsVal = Namespace_find(coreSym);
+      
+      if (!RT_isNil(coreNsVal)) {
+        Namespace *coreNs = (Namespace *)RT_unboxPtr(coreNsVal);
+        Symbol *coreVarSym = Symbol_create(String_createDynamicStr(symName.c_str()));
+        Ptr_retain(coreNs);
+        RTValue coreMapping = Namespace_getMapping(coreNs, coreVarSym);
+        Ptr_release(coreNs);
+        release(coreNsVal);
+        
+        if (!RT_isNil(coreMapping) && getType(coreMapping) == varType) {
+          Var *var = (Var *)RT_unboxPtr(coreMapping);
+          return var;
+        }
+        release(coreMapping);
+      } else {
+        release(coreNsVal);
+      }
+    }
+    return nullptr;
+  }
+
+  if (getType(mapping) != varType) {
+    release(mapping);
+    release(nsVal);
+    return nullptr;
+  }
+
+  Var *var = (Var *)RT_unboxPtr(mapping);
+  release(nsVal);
+  return var;
+}
+
+void ThreadsafeCompilerState::registerVar(const char *name, Var *var) {
+  std::string varName(name);
+  std::string nsName = "user";
+  std::string symName = varName;
+
+  size_t slashPos = varName.find('/');
+  if (slashPos != std::string::npos) {
+    nsName = varName.substr(0, slashPos);
+    symName = varName.substr(slashPos + 1);
+  }
+
+  // 1. Znajdź lub utwórz Namespace
+  Symbol *nsSym = Symbol_create(String_createDynamicStr(nsName.c_str()));
+  Namespace *ns = Namespace_findOrCreate(nsSym);
+
+  // 2. Utwórz Symbol dla Var
+  Symbol *varSym = Symbol_create(String_createDynamicStr(symName.c_str()));
+
+  // 3. Uzupełnij pola ns i sym w strukturze Var, jeśli są puste
+  if (var->ns == nullptr) {
+    var->ns = ns;
+  }
+  if (var->sym == nullptr) {
+    var->sym = varSym;
+    Ptr_retain(varSym);
+  }
+
+  // 4. Przypisz Var w Namespace za pomocą referencji (consumes var)
+  Var *referred = Namespace_refer(ns, varSym, var);
+  Ptr_release(referred);
+}
+
+// void registerObject(const char *name, T *newDef) {
+//     std::lock_guard<std::mutex> lock(registryMutex);
+
+//     if (manageRuntimeMemory) {
+//       promoteToShared(RT_boxPtr((void *)newDef));
+//     }
+
+//     std::string key(name);
+//     auto it = registry.find(key);
+
+//     if (manageRuntimeMemory && it != registry.end()) {
+//       Ptr_release((void *)it->second);
+//     }
+
+//     registry[key] = newDef;
+//   }
+
+//   template <typename F> T *getOrCreate(const char *name, F &&factory) {
+//     std::lock_guard<std::mutex> lock(registryMutex);
+
+//     std::string key(name);
+//     auto it = registry.find(key);
+
+//     if (it != registry.end()) {
+//       if (manageRuntimeMemory) {
+//         Ptr_retain((void *)it->second);
+//       }
+//       return it->second;
+//     }
+
+//     T *newDef = factory();
+//     registry[key] = newDef;
+//     if (manageRuntimeMemory) {
+//       promoteToShared(RT_boxPtr(newDef));
+//       Ptr_retain(newDef); // Still need to return a fresh reference if it's
+//                           // being returned
+//     }
+
+//     return newDef;
+//   }
 
 } // namespace rt

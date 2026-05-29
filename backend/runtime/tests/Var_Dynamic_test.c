@@ -13,8 +13,7 @@
 static void test_dynamic_var_binding(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    RTValue sym = Keyword_create(String_create("dynamic-var"));
-    retain(sym);
+    Symbol *sym = Symbol_create(String_create("dynamic-var"));
     Var *v = Var_create(sym);
 
     Var_setDynamic(v, true);
@@ -24,8 +23,9 @@ static void test_dynamic_var_binding(void **state) {
     // ctx = {v: 10}
     // Note: PersistentArrayMap_createMany expects pairCount then key, value,
     // ...
+    Ptr_retain(v);
     PersistentArrayMap *m = PersistentArrayMap_createMany(
-        1, sym, RT_boxPtr(BigInteger_createFromInt(10)));
+        1, RT_boxPtr(v), RT_boxPtr(BigInteger_createFromInt(10)));
     ExecutionContext *ctx = ExecutionContext_create(RT_boxPtr(m));
 
     // 1. Deref without context
@@ -61,8 +61,7 @@ static void test_dynamic_var_binding(void **state) {
 static void test_dynamic_var_set(void **state) {
   (void)state;
   ASSERT_MEMORY_ALL_BALANCED({
-    RTValue sym = Keyword_create(String_create("dynamic-var-set"));
-    retain(sym);
+    Symbol *sym = Symbol_create(String_create("dynamic-var-set"));
     Var *v = Var_create(sym);
 
     Var_setDynamic(v, true);
@@ -70,8 +69,9 @@ static void test_dynamic_var_set(void **state) {
     Var_bindRoot(v, RT_boxPtr(BigInteger_createFromInt(1)));
 
     // Create initial context with v=10
+    Ptr_retain(v);
     PersistentArrayMap *m = PersistentArrayMap_createMany(
-        1, sym, RT_boxPtr(BigInteger_createFromInt(10)));
+        1, RT_boxPtr(v), RT_boxPtr(BigInteger_createFromInt(10)));
     ExecutionContext *ctx = ExecutionContext_create(RT_boxPtr(m));
 
     // 1. Verify initial state in context

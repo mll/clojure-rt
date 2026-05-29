@@ -283,9 +283,9 @@ static void test_instance_call_fast_path_error(void **state) {
       Ptr_release(cls);
     }
 
-    RTValue vk = Keyword_create(String_create("user/my-vec"));
+    Symbol *vk = Symbol_create(String_create("my-vec"));
     Var *myVar = Var_create(vk);
-    compState.varRegistry.registerObject("user/my-vec", myVar);
+    compState.registerVar("user/my-vec", myVar);
 
     Node callNode;
     callNode.set_op(opInstanceCall);

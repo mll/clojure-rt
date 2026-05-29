@@ -2,6 +2,7 @@
 #include <iostream>
 #include "../../codegen/CodeGen.h"
 #include "../../jit/JITEngine.h"
+#include "../../runtime/Keyword.h"
 #include "../../runtime/Object.h"
 #include "../../runtime/Function.h"
 
@@ -190,11 +191,8 @@ static void test_dynamic_invoke_arity_mismatch_leak(void **state) {
 
     // 1. Create a Var and bind a 1-arity function to it
     const char *varName = "user/dynamic-arity-fn";
-    RTValue kw = Keyword_create(String_create(varName));
-    Var *v = Var_create(kw);
-    Ptr_retain(v);
-    Ptr_retain(v);
-    compState.varRegistry.registerObject(varName, v);
+    Var *v = compState.getOrCreateVar(varName);
+    Ptr_retain(v); // for Var_bindRoot
 
     // fn = (fn [x] x)
     Node fnNode;
@@ -296,10 +294,9 @@ static void test_var_call_unbound(void **state) {
 
     // 1. Create a Var but do NOT bind it
     const char *varName = "user/unbound-fn";
-    RTValue kw = Keyword_create(String_create(varName));
+    Symbol *kw = Symbol_create(String_create("unbound-fn"));
     Var *v = Var_create(kw);
-    Ptr_retain(v);
-    compState.varRegistry.registerObject(varName, v);
+    compState.registerVar(varName, v);
 
     // 2. Create an InvokeNode calling #'user/unbound-fn
     Node invokeNode;
@@ -336,7 +333,6 @@ static void test_var_call_unbound(void **state) {
     assert_true(caught);
 
     // 4. Cleanup
-    Ptr_release(v);
     engine.retireModule("var_call_unbound_test");
   });
 }
@@ -413,11 +409,9 @@ static void test_dynamic_keyword_invoke_on_number(void **state) {
     JITEngine engine;
 
     RTValue kwVal = Keyword_create(String_create("foo"));
-    Var *v = Var_create(kwVal);
-    Ptr_retain(v);
-    Var_bindRoot(v, kwVal); // Var_bindRoot releases v once, so we retained it above
-    Ptr_retain(v);          // Retain again so the registry and our manual release both have one
-    engine.threadsafeState.varRegistry.registerObject("v_kw", v);
+    Var *v = engine.threadsafeState.getOrCreateVar("user/v_kw");
+    Ptr_retain(v); // for Var_bindRoot
+    Var_bindRoot(v, kwVal);
 
     Node root;
     root.set_op(opInvoke);
@@ -425,7 +419,7 @@ static void test_dynamic_keyword_invoke_on_number(void **state) {
     
     auto *fn = inv->mutable_fn();
     fn->set_op(opVar);
-    fn->mutable_subnode()->mutable_var()->set_var("#'v_kw");
+    fn->mutable_subnode()->mutable_var()->set_var("#'user/v_kw");
 
     auto *arg = inv->add_args();
     arg->set_op(opConst);

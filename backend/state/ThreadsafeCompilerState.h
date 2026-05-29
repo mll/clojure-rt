@@ -22,12 +22,9 @@ public:
   ThreadsafeRegistry<::Class> classRegistry;
   ThreadsafeRegistry<::Class> protocolRegistry;
   ThreadsafeRegistry<const Node> functionAstRegistry;
-  ThreadsafeRegistry<::Var> varRegistry;
 
-  ThreadsafeCompilerState()
-      : classRegistry(true, 1000), protocolRegistry(true, 2000),
-        functionAstRegistry(false), varRegistry(true) {}
-
+  ThreadsafeCompilerState();
+  void initializeDefaultNamespaces();
   ~ThreadsafeCompilerState();
 
   void storeInternalClasses(RTValue from);
@@ -35,6 +32,10 @@ public:
   void storeInternalProtocols(RTValue from);
 
   void validateProtocolImplementations(const std::vector<::Class *> &classes);
+
+  Var *getOrCreateVar(const char *name);
+  Var *getCurrentVar(const char *name);
+  void registerVar(const char *name, Var *var);
 
 private:
 };

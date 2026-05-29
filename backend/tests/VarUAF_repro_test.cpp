@@ -84,15 +84,15 @@ static void test_double_release_uaf_repro(void **state_arg) {
 
     // Actually, it's easier to use VarNode to pass them as if they are from
     // global vars.
-    Var *v1 = Var_create(Keyword_create(String_create("user/v1")));
+    Var *v1 = Var_create(Symbol_create(String_create("v1")));
     Ptr_retain(v1); // Retain so it survives bindRoot consumption
     Var_bindRoot(v1, s1);
-    compState.varRegistry.registerObject("user/v1", v1);
+    compState.registerVar("user/v1", v1);
 
-    Var *v2 = Var_create(Keyword_create(String_create("user/v2")));
+    Var *v2 = Var_create(Symbol_create(String_create("v2")));
     Ptr_retain(v2);
     Var_bindRoot(v2, s2);
-    compState.varRegistry.registerObject("user/v2", v2);
+    compState.registerVar("user/v2", v2);
 
     arg1->set_op(opVar);
     arg1->mutable_subnode()->mutable_var()->set_var("#'user/v1");

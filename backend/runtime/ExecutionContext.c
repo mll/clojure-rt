@@ -49,7 +49,7 @@ RT_bind(__attribute__((swift_context)) struct ExecutionContext *ctx, RTValue v,
   }
 
   RTValue nextMap =
-      RT_boxPtr(PersistentArrayMap_assoc(currentMap, var->keyword, val));
+      RT_boxPtr(PersistentArrayMap_assoc(currentMap, v, val));
 
   ExecutionContext *nextCtx = ExecutionContext_create(nextMap);
   return nextCtx;
@@ -92,9 +92,9 @@ RT_bind_map(__attribute__((swift_context)) struct ExecutionContext *ctx,
     }
 
     // assoc consumes its arguments, so we must retain them from the source map
-    retain(var->keyword);
+    retain(v);
     retain(val);
-    currentMap = PersistentArrayMap_assoc(currentMap, var->keyword, val);
+    currentMap = PersistentArrayMap_assoc(currentMap, v, val);
   }
 
   release(bindingsMap);

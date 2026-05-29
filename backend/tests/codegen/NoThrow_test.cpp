@@ -61,9 +61,9 @@ static void test_hot_cold_separation(void **state) {
 
     // Define vars so they are found
     auto *nameX = String_createDynamicStr("x");
-    compState.varRegistry.registerObject("x", Var_create(RT_boxPtr(nameX)));
+    compState.registerVar("x", Var_create(Symbol_create(nameX)));
     auto *nameY = String_createDynamicStr("y");
-    compState.varRegistry.registerObject("y", Var_create(RT_boxPtr(nameY)));
+    compState.registerVar("y", Var_create(Symbol_create(nameY)));
 
     Node root;
     root.set_op(opVector);
@@ -175,8 +175,8 @@ static void test_whitelist_works(void **state) {
 
     // Register the var manually so it's found
     auto *nameStr = String_createDynamicStr("clojure.core/*print-length*");
-    Var *v = Var_create(RT_boxPtr(nameStr));
-    compState.varRegistry.registerObject("clojure.core/*print-length*", v);
+    Var *v = Var_create(Symbol_create(nameStr));
+    compState.registerVar("clojure.core/*print-length*", v);
 
     Node root;
     root.set_op(opVar);

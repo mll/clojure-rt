@@ -93,7 +93,7 @@ TypedValue CodeGen::codegen(const Node &node, const ConstNode &subnode,
     break;
   case varType: {
     const std::string name = subnode.val();
-    ScopedRef<Var> var(compilerState.varRegistry.getCurrent(name.c_str()));
+    ScopedRef<Var> var(compilerState.getCurrentVar(name.c_str()));
     if (!var) {
       throwCodeGenerationException(
           string("Unable to resolve var: ") + name + " in this context", node);

@@ -10,7 +10,7 @@ namespace rt {
 TypedValue CodeGen::codegen(const Node &node, const VarNode &subnode,
                             const ObjectTypeSet &typeRestrictions) {
   auto varName = subnode.var().substr(2);
-  ScopedRef<Var> var(compilerState.varRegistry.getCurrent(varName.c_str()));
+  ScopedRef<Var> var(compilerState.getCurrentVar(varName.c_str()));
 
   if (!var)
     throwCodeGenerationException(

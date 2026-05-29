@@ -97,9 +97,9 @@ static void test_instance_call_ic_hit_miss(void **state) {
     setup_ic_test_metadata(compState);
 
     // Register a Var "user/my-var" to hold our instance
-    RTValue varKeyword = Keyword_create(String_create("user/my-var"));
+    Symbol *varKeyword = Symbol_create(String_create("my-var"));
     Var *myVar = Var_create(varKeyword);
-    compState.varRegistry.registerObject("user/my-var", myVar);
+    compState.registerVar("user/my-var", myVar);
 
     // AST: (.foo @my-var 10)
     Node callNode;
@@ -178,9 +178,9 @@ static void test_instance_call_ic_atomicity(void **state) {
     setup_ic_test_metadata(compState);
 
     // Register a Var "user/my-var" to hold our instance
-    RTValue varKeyword = Keyword_create(String_create("user/my-var"));
+    Symbol *varKeyword = Symbol_create(String_create("my-var"));
     Var *myVar = Var_create(varKeyword);
-    compState.varRegistry.registerObject("user/my-var", myVar);
+    compState.registerVar("user/my-var", myVar);
 
     // AST: (.foo @my-var 10)
     Node callNode;

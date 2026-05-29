@@ -75,7 +75,7 @@ void *reader_thread(void *arg) {
 static void test_var_concurrent_bind_deref_race(void **state) {
   (void)state;
   atomic_store(&stop_threads, false);
-  RTValue sym = Keyword_create(String_create("race"));
+  Symbol *sym = Symbol_create(String_create("race"));
   Var *v = Var_create(sym);
   struct RaceArgs args = {v};
 
@@ -91,7 +91,7 @@ static void test_var_concurrent_bind_deref_race(void **state) {
   pthread_join(reader, NULL);
 
   Ptr_release(v);
-  release(sym);
+  
   Ebr_synchronize_and_reclaim();
   Ebr_synchronize_and_reclaim();
 }
@@ -139,7 +139,7 @@ void *destruction_writer(void *arg) {
     // Reset for next iteration (re-init struct members that destroy cleared)
     // Note: This is an artificial test of Var internal state
     atomic_store(&v->root, RT_boxNull());
-    v->keyword = Keyword_create(String_create("temp"));
+    v->sym = Symbol_create(String_create("temp"));
 
     // Wait for reader to finish its part of the iteration
     while (atomic_load(&args->reader_done) < i && !atomic_load(&stop_threads)) {
@@ -194,7 +194,7 @@ void *destruction_reader(void *arg) {
 static void test_var_destruction_hazard_race_stable(void **state) {
   (void)state;
   atomic_store(&stop_threads, false);
-  RTValue sym = Keyword_create(String_create("stable"));
+  Symbol *sym = Symbol_create(String_create("stable"));
   Var *v = Var_create(sym);
   struct DestructionRaceArgs args = {
       .v = v, .iteration = 0, .reader_done = 0, .reader_entering = false};
@@ -207,7 +207,7 @@ static void test_var_destruction_hazard_race_stable(void **state) {
   pthread_join(reader, NULL);
 
   Ptr_release(v);
-  release(sym);
+  
   Ebr_synchronize_and_reclaim();
   Ebr_synchronize_and_reclaim();
 }

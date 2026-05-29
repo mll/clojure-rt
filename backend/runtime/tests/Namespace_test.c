@@ -207,6 +207,111 @@ static void test_namespace_var_circular_leak(void **state) {
   });
 }
 
+static void test_namespace_redefine_referred_var_should_throw(void **state) {
+  (void)state;
+  ASSERT_MEMORY_BALANCED_EXCEPT_STRINGS({
+    Symbol *nsSym = Symbol_create(String_create("my.ns"));
+    Namespace *ns = Namespace_create(nsSym);
+    
+    Symbol *otherNsSym = Symbol_create(String_create("other.ns"));
+    Namespace *otherNs = Namespace_create(otherNsSym);
+    
+    Symbol *sym = Symbol_create(String_create("foo"));
+    
+    Ptr_retain(otherNs); Ptr_retain(sym);
+    Var *otherVar = Var_create_interned(otherNs, sym);
+    
+    // Refer otherVar in ns under "foo"
+    Ptr_retain(ns); Ptr_retain(sym); Ptr_retain(otherVar);
+    Var *ref = Namespace_refer(ns, sym, otherVar);
+    Ptr_release(ref);
+    
+    // Now try to intern "foo" in ns. This should throw IllegalStateException!
+    Ptr_retain(ns); Ptr_retain(sym);
+    ASSERT_THROWS("IllegalStateException", {
+      Var *v = Namespace_intern(ns, sym);
+      Ptr_release(v);
+    });
+    
+    Ptr_release(otherVar);
+    Ptr_release(otherNs);
+    Ptr_release(ns);
+    Ptr_release(sym);
+    Ebr_force_reclaim();
+  });
+}
+
+static void test_namespace_redefine_class_should_throw(void **state) {
+  (void)state;
+  ASSERT_MEMORY_BALANCED_EXCEPT_STRINGS({
+    Symbol *nsSym = Symbol_create(String_create("my.ns"));
+    Namespace *ns = Namespace_create(nsSym);
+    
+    Symbol *sym = Symbol_create(String_create("foo"));
+    
+    // Map an arbitrary non-Var value, say a String, to sym
+    String *strVal = String_create("some class or other value");
+    
+    Ptr_retain(ns); Ptr_retain(sym); retain(RT_boxPtr((Object *)strVal));
+    RTValue ref = Namespace_reference(ns, sym, RT_boxPtr((Object *)strVal));
+    release(ref);
+    
+    // Now try to intern "foo" in ns. This should throw IllegalStateException!
+    Ptr_retain(ns); Ptr_retain(sym);
+    ASSERT_THROWS("IllegalStateException", {
+      Var *v = Namespace_intern(ns, sym);
+      Ptr_release(v);
+    });
+    
+    Ptr_release(ns);
+    Ptr_release(sym);
+    Ptr_release(strVal);
+    Ebr_force_reclaim();
+  });
+}
+
+static void test_namespace_redefine_referred_var_with_other_reference_should_throw(void **state) {
+  (void)state;
+  ASSERT_MEMORY_BALANCED_EXCEPT_STRINGS({
+    Symbol *nsSym = Symbol_create(String_create("my.ns"));
+    Namespace *ns = Namespace_create(nsSym);
+    
+    Symbol *otherNsSym = Symbol_create(String_create("other.ns"));
+    Namespace *otherNs = Namespace_create(otherNsSym);
+    
+    Symbol *thirdNsSym = Symbol_create(String_create("third.ns"));
+    Namespace *thirdNs = Namespace_create(thirdNsSym);
+    
+    Symbol *sym = Symbol_create(String_create("foo"));
+    
+    Ptr_retain(otherNs); Ptr_retain(sym);
+    Var *otherVar = Var_create_interned(otherNs, sym);
+    
+    Ptr_retain(thirdNs); Ptr_retain(sym);
+    Var *thirdVar = Var_create_interned(thirdNs, sym);
+    
+    // Refer otherVar in ns under "foo"
+    Ptr_retain(ns); Ptr_retain(sym); Ptr_retain(otherVar);
+    Var *ref1 = Namespace_refer(ns, sym, otherVar);
+    Ptr_release(ref1);
+    
+    // Now try to refer thirdVar in ns under "foo". This should throw IllegalStateException!
+    Ptr_retain(ns); Ptr_retain(sym); Ptr_retain(thirdVar);
+    ASSERT_THROWS("IllegalStateException", {
+      Var *ref2 = Namespace_refer(ns, sym, thirdVar);
+      Ptr_release(ref2);
+    });
+    
+    Ptr_release(otherVar);
+    Ptr_release(thirdVar);
+    Ptr_release(otherNs);
+    Ptr_release(thirdNs);
+    Ptr_release(ns);
+    Ptr_release(sym);
+    Ebr_force_reclaim();
+  });
+}
+
 int main(void) {
   RuntimeInterface_initialise();
   const struct CMUnitTest tests[] = {
@@ -216,6 +321,9 @@ int main(void) {
       cmocka_unit_test(test_namespace_reference),
       cmocka_unit_test(test_namespace_global_registry),
       cmocka_unit_test(test_namespace_var_circular_leak),
+      cmocka_unit_test(test_namespace_redefine_referred_var_should_throw),
+      cmocka_unit_test(test_namespace_redefine_class_should_throw),
+      cmocka_unit_test(test_namespace_redefine_referred_var_with_other_reference_should_throw),
   };
   int res = cmocka_run_group_tests(tests, NULL, NULL);
   RuntimeInterface_cleanup();

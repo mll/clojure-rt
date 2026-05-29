@@ -67,7 +67,7 @@ bool Var_equals(Var *self, Var *other) {
 
 uword_t Var_hash(Var *self) {
   /* Vars are purely pointer based entities */
-  return hash(RT_boxPtr(self));
+  return avalanche((uword_t)self);
 };
 
 String *Var_toString(Var *self) {

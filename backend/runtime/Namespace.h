@@ -32,7 +32,7 @@ void Namespace_promoteToShared(Namespace *self, uword_t count);
 RTValue Namespace_getMappings(Namespace *self);
 RTValue Namespace_getAliases(Namespace *self);
 bool Namespace_isInternedMapping(Namespace *self, Symbol *sym, RTValue o);
-void Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue oldVal, RTValue neuVal);
+bool Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue oldVal, RTValue neuVal);
 Var *Namespace_intern(Namespace *self, Symbol *sym);
 RTValue Namespace_reference(Namespace *self, Symbol *sym, RTValue val);
 RTValue Namespace_referenceClass(Namespace *self, Symbol *sym, Class *val);

@@ -1,6 +1,7 @@
 #include "ThreadsafeCompilerState.h"
 #include "../bridge/Exceptions.h"
 #include "../runtime/Namespace.h"
+#include "../runtime/Symbol.h"
 #include "../runtime/Var.h"
 #include "../tools/EdnParser.h"
 #include "../tools/RTValueWrapper.h"
@@ -600,7 +601,7 @@ void ThreadsafeCompilerState::registerVar(const char *name, Var *var) {
     Ptr_retain(varSym);
   }
 
-  // 4. Przypisz Var w Namespace za pomocą referencji
+  // 4. Przypisz Var w Namespace za pomocą referencji (consumes var)
   Var *referred = Namespace_refer(ns, varSym, var);
   Ptr_release(referred);
 }

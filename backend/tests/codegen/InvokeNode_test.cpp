@@ -294,9 +294,8 @@ static void test_var_call_unbound(void **state) {
 
     // 1. Create a Var but do NOT bind it
     const char *varName = "user/unbound-fn";
-    Symbol *kw = Symbol_create(String_create(varName));
+    Symbol *kw = Symbol_create(String_create("unbound-fn"));
     Var *v = Var_create(kw);
-    Ptr_retain(v);
     compState.registerVar(varName, v);
 
     // 2. Create an InvokeNode calling #'user/unbound-fn
@@ -334,7 +333,6 @@ static void test_var_call_unbound(void **state) {
     assert_true(caught);
 
     // 4. Cleanup
-    Ptr_release(v);
     engine.retireModule("var_call_unbound_test");
   });
 }

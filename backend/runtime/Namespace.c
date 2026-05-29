@@ -193,18 +193,10 @@ bool Namespace_isInternedMapping(Namespace *self, Symbol *sym, RTValue o) {
  * to overwrite a Var interned in this namespace. Consumes all arguments:
  * `self`, `sym`, `oldVal`, and `newVal`.
  */
-void Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue oldVal,
+bool Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue oldVal,
                                 RTValue newVal) {
-  if (getType(oldVal) == varType) {
-    if (Namespace_isInternedMapping(self, sym, oldVal)) {
-      release(newVal);
-      throwIllegalStateException_C("REJECTED: attempt to replace interned var");
-    }
-    release(newVal);
-    return;
-  }
-  
-
+  // In Clojure, once a mapping is established, it cannot be replaced with a different value/Var/Class.
+  return false;
 }
 
 /*
@@ -266,7 +258,36 @@ Var *Namespace_intern(Namespace *self, Symbol *sym) {
       Ptr_retain(sym);
       retain(existingVar);
       retain(newVal);
-      Namespace_checkReplacement(self, sym, existingVar, newVal);
+      if (!Namespace_checkReplacement(self, sym, existingVar, newVal)) {
+        retain(existingVar);
+        String *oStr = toString(existingVar);
+
+        Ptr_retain(oStr);
+        String *flatOStr = String_compactify(oStr);
+
+        char buf[512];
+        snprintf(buf, sizeof(buf), "%s already refers to: %s in namespace: %s",
+                 String_c_str(sym->name), String_c_str(flatOStr), String_c_str(self->name->name));
+
+        Ptr_release(flatOStr);
+        Ptr_release(oStr);
+
+        release(existingVar);
+        release(newVal);
+        Ptr_release(sym);
+        Ptr_release(self);
+        if (v != NULL) {
+          release(RT_boxPtr((Object *)v));
+        }
+        release(existingVar);
+        Ptr_release(self);
+        Ptr_release(sym);
+        throwIllegalStateException_C(buf);
+      }
+      release(existingVar);
+      release(newVal);
+      Ptr_release(sym);
+      Ptr_release(self);
       release(existingVar);
     }
 
@@ -325,7 +346,34 @@ RTValue Namespace_reference(Namespace *self, Symbol *sym, RTValue val) {
       Ptr_retain(sym);
       retain(o);
       retain(val);
-      Namespace_checkReplacement(self, sym, o, val);
+      if (!Namespace_checkReplacement(self, sym, o, val)) {
+        retain(o);
+        String *oStr = toString(o);
+
+        Ptr_retain(oStr);
+        String *flatOStr = String_compactify(oStr);
+
+        char buf[512];
+        snprintf(buf, sizeof(buf), "%s already refers to: %s in namespace: %s",
+                 String_c_str(sym->name), String_c_str(flatOStr), String_c_str(self->name->name));
+
+        Ptr_release(flatOStr);
+        Ptr_release(oStr);
+
+        release(o);
+        release(val);
+        Ptr_release(sym);
+        Ptr_release(self);
+        release(o);
+        Ptr_release(self);
+        Ptr_release(sym);
+        release(val);
+        throwIllegalStateException_C(buf);
+      }
+      release(o);
+      release(val);
+      Ptr_release(sym);
+      Ptr_release(self);
       release(o);
     }
 

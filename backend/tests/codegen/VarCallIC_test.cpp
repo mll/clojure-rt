@@ -63,7 +63,6 @@ static void test_var_call_ic(void **state) {
 
     Var *v = compState.getOrCreateVar("user/my-fn");
     printf("Var v from getOrCreateVar is %p\n", (void*)v);
-    Ptr_retain(v); // for Var_bindRoot
 
     // Function 1: Identity
     Node fn1Node = create_identity_fn();

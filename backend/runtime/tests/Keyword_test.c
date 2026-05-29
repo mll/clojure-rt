@@ -30,8 +30,8 @@ static void test_keyword_interning(void **state) {
 }
 #include <stdio.h>
 
-#define THREAD_COUNT 4
-#define ITERATIONS 50
+#define THREAD_COUNT 16
+#define ITERATIONS 200
 
 typedef struct KeywordThreadParams {
   const char *name;

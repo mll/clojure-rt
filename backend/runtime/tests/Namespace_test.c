@@ -57,9 +57,11 @@ static void test_namespace_intern(void **state) {
     assert_ptr_equal(v->sym, varSym);
     
     Ptr_retain(ns); Ptr_retain(varSym);
-    Var *found = Namespace_findInternedVar(ns, varSym);
+    RTValue foundVal = Namespace_findInternedVar(ns, varSym);
+    assert_false(RT_isNil(foundVal));
+    Var *found = (Var *)RT_unboxPtr(foundVal);
     assert_ptr_equal(found, v);
-    if(found) Ptr_release(found);
+    release(foundVal);
     
     Ptr_retain(ns); Ptr_retain(varSym);
     Namespace_unmap(ns, varSym);
@@ -86,16 +88,19 @@ static void test_namespace_aliases(void **state) {
     Namespace_addAlias(userNs, aliasSym, coreNs);
     
     Ptr_retain(userNs); Ptr_retain(aliasSym);
-    Namespace *foundNs = Namespace_lookupAlias(userNs, aliasSym);
+    RTValue foundNsVal = Namespace_lookupAlias(userNs, aliasSym);
+    assert_false(RT_isNil(foundNsVal));
+    Namespace *foundNs = (Namespace *)RT_unboxPtr(foundNsVal);
     assert_ptr_equal(foundNs, coreNs);
-    if(foundNs) Ptr_release(foundNs);
+    release(foundNsVal);
     
     Ptr_retain(userNs); Ptr_retain(aliasSym);
     Namespace_removeAlias(userNs, aliasSym);
     
     Ptr_retain(userNs); Ptr_retain(aliasSym);
-    Namespace *foundNsAfter = Namespace_lookupAlias(userNs, aliasSym);
-    assert_null(foundNsAfter);
+    RTValue foundNsAfterVal = Namespace_lookupAlias(userNs, aliasSym);
+    assert_true(RT_isNil(foundNsAfterVal));
+    release(foundNsAfterVal);
     
     Ptr_release(coreNs);
     Ptr_release(userNs);
@@ -148,10 +153,11 @@ static void test_namespace_global_registry(void **state) {
     // Create name symbol
     Symbol *nsSym1 = Symbol_create(String_create("my.global.ns"));
     
-    // Check that Namespace_find returns NULL before we register it
+    // Check that Namespace_find returns nil before we register it
     Ptr_retain(nsSym1);
-    Namespace *found1 = Namespace_find(nsSym1);
-    assert_null(found1);
+    RTValue found1Val = Namespace_find(nsSym1);
+    assert_true(RT_isNil(found1Val));
+    release(found1Val);
     
     // Now call findOrCreate (should create and register a new one)
     Ptr_retain(nsSym1);
@@ -169,9 +175,11 @@ static void test_namespace_global_registry(void **state) {
     
     // Call find (should find it)
     Ptr_retain(nsSym1);
-    Namespace *ns3 = Namespace_find(nsSym1);
+    RTValue ns3Val = Namespace_find(nsSym1);
+    assert_false(RT_isNil(ns3Val));
+    Namespace *ns3 = (Namespace *)RT_unboxPtr(ns3Val);
     assert_ptr_equal(ns1, ns3);
-    Ptr_release(ns3);
+    release(ns3Val);
     
     // Now let's remove it from global map so we don't have global reference leak
     Ptr_retain(nsSym1);

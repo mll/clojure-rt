@@ -509,29 +509,36 @@ Var *ThreadsafeCompilerState::getCurrentVar(const char *name) {
   }
   // 1. Szukamy Namespace
   Symbol *nsSym = Symbol_create(String_createDynamicStr(nsName.c_str()));
-  Namespace *ns = Namespace_find(nsSym);
+  RTValue nsVal = Namespace_find(nsSym);
 
-  if (!ns) {
+  if (RT_isNil(nsVal)) {
+    release(nsVal);
     // Jeśli brak namespace, a nazwa była niekwalifikowana, szukamy w clojure.core
     if (slashPos == std::string::npos && nsName != "clojure.core") {
       Symbol *coreSym = Symbol_create(String_create("clojure.core"));
-      Namespace *coreNs = Namespace_find(coreSym);
+      RTValue coreNsVal = Namespace_find(coreSym);
       
-      if (coreNs) {
+      if (!RT_isNil(coreNsVal)) {
+        Namespace *coreNs = (Namespace *)RT_unboxPtr(coreNsVal);
         Symbol *coreVarSym = Symbol_create(String_createDynamicStr(symName.c_str()));
         Ptr_retain(coreNs);
         RTValue coreMapping = Namespace_getMapping(coreNs, coreVarSym);
         Ptr_release(coreNs);
+        release(coreNsVal);
         
         if (!RT_isNil(coreMapping) && getType(coreMapping) == varType) {
           Var *var = (Var *)RT_unboxPtr(coreMapping);
           return var;
         }
         release(coreMapping);
+      } else {
+        release(coreNsVal);
       }
     }
     return nullptr;
   }
+
+  Namespace *ns = (Namespace *)RT_unboxPtr(nsVal);
 
   // 2. Szukamy symbolu w mappings znalezionego namespace'u
   Symbol *varSym = Symbol_create(String_createDynamicStr(symName.c_str()));
@@ -540,24 +547,28 @@ Var *ThreadsafeCompilerState::getCurrentVar(const char *name) {
 
   if (RT_isNil(mapping)) {
     release(mapping);
-    Ptr_release(ns);
+    release(nsVal);
 
     // Jeśli nazwa była niekwalifikowana i brak w user, szukamy w clojure.core
     if (slashPos == std::string::npos && nsName != "clojure.core") {
       Symbol *coreSym = Symbol_create(String_create("clojure.core"));
-      Namespace *coreNs = Namespace_find(coreSym);
+      RTValue coreNsVal = Namespace_find(coreSym);
       
-      if (coreNs) {
+      if (!RT_isNil(coreNsVal)) {
+        Namespace *coreNs = (Namespace *)RT_unboxPtr(coreNsVal);
         Symbol *coreVarSym = Symbol_create(String_createDynamicStr(symName.c_str()));
         Ptr_retain(coreNs);
         RTValue coreMapping = Namespace_getMapping(coreNs, coreVarSym);
         Ptr_release(coreNs);
+        release(coreNsVal);
         
         if (!RT_isNil(coreMapping) && getType(coreMapping) == varType) {
           Var *var = (Var *)RT_unboxPtr(coreMapping);
           return var;
         }
         release(coreMapping);
+      } else {
+        release(coreNsVal);
       }
     }
     return nullptr;
@@ -565,12 +576,12 @@ Var *ThreadsafeCompilerState::getCurrentVar(const char *name) {
 
   if (getType(mapping) != varType) {
     release(mapping);
-    Ptr_release(ns);
+    release(nsVal);
     return nullptr;
   }
 
   Var *var = (Var *)RT_unboxPtr(mapping);
-  Ptr_release(ns);
+  release(nsVal);
   return var;
 }
 

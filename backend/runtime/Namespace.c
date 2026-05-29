@@ -35,13 +35,9 @@ Namespace *Namespace_create(Symbol *name) {
  * Returns the retained Namespace (+1 refcount) if found, or NULL otherwise.
  * Consumes `name` argument.
  */
-Namespace *Namespace_find(Symbol *name) {
+RTValue Namespace_find(Symbol *name) {
   RTValue symVal = RT_boxSymbol((Object *)name);
-  RTValue nsVal = ConcurrentHashMap_get_preservesSelf(namespaces, symVal);
-  if (RT_isNil(nsVal)) {
-    return NULL;
-  }
-  return (Namespace *)RT_unboxPtr(nsVal);
+  return ConcurrentHashMap_get_preservesSelf(namespaces, symVal);
 }
 
 /*
@@ -52,9 +48,10 @@ Namespace *Namespace_find(Symbol *name) {
  */
 Namespace *Namespace_findOrCreate(Symbol *name) {
   Ptr_retain(name);
-  Namespace *ns = Namespace_find(name);
-  if (ns != NULL) {
+  RTValue nsVal = Namespace_find(name);
+  if (!RT_isNil(nsVal)) {
     Ptr_release(name); // Consume argument
+    Namespace *ns = (Namespace *)RT_unboxPtr(nsVal);
     return ns;
   }
 
@@ -195,7 +192,8 @@ bool Namespace_isInternedMapping(Namespace *self, Symbol *sym, RTValue o) {
  */
 bool Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue oldVal,
                                 RTValue newVal) {
-  // In Clojure, once a mapping is established, it cannot be replaced with a different value/Var/Class.
+  // In Clojure, once a mapping is established, it cannot be replaced with a
+  // different value/Var/Class.
   return false;
 }
 
@@ -267,7 +265,8 @@ Var *Namespace_intern(Namespace *self, Symbol *sym) {
 
         char buf[512];
         snprintf(buf, sizeof(buf), "%s already refers to: %s in namespace: %s",
-                 String_c_str(sym->name), String_c_str(flatOStr), String_c_str(self->name->name));
+                 String_c_str(sym->name), String_c_str(flatOStr),
+                 String_c_str(self->name->name));
 
         Ptr_release(flatOStr);
         Ptr_release(oStr);
@@ -355,7 +354,8 @@ RTValue Namespace_reference(Namespace *self, Symbol *sym, RTValue val) {
 
         char buf[512];
         snprintf(buf, sizeof(buf), "%s already refers to: %s in namespace: %s",
-                 String_c_str(sym->name), String_c_str(flatOStr), String_c_str(self->name->name));
+                 String_c_str(sym->name), String_c_str(flatOStr),
+                 String_c_str(self->name->name));
 
         Ptr_release(flatOStr);
         Ptr_release(oStr);
@@ -493,7 +493,7 @@ RTValue Namespace_getMapping(Namespace *self, Symbol *name) {
  * the given symbol. Returns the retained Var (+1 refcount) if found and owned
  * by this namespace, or NULL otherwise. Consumes `self` and `symbol` arguments.
  */
-Var *Namespace_findInternedVar(Namespace *self, Symbol *symbol) {
+RTValue Namespace_findInternedVar(Namespace *self, Symbol *symbol) {
   Ptr_retain(self);
   Ptr_retain(symbol);
   RTValue o = Namespace_getMapping(self, symbol);
@@ -503,33 +503,27 @@ Var *Namespace_findInternedVar(Namespace *self, Symbol *symbol) {
       Ptr_release(self);
       Ptr_release(symbol);
       // we already retained `o` inside getMapping. It returns +1 to caller.
-      return v;
+      return o;
     }
   }
   release(o);
   Ptr_release(self);
   Ptr_release(symbol);
-  return NULL;
+  return RT_boxNil();
 }
 
 /*
  * Resolves an alias symbol to its corresponding Namespace object.
- * Returns the mapped Namespace pointer with a retained (+1) refcount, or NULL
- * if not found. Consumes `self` and `alias` arguments.
+ * Returns the mapped Namespace pointer as RTValue with a retained (+1)
+ * refcount, or RT_boxNil() if not found. Consumes `self` and `alias` arguments.
  */
-Namespace *Namespace_lookupAlias(Namespace *self, Symbol *alias) {
+RTValue Namespace_lookupAlias(Namespace *self, Symbol *alias) {
   RTValue mapVal = atomic_load_explicit(&self->aliases, memory_order_acquire);
   Ptr_retain(RT_unboxPtr(mapVal));
-  Ptr_retain(alias);
+  Ptr_release(self);
   RTValue res = PersistentArrayMap_get(
       (PersistentArrayMap *)RT_unboxPtr(mapVal), RT_boxSymbol((Object *)alias));
-  Namespace *ns = NULL;
-  if (!RT_isNil(res)) {
-    ns = (Namespace *)RT_unboxPtr(res);
-  }
-  Ptr_release(self);
-  Ptr_release(alias);
-  return ns;
+  return res;
 }
 
 /*

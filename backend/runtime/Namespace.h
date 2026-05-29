@@ -20,7 +20,7 @@ struct Namespace {
 };
 
 Namespace *Namespace_create(Symbol *name);
-Namespace *Namespace_find(Symbol *name);
+RTValue Namespace_find(Symbol *name);
 Namespace *Namespace_findOrCreate(Symbol *name);
 Symbol *Namespace_getName(Namespace *self);
 void Namespace_destroy(Namespace *self, bool deallocateChildren);
@@ -40,8 +40,8 @@ void Namespace_unmap(Namespace *self, Symbol *sym);
 Class *Namespace_importClassSym(Namespace *self, Symbol *sym, Class *c);
 Var *Namespace_refer(Namespace *self, Symbol *sym, Var *var);
 RTValue Namespace_getMapping(Namespace *self, Symbol *name);
-Var *Namespace_findInternedVar(Namespace *self, Symbol *symbol);
-Namespace *Namespace_lookupAlias(Namespace *self, Symbol *alias);
+RTValue Namespace_findInternedVar(Namespace *self, Symbol *symbol);
+RTValue Namespace_lookupAlias(Namespace *self, Symbol *alias);
 void Namespace_addAlias(Namespace *self, Symbol *alias, Namespace *ns);
 void Namespace_removeAlias(Namespace *self, Symbol *alias);
 

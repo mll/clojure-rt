@@ -97,11 +97,11 @@
     unmap [{:args [:this clojure.lang.Symbol] :type :call :symbol "Namespace_unmap" :returns :nil}]
     addAlias [{:args [:this clojure.lang.Symbol clojure.lang.Namespace] :type :call :symbol "Namespace_addAlias" :returns :nil}]
     removeAlias [{:args [:this clojure.lang.Symbol] :type :call :symbol "Namespace_removeAlias" :returns :nil}]
-    lookupAlias [{:args [:this clojure.lang.Symbol] :type :call :symbol "Namespace_lookupAlias" :returns clojure.lang.Namespace}]
-    findInternedVar [{:args [:this clojure.lang.Symbol] :type :call :symbol "Namespace_findInternedVar" :returns clojure.lang.Var}]
+    lookupAlias [{:args [:this clojure.lang.Symbol] :type :call :symbol "Namespace_lookupAlias" :returns :any}]
+    findInternedVar [{:args [:this clojure.lang.Symbol] :type :call :symbol "Namespace_findInternedVar" :returns :any}]
     getMapping [{:args [:this clojure.lang.Symbol] :type :call :symbol "Namespace_getMapping" :returns :any}]}
    :static-fns
-   {find [{:args [clojure.lang.Symbol] :type :call :symbol "Namespace_find" :returns clojure.lang.Namespace}]
+   {find [{:args [clojure.lang.Symbol] :type :call :symbol "Namespace_find" :returns :any}]
     findOrCreate [{:args [clojure.lang.Symbol] :type :call :symbol "Namespace_findOrCreate" :returns clojure.lang.Namespace}]}}
 
   clojure.lang.Numbers

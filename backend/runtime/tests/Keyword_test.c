@@ -74,6 +74,7 @@ static void test_concurrent_keyword_interning(void **state) {
                          RT_unboxKeyword(expected));
       }
     }
+    Ebr_force_reclaim();
   });
 }
 

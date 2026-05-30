@@ -177,9 +177,15 @@ void TemporaryClassData::scanMetadata(RTValue from) {
     if (getType(key) != symbolType)
       throwInternalInconsistencyException(
           "Class definition key is not a symbol.");
-    if (getType(value) != persistentArrayMapType)
+
+    if (getType(value) == functionType) {
+      continue; // Skip Var definitions (which map to functions, not class maps)
+    }
+
+    if (getType(value) != persistentArrayMapType) {
       throwInternalInconsistencyException(
-          "Class definition value is not a map.");
+          "Class definition value must be a map.");
+    }
 
     // PersistentArrayMap_assoc consumes its arguments.
     // Protect borrowed value and key for assoc.

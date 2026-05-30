@@ -111,6 +111,20 @@
    :validate/wrong-tag-handler      (fn [_ _] nil)
    :validate/unresolvable-symbol-handler (fn [_ _ _] nil)})
 
+ (defn- extract-ns-sym
+  "Extracts the target namespace symbol from namespace-modifying forms
+   like (ns target.ns ...) or (in-ns 'target.ns). Returns nil if the
+   form is not a namespace-switching operation."
+  [form]
+  (when (seq? form)
+    (let [[op arg] form]
+      (cond
+        (= op 'ns)    arg
+        (= op 'in-ns) (if (and (seq? arg) (= (first arg) 'quote))
+                        (second arg)
+                        arg)
+        :else         nil))))
+
 (defn analyze
   ([s filename] (analyze s filename false false))
   ([s filename trivial-tree? simple-tree?]
@@ -131,19 +145,33 @@
                (when simple-tree? (clojure.pprint/pprint ret-val))
                ret-val)
              (let [;; 1. Analyze the form with the accumulated environment
-                   ast (a/analyze form current-env {:passes-opts passes-opts})]
+                   ast (a/analyze form current-env {:passes-opts passes-opts})
+                   
+                   ;; 2. Detect if the analyzed form is a namespace switch
+                   ns-sym (extract-ns-sym form)
+                   
+                   ;; 3. Update the analysis environment for subsequent forms.
+                   ;; If a namespace switch was detected, we explicitly bind :ns
+                   ;; to the target namespace symbol to keep the analyzer context synchronized.
+                   next-env (cond-> (:env ast)
+                              ns-sym (assoc :ns ns-sym))]
                
-               ;; 2. Selective Eval for Macros
-               ;; If the AST represents a macro definition, we MUST eval it.
-               ;; Without this, the next form cannot be macro-expanded.
+               ;; 4. Selective Eval for Macros and Namespaces
+               ;; We must evaluate macro definitions in the JVM compiler process so that
+               ;; they are available for macroexpansion of subsequent forms in the same file.
+               ;; Similarly, namespace-switching forms (ns / in-ns) must be evaluated so the
+               ;; Clojure analyzer's internal JVM state matches our updated environment.
                (when (or (and (= (:op ast) :def) (:macro (:var ast)))
                          (and (= (:op ast) :do) ; Handle (do (defmacro ...))
-                              (some #(and (= (:op %) :def) (:macro (:var %))) (:statements ast))))
+                              (some #(and (= (:op %) :def) (:macro (:var %))) (:statements ast)))
+                         (and (seq? form)
+                              (or (= (first form) 'in-ns)
+                                  (= (first form) 'ns))))
                  (eval form))
 
                (recur (r/read {:eof :eof} reader)
-                      ;; 3. Thread the updated environment to the next iteration
-                      (:env ast) 
+                      ;; 5. Thread the updated environment to the next iteration
+                      next-env 
                       (conj ret-val ast))))))))))
 
 (defn generate-protobuf-defs [] (sch/generate-protobuf-defs "bytecode.proto"))

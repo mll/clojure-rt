@@ -108,6 +108,7 @@ bool PersistentArrayMap_equals(PersistentArrayMap *self,
       release(otherVal);
       return false;
     }
+    release(otherVal);
   }
   return true;
 }

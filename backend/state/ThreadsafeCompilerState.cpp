@@ -3,6 +3,7 @@
 #include "../runtime/Namespace.h"
 #include "../runtime/Symbol.h"
 #include "../runtime/Var.h"
+#include "../runtime/Function.h"
 #include "../tools/EdnParser.h"
 #include "../tools/RTValueWrapper.h"
 namespace rt {
@@ -17,23 +18,20 @@ ThreadsafeCompilerState::ThreadsafeCompilerState()
 void ThreadsafeCompilerState::initializeDefaultNamespaces() {
   // Setup default Clojure namespaces and *ns* Var
 
-  // 1. Create "clojure.core" namespace
-  Symbol *coreSym = Symbol_create(String_create("clojure.core"));
-  Namespace *coreNs = Namespace_findOrCreate(coreSym); // coreNs has +1 refcount
+  Namespace *coreNs = Namespace_findOrCreate(
+      Symbol_create(String_create("clojure.core"))); // coreNs has +1 refcount
 
   // 2. Intern "*ns*" Var in "clojure.core"
-  Symbol *nsSym = Symbol_create(String_create("*ns*"));
-  Var *nsVar = Namespace_intern(coreNs, nsSym);
+  Var *nsVar = Namespace_intern(coreNs, Symbol_create(String_create("*ns*")));
   Var_setDynamic(nsVar, true);
 
   // 3. Create "user" namespace
-  Symbol *userSym = Symbol_create(String_create("user"));
-  Namespace *userNs = Namespace_findOrCreate(userSym); // userNs has +1 refcount
-  RTValue userNsVal = RT_boxPtr(userNs);
+  Namespace *userNs = Namespace_findOrCreate(
+      Symbol_create(String_create("user"))); // userNs has +1 refcount
 
   // 4. Bind clojure.core/*ns* Var root to the user namespace object
   Ptr_retain(nsVar); // Retain nsVar because Var_bindRoot consumes self
-  Var_bindRoot(nsVar, userNsVal);
+  Var_bindRoot(nsVar, RT_boxPtr(userNs));
 
   // 6. Register in compiler state so JIT finds this exact Var object
   registerVar("clojure.core/*ns*", nsVar);
@@ -441,6 +439,7 @@ void ThreadsafeCompilerState::validateProtocolImplementations(
 }
 
 void ThreadsafeCompilerState::extendInternalClasses(RTValue from) {
+  retain(from);
   auto descriptions = buildClasses(from);
 
   for (auto &desc : descriptions) {
@@ -470,6 +469,41 @@ void ThreadsafeCompilerState::extendInternalClasses(RTValue from) {
       }
     }
   }
+
+  // Phase 5: Intern Clojure Var functions defined in class extensions
+  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(from);
+  for (uword_t i = 0; i < map->count; i++) {
+    RTValue key = map->keys[i];
+    RTValue value = map->values[i];
+
+    if (getType(key) == symbolType && getType(value) == functionType) {
+      Symbol *sym = (Symbol *)RT_unboxPtr(key);
+      if (sym->ns != nullptr) {
+        std::string nsName = String_c_str(sym->ns);
+        std::string symName = String_c_str(sym->name);
+
+        // Find or create the namespace
+        Ptr_retain(sym->ns);
+        Symbol *nsSym = Symbol_create(sym->ns);
+        Namespace *ns = Namespace_findOrCreate(nsSym);
+
+        // Intern the symbol in that namespace to get the Var
+        Ptr_retain(sym->name);
+        Symbol *varSym = Symbol_create(sym->name);
+        Var *var = Namespace_intern(ns, varSym);
+
+        // Bind root of the Var to the JIT-compiled ClojureFunction object
+        Ptr_retain(var);
+        retain(value);
+        Var_bindRoot(var, value);
+
+        // Register in compiler state so it can be resolved by JIT
+        std::string fullVarName = nsName + "/" + symName;
+        registerVar(fullVarName.c_str(), var);
+      }
+    }
+  }
+  release(from);
 }
 
 Var *ThreadsafeCompilerState::getOrCreateVar(const char *name) {
@@ -485,14 +519,15 @@ Var *ThreadsafeCompilerState::getOrCreateVar(const char *name) {
 
   // 1. Create Symbol for Namespace
   Symbol *nsSym = Symbol_create(String_createDynamicStr(nsName.c_str()));
-  
+
   // 2. Find or create the Namespace (consumes nsSym, returns +1 ref)
   Namespace *ns = Namespace_findOrCreate(nsSym);
 
   // 3. Create Symbol for Var
   Symbol *varSym = Symbol_create(String_createDynamicStr(symName.c_str()));
 
-  // 4. Intern symbol inside Namespace (consumes ns and varSym, returns retained Var +1)
+  // 4. Intern symbol inside Namespace (consumes ns and varSym, returns retained
+  // Var +1)
   Var *var = Namespace_intern(ns, varSym);
   return var;
 }
@@ -513,19 +548,21 @@ Var *ThreadsafeCompilerState::getCurrentVar(const char *name) {
 
   if (RT_isNil(nsVal)) {
     release(nsVal);
-    // Jeśli brak namespace, a nazwa była niekwalifikowana, szukamy w clojure.core
+    // Jeśli brak namespace, a nazwa była niekwalifikowana, szukamy w
+    // clojure.core
     if (slashPos == std::string::npos && nsName != "clojure.core") {
       Symbol *coreSym = Symbol_create(String_create("clojure.core"));
       RTValue coreNsVal = Namespace_find(coreSym);
-      
+
       if (!RT_isNil(coreNsVal)) {
         Namespace *coreNs = (Namespace *)RT_unboxPtr(coreNsVal);
-        Symbol *coreVarSym = Symbol_create(String_createDynamicStr(symName.c_str()));
+        Symbol *coreVarSym =
+            Symbol_create(String_createDynamicStr(symName.c_str()));
         Ptr_retain(coreNs);
         RTValue coreMapping = Namespace_getMapping(coreNs, coreVarSym);
         Ptr_release(coreNs);
         release(coreNsVal);
-        
+
         if (!RT_isNil(coreMapping) && getType(coreMapping) == varType) {
           Var *var = (Var *)RT_unboxPtr(coreMapping);
           return var;
@@ -553,15 +590,16 @@ Var *ThreadsafeCompilerState::getCurrentVar(const char *name) {
     if (slashPos == std::string::npos && nsName != "clojure.core") {
       Symbol *coreSym = Symbol_create(String_create("clojure.core"));
       RTValue coreNsVal = Namespace_find(coreSym);
-      
+
       if (!RT_isNil(coreNsVal)) {
         Namespace *coreNs = (Namespace *)RT_unboxPtr(coreNsVal);
-        Symbol *coreVarSym = Symbol_create(String_createDynamicStr(symName.c_str()));
+        Symbol *coreVarSym =
+            Symbol_create(String_createDynamicStr(symName.c_str()));
         Ptr_retain(coreNs);
         RTValue coreMapping = Namespace_getMapping(coreNs, coreVarSym);
         Ptr_release(coreNs);
         release(coreNsVal);
-        
+
         if (!RT_isNil(coreMapping) && getType(coreMapping) == varType) {
           Var *var = (Var *)RT_unboxPtr(coreMapping);
           return var;
@@ -596,14 +634,11 @@ void ThreadsafeCompilerState::registerVar(const char *name, Var *var) {
     symName = varName.substr(slashPos + 1);
   }
 
-  // 1. Znajdź lub utwórz Namespace
   Symbol *nsSym = Symbol_create(String_createDynamicStr(nsName.c_str()));
   Namespace *ns = Namespace_findOrCreate(nsSym);
 
-  // 2. Utwórz Symbol dla Var
   Symbol *varSym = Symbol_create(String_createDynamicStr(symName.c_str()));
 
-  // 3. Uzupełnij pola ns i sym w strukturze Var, jeśli są puste
   if (var->ns == nullptr) {
     var->ns = ns;
   }
@@ -612,7 +647,6 @@ void ThreadsafeCompilerState::registerVar(const char *name, Var *var) {
     Ptr_retain(varSym);
   }
 
-  // 4. Przypisz Var w Namespace za pomocą referencji (consumes var)
   Var *referred = Namespace_refer(ns, varSym, var);
   Ptr_release(referred);
 }

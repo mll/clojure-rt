@@ -1,8 +1,11 @@
 #include "Namespace.h"
 #include "ConcurrentHashMap.h"
+#include "Ebr.h"
 #include "Exceptions.h"
 #include "Object.h"
+#include "ObjectProto.h"
 #include "PersistentArrayMap.h"
+#include "RTValue.h"
 #include "String.h"
 #include "Symbol.h"
 #include "Var.h"
@@ -54,18 +57,12 @@ Namespace *Namespace_findOrCreate(Symbol *name) {
     Namespace *ns = (Namespace *)RT_unboxPtr(nsVal);
     return ns;
   }
-
+  Ptr_retain(name);
   Namespace *newNs = Namespace_create(name);
 
-  Symbol *keySym = newNs->name;
-  Ptr_retain(keySym);
-  RTValue keyVal = RT_boxSymbol((Object *)keySym);
-
   Ptr_retain(newNs);
-  RTValue valVal = RT_boxPtr((Object *)newNs);
-
   RTValue existing = ConcurrentHashMap_putIfAbsent_preservesSelf(
-      namespaces, keyVal, valVal, false);
+      namespaces, RT_boxPtr(name), RT_boxPtr(newNs), false);
   if (!RT_isNil(existing)) {
     Ptr_release(newNs);
     return (Namespace *)RT_unboxPtr(existing);
@@ -96,11 +93,11 @@ void Namespace_destroy(Namespace *self, bool deallocateChildren) {
     }
     RTValue mappings =
         atomic_load_explicit(&self->mappings, memory_order_acquire);
-    release(mappings);
+    autorelease(mappings);
 
     RTValue aliases =
         atomic_load_explicit(&self->aliases, memory_order_acquire);
-    release(aliases);
+    autorelease(aliases);
   }
 }
 
@@ -122,13 +119,14 @@ bool Namespace_equals(Namespace *self, Namespace *other) {
  * `#namespace[name]`. Consumes the `self` argument and returns a new String.
  */
 String *Namespace_toString(Namespace *self) {
-  String *nameStr = Symbol_toString(RT_boxSymbol(self->name));
+  Ptr_retain(self->name);
+  String *nameStr = toString(RT_boxPtr(self->name));
   String *prefix = String_create("#namespace[");
   String *suffix = String_create("]");
 
   String *res1 = String_concat(prefix, nameStr);
   String *res2 = String_concat(res1, suffix);
-
+  Ptr_release(self);
   return res2;
 }
 
@@ -172,29 +170,16 @@ RTValue Namespace_getAliases(Namespace *self) {
  * under the exact symbol `sym`.
  * Consumes `self`, `sym`, and `o` arguments.
  */
-bool Namespace_isInternedMapping(Namespace *self, Symbol *sym, RTValue o) {
+bool Namespace_isInternedMapping(Namespace *self, Symbol *sym, RTValue var) {
   bool res = false;
-  if (getType(o) == varType) {
-    Var *v = (Var *)RT_unboxPtr(o);
+  if (getType(var) == varType) {
+    Var *v = (Var *)RT_unboxPtr(var);
     res = (v->ns == self) && Symbol_equals(v->sym, sym);
   }
   Ptr_release(self);
   Ptr_release(sym);
-  release(o);
+  release(var);
   return res;
-}
-
-/*
- * Validates whether an existing mapping (`oldVal`) can be safely replaced by a
- * new mapping (`neuVal`). Throws an IllegalStateException if an attempt is made
- * to overwrite a Var interned in this namespace. Consumes all arguments:
- * `self`, `sym`, `oldVal`, and `newVal`.
- */
-bool Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue oldVal,
-                                RTValue newVal) {
-  // In Clojure, once a mapping is established, it cannot be replaced with a
-  // different value/Var/Class.
-  return false;
 }
 
 /*
@@ -218,95 +203,155 @@ Var *Namespace_intern(Namespace *self, Symbol *sym) {
     throwIllegalArgumentException_C("Can't intern namespace-qualified symbol");
   }
 
-  RTValue symVal = RT_boxSymbol((Object *)sym);
+  RTValue mapVal = atomic_load_explicit(&self->mappings, memory_order_acquire);
+  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(mapVal); // 0
+
   Var *v = NULL;
 
-  while (true) {
-    RTValue mapVal =
-        atomic_load_explicit(&self->mappings, memory_order_acquire);
-    PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(mapVal);
+  Ptr_retain(map); // 1
+  Ptr_retain(sym);
+  RTValue o = PersistentArrayMap_get(map, RT_boxPtr(sym)); // 0
 
-    Ptr_retain(map);
-    retain(symVal);
-    RTValue existingVar = PersistentArrayMap_get(map, symVal);
-
-    if (!RT_isNil(existingVar)) {
-      Ptr_retain(self);
-      Ptr_retain(sym);
-      retain(existingVar);
-      if (Namespace_isInternedMapping(self, sym, existingVar)) {
-        if (v != NULL) {
-          release(RT_boxPtr((Object *)v));
-        }
-        Ptr_release(self);
-        Ptr_release(sym);
-        return (Var *)RT_unboxPtr(existingVar);
-      }
-    }
-
+  while (RT_isNil(o)) {
     if (v == NULL) {
       Ptr_retain(self);
       Ptr_retain(sym);
       v = Var_create_interned(self, sym);
     }
-    RTValue newVal = RT_boxPtr((Object *)v);
 
-    if (!RT_isNil(existingVar)) {
-      Ptr_retain(self);
-      Ptr_retain(sym);
-      retain(existingVar);
-      retain(newVal);
-      if (!Namespace_checkReplacement(self, sym, existingVar, newVal)) {
-        retain(existingVar);
-        String *oStr = toString(existingVar);
+    Ptr_retain(v);
+    Ptr_retain(map); // 1
+    Ptr_retain(sym);
+    PersistentArrayMap *newMap =
+        PersistentArrayMap_assoc(map, RT_boxPtr(sym), RT_boxPtr(v)); // 0
 
-        Ptr_retain(oStr);
-        String *flatOStr = String_compactify(oStr);
-
-        char buf[512];
-        snprintf(buf, sizeof(buf), "%s already refers to: %s in namespace: %s",
-                 String_c_str(sym->name), String_c_str(flatOStr),
-                 String_c_str(self->name->name));
-
-        Ptr_release(flatOStr);
-        Ptr_release(oStr);
-
-        release(existingVar);
-        release(newVal);
-        Ptr_release(sym);
-        Ptr_release(self);
-        if (v != NULL) {
-          release(RT_boxPtr((Object *)v));
-        }
-        release(existingVar);
-        Ptr_release(self);
-        Ptr_release(sym);
-        throwIllegalStateException_C(buf);
-      }
-      release(existingVar);
-      release(newVal);
-      Ptr_release(sym);
-      Ptr_release(self);
-      release(existingVar);
+    bool replaced = atomic_compare_exchange_strong_explicit(
+        &self->mappings, &mapVal, RT_boxPtr(newMap), memory_order_acq_rel,
+        memory_order_acquire);
+    if (replaced) {
+      autorelease(mapVal); // -1
+    } else {
+      Ptr_release(newMap); // 0
     }
+    mapVal = atomic_load_explicit(&self->mappings, memory_order_acquire);
+    map = (PersistentArrayMap *)RT_unboxPtr(mapVal); // 0
 
-    Ptr_retain(map);
-    retain(symVal);
-    retain(newVal);
-    PersistentArrayMap *newMap = PersistentArrayMap_assoc(map, symVal, newVal);
-    RTValue newMapVal = RT_boxPtr((Object *)newMap);
-
-    if (atomic_compare_exchange_strong_explicit(&self->mappings, &mapVal,
-                                                newMapVal, memory_order_acq_rel,
-                                                memory_order_acquire)) {
-      autorelease(mapVal);
-      Ptr_release(self);
-      Ptr_release(sym);
-      return v;
-    }
-
-    release(newMapVal);
+    Ptr_retain(map); // 1
+    Ptr_retain(sym);
+    o = PersistentArrayMap_get(map, RT_boxPtr(sym)); // 0
   }
+
+  Ptr_retain(self);
+  Ptr_retain(sym);
+  retain(o);
+  if (Namespace_isInternedMapping(self, sym, o)) {
+    Ptr_release(self);
+    Ptr_release(sym);
+    if (v != NULL) {
+      Ptr_release(v);
+    }
+    return (Var *)RT_unboxPtr(o);
+  }
+
+  if (v == NULL) {
+    Ptr_retain(self);
+    Ptr_retain(sym);
+    v = Var_create_interned(self, sym);
+  }
+
+  Ptr_retain(self);
+  Ptr_retain(sym);
+  retain(o);
+  Ptr_retain(v);
+  if (Namespace_checkReplacement(self, sym, o, RT_boxPtr(v))) {
+    bool replaced = false;
+    while (!replaced) {
+      Ptr_retain(map); // 1
+      Ptr_retain(sym);
+      Ptr_retain(v);
+      PersistentArrayMap *newMap =
+          PersistentArrayMap_assoc(map, RT_boxPtr(sym), RT_boxPtr(v)); // 0
+      printf("Trying to replace %lld with %lld\n", RT_boxPtr(map),
+             RT_boxPtr(newMap));
+
+      replaced = atomic_compare_exchange_strong_explicit(
+          &self->mappings, &mapVal, RT_boxPtr(newMap), memory_order_acq_rel,
+          memory_order_acquire);
+      if (replaced) {
+        autorelease(mapVal); // -1
+      } else {
+        Ptr_release(newMap); // 0
+      }
+      mapVal = atomic_load_explicit(&self->mappings, memory_order_acquire);
+      map = (PersistentArrayMap *)RT_unboxPtr(mapVal); // 0
+    }
+
+    Ptr_release(self);
+    Ptr_release(sym);
+    release(o);
+    return v;
+  }
+  Ptr_release(self);
+  Ptr_release(sym);
+
+  if (v != NULL) {
+    Ptr_release(v);
+  }
+  return (Var *)RT_unboxPtr(o);
+}
+
+/*
+ This method checks if a namespace's mapping is applicable and warns on
+problematic cases. It will return a boolean indicating if a mapping is
+replaceable. The semantics of what constitutes a legal replacement mapping is
+summarized as follows:
+
+| classification | in namespace ns        | newval = anything other than ns/name
+| newval = ns/name                    |
+|----------------+------------------------+--------------------------------------+-------------------------------------|
+| native mapping | name -> ns/name        | no replace, warn-if newval not-core
+| no replace, warn-if newval not-core | | alias mapping  | name ->
+other/whatever | warn + replace                       | warn + replace |
+*/
+
+bool Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue old,
+                                RTValue neu) {
+
+  if (getType(old) == varType) {
+    // Namespace *ons = ((Var *)RT_unboxPtr(old))->ns;
+    Namespace *nns =
+        (getType(neu) == varType) ? ((Var *)RT_unboxPtr(neu))->ns : NULL;
+
+    String *s = String_create("clojure.core");
+    bool isCore = (nns != NULL) && String_equals(nns->name->name, s);
+    Ptr_release(s);
+
+    if (neu) {
+      release(neu);
+    }
+
+    if (Namespace_isInternedMapping(self, sym, old)) {
+      if (!isCore) {
+        // TODO: print to screen
+        // RT.errPrintWriter().println(
+        //     "REJECTED: attempt to replace interned var " + old + " with " +
+        //     neu + " in " + name + ", you must ns-unmap first");
+        return false;
+      } else
+        return false;
+    }
+  } else {
+    release(old);
+    Ptr_release(sym);
+    Ptr_release(self);
+    release(neu);
+  }
+
+  // TODO: print to screen
+  // RT.errPrintWriter().println(
+  //     "WARNING: " + sym + " already refers to: " + old +
+  //     " in namespace: " + name + ", being replaced by: " + neu);
+  return true;
 }
 
 /*
@@ -371,10 +416,6 @@ RTValue Namespace_reference(Namespace *self, Symbol *sym, RTValue val) {
         throwIllegalStateException_C(buf);
       }
       release(o);
-      release(val);
-      Ptr_release(sym);
-      Ptr_release(self);
-      release(o);
     }
 
     Ptr_retain(map);
@@ -397,8 +438,8 @@ RTValue Namespace_reference(Namespace *self, Symbol *sym, RTValue val) {
 }
 
 /*
- * A convenience wrapper for `Namespace_reference` specifically designed to map
- * a symbol to a Class. Consumes `self`, `sym`, and `val`.
+ * A convenience wrapper for `Namespace_reference` specifically designed to
+ * map a symbol to a Class. Consumes `self`, `sym`, and `val`.
  */
 RTValue Namespace_referenceClass(Namespace *self, Symbol *sym, Class *val) {
   // val is a Class pointer, it consumes val.
@@ -455,8 +496,8 @@ void Namespace_unmap(Namespace *self, Symbol *sym) {
 
 /*
  * Imports a Class into the namespace under the given symbol, making it
- * accessible. Wraps `Namespace_referenceClass` and unboxes the result. Consumes
- * `self`, `sym`, and `c` arguments.
+ * accessible. Wraps `Namespace_referenceClass` and unboxes the result.
+ * Consumes `self`, `sym`, and `c` arguments.
  */
 Class *Namespace_importClassSym(Namespace *self, Symbol *sym, Class *c) {
   return (Class *)RT_unboxPtr(Namespace_referenceClass(self, sym, c));
@@ -474,8 +515,8 @@ Var *Namespace_refer(Namespace *self, Symbol *sym, Var *var) {
 
 /*
  * Looks up and retrieves the mapping for the given symbol name in this
- * namespace. Returns the mapped value with a retained (+1) refcount, or nil if
- * not found. Consumes `self` and `name` arguments.
+ * namespace. Returns the mapped value with a retained (+1) refcount, or nil
+ * if not found. Consumes `self` and `name` arguments.
  */
 RTValue Namespace_getMapping(Namespace *self, Symbol *name) {
   RTValue mapVal = atomic_load_explicit(&self->mappings, memory_order_acquire);
@@ -491,7 +532,8 @@ RTValue Namespace_getMapping(Namespace *self, Symbol *name) {
 /*
  * Searches for a Var that is explicitly interned within this namespace under
  * the given symbol. Returns the retained Var (+1 refcount) if found and owned
- * by this namespace, or NULL otherwise. Consumes `self` and `symbol` arguments.
+ * by this namespace, or NULL otherwise. Consumes `self` and `symbol`
+ * arguments.
  */
 RTValue Namespace_findInternedVar(Namespace *self, Symbol *symbol) {
   Ptr_retain(self);
@@ -515,7 +557,8 @@ RTValue Namespace_findInternedVar(Namespace *self, Symbol *symbol) {
 /*
  * Resolves an alias symbol to its corresponding Namespace object.
  * Returns the mapped Namespace pointer as RTValue with a retained (+1)
- * refcount, or RT_boxNil() if not found. Consumes `self` and `alias` arguments.
+ * refcount, or RT_boxNil() if not found. Consumes `self` and `alias`
+ * arguments.
  */
 RTValue Namespace_lookupAlias(Namespace *self, Symbol *alias) {
   RTValue mapVal = atomic_load_explicit(&self->aliases, memory_order_acquire);
@@ -527,10 +570,10 @@ RTValue Namespace_lookupAlias(Namespace *self, Symbol *alias) {
 }
 
 /*
- * Registers a namespace alias, linking the given symbol to the target Namespace
- * `ns`. Throws an exception if the alias is already mapped to a different
- * namespace. Uses lock-free atomic CAS to update the aliases map. Consumes
- * `self`, `alias`, and `ns` arguments.
+ * Registers a namespace alias, linking the given symbol to the target
+ * Namespace `ns`. Throws an exception if the alias is already mapped to a
+ * different namespace. Uses lock-free atomic CAS to update the aliases map.
+ * Consumes `self`, `alias`, and `ns` arguments.
  */
 void Namespace_addAlias(Namespace *self, Symbol *alias, Namespace *ns) {
   if (alias == NULL || ns == NULL) {
@@ -594,9 +637,9 @@ void Namespace_addAlias(Namespace *self, Symbol *alias, Namespace *ns) {
 }
 
 /*
- * Removes a previously registered namespace alias from the aliases dictionary.
- * Uses lock-free atomic CAS to replace the aliases map with the alias
- * dissociated. Consumes `self` and `alias` arguments.
+ * Removes a previously registered namespace alias from the aliases
+ * dictionary. Uses lock-free atomic CAS to replace the aliases map with the
+ * alias dissociated. Consumes `self` and `alias` arguments.
  */
 void Namespace_removeAlias(Namespace *self, Symbol *alias) {
   if (alias->ns != NULL) {
@@ -636,4 +679,20 @@ void Namespace_removeAlias(Namespace *self, Symbol *alias) {
       release(newMapVal);
     }
   }
+}
+
+RTValue RT_inNs(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                Symbol *nsName) __attribute__((swiftcall)) {
+  Namespace *ns = Namespace_findOrCreate(nsName);
+  RTValue coreNsVal =
+      Namespace_find(Symbol_create(String_create("clojure.core")));
+  assert(!RT_isNil(coreNsVal) && "clojure.core namespace not found");
+  Namespace *coreNs = (Namespace *)RT_unboxPtr(coreNsVal);
+
+  RTValue nsVarVal =
+      Namespace_getMapping(coreNs, Symbol_create(String_create("*ns*")));
+  assert(!RT_isNil(nsVarVal) && "clojure.core/*ns* Var not found");
+  Var *nsVar = (Var *)RT_unboxPtr(nsVarVal);
+
+  return Var_set(ctx, nsVar, RT_boxPtr(ns));
 }

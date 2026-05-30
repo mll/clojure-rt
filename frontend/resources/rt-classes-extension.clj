@@ -15,5 +15,11 @@
                      (let [lst (fn [& rest] rest)]
                        (if (= coll nil)
                          (lst)
-                         (.cons coll x))))}]}}}
+                         (.cons coll x))))}]}}
 
+ 'clojure.core/sequence
+ (fn [x] x)
+
+ 'clojure.core/in-ns
+ (fn [x]
+   (clojure.lang.Var/set #'clojure.core/*ns* (clojure.lang.Namespace/findOrCreate x)))}

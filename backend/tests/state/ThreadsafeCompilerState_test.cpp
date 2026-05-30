@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <dlfcn.h>
 
 extern "C" {
 #include <setjmp.h>
@@ -120,12 +121,44 @@ static void test_extend_internal_classes_function_merge(void **state) {
   });
 }
 
+static void test_extend_internal_classes_var_interning(void **state) {
+  (void)state;
+
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+    rt::ThreadsafeCompilerState &compState = engine.threadsafeState;
+
+    // 1. Create a dummy ClojureFunction
+    ClojureFunction *fnObj = Function_create(1, 1, false);
+    Function_fillMethod(fnObj, 0, 0, 1, false, (void *)dlsym(RTLD_DEFAULT, "RT_inNs_bridge"), nullptr, 0);
+
+    // 2. Create the extension map containing a namespace-qualified Var definition: my.ns/my-var -> fnObj
+    PersistentArrayMap *extMap = PersistentArrayMap_empty();
+    Symbol *qualifiedSym = Symbol_create(String_create("my-var"));
+    qualifiedSym->ns = String_create("my.ns");
+
+    extMap = PersistentArrayMap_assoc(extMap, RT_boxPtr(qualifiedSym), RT_boxPtr(fnObj));
+
+    // 3. Extend
+    compState.extendInternalClasses(RT_boxPtr(extMap));
+
+    // 4. Verify that Var my.ns/my-var is interned and bound to fnObj
+    Var *var = compState.getCurrentVar("my.ns/my-var");
+    assert_non_null(var);
+    
+    RTValue boundVal = Var_deref(nullptr, var); // consumes var
+    assert_ptr_equal(RT_unboxPtr(boundVal), fnObj);
+    release(boundVal);
+  });
+}
+
 int main(void) {
   initialise_memory();
 
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_extend_internal_classes_merge),
       cmocka_unit_test(test_extend_internal_classes_function_merge),
+      cmocka_unit_test(test_extend_internal_classes_var_interning),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);

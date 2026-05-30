@@ -31,8 +31,8 @@ void Namespace_promoteToShared(Namespace *self, uword_t count);
 
 RTValue Namespace_getMappings(Namespace *self);
 RTValue Namespace_getAliases(Namespace *self);
+bool Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue old, RTValue neu);
 bool Namespace_isInternedMapping(Namespace *self, Symbol *sym, RTValue o);
-bool Namespace_checkReplacement(Namespace *self, Symbol *sym, RTValue oldVal, RTValue neuVal);
 Var *Namespace_intern(Namespace *self, Symbol *sym);
 RTValue Namespace_reference(Namespace *self, Symbol *sym, RTValue val);
 RTValue Namespace_referenceClass(Namespace *self, Symbol *sym, Class *val);
@@ -42,8 +42,10 @@ Var *Namespace_refer(Namespace *self, Symbol *sym, Var *var);
 RTValue Namespace_getMapping(Namespace *self, Symbol *name);
 RTValue Namespace_findInternedVar(Namespace *self, Symbol *symbol);
 RTValue Namespace_lookupAlias(Namespace *self, Symbol *alias);
+struct ExecutionContext;
 void Namespace_addAlias(Namespace *self, Symbol *alias, Namespace *ns);
 void Namespace_removeAlias(Namespace *self, Symbol *alias);
+RTValue RT_inNs(__attribute__((swift_context)) struct ExecutionContext *ctx, Symbol *nsName) __attribute__((swiftcall));
 
 #ifdef __cplusplus
 }

@@ -12,7 +12,8 @@ TypedValue CodeGen::codegen(const Node &node, const LocalNode &subnode,
   case localTypeArg:
   case localTypeLet:
   case localTypeLoop:
-  case localTypeCatch: {
+  case localTypeCatch:
+  case localTypeFn: {
     auto name = subnode.name();
     auto *val = variableBindingStack.find(name);
     if (!val) {
@@ -35,7 +36,8 @@ ObjectTypeSet CodeGen::getType(const Node &node, const LocalNode &subnode,
   case localTypeArg:
   case localTypeLet:
   case localTypeLoop:
-  case localTypeCatch: {
+  case localTypeCatch:
+  case localTypeFn: {
     auto name = subnode.name();
     auto *type = variableTypesBindingsStack.find(name);
     if (!type) {

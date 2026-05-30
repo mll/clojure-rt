@@ -217,7 +217,8 @@ std::string CodeGen::generateInstanceCallBridge(
 
 llvm::Function *CodeGen::generateBaselineMethod(
     const FnMethodNode &method,
-    const std::vector<std::pair<std::string, ObjectTypeSet>> &captureInfo) {
+    const std::vector<std::pair<std::string, ObjectTypeSet>> &captureInfo,
+    const std::string &selfBindingName) {
   CLJ_ASSERT(TSContext != nullptr, "Codegen was moved");
 
   std::string funcName = "fn_";
@@ -297,6 +298,13 @@ llvm::Function *CodeGen::generateBaselineMethod(
   variableBindingStack.push();
   variableTypesBindingsStack.push();
   functionMetricsStack.push_back({0, false});
+
+  if (!selfBindingName.empty()) {
+    Value *selfPtr = types.getFrameSelfPtr(Builder, framePtr);
+    Value *selfVal = Builder.CreateLoad(types.RT_valueTy, selfPtr, "self");
+    variableBindingStack.set(selfBindingName, TypedValue(ObjectTypeSet(functionType, false), selfVal));
+    variableTypesBindingsStack.set(selfBindingName, ObjectTypeSet(functionType, false));
+  }
 
   std::string loopId = method.loopid();
   if (!loopId.empty()) {

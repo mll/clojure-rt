@@ -3,6 +3,7 @@
 #include "../runtime/Namespace.h"
 #include "../runtime/Symbol.h"
 #include "../runtime/Var.h"
+#include "../runtime/Function.h"
 #include "../tools/EdnParser.h"
 #include "../tools/RTValueWrapper.h"
 namespace rt {
@@ -438,6 +439,7 @@ void ThreadsafeCompilerState::validateProtocolImplementations(
 }
 
 void ThreadsafeCompilerState::extendInternalClasses(RTValue from) {
+  retain(from);
   auto descriptions = buildClasses(from);
 
   for (auto &desc : descriptions) {
@@ -467,6 +469,41 @@ void ThreadsafeCompilerState::extendInternalClasses(RTValue from) {
       }
     }
   }
+
+  // Phase 5: Intern Clojure Var functions defined in class extensions
+  PersistentArrayMap *map = (PersistentArrayMap *)RT_unboxPtr(from);
+  for (uword_t i = 0; i < map->count; i++) {
+    RTValue key = map->keys[i];
+    RTValue value = map->values[i];
+
+    if (getType(key) == symbolType && getType(value) == functionType) {
+      Symbol *sym = (Symbol *)RT_unboxPtr(key);
+      if (sym->ns != nullptr) {
+        std::string nsName = String_c_str(sym->ns);
+        std::string symName = String_c_str(sym->name);
+
+        // Find or create the namespace
+        Ptr_retain(sym->ns);
+        Symbol *nsSym = Symbol_create(sym->ns);
+        Namespace *ns = Namespace_findOrCreate(nsSym);
+
+        // Intern the symbol in that namespace to get the Var
+        Ptr_retain(sym->name);
+        Symbol *varSym = Symbol_create(sym->name);
+        Var *var = Namespace_intern(ns, varSym);
+
+        // Bind root of the Var to the JIT-compiled ClojureFunction object
+        Ptr_retain(var);
+        retain(value);
+        Var_bindRoot(var, value);
+
+        // Register in compiler state so it can be resolved by JIT
+        std::string fullVarName = nsName + "/" + symName;
+        registerVar(fullVarName.c_str(), var);
+      }
+    }
+  }
+  release(from);
 }
 
 Var *ThreadsafeCompilerState::getOrCreateVar(const char *name) {

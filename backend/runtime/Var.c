@@ -115,6 +115,7 @@ RTValue Var_getMeta(Var *self) {
   return val;
 }
 
+/* Outside fercount system */
 Var *Var_setDynamic(Var *self, bool dynamic) { // modifies and returns self
   self->dynamic = dynamic;
   return self;
@@ -219,7 +220,7 @@ RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
 
   // Check if the var has a thread-local binding (Clojure behavior)
   PersistentArrayMap *m = RT_unboxPtr(ctx->bindingsMap);
-  Ptr_retain(m); // indexOf consumes map
+  Ptr_retain(m);    // indexOf consumes map
   Ptr_retain(self); // indexOf consumes key
   if (PersistentArrayMap_indexOf(m, RT_boxPtr(self)) == -1) {
     release(value);
@@ -230,7 +231,7 @@ RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
   retain(value);
   RTValue oldMap = ctx->bindingsMap;
   Ptr_retain(self); // assoc consumes key
-  Ptr_retain(m); // assoc consumes map
+  Ptr_retain(m);    // assoc consumes map
   ctx->bindingsMap =
       RT_boxPtr(PersistentArrayMap_assoc(m, RT_boxPtr(self), value));
   release(oldMap);

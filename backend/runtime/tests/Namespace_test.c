@@ -9,6 +9,7 @@
 #include "../PersistentArrayMap.h"
 #include "../RuntimeInterface.h"
 #include "../ConcurrentHashMap.h"
+#include "../ExecutionContext.h"
 
 extern ConcurrentHashMap *namespaces;
 
@@ -234,12 +235,14 @@ static void test_namespace_redefine_referred_var_should_throw(void **state) {
     Var *ref = Namespace_refer(ns, sym, otherVar);
     Ptr_release(ref);
     
-    // Now try to intern "foo" in ns. This should throw IllegalStateException!
+    // Now try to intern "foo" in ns. Replacement is allowed because the old value was a referred Var (non-interned),
+    // so it should succeed and return the newly created interned Var.
     Ptr_retain(ns); Ptr_retain(sym);
-    ASSERT_THROWS("IllegalStateException", {
-      Var *v = Namespace_intern(ns, sym);
-      Ptr_release(v);
-    });
+    Var *v = Namespace_intern(ns, sym);
+    assert_non_null(v);
+    assert_ptr_equal(v->ns, ns);
+    assert_ptr_equal(v->sym, sym);
+    Ptr_release(v);
     
     Ptr_release(otherVar);
     Ptr_release(otherNs);
@@ -264,12 +267,14 @@ static void test_namespace_redefine_class_should_throw(void **state) {
     RTValue ref = Namespace_reference(ns, sym, RT_boxPtr((Object *)strVal));
     release(ref);
     
-    // Now try to intern "foo" in ns. This should throw IllegalStateException!
+    // Now try to intern "foo" in ns. Replacement is allowed because the old value was a String (non-Var),
+    // so it should succeed and return the newly created interned Var.
     Ptr_retain(ns); Ptr_retain(sym);
-    ASSERT_THROWS("IllegalStateException", {
-      Var *v = Namespace_intern(ns, sym);
-      Ptr_release(v);
-    });
+    Var *v = Namespace_intern(ns, sym);
+    assert_non_null(v);
+    assert_ptr_equal(v->ns, ns);
+    assert_ptr_equal(v->sym, sym);
+    Ptr_release(v);
     
     Ptr_release(ns);
     Ptr_release(sym);
@@ -303,12 +308,12 @@ static void test_namespace_redefine_referred_var_with_other_reference_should_thr
     Var *ref1 = Namespace_refer(ns, sym, otherVar);
     Ptr_release(ref1);
     
-    // Now try to refer thirdVar in ns under "foo". This should throw IllegalStateException!
+    // Now try to refer thirdVar in ns under "foo". Replacement is allowed (with a warning),
+    // so it should succeed and return thirdVar.
     Ptr_retain(ns); Ptr_retain(sym); Ptr_retain(thirdVar);
-    ASSERT_THROWS("IllegalStateException", {
-      Var *ref2 = Namespace_refer(ns, sym, thirdVar);
-      Ptr_release(ref2);
-    });
+    Var *ref2 = Namespace_refer(ns, sym, thirdVar);
+    assert_ptr_equal(ref2, thirdVar);
+    Ptr_release(ref2);
     
     Ptr_release(otherVar);
     Ptr_release(thirdVar);
@@ -318,6 +323,71 @@ static void test_namespace_redefine_referred_var_with_other_reference_should_thr
     Ptr_release(sym);
     Ebr_force_reclaim();
   });
+}
+
+static void test_rt_in_ns(void **state) {
+  (void)state;
+  MemoryState before, after;
+  captureMemoryState(&before);
+  {
+    // Setup execution context with empty bindings map
+    ExecutionContext *ctx = ExecutionContext_create(RT_boxPtr(PersistentArrayMap_empty()));
+    
+    // Setup clojure.core namespace and *ns* Var (like initializeDefaultNamespaces does)
+    Symbol *coreSym = Symbol_create(String_create("clojure.core"));
+    Namespace *coreNs = Namespace_findOrCreate(coreSym);
+    
+    Symbol *nsSym = Symbol_create(String_create("*ns*"));
+    Var *nsVar = Namespace_intern(coreNs, nsSym);
+    Var_setDynamic(nsVar, true);
+    
+    // Set initial bindings map: map *ns* to user namespace
+    Symbol *userSym = Symbol_create(String_create("user"));
+    Namespace *userNs = Namespace_findOrCreate(userSym);
+    Ptr_retain(nsVar);
+    Var_bindRoot(nsVar, RT_boxPtr((Object *)userNs));
+    
+    RTValue oldBindings = ctx->bindingsMap;
+    Ptr_retain(RT_unboxPtr(oldBindings));
+    Ptr_retain(nsVar);
+    Ptr_retain(userNs);
+    ctx->bindingsMap = RT_boxPtr(PersistentArrayMap_assoc(
+        (PersistentArrayMap *)RT_unboxPtr(oldBindings),
+        RT_boxPtr(nsVar),
+        RT_boxPtr((Object *)userNs)));
+    release(oldBindings);
+        
+    // Now call RT_inNs to switch to "my-new-ns"
+    Symbol *newNsSym = Symbol_create(String_create("my-new-ns"));
+    Ptr_retain(newNsSym);
+    RTValue res = RT_inNs(ctx, newNsSym);
+    assert_false(RT_isNil(res));
+    Namespace *newNs = (Namespace *)RT_unboxPtr(res);
+    assert_string_equal(String_c_str(newNs->name->name), "my-new-ns");
+    
+    // Check that the bindings map has indeed been updated to "my-new-ns"
+    Ptr_retain(RT_unboxPtr(ctx->bindingsMap));
+    Ptr_retain(nsVar);
+    RTValue currentNsVal = PersistentArrayMap_get(
+        (PersistentArrayMap *)RT_unboxPtr(ctx->bindingsMap),
+        RT_boxPtr(nsVar));
+    assert_ptr_equal(RT_unboxPtr(currentNsVal), newNs);
+    release(currentNsVal);
+    
+    // Clean up
+    release(res);
+    Ptr_release(ctx);
+    Ptr_release(nsVar);
+    
+    // We created "clojure.core", "user" and "my-new-ns". Let's dissoc them from the global map to prevent leaks:
+    ConcurrentHashMap_dissoc_preservesSelf(namespaces, RT_boxSymbol((Object *)Symbol_create(String_create("clojure.core"))));
+    ConcurrentHashMap_dissoc_preservesSelf(namespaces, RT_boxSymbol((Object *)Symbol_create(String_create("user"))));
+    ConcurrentHashMap_dissoc_preservesSelf(namespaces, RT_boxSymbol((Object *)Symbol_create(String_create("my-new-ns"))));
+    Ptr_release(newNsSym);
+    Ebr_force_reclaim();
+  }
+  captureMemoryState(&after);
+  assertMemoryBalanceExcept(&before, &after, (int[]){stringType, persistentVectorType, persistentVectorNodeType, symbolType}, 4);
 }
 
 int main(void) {
@@ -332,6 +402,7 @@ int main(void) {
       cmocka_unit_test(test_namespace_redefine_referred_var_should_throw),
       cmocka_unit_test(test_namespace_redefine_class_should_throw),
       cmocka_unit_test(test_namespace_redefine_referred_var_with_other_reference_should_throw),
+      cmocka_unit_test(test_rt_in_ns),
   };
   int res = cmocka_run_group_tests(tests, NULL, NULL);
   RuntimeInterface_cleanup();

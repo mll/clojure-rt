@@ -268,6 +268,163 @@ static void test_fn_bigint_arg(void **state) {
   });
 }
 
+// (fn zorba [x] zorba)
+static void test_named_fn(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
+    Node fnNode;
+    fnNode.set_op(opFn);
+    auto *fn = fnNode.mutable_subnode()->mutable_fn();
+    fn->set_once(false);
+    fn->set_maxfixedarity(1);
+
+    auto *localNode = fn->mutable_local();
+    localNode->set_op(opBinding);
+    localNode->mutable_subnode()->mutable_binding()->set_name("zorba");
+
+    auto *m = fn->add_methods();
+    auto *mn = m->mutable_subnode()->mutable_fnmethod();
+    mn->set_fixedarity(1);
+    mn->set_isvariadic(false);
+
+    auto *param = mn->add_params();
+    param->set_op(opBinding);
+    param->mutable_subnode()->mutable_binding()->set_name("x");
+
+    auto *body = mn->mutable_body();
+    body->set_op(opLocal);
+    body->mutable_subnode()->mutable_local()->set_name("zorba");
+    
+    auto *drop = body->add_dropmemory();
+    drop->set_variablename("zorba");
+    drop->set_requiredrefcountchange(1);
+
+    auto res = engine.compileAST(fnNode, "named_fn").get();
+
+    // Execute: returns a ClojureFunction object
+    RTValue funObj = res.address.toPtr<RTValue (*)()>()();
+    assert_true(RT_isPtr(funObj));
+    assert_int_equal(functionType, ::getType(funObj));
+
+    ClojureFunction *f = (ClojureFunction *)RT_unboxPtr(funObj);
+    assert_int_equal(1, f->methodCount);
+
+    // Call it manually to check if zorba is available inside
+    struct ExecutionContext ctx;
+    memset(&ctx, 0, sizeof(ctx));
+    RTValue arg = RT_boxInt32(1);
+    RTValue ret = RT_invokeMethod(&ctx, funObj, &f->methods[0], &arg, 1);
+    
+    // The body returns `zorba`, which should be the same function object
+    assert_true(RT_isPtr(ret));
+    assert_int_equal(functionType, ::getType(ret));
+    
+    // They should be equal
+    assert_ptr_equal(RT_unboxPtr(funObj), RT_unboxPtr(ret));
+
+    release(funObj);
+    release(ret);
+  });
+}
+
+// (fn zorba [x] (fn borba [y] zorba))
+static void test_nested_named_fn(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    rt::JITEngine engine;
+
+    Node outerFnNode;
+    outerFnNode.set_op(opFn);
+    auto *outerFn = outerFnNode.mutable_subnode()->mutable_fn();
+    outerFn->set_once(false);
+    outerFn->set_maxfixedarity(1);
+
+    auto *outerLocal = outerFn->mutable_local();
+    outerLocal->set_op(opBinding);
+    outerLocal->mutable_subnode()->mutable_binding()->set_name("zorba");
+
+    auto *outerM = outerFn->add_methods();
+    auto *outerMn = outerM->mutable_subnode()->mutable_fnmethod();
+    outerMn->set_fixedarity(1);
+    outerMn->set_isvariadic(false);
+
+    auto *outerParam = outerMn->add_params();
+    outerParam->set_op(opBinding);
+    outerParam->mutable_subnode()->mutable_binding()->set_name("x");
+
+    // The body of the outer function is the inner function
+    auto *innerFnBody = outerMn->mutable_body();
+    innerFnBody->set_op(opFn);
+    auto *innerFn = innerFnBody->mutable_subnode()->mutable_fn();
+    innerFn->set_once(false);
+    innerFn->set_maxfixedarity(1);
+
+    auto *innerLocal = innerFn->mutable_local();
+    innerLocal->set_op(opBinding);
+    innerLocal->mutable_subnode()->mutable_binding()->set_name("borba");
+
+    auto *innerFnDrop = innerFnBody->add_dropmemory();
+    innerFnDrop->set_variablename("zorba");
+    innerFnDrop->set_requiredrefcountchange(1);
+
+    auto *innerM = innerFn->add_methods();
+    auto *innerMn = innerM->mutable_subnode()->mutable_fnmethod();
+    innerMn->set_fixedarity(1);
+    innerMn->set_isvariadic(false);
+
+    auto *innerParam = innerMn->add_params();
+    innerParam->set_op(opBinding);
+    innerParam->mutable_subnode()->mutable_binding()->set_name("y");
+
+    // The inner function captures 'zorba'
+    auto *co = innerMn->add_closedovers();
+    co->set_op(opLocal);
+    co->mutable_subnode()->mutable_local()->set_name("zorba");
+
+    auto *innerBody = innerMn->mutable_body();
+    innerBody->set_op(opLocal);
+    innerBody->mutable_subnode()->mutable_local()->set_name("zorba");
+
+    // We don't bother setting up dropmemory for this manual test
+    // to keep it simple, it'll just test the compilation path
+
+    auto res = engine.compileAST(outerFnNode, "nested_named_fn").get();
+
+    // Execute: returns a ClojureFunction object
+    RTValue outerFunObj = res.address.toPtr<RTValue (*)()>()();
+    assert_true(RT_isPtr(outerFunObj));
+    assert_int_equal(functionType, ::getType(outerFunObj));
+
+    ClojureFunction *outerF = (ClojureFunction *)RT_unboxPtr(outerFunObj);
+    assert_int_equal(1, outerF->methodCount);
+
+    // Call outer function to get inner function
+    struct ExecutionContext ctx;
+    memset(&ctx, 0, sizeof(ctx));
+    RTValue arg = RT_boxInt32(1);
+    RTValue innerFunObj = RT_invokeMethod(&ctx, outerFunObj, &outerF->methods[0], &arg, 1);
+    
+    assert_true(RT_isPtr(innerFunObj));
+    assert_int_equal(functionType, ::getType(innerFunObj));
+
+    ClojureFunction *innerF = (ClojureFunction *)RT_unboxPtr(innerFunObj);
+    assert_int_equal(1, innerF->methodCount);
+    // inner function should have 1 closed-over capture (zorba)
+    assert_int_equal(1, innerF->methods[0].closedOversCount);
+
+    // Call inner function to return zorba
+    RTValue retZorba = RT_invokeMethod(&ctx, innerFunObj, &innerF->methods[0], &arg, 1);
+
+    // It should be the same as outerFunObj
+    assert_ptr_equal(RT_unboxPtr(outerFunObj), RT_unboxPtr(retZorba));
+
+    release(outerFunObj);
+    release(innerFunObj);
+  });
+}
+
 int main(void) {
   initialise_memory();
   const struct CMUnitTest tests[] = {
@@ -275,6 +432,8 @@ int main(void) {
       cmocka_unit_test(test_fn_capture_unboxing_int),
       cmocka_unit_test(test_multi_arity_fn),
       cmocka_unit_test(test_fn_bigint_arg),
+      cmocka_unit_test(test_named_fn),
+      cmocka_unit_test(test_nested_named_fn),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);

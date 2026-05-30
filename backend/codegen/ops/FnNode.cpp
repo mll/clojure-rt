@@ -59,25 +59,37 @@ TypedValue CodeGen::codegen(const Node &node, const FnNode &subnode,
   for (int i = 0; i < (int)methods.size(); ++i) {
     const FnMethodNode &m = *methods[i].node;
 
+    std::string selfBindingName = "";
+    if (subnode.has_local()) {
+      selfBindingName = subnode.local().subnode().binding().name();
+    }
+
     // Calculate types and names for captures (closed-overs)
     std::vector<std::pair<std::string, ObjectTypeSet>> captureInfo;
     for (const auto &node : m.closedovers()) {
-      // Calculate type in outer scope.
-      // Note: getType() should work correctly here.
-      ObjectTypeSet type = getType(node, ObjectTypeSet::all());
-
-      // Determine name
+      // Determine name of the capture first
       std::string name = "unknown";
       if (node.subnode().has_local()) {
         name = node.subnode().local().name();
       } else if (node.subnode().has_binding()) {
         name = node.subnode().binding().name();
       }
+
+      // The analyzer places the named function's own name in its closed-overs.
+      // However, we bind 'self' manually inside the baseline method from the Frame.
+      // We must not treat it as a regular closed-over capture.
+      if (!selfBindingName.empty() && name == selfBindingName) {
+        continue;
+      }
+
+      // Calculate type in outer scope.
+      ObjectTypeSet type = getType(node, ObjectTypeSet::all());
+
       captureInfo.push_back({name, type});
     }
 
     // Generate the IR for the method
-    llvm::Function *baselineF = generateBaselineMethod(m, captureInfo);
+    llvm::Function *baselineF = generateBaselineMethod(m, captureInfo, selfBindingName);
 
     // Handle closed overs (captures) for the fillMethod call
     // (these will be boxed RTValues in the runtime)
@@ -95,11 +107,21 @@ TypedValue CodeGen::codegen(const Node &node, const FnNode &subnode,
     fillArgs.push_back(baselineF);
     fillArgs.push_back(
         Builder.CreateGlobalString(m.loopid())); // loopId (string)
-    fillArgs.push_back(llvm::ConstantInt::get(types.wordTy, m.closedovers_size()));
+    fillArgs.push_back(llvm::ConstantInt::get(types.wordTy, captureInfo.size()));
 
     // Codegen and box each capture
     for (int j = 0; j < m.closedovers_size(); ++j) {
-      TypedValue capture = codegen(m.closedovers(j), ObjectTypeSet::all());
+      const auto &node = m.closedovers(j);
+      std::string name = "unknown";
+      if (node.subnode().has_local()) {
+        name = node.subnode().local().name();
+      } else if (node.subnode().has_binding()) {
+        name = node.subnode().binding().name();
+      }
+      if (!selfBindingName.empty() && name == selfBindingName) {
+        continue;
+      }
+      TypedValue capture = codegen(node, ObjectTypeSet::all());
       TypedValue boxed = valueEncoder.box(capture);
       fillArgs.push_back(boxed.value);
     }

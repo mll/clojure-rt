@@ -132,7 +132,8 @@ public:
 
   llvm::Function *generateBaselineMethod(
       const FnMethodNode &method,
-      const std::vector<std::pair<std::string, ObjectTypeSet>> &captureInfo);
+      const std::vector<std::pair<std::string, ObjectTypeSet>> &captureInfo,
+      const std::string &selfBindingName = "");
 
   TypedValue codegen(const Node &node, const ObjectTypeSet &typeRestrictions);
 

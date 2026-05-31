@@ -267,10 +267,10 @@ public:
     FunctionScopeGuard(CodeGen &cg, llvm::Function *newFunction)
         : cg(cg), ipGuard(cg.Builder),
           prevLexicalBlocksSize(cg.LexicalBlocks.size()) {
-      cg.memoryManagement.pushState(newFunction);
+      cg.memoryManagement.suspendStateForNestedFunction(newFunction);
     }
     ~FunctionScopeGuard() {
-      cg.memoryManagement.popState();
+      cg.memoryManagement.restoreStateFromNestedFunction();
       while (cg.LexicalBlocks.size() > prevLexicalBlocksSize) {
         cg.LexicalBlocks.pop_back();
       }

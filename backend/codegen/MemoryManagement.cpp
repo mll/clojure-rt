@@ -36,7 +36,7 @@ void MemoryManagement::initFunction(llvm::Function *F) {
   clear();
 }
 
-void MemoryManagement::pushState(llvm::Function *F) {
+void MemoryManagement::suspendStateForNestedFunction(llvm::Function *F) {
   stateStack.push_back({exceptionSlot, terminalResumeBB,
                         std::move(cleanupStack), std::move(activeResources),
                         totalPushedResources, resourcesWithCleanup,
@@ -44,10 +44,10 @@ void MemoryManagement::pushState(llvm::Function *F) {
   initFunction(F);
 }
 
-void MemoryManagement::popState() {
+void MemoryManagement::restoreStateFromNestedFunction() {
   if (stateStack.empty()) {
     throwInternalInconsistencyException(
-        "MemoryManagement::popState called on empty stack");
+        "MemoryManagement::restoreStateFromNestedFunction called on empty stack");
   }
   FunctionState &s = stateStack.back();
   exceptionSlot = s.exceptionSlot;
@@ -273,6 +273,44 @@ TypedValue MemoryManagement::dynamicRelease(const TypedValue &target) {
 }
 
 void MemoryManagement::dynamicIsReusable(const TypedValue &target) {}
+
+bool MemoryManagement::hasPushedResources() const {
+  return !activeResources.empty();
+}
+
+bool MemoryManagement::hasActiveGuidance() const {
+  return activeUnwindGuidance != nullptr && !activeUnwindGuidance->empty();
+}
+
+const google::protobuf::RepeatedPtrField<MemoryManagementGuidance> *
+MemoryManagement::getActiveUnwindGuidance() const {
+  return activeUnwindGuidance;
+}
+
+void MemoryManagement::setActiveUnwindGuidance(
+    const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>
+        *guidance) {
+  activeUnwindGuidance = guidance;
+  // Clearing cache because guidance might change between nodes for the same
+  // skipCount
+  lpadCache.clear();
+}
+
+void MemoryManagement::clearActiveUnwindGuidance() {
+  activeUnwindGuidance = nullptr;
+  lpadCache.clear();
+}
+
+MemoryManagement::UnwindGuidanceGuard::UnwindGuidanceGuard(
+    MemoryManagement &mm,
+    const google::protobuf::RepeatedPtrField<MemoryManagementGuidance> *current)
+    : mm(mm), prev(mm.getActiveUnwindGuidance()) {
+  mm.setActiveUnwindGuidance(current);
+}
+
+MemoryManagement::UnwindGuidanceGuard::~UnwindGuidanceGuard() {
+  mm.setActiveUnwindGuidance(prev);
+}
 
 // CleanupChainGuard implementation
 CleanupChainGuard::CleanupChainGuard(CodeGen &c) : cg(c) {}

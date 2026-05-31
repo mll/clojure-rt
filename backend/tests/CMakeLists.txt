@@ -31,6 +31,7 @@ set(TEST_MODULES
     codegen/NewNode_test
     codegen/IsInstanceNode_test
     codegen/ThrowNode_test
+    codegen/TryNode_test
     codegen/FnNode_test
     codegen/InvokeNode_test
     codegen/InvokeMemory_test

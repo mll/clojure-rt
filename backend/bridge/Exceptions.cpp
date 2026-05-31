@@ -7,9 +7,11 @@
 #include "llvm/Object/ObjectFile.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include <cxxabi.h>
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <map>
+#include "runtime/Exception.h"
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -830,6 +832,72 @@ extern "C" [[noreturn]] void throwException_C(RTValue exceptionBoxed) {
 
 extern "C" void deleteException_C(void *exception) {
   delete (rt::LanguageException *)exception;
+}
+
+/**
+ * Captures a currently active C++ ABI exception, extracting its payload and wrapping it 
+ * in a Clojure-compatible Exception object allocated on the garbage collected heap.
+ * 
+ * When __cxa_end_catch is subsequently called, the original C++ exception object 
+ * will be destroyed. This function performs a deep copy of the underlying 
+ * rt::LanguageException to ensure that its data outlives the catch block, allowing 
+ * it to be bound to a local variable in Clojure and safely used thereafter.
+ * 
+ * @param cxa_exception A pointer to the C++ ABI exception object.
+ * @return An RTValue boxing the newly allocated Clojure Exception object.
+ */
+extern "C" RTValue RT_captureException(void* cxa_exception) {
+  rt::LanguageException* le = (rt::LanguageException*)cxa_exception;
+  rt::LanguageException* copy = new rt::LanguageException(*le);
+  
+  if (getType(copy->getMessage()) != nilType) {
+    retain(copy->getMessage());
+  }
+  if (getType(copy->getPayload()) != nilType) {
+    retain(copy->getPayload());
+  }
+  
+  Exception* ex = (Exception*)allocate(sizeof(Exception));
+  Object_create((Object *)ex, exceptionType);
+  ex->bridgedData = copy;
+  
+  return RT_boxPtr(ex);
+}
+
+/**
+ * Wrapper for the C++ ABI __cxa_begin_catch function.
+ * This function marks the exception as officially caught, initializing its catch state.
+ * Crucially, calling this function obligates the execution flow to eventually call 
+ * __cxa_end_catch (unless rethrown) to properly free the memory allocated for the 
+ * exception by the C++ runtime.
+ * 
+ * @param ex A pointer to the C++ ABI exception object (from the landing pad).
+ * @return A pointer to the adjusted exception payload (rt::LanguageException).
+ */
+extern "C" void* RT_cxa_begin_catch(void* ex) {
+  return abi::__cxa_begin_catch(ex);
+}
+
+/**
+ * Wrapper for the C++ ABI __cxa_end_catch function.
+ * This function cleans up the state of the currently caught exception and frees its 
+ * memory. It must be called exactly once per __cxa_begin_catch call upon the completion 
+ * of the catch block, unless the exception is rethrown via __cxa_rethrow. 
+ * Failure to call this function will result in a memory leak.
+ */
+extern "C" void RT_cxa_end_catch() {
+  abi::__cxa_end_catch();
+}
+
+/**
+ * Wrapper for the C++ ABI __cxa_rethrow function.
+ * This function re-throws the currently caught exception without creating a new 
+ * exception object, preserving its original type and stack trace. 
+ * It automatically handles the cleanup of the catch state, meaning that 
+ * __cxa_end_catch should NOT be called if an exception is rethrown.
+ */
+extern "C" void RT_cxa_rethrow() {
+  abi::__cxa_rethrow();
 }
 
 } // namespace rt

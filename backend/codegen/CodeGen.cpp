@@ -568,7 +568,11 @@ TypedValue CodeGen::codegen(const Node &node,
             node.subnode().keywordinvoke()),
         typeRestrictions);
   case opTry:
-  //   return codegen(node, node.subnode().try_(), typeRestrictions);
+    return this->codegen(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::TryNode &>(
+            node.subnode().try_()),
+        typeRestrictions);
   case opVar:
     return codegen(node, node.subnode().var(), typeRestrictions);
   case opFn:
@@ -687,7 +691,11 @@ ObjectTypeSet CodeGen::getType(const Node &node,
             node.subnode().throw_()),
         typeRestrictions);
   case opTry:
-  //   return getType(node, node.subnode().try_(), typeRestrictions);
+    return this->getType(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::TryNode &>(
+            node.subnode().try_()),
+        typeRestrictions);
   case opVar:
     return getType(node, node.subnode().var(), typeRestrictions);
   case opWithMeta:

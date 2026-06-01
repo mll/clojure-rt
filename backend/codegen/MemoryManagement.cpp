@@ -13,6 +13,7 @@
 #include "runtime/ObjectProto.h"
 #include "types/ObjectTypeSet.h"
 #include "llvm/ADT/StringSwitch.h"
+#include <algorithm>
 #include <cstdint>
 #include <llvm/IR/Constants.h>
 #include <string>
@@ -47,7 +48,8 @@ void MemoryManagement::suspendStateForNestedFunction(llvm::Function *F) {
 void MemoryManagement::restoreStateFromNestedFunction() {
   if (stateStack.empty()) {
     throwInternalInconsistencyException(
-        "MemoryManagement::restoreStateFromNestedFunction called on empty stack");
+        "MemoryManagement::restoreStateFromNestedFunction called on empty "
+        "stack");
   }
   FunctionState &s = stateStack.back();
   exceptionSlot = s.exceptionSlot;
@@ -117,9 +119,8 @@ MemoryManagement::getLandingPad(size_t skipCount,
   }
 
   // 1. Calculate how many resources effectively need protection (survivors)
-  size_t survivorCount = (skipCount < activeResources.size())
-                             ? (activeResources.size() - skipCount)
-                             : 0;
+  size_t survivorCount =
+      std::max(0, (int)activeResources.size() - (int)skipCount);
 
   bool hasGuidance = activeUnwindGuidance && !activeUnwindGuidance->empty();
 

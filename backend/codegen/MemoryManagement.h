@@ -47,10 +47,12 @@ public:
 
   /// Registers a dynamically allocated value as an active resource. If an exception
   /// occurs, this resource will be automatically released during stack unwinding.
+  /// NOTE: This should exclusively be called via the `CleanupChainGuard` RAII guard.
   void pushResource(TypedValue val);
 
   /// Deregisters the most recently pushed resource. Called when a resource's 
   /// lifetime ends normally without an exception (e.g., when it is returned or consumed).
+  /// NOTE: This should exclusively be called via the `CleanupChainGuard` RAII guard.
   void popResource();
 
   /// Retrieves or lazily generates a landing pad basic block for catching exceptions.
@@ -176,6 +178,10 @@ private:
   std::vector<FunctionState> stateStack;
   void *jitEnginePtr = nullptr;
 
+  /// Lazily allocates the exception handling slot (`exceptionSlot`) and creates the
+  /// terminal resume block (`terminalResumeBB`) if they haven't been created yet for
+  /// the current function. This ensures we don't emit unused exception blocks in functions
+  /// that never actually throw or catch.
   void ensureExceptionInfrastructure(llvm::Function *F);
 };
 

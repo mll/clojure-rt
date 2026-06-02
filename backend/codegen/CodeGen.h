@@ -242,8 +242,6 @@ public:
   bool canThrow(const clojure::rt::protobuf::bytecode::Node &node);
 
   // Exception safety helpers
-  void pushResource(TypedValue val) { memoryManagement.pushResource(val); }
-  void popResource() { memoryManagement.popResource(); }
   llvm::BasicBlock *getLandingPad(size_t skipCount = 0) {
     return memoryManagement.getLandingPad(skipCount);
   }

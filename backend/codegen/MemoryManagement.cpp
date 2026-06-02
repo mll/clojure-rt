@@ -319,14 +319,14 @@ CleanupChainGuard::~CleanupChainGuard() { popAll(); }
 
 void CleanupChainGuard::push(TypedValue val) {
   if (needsProtection(val.type)) {
-    cg.pushResource(val);
+    cg.getMemoryManagement().pushResource(val);
     pushedCount++;
   }
 }
 
 void CleanupChainGuard::popAll() {
   while (pushedCount > 0) {
-    cg.popResource();
+    cg.getMemoryManagement().popResource();
     pushedCount--;
   }
 }

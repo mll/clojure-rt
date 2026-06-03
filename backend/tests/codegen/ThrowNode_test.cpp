@@ -25,13 +25,12 @@ static void test_throw_exception_bridge(void **state) {
 
     RTValue msg = RT_boxPtr(String_createDynamicStr("test message"));
 
-    // In our runtime, Exception objects wrap LanguageException
-    LanguageException *lePtr =
-        new LanguageException("AssertionError", msg, RT_boxNil());
+    // In our runtime, Exception objects wrap BridgedExceptionWrapper created via createException_C
+    void *wrapper = createException_C("AssertionError", (String *)RT_unboxPtr(msg), RT_boxNil());
 
     Exception *ex = (Exception *)malloc(sizeof(Exception));
     Object_create((Object *)ex, exceptionType);
-    ex->bridgedData = lePtr;
+    ex->bridgedData = wrapper;
 
     RTValue boxedEx = RT_boxPtr(ex);
 

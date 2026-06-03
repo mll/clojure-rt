@@ -91,8 +91,13 @@ void Class_destroy(Class *self) {
   }
 }
 
+bool Exception_isInstance(const char *className, void *jitEngine, RTValue exceptionInstance);
+
 bool Class_isInstanceClassName(const char *className, void *jitEngine,
                                RTValue instance) {
+  if (getType(instance) == exceptionType) {
+    return Exception_isInstance(className, jitEngine, instance);
+  }
   // Throws when class cannot be found.
   Class *cls = ClassLookupByName(className, jitEngine);
   assert(cls && "cls must not be null");

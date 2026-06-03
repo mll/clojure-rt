@@ -110,3 +110,8 @@ createException_C(const char *className, String *message, RTValue payload) {
 }
 
 __attribute__((weak)) void deleteException_C(void *exception) {}
+
+__attribute__((weak)) bool Exception_isInstance(const char *className, void *jitEngine, RTValue exceptionInstance) {
+  release(exceptionInstance);
+  return false;
+}

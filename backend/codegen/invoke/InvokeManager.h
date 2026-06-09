@@ -63,6 +63,7 @@ private:
   ObjectTypeSet createQ(mpq_ptr val);
   bool canThrow(const std::string &fname) const;
   bool hasSwiftSelf(const std::vector<llvm::Value *> &args);
+
 public:
   explicit InvokeManager(llvm::IRBuilder<> &b, llvm::Module &m, ValueEncoder &v,
                          LLVMTypes &t, ThreadsafeCompilerState &s, CodeGen &cg);
@@ -126,11 +127,11 @@ public:
       const clojure::rt::protobuf::bytecode::Node *node = nullptr,
       const std::vector<TypedValue> &extraCleanup = {});
 
-
-  TypedValue generateVarInvoke(
-      TypedValue varObj, const std::vector<TypedValue> &args,
-      CleanupChainGuard *guard = nullptr,
-      const clojure::rt::protobuf::bytecode::Node *node = nullptr);
+  TypedValue
+  generateVarInvoke(TypedValue varObj, const std::vector<TypedValue> &args,
+                    CleanupChainGuard *guard = nullptr,
+                    const clojure::rt::protobuf::bytecode::Node *node = nullptr,
+                    bool forceStaticVar = false);
 
   TypedValue generateStaticKeywordInvoke(
       TypedValue keyword, const std::vector<TypedValue> &args,
@@ -153,8 +154,8 @@ public:
       const clojure::rt::protobuf::bytecode::Node *node = nullptr,
       const std::vector<TypedValue> &extraCleanup = {});
 
-  llvm::Value *generateICLookup(
-      llvm::Value *currentVal, size_t argCount, CleanupChainGuard *guard);
+  llvm::Value *generateICLookup(llvm::Value *currentVal, size_t argCount,
+                                CleanupChainGuard *guard);
 
   const std::vector<std::string> &getICSlotNames() const { return icSlotNames; }
 };

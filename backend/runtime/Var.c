@@ -200,7 +200,13 @@ RTValue Var_peek(__attribute__((swift_context)) struct ExecutionContext *ctx,
       }
     }
   }
-  return atomic_load_explicit(&self->root, memory_order_acquire);
+  return atomic_load_explicit(&self->root, memory_order_relaxed);
+}
+
+RTValue
+Var_peekStatic(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                Var *self) __attribute__((swiftcall)) {
+  return atomic_load_explicit(&self->root, memory_order_relaxed);
 }
 
 RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,

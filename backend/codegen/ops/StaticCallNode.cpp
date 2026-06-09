@@ -168,7 +168,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
         if (!argRuntimeTypes[i]) {
           TypedValue boxed = this->valueEncoder.box(args[i]);
           FunctionType *getTypeSig = FunctionType::get(
-              this->types.wordTy, {this->types.RT_valueTy}, false);
+              this->types.i32Ty, {this->types.RT_valueTy}, false);
           argRuntimeTypes[i] = this->invokeManager.invokeRaw(
               "getType", getTypeSig, {boxed.value}, &guard, true);
         }
@@ -177,7 +177,7 @@ TypedValue CodeGen::codegen(const Node &node, const StaticCallNode &subnode,
         Value *targetVal =
             ConstantInt::get(this->types.i32Ty, (uint32_t)targetID);
         Value *isType = this->Builder.CreateICmpEQ(
-            this->Builder.CreateTrunc(argRuntimeTypes[i], this->types.i32Ty),
+            argRuntimeTypes[i],
             targetVal);
 
         if (match) {

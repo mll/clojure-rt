@@ -24,7 +24,18 @@
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Transforms/IPO/Inliner.h>
 #include <llvm/Transforms/IPO/ModuleInliner.h>
+#include <llvm/Transforms/Instrumentation/AddressSanitizer.h>
 #include <string>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void __asan_version_mismatch_check_v8(void) {}
+
+#ifdef __cplusplus
+}
+#endif
 
 namespace rt {
 
@@ -187,6 +198,9 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
             try {
               auto codeGenerator =
                   CodeGen(moduleName, threadsafeState, (void *)this);
+              codeGenerator.TheModule->setTargetTriple(
+                  TM->getTargetTriple().str());
+              codeGenerator.TheModule->setDataLayout(TM->createDataLayout());
 
               std::string fName;
               try {
@@ -501,6 +515,9 @@ void JITEngine::registerRuntimeSymbols() {
   runtimeSymbols.insert(
       absoluteSymbol("deleteException_C", (void *)deleteException_C));
 
+  runtimeSymbols.insert(
+      absoluteSymbol("__asan_version_mismatch_check_v8",
+                     (void *)__asan_version_mismatch_check_v8));
   cantFail(jit->getMainJITDylib().define(
       absoluteSymbols(std::move(runtimeSymbols))));
 }
@@ -672,6 +689,15 @@ void JITEngine::optimize(llvm::Module &M, const std::string &entryPoint) {
 
   MPM.addPass(PB.buildPerModuleDefaultPipeline(optLevel));
   MPM.addPass(llvm::GlobalDCEPass());
+
+  if (optLevel == llvm::OptimizationLevel::O0) {
+    llvm::AddressSanitizerOptions opts;
+    MPM.addPass(llvm::AddressSanitizerPass(opts,
+                                           /*UseGlobalGC=*/true,
+                                           /*UseOdrIndicator=*/false,
+                                           llvm::AsanDtorKind::Global,
+                                           llvm::AsanCtorKind::Global));
+  }
   MPM.run(M, MAM);
 }
 

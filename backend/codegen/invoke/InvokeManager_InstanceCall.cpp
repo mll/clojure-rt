@@ -91,11 +91,11 @@ TypedValue InvokeManager::generateDynamicInstanceCall(
   // 1. Get current instance type
   TypedValue boxedInstance = valueEncoder.box(instance);
   FunctionType *getTypeSig =
-      FunctionType::get(types.wordTy, {types.RT_valueTy}, false);
+      FunctionType::get(types.i32Ty, {types.RT_valueTy}, false);
   FunctionCallee getTypeFunc =
       theModule.getOrInsertFunction("getType", getTypeSig);
-  Value *currentTypeIdent =
-      builder.CreateCall(getTypeFunc, {boxedInstance.value});
+  Value *currentTypeIdent = builder.CreateZExt(
+      builder.CreateCall(getTypeFunc, {boxedInstance.value}), types.wordTy);
 
   // 2. Check IC hit (Atomic load for consistency)
   unsigned int pairSizeBits = wordSizeBits * 2;

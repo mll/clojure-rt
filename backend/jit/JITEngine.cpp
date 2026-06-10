@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-void __asan_version_mismatch_check_v8(void) {}
+__attribute__((weak)) void __asan_version_mismatch_check_v8(void) {}
 
 #ifdef __cplusplus
 }

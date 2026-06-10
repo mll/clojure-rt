@@ -184,7 +184,22 @@ void symbolizeStackChain(std::stringstream &ss,
                   auto objOrErr = llvm::object::ObjectFile::createObjectFile(
                       buffer->getMemBufferRef());
                   if (objOrErr) {
-                    uword_t offset = addr - entryStart;
+                    uword_t symbolOffsetInObj = 0;
+                    for (auto const &Sym : objOrErr.get()->symbols()) {
+                      auto nameOrErr = Sym.getName();
+                      if (nameOrErr) {
+                        std::string symName = nameOrErr.get().str();
+                        if (symName == entry.name || (symName.starts_with("_") && symName.substr(1) == entry.name)) {
+                          auto valOrErr = Sym.getValue();
+                          if (valOrErr) {
+                            symbolOffsetInObj = valOrErr.get();
+                            break;
+                          }
+                        }
+                      }
+                    }
+
+                    uword_t offset = symbolOffsetInObj + (addr - entryStart);
                     if (offset >= 4)
                       offset -= 4;
 
@@ -447,7 +462,22 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
             auto objOrErr = llvm::object::ObjectFile::createObjectFile(
                 buffer->getMemBufferRef());
             if (objOrErr) {
-              uword_t offset = addr - entryStart;
+              uword_t symbolOffsetInObj = 0;
+              for (auto const &Sym : objOrErr.get()->symbols()) {
+                auto nameOrErr = Sym.getName();
+                if (nameOrErr) {
+                  std::string symName = nameOrErr.get().str();
+                  if (symName == entry.name || (symName.starts_with("_") && symName.substr(1) == entry.name)) {
+                    auto valOrErr = Sym.getValue();
+                    if (valOrErr) {
+                      symbolOffsetInObj = valOrErr.get();
+                      break;
+                    }
+                  }
+                }
+              }
+
+              uword_t offset = symbolOffsetInObj + (addr - entryStart);
               if (offset >= 4)
                 offset -= 4;
 

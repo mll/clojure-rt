@@ -135,6 +135,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(EMULATED_TLS_FLAG "-femulated-tls")
 endif()
 
+set(NDEBUG_FLAG "")
+if(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo|MinSizeRel)$")
+    set(NDEBUG_FLAG "-DNDEBUG")
+endif()
+
 # 2. Compile each source file to an individual .bc file
 foreach(src ${SOURCES})
     get_filename_component(basename ${src} NAME_WE)
@@ -145,7 +150,7 @@ foreach(src ${SOURCES})
         COMMAND ${CLANG_EXECUTABLE} -emit-llvm -c 
                 ${CMAKE_CURRENT_SOURCE_DIR}/${src}
                 -iquote ${CMAKE_CURRENT_SOURCE_DIR} -I${GMP_INCLUDE_DIRS}
-                -O3 -gline-tables-only -fPIC -fexceptions -funwind-tables ${EMULATED_TLS_FLAG} ${MCX16_FLAG}
+                -O3 -gline-tables-only -fPIC -fexceptions -funwind-tables ${EMULATED_TLS_FLAG} ${MCX16_FLAG} ${NDEBUG_FLAG}
                 -MD -MF ${bc_output}.d
                 -o ${bc_output}
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${src}

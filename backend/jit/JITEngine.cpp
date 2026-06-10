@@ -196,8 +196,10 @@ JITEngine::compileGeneric(std::function<std::string(CodeGen &)> codegenFunc,
       compilationPool
           .enqueue([this, codegenFunc, moduleName]() -> JITResult {
             try {
+              static std::atomic<uint64_t> moduleCounter{0};
+              std::string uniqueModuleId = moduleName + "_" + std::to_string(moduleCounter.fetch_add(1));
               auto codeGenerator =
-                  CodeGen(moduleName, threadsafeState, (void *)this);
+                  CodeGen(uniqueModuleId, threadsafeState, (void *)this);
               codeGenerator.TheModule->setTargetTriple(
                   TM->getTargetTriple().str());
               codeGenerator.TheModule->setDataLayout(TM->createDataLayout());

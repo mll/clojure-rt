@@ -327,10 +327,7 @@ void registerMathIntrinsics(InvokeManager &mgr) {
   regQMath("Ratio_add", mpq_add);
   regQMath("Ratio_sub", mpq_sub);
   regQMath("Ratio_mul", mpq_mul);
-  regQMath("Ratio_div", [](mpq_t r, mpq_t a, mpq_t b) {
-    if (mpq_sgn(b) != 0)
-      mpq_div(r, a, b);
-  });
+  typeIntrinsics["Ratio_div"] = typeIntrinsics["BigInteger_div"];
 
   // Mixed type folding helpers
   auto regMixZ = [&](const string &symbol, auto op) {
@@ -369,14 +366,8 @@ void registerMathIntrinsics(InvokeManager &mgr) {
   regMixZ("Sub_BI", mpz_sub);
   regMixZ("Mul_IB", mpz_mul);
   regMixZ("Mul_BI", mpz_mul);
-  regMixZ("Div_IB", [](mpz_t r, mpz_t a, mpz_t b) {
-    if (mpz_sgn(b) != 0)
-      mpz_tdiv_q(r, a, b);
-  });
-  regMixZ("Div_BI", [](mpz_t r, mpz_t a, mpz_t b) {
-    if (mpz_sgn(b) != 0)
-      mpz_tdiv_q(r, a, b);
-  });
+  typeIntrinsics["Div_IB"] = typeIntrinsics["BigInteger_div"];
+  typeIntrinsics["Div_BI"] = typeIntrinsics["BigInteger_div"];
 
   auto regMixD = [&](const string &symbol, auto op) {
     typeIntrinsics[symbol] =
@@ -449,28 +440,16 @@ void registerMathIntrinsics(InvokeManager &mgr) {
   regMixQ("Sub_RB", mpq_sub);
   regMixQ("Mul_BR", mpq_mul);
   regMixQ("Mul_RB", mpq_mul);
-  regMixQ("Div_BR", [](mpq_t r, mpq_t a, mpq_t b) {
-    if (mpq_sgn(b) != 0)
-      mpq_div(r, a, b);
-  });
-  regMixQ("Div_RB", [](mpq_t r, mpq_t a, mpq_t b) {
-    if (mpq_sgn(b) != 0)
-      mpq_div(r, a, b);
-  });
+  typeIntrinsics["Div_BR"] = typeIntrinsics["BigInteger_div"];
+  typeIntrinsics["Div_RB"] = typeIntrinsics["BigInteger_div"];
   regMixQ("Add_IR", mpq_add);
   regMixQ("Add_RI", mpq_add);
   regMixQ("Sub_IR", mpq_sub);
   regMixQ("Sub_RI", mpq_sub);
   regMixQ("Mul_IR", mpq_mul);
   regMixQ("Mul_RI", mpq_mul);
-  regMixQ("Div_IR", [](mpq_t r, mpq_t a, mpq_t b) {
-    if (mpq_sgn(b) != 0)
-      mpq_div(r, a, b);
-  });
-  regMixQ("Div_RI", [](mpq_t r, mpq_t a, mpq_t b) {
-    if (mpq_sgn(b) != 0)
-      mpq_div(r, a, b);
-  });
+  typeIntrinsics["Div_IR"] = typeIntrinsics["BigInteger_div"];
+  typeIntrinsics["Div_RI"] = typeIntrinsics["BigInteger_div"];
 
   // --- Codegen ---
 

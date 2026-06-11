@@ -47,6 +47,7 @@ static void test_execution_context_bind(void **state) {
     
     // Pop
     ExecutionContext *popped = ExecutionContext_pop(newCtx);
+    (void)popped;
     // popped releases newCtx, which releases its map, which releases v and valToBind
   });
 }

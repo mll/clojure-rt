@@ -257,6 +257,7 @@ public:
     return memoryManagement.hasPushedResources();
   }
   MemoryManagement &getMemoryManagement() { return memoryManagement; }
+  InvokeManager &getInvokeManager() { return invokeManager; }
   DynamicConstructor &getDynamicConstructor() { return dynamicConstructor; }
   llvm::Value *getExecutionContext();
 

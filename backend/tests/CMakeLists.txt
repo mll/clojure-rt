@@ -12,6 +12,7 @@ set(TEST_MODULES
     codegen/StaticFieldNode_test
     codegen/JITArithmetic_test
     codegen/MathIntrinsics_test
+    codegen/InvokeManager_Math_test
     codegen/DoubleAddRepro_test
     codegen/NoThrow_test
     codegen/DoNode_test

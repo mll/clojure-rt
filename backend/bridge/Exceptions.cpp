@@ -220,10 +220,13 @@ void symbolizeStackChain(std::stringstream &ss,
                       for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames();
                            ++i) {
                         auto &info = inlinedInfo.getFrame(i);
-                        std::string fnName =
-                            (info.FunctionName != "<invalid>")
-                                ? llvm::demangle(info.FunctionName)
-                                : demangled;
+                        std::string funcName = info.FunctionName;
+                        if (funcName == "<invalid>" || 
+                            funcName.find("asan.module_ctor") != std::string::npos ||
+                            funcName.find("asan.module_dtor") != std::string::npos) {
+                          funcName = entry.name;
+                        }
+                        std::string fnName = llvm::demangle(funcName);
 
                         std::stringstream frameSs;
                         frameSs << "  " << Colors::INFRA(useColor) << "at "

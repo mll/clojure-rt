@@ -9,7 +9,7 @@
 #include "Transient.h"
 #include <stdarg.h>
 
-PersistentVector *EMPTY_VECTOR = NULL;
+PersistentVector * volatile EMPTY_VECTOR = NULL;
 
 /* mem done */
 PersistentVector *PersistentVector_create() {

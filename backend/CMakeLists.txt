@@ -26,9 +26,10 @@ endif()
 #set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fstandalone-debug")
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fstandalone-debug")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -fno-omit-frame-pointer -g")
 set(CMAKE_CXX_STANDARD 20)
+
 add_compile_definitions(BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
 
@@ -207,6 +208,7 @@ include_directories(${GMP_INCLUDE_DIRS})
 
 
 add_library(backend_lib STATIC ${BACKEND_SOURCES} ${PROTO_SRCS} ${PROTO_HDRS})
+set_target_properties(backend_lib PROPERTIES ENABLE_EXPORTS TRUE)
 # Use target-based linking for Protobuf to handle Abseil dependencies automatically
 if(TARGET protobuf::libprotobuf)
     set(PROTOBUF_LINK_TARGET protobuf::libprotobuf)

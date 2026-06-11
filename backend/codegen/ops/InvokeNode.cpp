@@ -39,8 +39,8 @@ TypedValue CodeGen::codegen(const Node &node, const InvokeNode &subnode,
     }
 
     // 3. Generate the VarInvoke call
-    TypedValue result =
-        invokeManager.generateVarInvoke(varObj, args, &guard, &node);
+    TypedValue result = invokeManager.generateVarInvoke(varObj, args, &guard,
+                                                        &node, !v->dynamic);
 
     return TypedValue(result.type.restriction(typeRestrictions), result.value);
   }

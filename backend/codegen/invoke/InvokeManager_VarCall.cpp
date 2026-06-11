@@ -12,8 +12,8 @@ namespace rt {
 
 TypedValue InvokeManager::generateVarInvoke(
     TypedValue varObj, const std::vector<TypedValue> &args,
-    CleanupChainGuard *guard,
-    const clojure::rt::protobuf::bytecode::Node *node) {
+    CleanupChainGuard *guard, const clojure::rt::protobuf::bytecode::Node *node,
+    bool forceStaticVar) {
 
   size_t argCount = args.size();
 
@@ -23,10 +23,9 @@ TypedValue InvokeManager::generateVarInvoke(
   // 2. Load current value FROM VAR (borrowed call - Var_peek)
   FunctionType *peekSig = FunctionType::get(
       types.RT_valueTy, {types.ExecutionContextPtrTy, types.ptrTy}, false);
-  Value *currentVal =
-      invokeRaw("Var_peek", peekSig, {codeGen.getExecutionContext(), varPtr},
-                guard, false, {}, true);
-
+  Value *currentVal = invokeRaw(
+      forceStaticVar ? "Var_peekStatic" : "Var_peek", peekSig,
+      {codeGen.getExecutionContext(), varPtr}, guard, false, {}, true);
 
   // 3. Unified IC resolution (Handles Functions, Keywords, Maps, Vectors)
   Value *methodToCall = generateICLookup(currentVal, argCount, guard);

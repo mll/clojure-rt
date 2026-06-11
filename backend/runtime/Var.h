@@ -44,11 +44,18 @@ void Var_destroy(Var *self);
 Var *Var_setDynamic(Var *self, bool dynamic); // modifies and returns self
 bool Var_isDynamic(Var *self);
 bool Var_hasRoot(Var *self);
-RTValue Var_deref(__attribute__((swift_context)) struct ExecutionContext *ctx, Var *self) __attribute__((swiftcall));
+RTValue Var_deref(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                  Var *self) __attribute__((swiftcall));
 /* the returned reference is not retained and is not guaranteed to even
    be valid after the call returns. */
-RTValue Var_peek(__attribute__((swift_context)) struct ExecutionContext *ctx, Var *self) __attribute__((swiftcall));
-RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx, Var *self, RTValue value) __attribute__((swiftcall));
+RTValue Var_peek(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                 Var *self) __attribute__((swiftcall));
+RTValue
+Var_peekStatic(__attribute__((swift_context)) struct ExecutionContext *ctx,
+               Var *self) __attribute__((swiftcall));
+
+RTValue Var_set(__attribute__((swift_context)) struct ExecutionContext *ctx,
+                Var *self, RTValue value) __attribute__((swiftcall));
 
 RTValue Var_bindRoot(Var *self, RTValue object);
 RTValue Var_unbindRoot(Var *self);

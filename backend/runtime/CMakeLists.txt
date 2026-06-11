@@ -147,6 +147,7 @@ foreach(src ${SOURCES})
     
     add_custom_command(
         OUTPUT ${bc_output}
+        BYPRODUCTS ${bc_output}.d
         COMMAND ${CLANG_EXECUTABLE} -emit-llvm -c 
                 ${CMAKE_CURRENT_SOURCE_DIR}/${src}
                 -iquote ${CMAKE_CURRENT_SOURCE_DIR} -I${GMP_INCLUDE_DIRS}

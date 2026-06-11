@@ -7,7 +7,6 @@
 #include "llvm/Object/ObjectFile.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include <cxxabi.h>
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <map>
@@ -1030,10 +1029,8 @@ extern "C" RTValue RT_captureException() {
     wrapper->isLanguageException = false;
     wrapper->isStdException = true;
     
-    int status = 0;
-    char* demangled = abi::__cxa_demangle(typeid(e).name(), nullptr, nullptr, &status);
-    wrapper->className = (status == 0 && demangled) ? demangled : typeid(e).name();
-    if (demangled) free(demangled);
+    std::string demangled = llvm::demangle(typeid(e).name());
+    wrapper->className = demangled.empty() ? typeid(e).name() : demangled;
     
     wrapper->message = e.what();
     wrapper->capturedStack = captureCurrentStack();
@@ -1124,8 +1121,10 @@ extern "C" bool Exception_isInstance(const char *className, void *jitEngine, RTV
  * @param ex A pointer to the C++ ABI exception object (from the landing pad).
  * @return A pointer to the adjusted exception payload (rt::LanguageException).
  */
+extern "C" void* __cxa_begin_catch(void* exceptionObject) noexcept;
+
 extern "C" void* RT_cxa_begin_catch(void* ex) {
-  return abi::__cxa_begin_catch(ex);
+  return __cxa_begin_catch(ex);
 }
 
 /**
@@ -1135,8 +1134,10 @@ extern "C" void* RT_cxa_begin_catch(void* ex) {
  * of the catch block, unless the exception is rethrown via __cxa_rethrow. 
  * Failure to call this function will result in a memory leak.
  */
+extern "C" void __cxa_end_catch();
+
 extern "C" void RT_cxa_end_catch() {
-  abi::__cxa_end_catch();
+  __cxa_end_catch();
 }
 
 /**
@@ -1146,8 +1147,10 @@ extern "C" void RT_cxa_end_catch() {
  * It automatically handles the cleanup of the catch state, meaning that 
  * __cxa_end_catch should NOT be called if an exception is rethrown.
  */
+extern "C" void __cxa_rethrow();
+
 extern "C" void RT_cxa_rethrow() {
-  abi::__cxa_rethrow();
+  __cxa_rethrow();
 }
 
 } // namespace rt

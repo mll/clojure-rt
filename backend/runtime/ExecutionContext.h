@@ -22,4 +22,8 @@ ExecutionContext *
 RT_bind_map(__attribute__((swift_context)) struct ExecutionContext *ctx,
             RTValue bindingsMap) __attribute__((swiftcall));
 
+ExecutionContext *
+ExecutionContext_pop(__attribute__((swift_context)) struct ExecutionContext *ctx)
+    __attribute__((swiftcall));
+
 #endif

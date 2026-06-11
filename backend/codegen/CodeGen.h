@@ -55,11 +55,13 @@ struct RecurTarget {
 
 class CodeGen {
   std::unique_ptr<llvm::orc::ThreadSafeContext> TSContext;
-
   llvm::LLVMContext &TheContext;
-  std::unique_ptr<llvm::Module> TheModule;
-  llvm::IRBuilder<> Builder;
 
+public:
+  std::unique_ptr<llvm::Module> TheModule;
+
+private:
+  llvm::IRBuilder<> Builder;
   VariableBindings<TypedValue> variableBindingStack;
   VariableBindings<ObjectTypeSet> variableTypesBindingsStack;
 
@@ -70,7 +72,9 @@ class CodeGen {
   DynamicConstructor dynamicConstructor;
   MemoryManagement memoryManagement;
   std::vector<llvm::Value *> executionContextStack;
-  void pushExecutionContext(llvm::Value *ctx) { executionContextStack.push_back(ctx); }
+  void pushExecutionContext(llvm::Value *ctx) {
+    executionContextStack.push_back(ctx);
+  }
   void popExecutionContext() { executionContextStack.pop_back(); }
 
   ThreadsafeCompilerState &compilerState;

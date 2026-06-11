@@ -187,7 +187,27 @@ void symbolizeStackChain(std::stringstream &ss,
                   auto objOrErr = llvm::object::ObjectFile::createObjectFile(
                       buffer->getMemBufferRef());
                   if (objOrErr) {
-                    uword_t offset = addr - entryStart;
+                    uword_t symbolOffsetInObj = 0;
+                    uint64_t sectionIndex = llvm::object::SectionedAddress::UndefSection;
+                    for (auto const &Sym : objOrErr.get()->symbols()) {
+                      auto nameOrErr = Sym.getName();
+                      if (nameOrErr) {
+                        std::string symName = nameOrErr.get().str();
+                        if (symName == entry.name || (symName.starts_with("_") && symName.substr(1) == entry.name)) {
+                          auto valOrErr = Sym.getValue();
+                          if (valOrErr) {
+                            symbolOffsetInObj = valOrErr.get();
+                            auto secOrErr = Sym.getSection();
+                            if (secOrErr && secOrErr.get() != objOrErr.get()->section_end()) {
+                              sectionIndex = secOrErr.get()->getIndex();
+                            }
+                            break;
+                          }
+                        }
+                      }
+                    }
+
+                    uword_t offset = symbolOffsetInObj + (addr - entryStart);
                     if (offset >= 4)
                       offset -= 4;
 
@@ -196,17 +216,20 @@ void symbolizeStackChain(std::stringstream &ss,
                     llvm::symbolize::LLVMSymbolizer localSymbolizer;
                     auto resOrErr = localSymbolizer.symbolizeInlinedCode(
                         *objOrErr.get(),
-                        {offset, llvm::object::SectionedAddress::UndefSection});
+                        {offset, sectionIndex});
 
                     if (resOrErr) {
                       auto &inlinedInfo = resOrErr.get();
                       for (uint32_t i = 0; i < inlinedInfo.getNumberOfFrames();
                            ++i) {
                         auto &info = inlinedInfo.getFrame(i);
-                        std::string fnName =
-                            (info.FunctionName != "<invalid>")
-                                ? llvm::demangle(info.FunctionName)
-                                : demangled;
+                        std::string funcName = info.FunctionName;
+                        if (funcName == "<invalid>" || 
+                            funcName.find("asan.module_ctor") != std::string::npos ||
+                            funcName.find("asan.module_dtor") != std::string::npos) {
+                          funcName = entry.name;
+                        }
+                        std::string fnName = llvm::demangle(funcName);
 
                         std::stringstream frameSs;
                         frameSs << "  " << Colors::INFRA(useColor) << "at "
@@ -450,14 +473,34 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
             auto objOrErr = llvm::object::ObjectFile::createObjectFile(
                 buffer->getMemBufferRef());
             if (objOrErr) {
-              uword_t offset = addr - entryStart;
+              uword_t symbolOffsetInObj = 0;
+              uint64_t sectionIndex = llvm::object::SectionedAddress::UndefSection;
+              for (auto const &Sym : objOrErr.get()->symbols()) {
+                auto nameOrErr = Sym.getName();
+                if (nameOrErr) {
+                  std::string symName = nameOrErr.get().str();
+                  if (symName == entry.name || (symName.starts_with("_") && symName.substr(1) == entry.name)) {
+                    auto valOrErr = Sym.getValue();
+                    if (valOrErr) {
+                      symbolOffsetInObj = valOrErr.get();
+                      auto secOrErr = Sym.getSection();
+                      if (secOrErr && secOrErr.get() != objOrErr.get()->section_end()) {
+                        sectionIndex = secOrErr.get()->getIndex();
+                      }
+                      break;
+                    }
+                  }
+                }
+              }
+
+              uword_t offset = symbolOffsetInObj + (addr - entryStart);
               if (offset >= 4)
                 offset -= 4;
 
               llvm::symbolize::LLVMSymbolizer localSymbolizer;
               auto resOrErr = localSymbolizer.symbolizeInlinedCode(
                   *objOrErr.get(),
-                  {offset, llvm::object::SectionedAddress::UndefSection});
+                  {offset, sectionIndex});
 
               if (resOrErr) {
                 auto &inlinedInfo = resOrErr.get();

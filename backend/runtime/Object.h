@@ -5,8 +5,6 @@ struct ExecutionContext;
 
 #define RT_OBJECT
 
-
-
 #include "Hash.h"
 #include "word.h"
 #ifdef __cplusplus
@@ -106,24 +104,50 @@ inline void Object_promoteToSharedShallow(Object *self, uword_t current);
 inline uword_t Object_getRawRefCount(Object *self);
 
 inline void Object_create(Object *restrict self, objectType type) {
+#ifdef REFCOUNT_NONATOMIC
+  self->refCount = COUNT_INC;
+#else
   atomic_store_explicit(&(self->atomicRefCount), COUNT_INC,
                         memory_order_relaxed);
+#endif
   self->type = type;
+#ifdef REFCOUNT_TRACING
   if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
     atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
                               memory_order_relaxed);
     atomic_fetch_add_explicit(&(objectCount[self->type - 1]), 1,
                               memory_order_relaxed);
   }
+#endif
+  //  printf("--> Allocating type %d addres %p\n", self->type, );
 }
 
 inline void Object_retain(Object *restrict self) {
+//  printf("RETAIN!!! %d\n", self->type);
+#ifdef REFCOUNT_TRACING
   if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
     atomic_fetch_add_explicit(&(allocationCount[self->type - 1]), 1,
                               memory_order_relaxed);
   }
-  atomic_fetch_add_explicit(&(self->atomicRefCount), COUNT_INC,
+#endif
+#ifdef REFCOUNT_NONATOMIC
+  self->refCount += COUNT_INC;
+#else
+  uword_t current =
+      atomic_load_explicit(&(self->atomicRefCount), memory_order_relaxed);
+
+  if (__builtin_expect(!(current & SHARED_BIT), 1)) {
+    // FAST PATH: It's local. Use a plain non-atomic write.
+    // We can do this because only THIS thread owns it.
+    uword_t new_val = current + COUNT_INC;
+    atomic_store_explicit(&(self->atomicRefCount), new_val,
+                          memory_order_relaxed);
+  } else {
+    // SLOW PATH: It's shared. Must use atomic fetch_add.
+    atomic_fetch_add_explicit(&(self->atomicRefCount), COUNT_INC,
                               memory_order_relaxed);
+  }
+#endif
 }
 
 inline void Ptr_retain(void *ptr);
@@ -140,31 +164,30 @@ RTValue RT_withMeta(RTValue v, RTValue meta);
 #include "BigInteger.h"
 #include "Boolean.h"
 #include "BridgedObject.h"
-#include "PersistentVectorChunkedSeq.h"
-#include "PersistentVectorReverseSeq.h"
-#include "ArrayChunk.h"
 #include "Class.h"
 #include "ConcurrentHashMap.h"
 #include "Double.h"
 #include "Exception.h"
+#include "ExecutionContext.h"
 #include "Function.h"
 #include "Integer.h"
 #include "Keyword.h"
+#include "Namespace.h"
 #include "Nil.h"
 #include "PersistentArrayMap.h"
 #include "PersistentList.h"
 #include "PersistentVector.h"
+#include "PersistentVectorChunkedSeq.h"
 #include "PersistentVectorIterator.h"
 #include "PersistentVectorNode.h"
+#include "PersistentVectorReverseSeq.h"
 #include "Ratio.h"
 #include "String.h"
 #include "StringBuilder.h"
 #include "Symbol.h"
 #include "Var.h"
-#include "ExecutionContext.h"
-#include "Namespace.h"
 
-extern void ExecutionContext_destroy(ExecutionContext* self);
+extern void ExecutionContext_destroy(ExecutionContext *self);
 
 inline void *allocate(size_t size) {
 #ifndef USE_MEMORY_BANKS
@@ -321,13 +344,15 @@ inline void Object_destroy(Object *restrict self, bool deallocateChildren) {
     StringBuilder_destroy((StringBuilder *)self);
     break;
   case persistentVectorChunkedSeqType:
-    PersistentVectorChunkedSeq_destroy((PersistentVectorChunkedSeq *)self, deallocateChildren);
+    PersistentVectorChunkedSeq_destroy((PersistentVectorChunkedSeq *)self,
+                                       deallocateChildren);
     break;
   case arrayChunkType:
     ArrayChunk_destroy((ArrayChunk *)self, deallocateChildren);
     break;
   case persistentVectorReverseSeqType:
-    PersistentVectorReverseSeq_destroy((PersistentVectorReverseSeq *)self, deallocateChildren);
+    PersistentVectorReverseSeq_destroy((PersistentVectorReverseSeq *)self,
+                                       deallocateChildren);
     break;
   case symbolType:
     Symbol_destroy((Symbol *)self);
@@ -370,10 +395,12 @@ inline bool isReusable(RTValue self) {
 
 inline bool Object_release_internal(Object *restrict self,
                                     bool deallocateChildren) {
+#ifdef REFCOUNT_TRACING
   if (self->type > 0 && (int)self->type <= TRACING_LIMIT) {
     atomic_fetch_sub_explicit(&(allocationCount[self->type - 1]), 1,
                               memory_order_relaxed);
   }
+#endif
 #ifdef REFCOUNT_NONATOMIC
   self->refCount -= COUNT_INC;
   if ((self->refCount >> 1) == 0) {
@@ -482,7 +509,8 @@ inline void Object_promoteToShared(Object *restrict self) {
     break;
 
   case persistentVectorChunkedSeqType:
-    Object_promoteToShared((Object *)((PersistentVectorChunkedSeq *)self)->it.parent);
+    Object_promoteToShared(
+        (Object *)((PersistentVectorChunkedSeq *)self)->it.parent);
     Object_promoteToSharedShallow(self, count);
     break;
   case arrayChunkType:
@@ -627,7 +655,9 @@ inline bool Object_equals(Object *self, Object *other) {
   case stringBuilderType:
     return StringBuilder_equals((StringBuilder *)self, (StringBuilder *)other);
   case persistentVectorChunkedSeqType:
-    return PersistentVectorChunkedSeq_equals((PersistentVectorChunkedSeq *)self, (PersistentVectorChunkedSeq *)other);
+    return PersistentVectorChunkedSeq_equals(
+        (PersistentVectorChunkedSeq *)self,
+        (PersistentVectorChunkedSeq *)other);
   case symbolType:
     return Symbol_equals((Symbol *)self, (Symbol *)other);
   case namespaceType:
@@ -696,7 +726,8 @@ inline String *Object_toString(Object *restrict self) {
   case stringBuilderType:
     return StringBuilder_toString((StringBuilder *)self);
   case persistentVectorChunkedSeqType:
-    return PersistentVectorChunkedSeq_toString((PersistentVectorChunkedSeq *)self);
+    return PersistentVectorChunkedSeq_toString(
+        (PersistentVectorChunkedSeq *)self);
   case symbolType:
     return Symbol_toString(RT_boxSymbol(self));
   case namespaceType:

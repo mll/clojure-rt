@@ -7,10 +7,10 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fexceptions")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -fexceptions")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -fexceptions -g")
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fexceptions")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Ofast -fexceptions")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Ofast -fexceptions -g")
 
 add_compile_definitions(BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
@@ -135,6 +135,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(EMULATED_TLS_FLAG "-femulated-tls")
 endif()
 
+set(NDEBUG_FLAG "")
+if(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo|MinSizeRel)$")
+    set(NDEBUG_FLAG "-DNDEBUG")
+endif()
+
 # 2. Compile each source file to an individual .bc file
 foreach(src ${SOURCES})
     get_filename_component(basename ${src} NAME_WE)
@@ -145,9 +150,11 @@ foreach(src ${SOURCES})
         COMMAND ${CLANG_EXECUTABLE} -emit-llvm -c 
                 ${CMAKE_CURRENT_SOURCE_DIR}/${src}
                 -iquote ${CMAKE_CURRENT_SOURCE_DIR} -I${GMP_INCLUDE_DIRS}
-                -O3 -gline-tables-only -fPIC -fexceptions -funwind-tables ${EMULATED_TLS_FLAG} ${MCX16_FLAG}
+                -O3 -gline-tables-only -fPIC -fexceptions -funwind-tables ${EMULATED_TLS_FLAG} ${MCX16_FLAG} ${NDEBUG_FLAG}
+                -MD -MF ${bc_output}.d
                 -o ${bc_output}
-        DEPENDS ${src}
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${src}
+        DEPFILE ${bc_output}.d
         COMMENT "Generating LLVM Bitcode for ${src}"
     )
     list(APPEND BITCODE_OUTPUTS ${bc_output})
@@ -163,6 +170,7 @@ add_custom_command(
 
 # 4. Create a target to trigger the build
 add_custom_target(runtime_ir ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/runtime_uber.bc)
+add_dependencies(runtime runtime_ir)
 
 ########################################################################
 

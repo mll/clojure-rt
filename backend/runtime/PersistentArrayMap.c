@@ -5,24 +5,24 @@
 #include "defines.h"
 #include <stdarg.h>
 
-static PersistentArrayMap *EMPTY = NULL;
+PersistentArrayMap * volatile EMPTY_ARRAY_MAP = NULL;
 
 /* mem done */
 PersistentArrayMap *PersistentArrayMap_empty() {
-  Ptr_retain(EMPTY);
-  return EMPTY;
+  Ptr_retain(EMPTY_ARRAY_MAP);
+  return EMPTY_ARRAY_MAP;
 }
 
 void PersistentArrayMap_initialise() {
-  if (EMPTY)
+  if (EMPTY_ARRAY_MAP)
     return;
-  EMPTY = PersistentArrayMap_create();
+  EMPTY_ARRAY_MAP = PersistentArrayMap_create();
 }
 
 void PersistentArrayMap_cleanup() {
-  if (EMPTY) {
-    Ptr_release(EMPTY);
-    EMPTY = NULL;
+  if (EMPTY_ARRAY_MAP) {
+    Ptr_release(EMPTY_ARRAY_MAP);
+    EMPTY_ARRAY_MAP = NULL;
   }
 }
 

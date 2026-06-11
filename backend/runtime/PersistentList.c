@@ -4,23 +4,23 @@
 #include "RTValue.h"
 #include <stdarg.h>
 
-static PersistentList *EMPTY = NULL;
+PersistentList * volatile EMPTY_LIST = NULL;
 // How to mark
 /* mem done */
 void PersistentList_initialise() {
-  if (EMPTY == NULL)
-    EMPTY = PersistentList_create(RT_boxNull(), NULL);
+  if (EMPTY_LIST == NULL)
+    EMPTY_LIST = PersistentList_create(RT_boxNull(), NULL);
 }
 
 PersistentList *PersistentList_empty() {
-  Ptr_retain(EMPTY);
-  return EMPTY;
+  Ptr_retain(EMPTY_LIST);
+  return EMPTY_LIST;
 }
 
 void PersistentList_cleanup() {
-  if (EMPTY) {
-    Ptr_release(EMPTY);
-    EMPTY = NULL;
+  if (EMPTY_LIST) {
+    Ptr_release(EMPTY_LIST);
+    EMPTY_LIST = NULL;
   }
 }
 

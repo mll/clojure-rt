@@ -185,6 +185,7 @@ void symbolizeStackChain(std::stringstream &ss,
                       buffer->getMemBufferRef());
                   if (objOrErr) {
                     uword_t symbolOffsetInObj = 0;
+                    uint64_t sectionIndex = llvm::object::SectionedAddress::UndefSection;
                     for (auto const &Sym : objOrErr.get()->symbols()) {
                       auto nameOrErr = Sym.getName();
                       if (nameOrErr) {
@@ -193,6 +194,10 @@ void symbolizeStackChain(std::stringstream &ss,
                           auto valOrErr = Sym.getValue();
                           if (valOrErr) {
                             symbolOffsetInObj = valOrErr.get();
+                            auto secOrErr = Sym.getSection();
+                            if (secOrErr && secOrErr.get() != objOrErr.get()->section_end()) {
+                              sectionIndex = secOrErr.get()->getIndex();
+                            }
                             break;
                           }
                         }
@@ -208,7 +213,7 @@ void symbolizeStackChain(std::stringstream &ss,
                     llvm::symbolize::LLVMSymbolizer localSymbolizer;
                     auto resOrErr = localSymbolizer.symbolizeInlinedCode(
                         *objOrErr.get(),
-                        {offset, llvm::object::SectionedAddress::UndefSection});
+                        {offset, sectionIndex});
 
                     if (resOrErr) {
                       auto &inlinedInfo = resOrErr.get();
@@ -463,6 +468,7 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
                 buffer->getMemBufferRef());
             if (objOrErr) {
               uword_t symbolOffsetInObj = 0;
+              uint64_t sectionIndex = llvm::object::SectionedAddress::UndefSection;
               for (auto const &Sym : objOrErr.get()->symbols()) {
                 auto nameOrErr = Sym.getName();
                 if (nameOrErr) {
@@ -471,6 +477,10 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
                     auto valOrErr = Sym.getValue();
                     if (valOrErr) {
                       symbolOffsetInObj = valOrErr.get();
+                      auto secOrErr = Sym.getSection();
+                      if (secOrErr && secOrErr.get() != objOrErr.get()->section_end()) {
+                        sectionIndex = secOrErr.get()->getIndex();
+                      }
                       break;
                     }
                   }
@@ -484,7 +494,7 @@ LanguageException::LanguageException(const std::string &name, RTValue message,
               llvm::symbolize::LLVMSymbolizer localSymbolizer;
               auto resOrErr = localSymbolizer.symbolizeInlinedCode(
                   *objOrErr.get(),
-                  {offset, llvm::object::SectionedAddress::UndefSection});
+                  {offset, sectionIndex});
 
               if (resOrErr) {
                 auto &inlinedInfo = resOrErr.get();

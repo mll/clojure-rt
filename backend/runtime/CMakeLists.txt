@@ -207,6 +207,7 @@ set(TEST_MODULES
     Metadata_test
     Var_Dynamic_test
     Namespace_test
+    Object_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

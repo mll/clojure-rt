@@ -255,15 +255,222 @@ static void test_invoke_exception_unwinding(void **state) {
     a2_1->mutable_subnode()->mutable_const_()->set_val("20");
     a2_1->mutable_subnode()->mutable_const_()->set_type(
         ConstNode_ConstType_constTypeNumber);
+    a2_1->set_tag("clojure.lang.BigInt");
     auto *a2_2 = i2->add_args();
     a2_2->set_op(opConst);
     a2_2->mutable_subnode()->mutable_const_()->set_val("30");
     a2_2->mutable_subnode()->mutable_const_()->set_type(
         ConstNode_ConstType_constTypeNumber);
+    a2_2->set_tag("clojure.lang.BigInt");
 
     // User AST: arg2 has no unwind-memory on itself
 
     auto res = engine.compileAST(root, "test2").get();
+    RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
+
+    bool caught = false;
+    try {
+      func();
+    } catch (const LanguageException &e) {
+      caught = true;
+    }
+    assert_true(caught);
+  });
+}
+
+// Test Case 3: Exception Unwinding on Third Argument (Nested Throw)
+static void test_invoke_exception_unwinding_nested(void **state) {
+  (void)state;
+  ASSERT_MEMORY_ALL_BALANCED({
+    JITEngine engine(llvm::OptimizationLevel::O0, false);
+    setup_minimal_runtime(engine);
+
+    // (let [thr (fn [] (throw (new java.lang.Exception)))
+    //       f (fn [x y z] (+ (+ x y) z))]
+    //  (f 10N 20N (f 30N 40N (thr))))
+
+    // 1. Build `thr` fn
+    Node thrFn;
+    thrFn.set_op(opFn);
+    auto *tFn = thrFn.mutable_subnode()->mutable_fn();
+    auto *tMn = tFn->add_methods()->mutable_subnode()->mutable_fnmethod();
+    tMn->set_fixedarity(0);
+    auto *tBody = tMn->mutable_body();
+    tBody->set_op(opThrow);
+    auto *ex = tBody->mutable_subnode()->mutable_throw_()->mutable_exception();
+    ex->set_op(opNew);
+    auto *nn = ex->mutable_subnode()->mutable_new_();
+    nn->mutable_class_()->set_op(opConst);
+    nn->mutable_class_()->mutable_subnode()->mutable_const_()->set_type(
+        ConstNode_ConstType_constTypeClass);
+    nn->mutable_class_()->mutable_subnode()->mutable_const_()->set_val(
+        "java.lang.Exception");
+
+    // 2. Build `f` fn
+    Node fFn;
+    fFn.set_op(opFn);
+    auto *fFnNode = fFn.mutable_subnode()->mutable_fn();
+    auto *fMn = fFnNode->add_methods()->mutable_subnode()->mutable_fnmethod();
+    fMn->set_fixedarity(3);
+    fMn->add_params()->mutable_subnode()->mutable_binding()->set_name("x");
+    fMn->add_params()->mutable_subnode()->mutable_binding()->set_name("y");
+    fMn->add_params()->mutable_subnode()->mutable_binding()->set_name("z");
+
+    auto *fBody = fMn->mutable_body();
+    fBody->set_op(opStaticCall);
+    auto *scOuter = fBody->mutable_subnode()->mutable_staticcall();
+    scOuter->set_class_("clojure.lang.Numbers");
+    scOuter->set_method("add");
+
+    // Inner (+ x y)
+    auto *innerAdd = scOuter->add_args();
+    innerAdd->set_op(opStaticCall);
+    auto *scInner = innerAdd->mutable_subnode()->mutable_staticcall();
+    scInner->set_class_("clojure.lang.Numbers");
+    scInner->set_method("add");
+    
+    auto *argX = scInner->add_args();
+    argX->set_op(opLocal);
+    argX->mutable_subnode()->mutable_local()->set_name("x");
+    argX->mutable_subnode()->mutable_local()->set_local(localTypeArg);
+    auto *argY = scInner->add_args();
+    argY->set_op(opLocal);
+    argY->mutable_subnode()->mutable_local()->set_name("y");
+    argY->mutable_subnode()->mutable_local()->set_local(localTypeArg);
+
+    auto *argZ = scOuter->add_args();
+    argZ->set_op(opLocal);
+    argZ->mutable_subnode()->mutable_local()->set_name("z");
+    argZ->mutable_subnode()->mutable_local()->set_local(localTypeArg);
+
+    auto *dmX = fBody->add_dropmemory();
+    dmX->set_variablename("x");
+    dmX->set_requiredrefcountchange(-1);
+    auto *dmY = fBody->add_dropmemory();
+    dmY->set_variablename("y");
+    dmY->set_requiredrefcountchange(-1);
+    auto *dmZ = fBody->add_dropmemory();
+    dmZ->set_variablename("z");
+    dmZ->set_requiredrefcountchange(-1);
+
+    // 3. Build Root Let
+    Node root;
+    root.set_op(opLet);
+    auto *let = root.mutable_subnode()->mutable_let();
+    
+    // Binding `thr`
+    auto *bThr = let->add_bindings()->mutable_subnode()->mutable_binding();
+    bThr->set_name("thr");
+    bThr->mutable_init()->CopyFrom(thrFn);
+
+    // Binding `f`
+    auto *bF = let->add_bindings()->mutable_subnode()->mutable_binding();
+    bF->set_name("f");
+    bF->mutable_init()->CopyFrom(fFn);
+
+    // 4. Build invocation: (f 10N 20N (f 30N 40N (thr)))
+    auto *invOuter = let->mutable_body();
+    invOuter->set_op(opInvoke);
+    auto *iOuter = invOuter->mutable_subnode()->mutable_invoke();
+    
+    // fn `f`
+    iOuter->mutable_fn()->set_op(opLocal);
+    iOuter->mutable_fn()->mutable_subnode()->mutable_local()->set_name("f");
+    iOuter->mutable_fn()->mutable_subnode()->mutable_local()->set_local(localTypeLet);
+    auto *uFnOuter = iOuter->mutable_fn()->add_unwindmemory();
+    uFnOuter->set_variablename("f");
+    uFnOuter->set_requiredrefcountchange(-1);
+    auto *uThrOuter = iOuter->mutable_fn()->add_unwindmemory();
+    uThrOuter->set_variablename("thr");
+    uThrOuter->set_requiredrefcountchange(-1);
+    
+    // Arg 1: 10N
+    auto *oArg1 = iOuter->add_args();
+    oArg1->set_op(opConst);
+    oArg1->mutable_subnode()->mutable_const_()->set_val("10");
+    oArg1->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    oArg1->set_tag("clojure.lang.BigInt");
+    auto *uOArg1_f = oArg1->add_unwindmemory();
+    uOArg1_f->set_variablename("f");
+    uOArg1_f->set_requiredrefcountchange(-1);
+    auto *uOArg1_thr = oArg1->add_unwindmemory();
+    uOArg1_thr->set_variablename("thr");
+    uOArg1_thr->set_requiredrefcountchange(-1);
+
+    // Arg 2: 20N
+    auto *oArg2 = iOuter->add_args();
+    oArg2->set_op(opConst);
+    oArg2->mutable_subnode()->mutable_const_()->set_val("20");
+    oArg2->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    oArg2->set_tag("clojure.lang.BigInt");
+    auto *uOArg2_f = oArg2->add_unwindmemory();
+    uOArg2_f->set_variablename("f");
+    uOArg2_f->set_requiredrefcountchange(-1);
+    auto *uOArg2_thr = oArg2->add_unwindmemory();
+    uOArg2_thr->set_variablename("thr");
+    uOArg2_thr->set_requiredrefcountchange(-1);
+
+    // Arg 3: (f 30N 40N (thr))
+    auto *oArg3 = iOuter->add_args();
+    oArg3->set_op(opInvoke);
+    auto *iInner = oArg3->mutable_subnode()->mutable_invoke();
+
+    // Inner fn `f`
+    iInner->mutable_fn()->set_op(opLocal);
+    iInner->mutable_fn()->mutable_subnode()->mutable_local()->set_name("f");
+    iInner->mutable_fn()->mutable_subnode()->mutable_local()->set_local(localTypeLet);
+    auto *uFnInner_f = iInner->mutable_fn()->add_unwindmemory();
+    uFnInner_f->set_variablename("f");
+    uFnInner_f->set_requiredrefcountchange(-1);
+    auto *uFnInner_thr = iInner->mutable_fn()->add_unwindmemory();
+    uFnInner_thr->set_variablename("thr");
+    uFnInner_thr->set_requiredrefcountchange(-1);
+    auto *dFnInnerF = iInner->mutable_fn()->add_dropmemory();
+    dFnInnerF->set_variablename("f");
+    dFnInnerF->set_requiredrefcountchange(1);
+
+    // Inner Arg 1: 30N
+    auto *iArg1 = iInner->add_args();
+    iArg1->set_op(opConst);
+    iArg1->mutable_subnode()->mutable_const_()->set_val("30");
+    iArg1->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    iArg1->set_tag("clojure.lang.BigInt");
+    auto *uIArg1_f = iArg1->add_unwindmemory();
+    uIArg1_f->set_variablename("f");
+    uIArg1_f->set_requiredrefcountchange(-1);
+    auto *uIArg1_thr = iArg1->add_unwindmemory();
+    uIArg1_thr->set_variablename("thr");
+    uIArg1_thr->set_requiredrefcountchange(-1);
+
+    // Inner Arg 2: 40N
+    auto *iArg2 = iInner->add_args();
+    iArg2->set_op(opConst);
+    iArg2->mutable_subnode()->mutable_const_()->set_val("40");
+    iArg2->mutable_subnode()->mutable_const_()->set_type(ConstNode_ConstType_constTypeNumber);
+    iArg2->set_tag("clojure.lang.BigInt");
+    auto *uIArg2_f = iArg2->add_unwindmemory();
+    uIArg2_f->set_variablename("f");
+    uIArg2_f->set_requiredrefcountchange(-1);
+    auto *uIArg2_thr = iArg2->add_unwindmemory();
+    uIArg2_thr->set_variablename("thr");
+    uIArg2_thr->set_requiredrefcountchange(-1);
+
+    // Inner Arg 3: (thr)
+    auto *iArg3 = iInner->add_args();
+    iArg3->set_op(opInvoke);
+    auto *iThr = iArg3->mutable_subnode()->mutable_invoke();
+    iThr->mutable_fn()->set_op(opLocal);
+    iThr->mutable_fn()->mutable_subnode()->mutable_local()->set_name("thr");
+    iThr->mutable_fn()->mutable_subnode()->mutable_local()->set_local(localTypeLet);
+    // Unwind for thr itself
+    auto *uThrInner_f = iThr->mutable_fn()->add_unwindmemory();
+    uThrInner_f->set_variablename("f");
+    uThrInner_f->set_requiredrefcountchange(-1);
+    auto *uThrInner_thr = iThr->mutable_fn()->add_unwindmemory();
+    uThrInner_thr->set_variablename("thr");
+    uThrInner_thr->set_requiredrefcountchange(-1);
+
+    auto res = engine.compileAST(root, "test3").get();
     RTValue (*func)() = res.address.toPtr<RTValue (*)()>();
 
     bool caught = false;
@@ -281,6 +488,7 @@ int main(void) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_invoke_captures_memory),
       cmocka_unit_test(test_invoke_exception_unwinding),
+      cmocka_unit_test(test_invoke_exception_unwinding_nested),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

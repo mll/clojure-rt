@@ -26,7 +26,8 @@ endif()
 #set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 #set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fstandalone-debug")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g --coverage -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fstandalone-debug")
+set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} --coverage")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -fno-omit-frame-pointer -g")
 set(CMAKE_CXX_STANDARD 20)
 
@@ -149,6 +150,7 @@ set(BACKEND_SOURCES
       codegen/ops/NewNode.cpp
       codegen/ops/IsInstanceNode.cpp
       codegen/ops/ThrowNode.cpp
+      codegen/ops/TryNode.cpp
       codegen/ops/InvokeNode.cpp
       codegen/ops/KeywordInvokeNode.cpp
       codegen/ops/FnNode.cpp

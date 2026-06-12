@@ -18,9 +18,10 @@ void ExecutionContext_destroy(ExecutionContext *self) {
 }
 
 ExecutionContext *ExecutionContext_clone(ExecutionContext *self) {
-  retain(self->bindingsMap);
+  RTValue map = self->bindingsMap;
+  retain(map);
   Ptr_release(self);
-  return ExecutionContext_create(self->bindingsMap);
+  return ExecutionContext_create(map);
 }
 
 ExecutionContext *

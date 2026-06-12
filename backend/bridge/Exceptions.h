@@ -127,4 +127,11 @@ extern "C" void *createException_C(const char *className, String *message,
 extern "C" [[noreturn]] void throwException_C(RTValue exceptionBoxed);
 extern "C" void deleteException_C(void *exception);
 
+extern "C" RTValue RT_captureException();
+extern "C" void* RT_cxa_begin_catch(void* ex);
+extern "C" void RT_cxa_end_catch();
+extern "C" void RT_cxa_rethrow();
+extern "C" [[noreturn]] void RT_rethrowException(RTValue exceptionBoxed);
+extern "C" bool Exception_isInstance(const char *className, void *jitEngine, RTValue exceptionInstance);
+
 #endif

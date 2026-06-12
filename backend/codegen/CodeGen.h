@@ -181,6 +181,8 @@ public:
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const ThrowNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
+  TypedValue codegen(const Node &node, const TryNode &subnode,
+                     const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const InvokeNode &subnode,
                      const ObjectTypeSet &typeRestrictions);
   TypedValue codegen(const Node &node, const KeywordInvokeNode &subnode,
@@ -231,6 +233,8 @@ public:
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const ThrowNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
+  ObjectTypeSet getType(const Node &node, const TryNode &subnode,
+                        const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const InvokeNode &subnode,
                         const ObjectTypeSet &typeRestrictions);
   ObjectTypeSet getType(const Node &node, const KeywordInvokeNode &subnode,
@@ -242,8 +246,6 @@ public:
   bool canThrow(const clojure::rt::protobuf::bytecode::Node &node);
 
   // Exception safety helpers
-  void pushResource(TypedValue val) { memoryManagement.pushResource(val); }
-  void popResource() { memoryManagement.popResource(); }
   llvm::BasicBlock *getLandingPad(size_t skipCount = 0) {
     return memoryManagement.getLandingPad(skipCount);
   }
@@ -255,6 +257,7 @@ public:
     return memoryManagement.hasPushedResources();
   }
   MemoryManagement &getMemoryManagement() { return memoryManagement; }
+  InvokeManager &getInvokeManager() { return invokeManager; }
   DynamicConstructor &getDynamicConstructor() { return dynamicConstructor; }
   llvm::Value *getExecutionContext();
 
@@ -267,10 +270,10 @@ public:
     FunctionScopeGuard(CodeGen &cg, llvm::Function *newFunction)
         : cg(cg), ipGuard(cg.Builder),
           prevLexicalBlocksSize(cg.LexicalBlocks.size()) {
-      cg.memoryManagement.pushState(newFunction);
+      cg.memoryManagement.suspendStateForNestedFunction(newFunction);
     }
     ~FunctionScopeGuard() {
-      cg.memoryManagement.popState();
+      cg.memoryManagement.restoreStateFromNestedFunction();
       while (cg.LexicalBlocks.size() > prevLexicalBlocksSize) {
         cg.LexicalBlocks.pop_back();
       }

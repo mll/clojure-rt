@@ -10,6 +10,7 @@
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <map>
+#include "runtime/Exception.h"
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -19,6 +20,7 @@
 #include <mach-o/dyld.h>
 #endif
 #include <unistd.h>
+#include "../jit/JITEngine.h"
 
 namespace rt {
 
@@ -847,15 +849,124 @@ void throwCodeGenerationException(
   throwCodeGenerationException(errorMessage, node.form(), file, line, column);
 }
 
+struct BridgedExceptionWrapper {
+  std::exception_ptr excPtr;
+  std::string className;
+  std::string message;
+  RTValue clojurePayload = 0;
+  bool isLanguageException = false;
+  bool isStdException = false;
+  std::string sourceLocation;
+  std::string form;
+  std::string exactForm;
+  std::shared_ptr<CapturedStack> capturedStack;
+};
+
+std::string getExceptionWrapperString(const BridgedExceptionWrapper &w, StackTraceMode mode, bool useColor) {
+  std::stringstream ss;
+
+  if (useColor) {
+    const char *force = getenv("CLOJURE_RT_FORCE_COLOR");
+    if (force && std::string(force) == "1") {
+      useColor = true;
+    } else {
+      useColor = isatty(STDERR_FILENO);
+    }
+  }
+
+  ss << "\n " << Colors::MARK(useColor) << "[!] " << c(Colors::RESET, useColor)
+     << Colors::HEADER(useColor) << "Exception: " << w.className
+     << c(Colors::RESET, useColor) << "\n";
+
+  ss << "     " << Colors::MSG(useColor) << "Message: " << w.message
+     << c(Colors::RESET, useColor) << "\n";
+
+  if (w.isLanguageException && w.clojurePayload != 0) {
+    retain(w.clojurePayload);
+    String *payStr = String_compactify(::toString(w.clojurePayload));
+    ss << "     " << c(Colors::WHITE, useColor)
+       << "Payload: " << String_c_str(payStr) << c(Colors::RESET, useColor)
+       << "\n";
+    Ptr_release(payStr);
+  }
+
+  if (!w.form.empty()) {
+    ss << "\n " << c(Colors::BOLD, useColor)
+       << "Source context:" << c(Colors::RESET, useColor) << "\n";
+    ss << "  " << Colors::LOC(useColor) << w.sourceLocation
+       << c(Colors::RESET, useColor) << ":\n";
+    ss << "    " << Colors::CODE(useColor) << w.form << c(Colors::RESET, useColor)
+       << "\n";
+    ss << "    " << Colors::MARK(useColor) << std::string(w.form.length(), '^')
+       << c(Colors::RESET, useColor) << "\n";
+  }
+
+  if (!w.exactForm.empty() && w.exactForm != w.form) {
+    ss << "\n " << c(Colors::BOLD, useColor)
+       << "Exact expression:" << c(Colors::RESET, useColor) << "\n";
+    ss << "    " << Colors::CODE(useColor) << w.exactForm
+       << c(Colors::RESET, useColor) << "\n";
+  }
+
+  if (w.capturedStack) {
+    ss << "\n " << c(Colors::BOLD, useColor)
+       << "Stack Trace:" << c(Colors::RESET, useColor) << "\n";
+    static llvm::symbolize::LLVMSymbolizer symbolizer;
+#ifdef __APPLE__
+    char path[1024];
+    uint32_t size = sizeof(path);
+    _NSGetExecutablePath(path, &size);
+    std::string exePath = path;
+    size_t lastSlash = exePath.find_last_of('/');
+    std::string basename = (lastSlash != std::string::npos)
+                               ? exePath.substr(lastSlash + 1)
+                               : "clojure-rt";
+    std::string moduleName =
+        exePath + ".dSYM/Contents/Resources/DWARF/" + basename;
+    intptr_t slide = _dyld_get_image_vmaddr_slide(0);
+#else
+    std::string moduleName = "/proc/self/exe";
+    intptr_t slide = 0;
+#endif
+    symbolizeStackChain(ss, w.capturedStack, symbolizer, moduleName, slide, mode,
+                        useColor);
+  }
+
+  return ss.str();
+}
+
 extern "C" String *exceptionToString_C(void *exception) {
-  rt::LanguageException *ex = (rt::LanguageException *)exception;
-  auto str = getExceptionString(*ex, StackTraceMode::Friendly, true);
+  auto* wrapper = (rt::BridgedExceptionWrapper*)exception;
+  auto str = getExceptionWrapperString(*wrapper, StackTraceMode::Friendly, true);
   return ::String_createDynamicStr(str.c_str());
 }
 
 extern "C" void *createException_C(const char *className, String *message,
                                    RTValue payload) {
-  return new rt::LanguageException(className, RT_boxPtr(message), payload);
+  auto* le = new rt::LanguageException(className, RT_boxPtr(message), payload);
+  std::exception_ptr p = std::make_exception_ptr(*le);
+  
+  auto* wrapper = new rt::BridgedExceptionWrapper();
+  wrapper->excPtr = p;
+  wrapper->className = className;
+  
+  Ptr_retain(message);
+  String *compacted = String_compactify(message);
+  wrapper->message = String_c_str(compacted);
+  Ptr_release(compacted);
+  
+  wrapper->clojurePayload = payload;
+  retain(wrapper->clojurePayload);
+  
+  wrapper->isLanguageException = true;
+  wrapper->isStdException = true;
+  wrapper->capturedStack = le->getCapturedStack();
+  wrapper->sourceLocation = le->getSourceLocation();
+  wrapper->form = le->getForm();
+  wrapper->exactForm = le->getExactForm();
+  
+  delete le;
+  return wrapper;
 }
 
 extern "C" [[noreturn]] void throwException_C(RTValue exceptionBoxed) {
@@ -865,14 +976,181 @@ extern "C" [[noreturn]] void throwException_C(RTValue exceptionBoxed) {
         "throwException_C called with non-exception object");
   }
   Exception *ex = (Exception *)RT_unboxPtr(exceptionBoxed);
-  rt::LanguageException *le = (rt::LanguageException *)ex->bridgedData;
-  rt::LanguageException toThrow = *le;
+  auto* wrapper = (rt::BridgedExceptionWrapper*)ex->bridgedData;
+  std::exception_ptr p = wrapper->excPtr;
   release(exceptionBoxed);
-  throw toThrow;
+  std::rethrow_exception(p);
 }
 
 extern "C" void deleteException_C(void *exception) {
-  delete (rt::LanguageException *)exception;
+  auto* wrapper = (rt::BridgedExceptionWrapper*)exception;
+  if (wrapper) {
+    if (getType(wrapper->clojurePayload) != nilType) {
+      release(wrapper->clojurePayload);
+    }
+    delete wrapper;
+  }
+}
+
+extern "C" RTValue RT_captureException() {
+  std::exception_ptr p = std::current_exception();
+  if (!p) {
+    return RT_boxNil();
+  }
+
+  auto* wrapper = new rt::BridgedExceptionWrapper();
+  wrapper->excPtr = p;
+  wrapper->clojurePayload = RT_boxNil();
+
+  try {
+    std::rethrow_exception(p);
+  } catch (const rt::LanguageException &le) {
+    wrapper->isLanguageException = true;
+    wrapper->isStdException = true;
+    wrapper->className = le.getName();
+    
+    RTValue leMsg = le.getMessage();
+    if (getType(leMsg) == stringType) {
+      String *compacted = String_compactify((String *)RT_unboxPtr(leMsg));
+      wrapper->message = String_c_str(compacted);
+      Ptr_release(compacted);
+    } else {
+      wrapper->message = "LanguageException";
+    }
+    
+    wrapper->clojurePayload = le.getPayload();
+    retain(wrapper->clojurePayload);
+    
+    wrapper->capturedStack = le.getCapturedStack();
+    wrapper->sourceLocation = le.getSourceLocation();
+    wrapper->form = le.getForm();
+    wrapper->exactForm = le.getExactForm();
+  } catch (const std::exception &e) {
+    wrapper->isLanguageException = false;
+    wrapper->isStdException = true;
+    
+    std::string demangled = llvm::demangle(typeid(e).name());
+    wrapper->className = demangled.empty() ? typeid(e).name() : demangled;
+    
+    wrapper->message = e.what();
+    wrapper->capturedStack = captureCurrentStack();
+  } catch (...) {
+    wrapper->isLanguageException = false;
+    wrapper->isStdException = false;
+    wrapper->className = "C++Exception";
+    wrapper->message = "Unknown C++ exception";
+    wrapper->capturedStack = captureCurrentStack();
+  }
+
+  Exception* ex = (Exception*)allocate(sizeof(Exception));
+  Object_create((Object *)ex, exceptionType);
+  ex->bridgedData = wrapper;
+
+  return RT_boxPtr(ex);
+}
+
+extern "C" [[noreturn]] void RT_rethrowException(RTValue exceptionBoxed) {
+  if (getType(exceptionBoxed) != exceptionType) {
+    release(exceptionBoxed);
+    throwInternalInconsistencyException(
+        "RT_rethrowException called with non-exception object");
+  }
+  Exception *ex = (Exception *)RT_unboxPtr(exceptionBoxed);
+  auto* wrapper = (rt::BridgedExceptionWrapper*)ex->bridgedData;
+  std::exception_ptr p = wrapper->excPtr;
+  release(exceptionBoxed);
+  std::rethrow_exception(p);
+}
+
+extern "C" bool Exception_isInstance(const char *className, void *jitEngine, RTValue exceptionInstance) {
+  if (!jitEngine) {
+    release(exceptionInstance);
+    return false;
+  }
+  
+  Exception *ex = (Exception *)RT_unboxPtr(exceptionInstance);
+  auto* wrapper = (rt::BridgedExceptionWrapper*)ex->bridgedData;
+  
+  if (wrapper->className == className) {
+    release(exceptionInstance);
+    return true;
+  }
+  
+  if (strcmp(className, "java.lang.Throwable") == 0 || 
+      strcmp(className, "java.lang.Exception") == 0) {
+    release(exceptionInstance);
+    return true;
+  }
+  
+  if ((strcmp(className, "std::exception") == 0 || strcmp(className, "std.exception") == 0) &&
+      wrapper->isStdException) {
+    release(exceptionInstance);
+    return true;
+  }
+  
+  JITEngine *engine = static_cast<JITEngine *>(jitEngine);
+  
+  Class *cls = engine->threadsafeState.classRegistry.getCurrent(className);
+  if (!cls) {
+    cls = engine->threadsafeState.protocolRegistry.getCurrent(className);
+  }
+  
+  Class *targetClass = engine->threadsafeState.classRegistry.getCurrent(wrapper->className.c_str());
+  if (!targetClass) {
+    targetClass = engine->threadsafeState.protocolRegistry.getCurrent(wrapper->className.c_str());
+  }
+  
+  bool retVal = false;
+  if (cls && targetClass) {
+    retVal = Class_isInstance(cls, targetClass);
+  }
+  
+  if (cls) Ptr_release(cls);
+  if (targetClass) Ptr_release(targetClass);
+  release(exceptionInstance);
+  return retVal;
+}
+
+/**
+ * Wrapper for the C++ ABI __cxa_begin_catch function.
+ * This function marks the exception as officially caught, initializing its catch state.
+ * Crucially, calling this function obligates the execution flow to eventually call 
+ * __cxa_end_catch (unless rethrown) to properly free the memory allocated for the 
+ * exception by the C++ runtime.
+ * 
+ * @param ex A pointer to the C++ ABI exception object (from the landing pad).
+ * @return A pointer to the adjusted exception payload (rt::LanguageException).
+ */
+extern "C" void* __cxa_begin_catch(void* exceptionObject) noexcept;
+
+extern "C" void* RT_cxa_begin_catch(void* ex) {
+  return __cxa_begin_catch(ex);
+}
+
+/**
+ * Wrapper for the C++ ABI __cxa_end_catch function.
+ * This function cleans up the state of the currently caught exception and frees its 
+ * memory. It must be called exactly once per __cxa_begin_catch call upon the completion 
+ * of the catch block, unless the exception is rethrown via __cxa_rethrow. 
+ * Failure to call this function will result in a memory leak.
+ */
+extern "C" void __cxa_end_catch();
+
+extern "C" void RT_cxa_end_catch() {
+  __cxa_end_catch();
+}
+
+/**
+ * Wrapper for the C++ ABI __cxa_rethrow function.
+ * This function re-throws the currently caught exception without creating a new 
+ * exception object, preserving its original type and stack trace. 
+ * It automatically handles the cleanup of the catch state, meaning that 
+ * __cxa_end_catch should NOT be called if an exception is rethrown.
+ */
+extern "C" void __cxa_rethrow();
+
+extern "C" void RT_cxa_rethrow() {
+  __cxa_rethrow();
 }
 
 } // namespace rt

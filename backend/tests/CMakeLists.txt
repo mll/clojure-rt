@@ -12,6 +12,7 @@ set(TEST_MODULES
     codegen/StaticFieldNode_test
     codegen/JITArithmetic_test
     codegen/MathIntrinsics_test
+    codegen/InvokeManager_Math_test
     codegen/DoubleAddRepro_test
     codegen/NoThrow_test
     codegen/DoNode_test
@@ -31,6 +32,7 @@ set(TEST_MODULES
     codegen/NewNode_test
     codegen/IsInstanceNode_test
     codegen/ThrowNode_test
+    codegen/TryNode_test
     codegen/FnNode_test
     codegen/InvokeNode_test
     codegen/InvokeMemory_test
@@ -45,6 +47,8 @@ set(TEST_MODULES
     codegen/EBRFlush_test
     codegen/MetadataNode_test
     codegen/ContextPropagation_test
+    codegen/WithMetaNode_test
+    codegen/HostInteropNode_test
     state/ClassRegistration_test
     state/ProtocolValidation_test
     state/EdnParserLeak_test

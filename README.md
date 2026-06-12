@@ -45,6 +45,38 @@ To show llvm IR for runtime:
 
 llvm-dis runtime_uber.bc -o runtime_uber.ll
 
+## Code Coverage
+
+We use `gcovr` to generate and view code coverage reports.
+
+To install `gcovr`:
+```bash
+# via Homebrew (macOS)
+brew install gcovr
+
+# or via pip
+pip install gcovr
+```
+
+To generate and view the coverage report:
+1. Ensure the backend is compiled in Debug mode (which adds `--coverage` flags by default).
+2. Run the tests.
+3. Run `gcovr` in the `backend` directory.
+
+```bash
+cd backend
+# Run tests first
+make test  # or ctest -V
+# Display text summary in terminal
+gcovr
+
+# Alternatively, generate an HTML report and open it
+gcovr --html --html-details -o coverage.html
+open coverage.html
+```
+Note: We have a `gcovr.cfg` configuration in place to ignore generated protobuf files (`bytecode.pb.*`) from the coverage results.
+
+
 
 ## Running
 

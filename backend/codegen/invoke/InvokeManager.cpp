@@ -177,6 +177,7 @@ ObjectTypeSet InvokeManager::foldIntrinsic(const IntrinsicDescription &id,
 
 bool InvokeManager::canThrow(const std::string &fname) const {
   static const std::unordered_set<std::string> safeFunctions = {
+      "__cxa_end_catch",
       "retain",
       "release",
       "getType",

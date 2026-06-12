@@ -13,6 +13,7 @@
 #include "runtime/ObjectProto.h"
 #include "types/ObjectTypeSet.h"
 #include "llvm/ADT/StringSwitch.h"
+#include <algorithm>
 #include <cstdint>
 #include <llvm/IR/Constants.h>
 #include <string>
@@ -36,7 +37,7 @@ void MemoryManagement::initFunction(llvm::Function *F) {
   clear();
 }
 
-void MemoryManagement::pushState(llvm::Function *F) {
+void MemoryManagement::suspendStateForNestedFunction(llvm::Function *F) {
   stateStack.push_back({exceptionSlot, terminalResumeBB,
                         std::move(cleanupStack), std::move(activeResources),
                         totalPushedResources, resourcesWithCleanup,
@@ -44,10 +45,11 @@ void MemoryManagement::pushState(llvm::Function *F) {
   initFunction(F);
 }
 
-void MemoryManagement::popState() {
+void MemoryManagement::restoreStateFromNestedFunction() {
   if (stateStack.empty()) {
     throwInternalInconsistencyException(
-        "MemoryManagement::popState called on empty stack");
+        "MemoryManagement::restoreStateFromNestedFunction called on empty "
+        "stack");
   }
   FunctionState &s = stateStack.back();
   exceptionSlot = s.exceptionSlot;
@@ -117,9 +119,8 @@ MemoryManagement::getLandingPad(size_t skipCount,
   }
 
   // 1. Calculate how many resources effectively need protection (survivors)
-  size_t survivorCount = (skipCount < activeResources.size())
-                             ? (activeResources.size() - skipCount)
-                             : 0;
+  size_t survivorCount =
+      std::max(0, (int)activeResources.size() - (int)skipCount);
 
   bool hasGuidance = activeUnwindGuidance && !activeUnwindGuidance->empty();
 
@@ -274,20 +275,58 @@ TypedValue MemoryManagement::dynamicRelease(const TypedValue &target) {
 
 void MemoryManagement::dynamicIsReusable(const TypedValue &target) {}
 
+bool MemoryManagement::hasPushedResources() const {
+  return !activeResources.empty();
+}
+
+bool MemoryManagement::hasActiveGuidance() const {
+  return activeUnwindGuidance != nullptr && !activeUnwindGuidance->empty();
+}
+
+const google::protobuf::RepeatedPtrField<MemoryManagementGuidance> *
+MemoryManagement::getActiveUnwindGuidance() const {
+  return activeUnwindGuidance;
+}
+
+void MemoryManagement::setActiveUnwindGuidance(
+    const google::protobuf::RepeatedPtrField<MemoryManagementGuidance>
+        *guidance) {
+  activeUnwindGuidance = guidance;
+  // Clearing cache because guidance might change between nodes for the same
+  // skipCount
+  lpadCache.clear();
+}
+
+void MemoryManagement::clearActiveUnwindGuidance() {
+  activeUnwindGuidance = nullptr;
+  lpadCache.clear();
+}
+
+MemoryManagement::UnwindGuidanceGuard::UnwindGuidanceGuard(
+    MemoryManagement &mm,
+    const google::protobuf::RepeatedPtrField<MemoryManagementGuidance> *current)
+    : mm(mm), prev(mm.getActiveUnwindGuidance()) {
+  mm.setActiveUnwindGuidance(current);
+}
+
+MemoryManagement::UnwindGuidanceGuard::~UnwindGuidanceGuard() {
+  mm.setActiveUnwindGuidance(prev);
+}
+
 // CleanupChainGuard implementation
 CleanupChainGuard::CleanupChainGuard(CodeGen &c) : cg(c) {}
 CleanupChainGuard::~CleanupChainGuard() { popAll(); }
 
 void CleanupChainGuard::push(TypedValue val) {
   if (needsProtection(val.type)) {
-    cg.pushResource(val);
+    cg.getMemoryManagement().pushResource(val);
     pushedCount++;
   }
 }
 
 void CleanupChainGuard::popAll() {
   while (pushedCount > 0) {
-    cg.popResource();
+    cg.getMemoryManagement().popResource();
     pushedCount--;
   }
 }

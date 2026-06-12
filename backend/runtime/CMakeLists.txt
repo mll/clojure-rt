@@ -6,10 +6,10 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fexceptions")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g --coverage -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fexceptions")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -fexceptions -g")
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fexceptions")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g --coverage -fsanitize=address -fno-omit-frame-pointer -Wall -Wextra -Wstrict-aliasing -Wno-unused-parameter -fexceptions")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Ofast -fexceptions -g")
 
 add_compile_definitions(BUILD_TYPE="${CMAKE_BUILD_TYPE}")
@@ -147,6 +147,7 @@ foreach(src ${SOURCES})
     
     add_custom_command(
         OUTPUT ${bc_output}
+        BYPRODUCTS ${bc_output}.d
         COMMAND ${CLANG_EXECUTABLE} -emit-llvm -c 
                 ${CMAKE_CURRENT_SOURCE_DIR}/${src}
                 -iquote ${CMAKE_CURRENT_SOURCE_DIR} -I${GMP_INCLUDE_DIRS}
@@ -207,6 +208,12 @@ set(TEST_MODULES
     Metadata_test
     Var_Dynamic_test
     Namespace_test
+    Object_test
+    Double_test
+    ExecutionContext_test
+    PersistentVectorReverseSeq_test
+    Function_test
+    Class_test
 )
 
 foreach(TEST_MODULE ${TEST_MODULES})

@@ -36,8 +36,9 @@ CodeGenResult CodeGen::release() && {
   auto constants = std::move(generatedConstants);
   generatedConstants.clear(); // Ensure destructor doesn't re-release
   auto icSlotNames = std::move(invokeManager.getICSlotNames());
-  return {std::move(TSContext), std::move(TheModule), std::move(constants),
-          std::move(icSlotNames), std::move(formMap), std::move(contextFormMap)};
+  return {std::move(TSContext), std::move(TheModule),
+          std::move(constants), std::move(icSlotNames),
+          std::move(formMap),   std::move(contextFormMap)};
 }
 
 std::string CodeGen::codegenTopLevel(const Node &node) {
@@ -282,8 +283,8 @@ llvm::Function *CodeGen::generateBaselineMethod(
   // Unpack arguments from LLVM function
   auto arg_it = F->arg_begin();
   pushExecutionContext(&*arg_it++); // Arg 0: ExecutionContext* (swiftself)
-  Value *framePtr = &*arg_it++;         // Arg 1: Frame*
-  Value *regArgs[5];            // Arg 1-5: RTValue registers
+  Value *framePtr = &*arg_it++;     // Arg 1: Frame*
+  Value *regArgs[5];                // Arg 1-5: RTValue registers
   for (int i = 0; i < 5; ++i) {
     regArgs[i] = &*arg_it++;
   }
@@ -302,8 +303,11 @@ llvm::Function *CodeGen::generateBaselineMethod(
   if (!selfBindingName.empty()) {
     Value *selfPtr = types.getFrameSelfPtr(Builder, framePtr);
     Value *selfVal = Builder.CreateLoad(types.RT_valueTy, selfPtr, "self");
-    variableBindingStack.set(selfBindingName, TypedValue(ObjectTypeSet(functionType, false), selfVal));
-    variableTypesBindingsStack.set(selfBindingName, ObjectTypeSet(functionType, false));
+    variableBindingStack.set(
+        selfBindingName,
+        TypedValue(ObjectTypeSet(functionType, false), selfVal));
+    variableTypesBindingsStack.set(selfBindingName,
+                                   ObjectTypeSet(functionType, false));
   }
 
   std::string loopId = method.loopid();
@@ -394,7 +398,9 @@ llvm::Function *CodeGen::generateBaselineMethod(
     }
   }
 
-  // Generate body
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  //               BODY GENERATION
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   TypedValue result = codegen(method.body(), ObjectTypeSet::all());
 
   // Check metrics and conditionally call flush
@@ -568,7 +574,11 @@ TypedValue CodeGen::codegen(const Node &node,
             node.subnode().keywordinvoke()),
         typeRestrictions);
   case opTry:
-  //   return codegen(node, node.subnode().try_(), typeRestrictions);
+    return this->codegen(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::TryNode &>(
+            node.subnode().try_()),
+        typeRestrictions);
   case opVar:
     return codegen(node, node.subnode().var(), typeRestrictions);
   case opFn:
@@ -687,7 +697,11 @@ ObjectTypeSet CodeGen::getType(const Node &node,
             node.subnode().throw_()),
         typeRestrictions);
   case opTry:
-  //   return getType(node, node.subnode().try_(), typeRestrictions);
+    return this->getType(
+        node,
+        static_cast<const clojure::rt::protobuf::bytecode::TryNode &>(
+            node.subnode().try_()),
+        typeRestrictions);
   case opVar:
     return getType(node, node.subnode().var(), typeRestrictions);
   case opWithMeta:

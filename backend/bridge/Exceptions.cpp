@@ -114,6 +114,8 @@ static bool isInfrastructureFrame(const std::string &name,
       "throwInternalInconsistencyException",
       "throwIllegalArgumentException",
       "throwNoMatchingOverloadException",
+      "createException_C",
+      "Exception_create",
       "InstanceCallSlowPath",
       "asan_",
       "__asan_",
@@ -126,9 +128,16 @@ static bool isInfrastructureFrame(const std::string &name,
       return true;
   }
 
+  if (name == "main" || name == "start") {
+    return true;
+  }
+
   if (file.find("codegen/invoke/InvokeManager.") != std::string::npos ||
       file.find("codegen/CodeGen.") != std::string::npos ||
-      file.find("jit/JITEngine.") != std::string::npos) {
+      file.find("jit/JITEngine.") != std::string::npos ||
+      file.find("bridge/Exceptions.") != std::string::npos ||
+      file.find("runtime/Exception.") != std::string::npos ||
+      file.find("main.cpp") != std::string::npos) {
     return true;
   }
 
